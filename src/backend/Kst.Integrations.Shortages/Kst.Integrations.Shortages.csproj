@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Kst.Integrations.Shortages: Internal shortage database integration boundary.
+    Do not add production queries in this phase.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kst.Domain\Kst.Domain.csproj" />
+  </ItemGroup>
+</Project>

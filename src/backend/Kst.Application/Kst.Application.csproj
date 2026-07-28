@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Kst.Application: use cases and orchestration. No HTTP, SQL, or file-system code. -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kst.Domain\Kst.Domain.csproj" />
+  </ItemGroup>
+</Project>

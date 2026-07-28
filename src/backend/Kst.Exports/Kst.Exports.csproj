@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Kst.Exports: export service boundary. No Excel, QXtend, or CSV in this phase. -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kst.Domain\Kst.Domain.csproj" />
+  </ItemGroup>
+</Project>

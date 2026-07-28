@@ -1,0 +1,164 @@
+/* ── Layout ────────────────────────────────────────────────────────────────── */
+.dashboard {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1a1a2e;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.dashboard-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.dashboard-version {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ── Status sections ───────────────────────────────────────────────────────── */
+.status-section {
+  margin-bottom: 1.75rem;
+}
+
+.status-section h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+/* ── Status badge ─────────────────────────────────────────────────────────── */
+.status-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.status-starting  { background: #f1f5f9; color: #475569; }
+.status-waiting   { background: #fef9c3; color: #854d0e; }
+.status-connected { background: #dcfce7; color: #166534; }
+.status-error     { background: #fee2e2; color: #991b1b; }
+
+/* ── Error / info text ─────────────────────────────────────────────────────── */
+.error-message {
+  margin-top: 0.5rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.last-updated {
+  margin-top: 0.375rem;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+/* ── Info grid ─────────────────────────────────────────────────────────────── */
+.info-grid {
+  display: grid;
+  grid-template-columns: 10rem 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0;
+}
+
+.info-grid dt {
+  font-weight: 500;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.info-grid dd {
+  margin: 0;
+  color: #1e293b;
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+
+.info-grid dd.mono {
+  font-family: 'Consolas', 'Menlo', monospace;
+  font-size: 0.8rem;
+}
+
+/* ── Data sources ──────────────────────────────────────────────────────────── */
+.data-sources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.data-source-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.data-source-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.data-source-status {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+.ds-notConfigured { background: #f1f5f9; color: #64748b; }
+.ds-connecting    { background: #fef9c3; color: #854d0e; }
+.ds-connected     { background: #dcfce7; color: #166534; }
+.ds-unavailable   { background: #fee2e2; color: #991b1b; }
+
+/* ── Actions ───────────────────────────────────────────────────────────────── */
+.actions {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: white;
+}
+.btn-primary:hover { background: #1d4ed8; }
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+.btn-secondary:hover { background: #cbd5e1; }

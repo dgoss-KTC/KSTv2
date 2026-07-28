@@ -1,0 +1,36 @@
+Documentation/
+prototype/
+
+# .NET / C#
+src/backend/**/bin/
+src/backend/**/obj/
+src/backend/**/*.user
+publish/
+
+# Rust / Tauri
+src/tauri/target/
+src/tauri/binaries/
+
+# Node / Frontend
+src/frontend/node_modules/
+src/frontend/dist/
+src/frontend/.vite/
+src/frontend/**/*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vs/
+.vscode/settings.json
+*.suo
+*.user
+
+# Secrets (never commit)
+**/appsettings.*.local.json
+**/*.secrets.json

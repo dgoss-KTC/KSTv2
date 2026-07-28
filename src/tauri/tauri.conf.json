@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "KST",
+  "version": "0.1.0",
+  "identifier": "com.keytronic.kst",
+  "build": {
+    "frontendDist": "./frontend/dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm --prefix ./frontend run dev",
+    "beforeBuildCommand": "npm --prefix ./frontend run build"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "title": "Keytronic Scheduler's Toolbox",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src http://127.0.0.1:* 'self'; style-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [],
+    "externalBin": [
+      "binaries/Kst.Api"
+    ]
+  }
+}

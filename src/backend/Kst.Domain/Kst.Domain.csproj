@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Kst.Domain: pure business concepts and rules. No infrastructure dependencies. -->
+</Project>

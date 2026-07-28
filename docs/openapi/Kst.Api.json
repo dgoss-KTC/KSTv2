@@ -1,0 +1,234 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Kst.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Diagnostics"
+        ],
+        "summary": "Returns liveness status of the backend process.",
+        "operationId": "GetHealth",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "Diagnostics"
+        ],
+        "summary": "Returns readiness status once initialization is complete.",
+        "operationId": "GetReady",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/status": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Returns typed system status for the frontend walking skeleton.",
+        "operationId": "GetSystemStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DataSourceDto": {
+        "required": [
+          "name",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthResponse": {
+        "required": [
+          "status",
+          "application",
+          "backendVersion",
+          "processId",
+          "instanceId",
+          "timestamp"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "application": {
+            "type": "string"
+          },
+          "backendVersion": {
+            "type": "string"
+          },
+          "processId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "instanceId": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReadyResponse": {
+        "required": [
+          "status",
+          "initialized",
+          "snapshotAvailable",
+          "timestamp"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "initialized": {
+            "type": "boolean"
+          },
+          "snapshotAvailable": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SnapshotStatusDto": {
+        "required": [
+          "available",
+          "snapshotId",
+          "createdAt",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "snapshotId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "SystemStatusResponse": {
+        "required": [
+          "applicationName",
+          "applicationVersion",
+          "backendFramework",
+          "backendInstanceId",
+          "startedAt",
+          "currentTime",
+          "snapshot",
+          "dataSources"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationName": {
+            "type": "string"
+          },
+          "applicationVersion": {
+            "type": "string"
+          },
+          "backendFramework": {
+            "type": "string"
+          },
+          "backendInstanceId": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/SnapshotStatusDto"
+          },
+          "dataSources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataSourceDto"
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Diagnostics"
+    },
+    {
+      "name": "System"
+    }
+  ]
+}

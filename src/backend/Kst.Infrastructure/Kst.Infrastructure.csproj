@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Kst.Infrastructure: clock, instance ID, snapshot store, config paths. -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kst.Domain\Kst.Domain.csproj" />
+    <ProjectReference Include="..\Kst.Application\Kst.Application.csproj" />
+  </ItemGroup>
+</Project>
