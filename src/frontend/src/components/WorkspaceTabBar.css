@@ -1,0 +1,70 @@
+.tab-bar {
+  display: flex;
+  align-items: stretch;
+  height: 38px;
+  background: var(--app);
+  border-bottom: 1px solid var(--bd);
+  padding: 0 8px;
+  flex: none;
+  gap: 2px;
+}
+
+.tab-bar__tab {
+  align-self: center;
+  padding: 4px 14px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--tx2);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.tab-bar__tab:hover {
+  background: var(--chip);
+  color: var(--tx);
+}
+
+.tab-bar__tab--active {
+  background: var(--panel);
+  border-color: var(--bd);
+  color: var(--tx);
+}
+
+.tab-bar__add {
+  align-self: center;
+  margin-left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px dashed var(--bd-strong);
+  background: transparent;
+  color: var(--tx2);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s, color 0.1s;
+  padding: 0;
+}
+
+.tab-bar__add:hover {
+  background: var(--chip);
+  color: var(--tx);
+}
+
+.tab-bar__add:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 2px;
+}
+
+.tab-bar__spacer {
+  flex: 1;
+}

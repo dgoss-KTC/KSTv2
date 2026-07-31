@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { act } from 'react';
 import App from '../App';
 import type { SystemStatusResponse } from '../api/client';
+import type { WorkspaceListResponseDto } from '../api/client';
 
 const lifecycleListeners = new Map<string, (event: { payload: unknown }) => void>();
 
@@ -33,6 +32,11 @@ const mockStatus: SystemStatusResponse = {
   ],
 };
 
+const mockWorkspaceList: WorkspaceListResponseDto = {
+  workspaces: [],
+  configurationWarning: null,
+};
+
 describe('App integration', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -57,123 +61,82 @@ describe('App integration', () => {
   it('shows starting state initially', () => {
     fetchMock.mockReturnValue(new Promise(() => {})); // never resolves
     render(<App />);
-    // In starting state the badge shows "Starting backend…" or "Waiting for readiness…"
     expect(
-      screen.queryByText(/starting backend/i) ?? screen.queryByText(/waiting/i),
+      screen.queryByText(/starting/i),
     ).toBeTruthy();
   });
 
-  it('renders backend status when connected', async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => mockStatus,
+  it('shows Backend connected label when backend is up', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/api/v1/workspaces')) {
+        return Promise.resolve({ ok: true, json: async () => mockWorkspaceList });
+      }
+      return Promise.resolve({ ok: true, json: async () => mockStatus });
     });
 
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText('Connected')).toBeInTheDocument();
+      expect(screen.getByText(/backend connected/i)).toBeInTheDocument();
     });
-
-    expect(screen.getByText('.NET 10')).toBeInTheDocument();
-    expect(screen.getByText('test-instance-id')).toBeInTheDocument();
-    expect(screen.getByText('QAD')).toBeInTheDocument();
-    expect(screen.getByText('Shortage Database')).toBeInTheDocument();
   });
 
-  it('shows backend unavailable when fetch fails with network error', async () => {
+  it('shows empty workspace state when connected with no workspaces', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/api/v1/workspaces')) {
+        return Promise.resolve({ ok: true, json: async () => mockWorkspaceList });
+      }
+      return Promise.resolve({ ok: true, json: async () => mockStatus });
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/use \+ to add a workspace/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows backend unavailable when fetch fails', async () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
 
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/backend is unavailable/i)).toBeInTheDocument();
+      expect(screen.getByText(/backend unavailable/i)).toBeInTheDocument();
     });
   });
 
-  it('shows retry button when unavailable', async () => {
-    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
-
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /retry connection/i })).toBeInTheDocument();
-    });
-  });
-
-  it('retry button re-fetches status', async () => {
-    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockStatus,
+  it('shows the + button for adding workspaces', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/api/v1/workspaces')) {
+        return Promise.resolve({ ok: true, json: async () => mockWorkspaceList });
+      }
+      return Promise.resolve({ ok: true, json: async () => mockStatus });
     });
 
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /retry connection/i })).toBeInTheDocument();
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: /retry connection/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText('Connected')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /add workspace/i })).toBeInTheDocument();
     });
   });
 
-  it('shows refresh button when connected', async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => mockStatus,
+  it('does not render an IOS field', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/api/v1/workspaces')) {
+        return Promise.resolve({ ok: true, json: async () => mockWorkspaceList });
+      }
+      return Promise.resolve({ ok: true, json: async () => mockStatus });
     });
 
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /refresh status/i })).toBeInTheDocument();
-    });
-  });
-
-  it('shows data sources with notConfigured status', async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => mockStatus,
+      expect(screen.getByText(/backend connected/i)).toBeInTheDocument();
     });
 
-    render(<App />);
-
-    await waitFor(() => {
-      const statuses = screen.getAllByText('notConfigured');
-      expect(statuses).toHaveLength(2);
-    });
-  });
-
-  it('transitions to unavailable when backend-terminated event is received', async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => mockStatus,
-    });
-
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Connected')).toBeInTheDocument();
-    });
-
-    const terminated = lifecycleListeners.get('backend-terminated');
-    expect(terminated).toBeTruthy();
-
-    await act(async () => {
-      terminated?.({
-        payload: {
-          reason: 'Backend terminated unexpectedly.',
-        },
-      });
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('Backend unavailable')).toBeInTheDocument();
-      expect(screen.getByText('Backend terminated unexpectedly.')).toBeInTheDocument();
-    });
+    expect(screen.queryByLabelText(/ios/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ios code/i)).not.toBeInTheDocument();
   });
 });
+

@@ -1,9 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Kst.Domain.Common;
 using Kst.Application.Snapshots;
+using Kst.Application.Workspaces;
 using Kst.Infrastructure.Clock;
 using Kst.Infrastructure.Snapshots;
 using Kst.Infrastructure.Configuration;
+using Kst.Infrastructure.Workspaces;
 
 namespace Kst.Infrastructure;
 
@@ -19,6 +21,7 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<ISnapshotStore, InMemorySnapshotStore>();
         services.AddSingleton(new LocalAppDataPaths(localAppDataOverride));
+        services.AddSingleton<IWorkspaceConfigurationStore, JsonWorkspaceConfigurationStore>();
         return services;
     }
 }

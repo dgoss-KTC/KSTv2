@@ -4,6 +4,7 @@ using Serilog;
 using Serilog.Events;
 using Kst.Api.Endpoints;
 using Kst.Application.SystemStatus;
+using Kst.Application.Workspaces;
 using Kst.Infrastructure;
 using Kst.Infrastructure.Configuration;
 using Kst.Infrastructure.Identity;
@@ -88,6 +89,7 @@ builder.Services.AddSingleton<IReadOnlyList<DataSourceSummary>>(_ =>
 ]);
 
 builder.Services.AddScoped<GetSystemStatusQuery>();
+builder.Services.AddSingleton<IWorkspaceConfigurationService, WorkspaceConfigurationService>();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddCors(options =>
@@ -126,6 +128,7 @@ app.MapOpenApi();
 
 app.MapDiagnosticEndpoints();
 app.MapSystemEndpoints();
+app.MapWorkspaceEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------
 // Writes a JSON line to stdout once the server is bound so Tauri can read the port.

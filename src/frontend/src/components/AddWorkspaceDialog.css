@@ -1,0 +1,157 @@
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: var(--panel);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  padding: 28px 32px;
+  width: 460px;
+  max-width: calc(100vw - 32px);
+  box-shadow: var(--shadow);
+  outline: none;
+}
+
+.dialog__title {
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tx);
+}
+
+.dialog__helper-text {
+  font-size: 12px;
+  color: var(--tx3);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dialog__field--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialog__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tx2);
+}
+
+.dialog__label--inline {
+  font-size: 13px;
+  color: var(--tx);
+}
+
+.dialog__input {
+  background: var(--panel2);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  color: var(--tx);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.dialog__input:focus {
+  border-color: var(--accent-solid);
+}
+
+.dialog__input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dialog__input--error {
+  border-color: var(--danger-bd);
+}
+
+.dialog__input--error:focus {
+  border-color: var(--danger-bd);
+}
+
+.dialog__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dialog__field-error {
+  font-size: 11.5px;
+  color: var(--danger-tx);
+}
+
+.dialog__scope-error {
+  margin-top: -8px;
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bd);
+}
+
+.dialog__btn {
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 18px;
+  cursor: pointer;
+  transition: background 0.1s, opacity 0.1s;
+  border: 1px solid transparent;
+}
+
+.dialog__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dialog__btn--secondary {
+  background: var(--chip);
+  border-color: var(--bd);
+  color: var(--tx2);
+}
+
+.dialog__btn--secondary:hover:not(:disabled) {
+  background: var(--row-hover);
+  color: var(--tx);
+}
+
+.dialog__btn--primary {
+  background: var(--accent-solid);
+  color: #fff;
+}
+
+.dialog__btn--primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.dialog__btn:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 2px;
+}

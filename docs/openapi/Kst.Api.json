@@ -67,10 +67,124 @@
           }
         }
       }
+    },
+    "/api/v1/workspaces": {
+      "get": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Returns the saved workspace list and any nonfatal configuration warning.",
+        "operationId": "ListWorkspaces",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceListResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Creates and persists a new workspace configuration.",
+        "operationId": "CreateWorkspace",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceAssignmentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "CreateWorkspaceRequestDto": {
+        "required": [
+          "displayName",
+          "site",
+          "customerNumber",
+          "productLineFrom",
+          "productLineTo",
+          "isTemporary",
+          "coverageEndsOn"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "site": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "customerNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "productLineFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "productLineTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isTemporary": {
+            "type": "boolean"
+          },
+          "coverageEndsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        }
+      },
       "DataSourceDto": {
         "required": [
           "name",
@@ -120,6 +234,44 @@
           "timestamp": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -220,6 +372,96 @@
             }
           }
         }
+      },
+      "WorkspaceAssignmentDto": {
+        "required": [
+          "assignmentId",
+          "displayName",
+          "site",
+          "customerNumber",
+          "productLineFrom",
+          "productLineTo",
+          "isTemporary",
+          "coverageEndsOn",
+          "isEnabled",
+          "sortOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "site": {
+            "type": "string"
+          },
+          "customerNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "productLineFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "productLineTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isTemporary": {
+            "type": "boolean"
+          },
+          "coverageEndsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "isEnabled": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "WorkspaceListResponseDto": {
+        "required": [
+          "workspaces",
+          "configurationWarning"
+        ],
+        "type": "object",
+        "properties": {
+          "workspaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceAssignmentDto"
+            }
+          },
+          "configurationWarning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       }
     }
   },
@@ -229,6 +471,9 @@
     },
     {
       "name": "System"
+    },
+    {
+      "name": "Workspaces"
     }
   ]
 }

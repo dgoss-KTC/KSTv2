@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Kst.Application.Workspaces;
+using Kst.Domain.Workspaces;
 
 namespace Kst.Api.IntegrationTests;
 
@@ -17,8 +19,13 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            // No overrides needed — the placeholder integrations are already
-            // registered when QAD / Shortages config is absent.
+            // Replace the JSON file store with an in-memory store for tests.
+            var descriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(IWorkspaceConfigurationStore));
+            if (descriptor is not null)
+                services.Remove(descriptor);
+
+            services.AddSingleton<IWorkspaceConfigurationStore, InMemoryWorkspaceStore>();
         });
 
         builder.ConfigureLogging(logging =>
@@ -27,3 +34,21 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
         });
     }
 }
+
+/// <summary>
+/// In-memory workspace store for integration tests. Isolates tests from the file system.
+/// </summary>
+internal sealed class InMemoryWorkspaceStore : IWorkspaceConfigurationStore
+{
+    private List<WorkspaceAssignment> _workspaces = [];
+
+    public Task<WorkspaceLoadResult> LoadAsync() =>
+        Task.FromResult(new WorkspaceLoadResult(_workspaces, null));
+
+    public Task SaveAsync(IReadOnlyList<WorkspaceAssignment> workspaces)
+    {
+        _workspaces = [..workspaces];
+        return Task.CompletedTask;
+    }
+}
+

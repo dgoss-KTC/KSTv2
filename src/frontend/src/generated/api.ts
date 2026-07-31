@@ -17,12 +17,28 @@ export interface paths {
     /** Returns typed system status for the frontend walking skeleton. */
     get: operations["GetSystemStatus"];
   };
+  "/api/v1/workspaces": {
+    /** Returns the saved workspace list and any nonfatal configuration warning. */
+    get: operations["ListWorkspaces"];
+    /** Creates and persists a new workspace configuration. */
+    post: operations["CreateWorkspace"];
+  };
 }
 
 export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
+    CreateWorkspaceRequestDto: {
+      displayName: null | string;
+      site: null | string;
+      customerNumber: null | string;
+      productLineFrom: null | string;
+      productLineTo: null | string;
+      isTemporary: boolean;
+      /** Format: date */
+      coverageEndsOn: null | string;
+    };
     DataSourceDto: {
       name: string;
       status: string;
@@ -36,6 +52,14 @@ export interface components {
       instanceId: string;
       /** Format: date-time */
       timestamp: string;
+    };
+    ProblemDetails: {
+      type?: null | string;
+      title?: null | string;
+      /** Format: int32 */
+      status?: null | number | string;
+      detail?: null | string;
+      instance?: null | string;
     };
     ReadyResponse: {
       status: string;
@@ -62,6 +86,25 @@ export interface components {
       currentTime: string;
       snapshot: components["schemas"]["SnapshotStatusDto"];
       dataSources: components["schemas"]["DataSourceDto"][];
+    };
+    WorkspaceAssignmentDto: {
+      /** Format: uuid */
+      assignmentId: string;
+      displayName: null | string;
+      site: string;
+      customerNumber: null | string;
+      productLineFrom: null | string;
+      productLineTo: null | string;
+      isTemporary: boolean;
+      /** Format: date */
+      coverageEndsOn: null | string;
+      isEnabled: boolean;
+      /** Format: int32 */
+      sortOrder: number | string;
+    };
+    WorkspaceListResponseDto: {
+      workspaces: components["schemas"]["WorkspaceAssignmentDto"][];
+      configurationWarning: null | string;
     };
   };
   responses: never;
@@ -106,6 +149,39 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["SystemStatusResponse"];
+        };
+      };
+    };
+  };
+  /** Returns the saved workspace list and any nonfatal configuration warning. */
+  ListWorkspaces: {
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WorkspaceListResponseDto"];
+        };
+      };
+    };
+  };
+  /** Creates and persists a new workspace configuration. */
+  CreateWorkspace: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateWorkspaceRequestDto"];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        content: {
+          "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
         };
       };
     };
