@@ -1,5 +1,35 @@
 # Build and Test
 
+## Stage 3 Required Verification Sequence
+
+Run this exact sequence after lifecycle or packaging changes.
+
+```powershell
+cd src/backend
+dotnet restore Kst.slnx
+dotnet format Kst.slnx --verify-no-changes
+dotnet build Kst.slnx --nologo
+dotnet test Kst.slnx --nologo --logger "console;verbosity=detailed"
+
+cd ../frontend
+npm install
+npm run generate:types
+npm run lint
+npm run typecheck
+npm test
+npm run build
+
+cd ../tauri
+cargo check
+cargo build
+
+cd ../..
+.\scripts\build-sidecar.ps1
+
+cd src/tauri
+npx @tauri-apps/cli build
+```
+
 ## .NET Backend
 
 ```powershell
@@ -59,6 +89,8 @@ npm run build
 npm run generate:types
 ```
 
+`generate:types` resolves to `../../docs/openapi/Kst.Api.json` from `src/frontend`.
+
 ## Tauri
 
 ```powershell
@@ -75,6 +107,36 @@ npx @tauri-apps/cli dev
 
 # Build packaged installer
 npx @tauri-apps/cli build
+```
+
+## Canonical Dev Rebuild Sequence (After Backend Changes)
+
+Rebuilding `Kst.Api` alone does not update the executable launched by Tauri.
+The published sidecar in `src/tauri/binaries` must also be replaced.
+
+1. Build and test backend.
+2. Publish/copy backend sidecar binary with script.
+4. Run frontend checks.
+5. Run Rust check/build.
+6. Start Tauri development mode.
+
+```powershell
+cd src/backend
+dotnet build Kst.slnx --nologo
+dotnet test Kst.slnx --nologo
+
+cd ../..
+.\scripts\build-sidecar.ps1
+
+cd src/frontend
+npm run typecheck
+npm run lint
+npm test
+npm run build
+
+cd ../tauri
+cargo check
+npx @tauri-apps/cli dev
 ```
 
 ## All Tests (combined)
@@ -94,5 +156,5 @@ cd src/frontend ; npm test
 | `Kst.Domain.Tests` | 3 | SnapshotId value type |
 | `Kst.Application.Tests` | 14 | SnapshotStore, SnapshotInfo, SystemStatus use case |
 | `Kst.ArchitectureTests` | 6 | Project dependency rules |
-| `Kst.Api.IntegrationTests` | 14 | All endpoints, camelCase, DTOs |
+| `Kst.Api.IntegrationTests` | 15 | All endpoints, camelCase, DTOs, CORS origin behavior |
 | Frontend | 7 | UI states, retry, refresh, data rendering |

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.keytronic.kst",
   "build": {
-    "frontendDist": "./frontend/dist",
+    "frontendDist": "../frontend/dist",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm --prefix ./frontend run dev",
     "beforeBuildCommand": "npm --prefix ./frontend run build"
@@ -29,7 +29,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": [],
+    "icon": [
+      "icons/icon.ico"
+    ],
     "externalBin": [
       "binaries/Kst.Api"
     ]

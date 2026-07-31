@@ -33,10 +33,10 @@ public static class SystemEndpoints
             Status: result.Snapshot.Status switch
             {
                 SnapshotStatus.NotLoaded => "notLoaded",
-                SnapshotStatus.Loading   => "loading",
-                SnapshotStatus.Loaded    => "loaded",
-                SnapshotStatus.Failed    => "failed",
-                _                        => "unknown"
+                SnapshotStatus.Loading => "loading",
+                SnapshotStatus.Loaded => "loaded",
+                SnapshotStatus.Failed => "failed",
+                _ => "unknown"
             }
         );
 
@@ -46,10 +46,10 @@ public static class SystemEndpoints
                 Status: ds.Status switch
                 {
                     DataSourceStatus.NotConfigured => "notConfigured",
-                    DataSourceStatus.Connecting    => "connecting",
-                    DataSourceStatus.Connected     => "connected",
-                    DataSourceStatus.Unavailable   => "unavailable",
-                    _                              => "unknown"
+                    DataSourceStatus.Connecting => "connecting",
+                    DataSourceStatus.Connected => "connected",
+                    DataSourceStatus.Unavailable => "unavailable",
+                    _ => "unknown"
                 }
             ))
             .ToList();

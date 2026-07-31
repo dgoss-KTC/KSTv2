@@ -14,6 +14,8 @@ using Kst.Integrations.Shortages.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string FrontendCorsPolicy = "FrontendPolicy";
+
 // -- Logging -------------------------------------------------------------------
 var paths = new LocalAppDataPaths();
 try { paths.EnsureDirectoriesExist(); } catch { /* non-fatal; file logging disabled */ }
@@ -88,6 +90,21 @@ builder.Services.AddSingleton<IReadOnlyList<DataSourceSummary>>(_ =>
 builder.Services.AddScoped<GetSystemStatusQuery>();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+    {
+        policy
+            .WithOrigins(
+                "http://localhost:1420",
+                "http://127.0.0.1:1420",
+                "tauri://localhost",
+                "http://tauri.localhost",
+                "https://tauri.localhost")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 builder.Services.ConfigureHttpJsonOptions(opts =>
 {
@@ -104,6 +121,7 @@ logger.LogInformation("KST backend starting. Version={Version} InstanceId={Insta
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseCors(FrontendCorsPolicy);
 app.MapOpenApi();
 
 app.MapDiagnosticEndpoints();

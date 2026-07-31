@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { act } from 'react';
 import App from '../App';
 import type { SystemStatusResponse } from '../api/client';
+
+const lifecycleListeners = new Map<string, (event: { payload: unknown }) => void>();
+
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: vi.fn(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
+    lifecycleListeners.set(eventName, callback);
+    return () => lifecycleListeners.delete(eventName);
+  }),
+}));
 
 const mockStatus: SystemStatusResponse = {
   applicationName: "Keytronic Scheduler's Toolbox",
@@ -29,10 +39,19 @@ describe('App integration', () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
+    lifecycleListeners.clear();
+    Object.defineProperty(window, '__TAURI_INTERNALS__', {
+      configurable: true,
+      writable: true,
+      value: {
+        transformCallback: vi.fn(),
+      },
+    });
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
   });
 
   it('shows starting state initially', () => {
@@ -126,6 +145,35 @@ describe('App integration', () => {
     await waitFor(() => {
       const statuses = screen.getAllByText('notConfigured');
       expect(statuses).toHaveLength(2);
+    });
+  });
+
+  it('transitions to unavailable when backend-terminated event is received', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => mockStatus,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Connected')).toBeInTheDocument();
+    });
+
+    const terminated = lifecycleListeners.get('backend-terminated');
+    expect(terminated).toBeTruthy();
+
+    await act(async () => {
+      terminated?.({
+        payload: {
+          reason: 'Backend terminated unexpectedly.',
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Backend unavailable')).toBeInTheDocument();
+      expect(screen.getByText('Backend terminated unexpectedly.')).toBeInTheDocument();
     });
   });
 });

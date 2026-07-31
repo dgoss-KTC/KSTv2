@@ -5,6 +5,10 @@
 KST v2 is packaged as a Windows installer using Tauri's built-in bundler.
 The backend is embedded as a self-contained win-x64 single-file executable.
 
+Important:
+- Backend networking and CORS changes require a new backend publish and sidecar copy before packaging.
+- Development-mode CORS origins and packaged-runtime origins must be reviewed separately.
+
 ## Prerequisites
 
 - Windows 11
@@ -16,39 +20,30 @@ The backend is embedded as a self-contained win-x64 single-file executable.
 
 ## Build Steps
 
-### 1. Publish the .NET Backend
+### 1. Publish and Copy the .NET Sidecar
 
 ```powershell
-cd src/backend
-dotnet publish Kst.Api/Kst.Api.csproj `
-  -c Release `
-  -r win-x64 `
-  --self-contained true `
-  /p:PublishSingleFile=true `
-  /p:PublishTrimmed=false `
-  /p:PublishAot=false `
-  -o ../../publish/backend
+cd C:\Dev\kst_v2
+.\scripts\build-sidecar.ps1
 ```
 
-Output: `publish/backend/Kst.Api.exe` (~100MB, includes .NET runtime)
+Output includes:
 
-### 2. Copy Backend to Tauri Binaries
-
-```powershell
-Copy-Item publish/backend/Kst.Api.exe `
-  src/tauri/binaries/Kst.Api-x86_64-pc-windows-msvc.exe
-```
+- `publish/backend-sidecar/Kst.Api.exe`
+- `src/tauri/binaries/Kst.Api-x86_64-pc-windows-msvc.exe`
 
 The platform triple suffix (`-x86_64-pc-windows-msvc`) is required by Tauri's external binary system.
 
-### 3. Build Frontend
+If backend code changes (including CORS policy changes), rerun the script so the sidecar binary matches current source.
+
+### 2. Build Frontend
 
 ```powershell
 cd src/frontend
 npm run build
 ```
 
-### 4. Package with Tauri
+### 3. Package with Tauri
 
 ```powershell
 cd src/tauri
@@ -58,6 +53,8 @@ npx @tauri-apps/cli build
 Output: `src/tauri/target/release/bundle/`
 - `msi/` — MSI installer
 - `nsis/` — NSIS installer
+
+Record bundle paths, bundle types, and file sizes after each packaging run.
 
 ## Publication Settings
 
@@ -86,6 +83,17 @@ The backend is registered in `src/tauri/tauri.conf.json`:
 
 At build time, Tauri looks for `binaries/Kst.Api-x86_64-pc-windows-msvc.exe`.
 At runtime, the backend is extracted to a temp directory and spawned.
+
+## CORS Policy Scope
+
+- Current development verification uses a narrowly scoped CORS policy for known local origins.
+- Do not broaden to `AllowAnyOrigin` without an explicit security decision.
+- Packaged runtime origin behavior requires separate verification and should not be inferred from development-only runs.
+
+## Verification Scope Note
+
+The troubleshooting and connectivity fixes recorded in this repository were verified in Tauri development mode.
+Packaged installer build and packaged runtime behavior should be tracked as separate verification items.
 
 ## Troubleshooting
 

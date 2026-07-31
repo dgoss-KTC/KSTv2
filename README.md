@@ -21,7 +21,7 @@ src/
 ├── frontend/          # React + TypeScript + Vite
 ├── tauri/             # Rust / Tauri desktop host
 └── backend/
-    ├── Kst.sln
+    ├── Kst.slnx
     ├── Kst.Domain/
     ├── Kst.Application/
     ├── Kst.Infrastructure/
@@ -90,5 +90,6 @@ See [docs/development/BUILD_AND_TEST.md](docs/development/BUILD_AND_TEST.md) for
 - [API Contract Workflow](docs/architecture/API_CONTRACT_WORKFLOW.md)
 - [Development Setup](docs/development/SETUP.md)
 - [Build and Test](docs/development/BUILD_AND_TEST.md)
+- [Troubleshooting](docs/development/TROUBLESHOOTING.md)
 - [OpenAPI Client Generation](docs/development/OPENAPI_CLIENT_GENERATION.md)
 - [Windows Packaging](docs/deployment/WINDOWS_PACKAGING.md)

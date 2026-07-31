@@ -60,3 +60,47 @@
 3. **Production icon** — placeholder 1×1 PNG used; replace `src/tauri/icons/` before shipping.
 
 4. **Phase 1 entry point** — implement `Kst.Integrations.Qad` with real `IQadConnectivityCheck` using `Microsoft.Data.SqlClient` + Windows-integrated auth, then wire a connectivity-check result into `/api/v1/system/status` `dataSources`.
+
+---
+
+### 2026-07-31 Connectivity Troubleshooting Addendum
+
+**Symptom observed in Tauri development mode:**
+
+- App launched, but UI stayed in `Backend unavailable`.
+- Retry button appeared ineffective.
+
+**Port clarification:**
+
+- `1420` is the Vite frontend dev-server port.
+- Backend sidecar binds to a separate dynamic loopback port (for example `127.0.0.1:62115`).
+
+**Final root cause:**
+
+- CORS policy was missing for intended local frontend origins.
+- Backend could log HTTP 200 while frontend still reported fetch-style failure.
+
+**Implemented corrections (verified in dev mode):**
+
+1. Frontend backend URL resolution hardened through Tauri host command + fallback behavior.
+2. Startup and retry polling behavior hardened for dynamic backend URL discovery.
+3. Development window now shows `[DEV]` title marker.
+4. Backend CORS policy added for intended local origins.
+5. Backend sidecar was republished and copied to `src/tauri/binaries/Kst.Api-x86_64-pc-windows-msvc.exe`.
+6. Stale `kst-tauri` / `KST` / `Kst.Api` processes were cleaned before final reruns.
+
+**Verification highlights:**
+
+- Tauri dev app launched successfully.
+- Backend started and bound dynamic loopback port.
+- `/ready` and repeated `/api/v1/system/status` returned 200.
+- Backend logs included `CORS policy execution successful.`
+- Frontend consumed backend response and connected successfully.
+- Owner confirmation: `YES!! It's working!`
+
+**Still not fully verified in this addendum:**
+
+- Orphan-process guarantees across all exit paths.
+- Forced timeout termination path.
+- Unexpected backend crash behavior.
+- Packaged installer/runtime connectivity verification.
