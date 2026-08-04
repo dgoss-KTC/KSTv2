@@ -5,8 +5,6 @@ interface TopApplicationBarProps {
   version: string;
   connectionState: ConnectionState;
   configurationWarning: string | null;
-  theme: 'dark' | 'light';
-  onToggleTheme: () => void;
 }
 
 const connectionLabel: Record<ConnectionState, string> = {
@@ -29,8 +27,6 @@ export function TopApplicationBar({
   version,
   connectionState,
   configurationWarning,
-  theme,
-  onToggleTheme,
 }: TopApplicationBarProps) {
   const statusClass = connectionClass[connectionState];
   const label = configurationWarning ? 'Configuration warning' : connectionLabel[connectionState];
@@ -53,23 +49,6 @@ export function TopApplicationBar({
         <div className="top-bar__status" title={configurationWarning ?? undefined}>
           <span className={dotClass} aria-hidden="true" />
           <span className="top-bar__status-label">{label}</span>
-        </div>
-
-        <div className="top-bar__theme-toggle" role="group" aria-label="Color theme">
-          <button
-            className={`top-bar__theme-btn${theme === 'dark' ? ' top-bar__theme-btn--active' : ''}`}
-            onClick={() => theme !== 'dark' && onToggleTheme()}
-            aria-pressed={theme === 'dark'}
-          >
-            Dark
-          </button>
-          <button
-            className={`top-bar__theme-btn${theme === 'light' ? ' top-bar__theme-btn--active' : ''}`}
-            onClick={() => theme !== 'light' && onToggleTheme()}
-            aria-pressed={theme === 'light'}
-          >
-            Light
-          </button>
         </div>
       </div>
     </div>

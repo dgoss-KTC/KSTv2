@@ -1,11 +1,12 @@
 using Kst.Api.Dtos;
+using Kst.Application.Refresh;
 using Kst.Application.SystemStatus;
 using Kst.Domain.Snapshots;
 
 namespace Kst.Api.Endpoints;
 
 /// <summary>
-/// System status endpoint consumed by the frontend.
+/// System status and refresh endpoints consumed by the frontend.
 /// </summary>
 public static class SystemEndpoints
 {
@@ -16,12 +17,32 @@ public static class SystemEndpoints
             .WithSummary("Returns typed system status for the frontend walking skeleton.")
             .WithTags("System")
             .Produces<SystemStatusResponse>();
+
+        app.MapPost("/api/v1/system/refresh", PostRefresh)
+            .WithName("PostSystemRefresh")
+            .WithSummary("Triggers a refresh cycle across all registered data sources and returns the resulting status.")
+            .WithTags("System")
+            .Produces<SystemStatusResponse>();
     }
 
     private static IResult GetSystemStatus(GetSystemStatusQuery query)
     {
         var result = query.Execute();
+        return Results.Ok(ToResponse(result));
+    }
 
+    private static async Task<IResult> PostRefresh(
+        RefreshCoordinator refreshCoordinator,
+        GetSystemStatusQuery query,
+        CancellationToken cancellationToken)
+    {
+        await refreshCoordinator.RefreshAsync(cancellationToken);
+        var result = query.Execute();
+        return Results.Ok(ToResponse(result));
+    }
+
+    private static SystemStatusResponse ToResponse(SystemStatusResult result)
+    {
         var snapshotDto = new SnapshotStatusDto(
             Available: result.Snapshot.IsAvailable,
             SnapshotId: result.Snapshot.IsAvailable
@@ -34,7 +55,9 @@ public static class SystemEndpoints
             {
                 SnapshotStatus.NotLoaded => "notLoaded",
                 SnapshotStatus.Loading => "loading",
-                SnapshotStatus.Loaded => "loaded",
+                SnapshotStatus.Current => "current",
+                SnapshotStatus.Stale => "stale",
+                SnapshotStatus.Partial => "partial",
                 SnapshotStatus.Failed => "failed",
                 _ => "unknown"
             }
@@ -46,15 +69,17 @@ public static class SystemEndpoints
                 Status: ds.Status switch
                 {
                     DataSourceStatus.NotConfigured => "notConfigured",
-                    DataSourceStatus.Connecting => "connecting",
-                    DataSourceStatus.Connected => "connected",
+                    DataSourceStatus.Loading => "loading",
+                    DataSourceStatus.Current => "current",
+                    DataSourceStatus.Stale => "stale",
+                    DataSourceStatus.Failed => "failed",
                     DataSourceStatus.Unavailable => "unavailable",
                     _ => "unknown"
                 }
             ))
             .ToList();
 
-        return Results.Ok(new SystemStatusResponse(
+        return new SystemStatusResponse(
             ApplicationName: result.ApplicationName,
             ApplicationVersion: result.ApplicationVersion,
             BackendFramework: result.BackendFramework,
@@ -62,7 +87,9 @@ public static class SystemEndpoints
             StartedAt: result.StartedAt,
             CurrentTime: result.CurrentTime,
             Snapshot: snapshotDto,
-            DataSources: dataSourceDtos
-        ));
+            DataSources: dataSourceDtos,
+            LastRefreshAttemptAt: result.LastRefreshAttemptAt,
+            LastSuccessfulRefreshAt: result.LastSuccessfulRefreshAt
+        );
     }
 }

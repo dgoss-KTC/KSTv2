@@ -1,13 +1,24 @@
 # Current Project Status
 
-Date: 2026-07-31
+Date: 2026-08-10
 Workstation: Windows (C:\Dev\kst_v2)
-Phase: Stage 3 - Technical Foundation Final Closeout
-Stage 4 / Phase 1: NOT STARTED
+Phase: Stage 4 - Phase 1 Application Shell and Workspace Configuration
+Stage 4 / Phase 1: IMPLEMENTATION_COMPLETE_PENDING_OWNER_ACCEPTANCE (third implementation slice complete)
+
+## Stage 4 Current Position
+
+Status: IMPLEMENTATION_COMPLETE_PENDING_OWNER_ACCEPTANCE
+
+Reference implementation commits:
+- `ce717a1` - Stage 4 Phase 1 initial slice (application shell, workspace tabs, modal, backend workspace config, local persistence, workspace list/create API, frontend restore, tests)
+- Second slice (uncommitted at time of writing) - full workspace lifecycle (edit/archive/restore/delete/reset), confirmation dialogs, toast notifications.
+- Third slice (uncommitted at time of writing) - snapshot/data-source lifecycle expansion, refresh coordinator and `POST /api/v1/system/refresh`, local user preferences (theme/accent/density) with `GET`/`PUT /api/v1/preferences`, General workspace tab, `BottomStatusBar`, workspace tab reordering (drag-and-drop + Move Left/Right) via `PUT /api/v1/workspaces/order`, and duplicate-workspace-scope validation.
+
+Detailed Stage 4 progress and remaining scope are tracked in `docs/status/STAGE_4_PHASE_1_PROGRESS.md`.
 
 ## Stage 3 Overall
 
-Status: PASS
+Status: PASS (previously completed)
 
 Reason:
 - Core implementation tasks for sidecar lifecycle ownership, shutdown behavior, orphan prevention paths, termination signaling, single-instance enforcement, sidecar automation, and repo policy files were completed.

@@ -187,6 +187,22 @@ public sealed class WorkspaceEndpointTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task CreateWorkspace_Returns400_For_Duplicate_Scope_Among_Active_Workspaces()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+
+        var request = new { site = "NW", customerNumber = "12345678", isTemporary = false };
+        await client.PostAsJsonAsync("/api/v1/workspaces", request);
+
+        var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Contains("scope", json, StringComparison.OrdinalIgnoreCase);
+    }
+
     // --- Created workspace appears in list ---
 
     [Fact]
@@ -204,6 +220,175 @@ public sealed class WorkspaceEndpointTests
         var arr = doc.RootElement.GetProperty("workspaces").EnumerateArray().ToList();
         Assert.Single(arr);
         Assert.Equal("99999999", arr[0].GetProperty("customerNumber").GetString());
+    }
+
+    // --- Update ---
+
+    private static async Task<Guid> CreateWorkspaceAsync(HttpClient client, object? request = null)
+    {
+        request ??= new { site = "NW", customerNumber = "12345678", isTemporary = false };
+        var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
+        var json = await response.Content.ReadAsStringAsync();
+        var doc = JsonDocument.Parse(json);
+        return doc.RootElement.GetProperty("assignmentId").GetGuid();
+    }
+
+    [Fact]
+    public async Task UpdateWorkspace_Returns200_And_Updates_Fields()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+        var id = await CreateWorkspaceAsync(client);
+
+        var update = new { site = "SW", customerNumber = "87654321", isTemporary = false };
+        var response = await client.PutAsJsonAsync($"/api/v1/workspaces/{id}", update);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+        var doc = JsonDocument.Parse(json);
+        Assert.Equal("SW", doc.RootElement.GetProperty("site").GetString());
+        Assert.Equal("87654321", doc.RootElement.GetProperty("customerNumber").GetString());
+        Assert.Equal(id, doc.RootElement.GetProperty("assignmentId").GetGuid());
+    }
+
+    [Fact]
+    public async Task UpdateWorkspace_Returns400_For_Invalid_Site()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+        var id = await CreateWorkspaceAsync(client);
+
+        var update = new { site = "N", customerNumber = "87654321", isTemporary = false };
+        var response = await client.PutAsJsonAsync($"/api/v1/workspaces/{id}", update);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+        var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.TryGetProperty("errors", out _));
+    }
+
+    [Fact]
+    public async Task UpdateWorkspace_Returns404_For_Unknown_AssignmentId()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+
+        var update = new { site = "SW", customerNumber = "87654321", isTemporary = false };
+        var response = await client.PutAsJsonAsync($"/api/v1/workspaces/{Guid.NewGuid()}", update);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // --- Archive ---
+
+    [Fact]
+    public async Task ArchiveWorkspace_Returns200_And_Sets_IsEnabled_False()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+        var id = await CreateWorkspaceAsync(client);
+
+        var response = await client.PostAsync($"/api/v1/workspaces/{id}/archive", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+        var doc = JsonDocument.Parse(json);
+        Assert.False(doc.RootElement.GetProperty("isEnabled").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ArchiveWorkspace_Returns404_For_Unknown_AssignmentId()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsync($"/api/v1/workspaces/{Guid.NewGuid()}/archive", null);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // --- Restore ---
+
+    [Fact]
+    public async Task RestoreWorkspace_Returns200_And_Sets_IsEnabled_True()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+        var id = await CreateWorkspaceAsync(client);
+        await client.PostAsync($"/api/v1/workspaces/{id}/archive", null);
+
+        var response = await client.PostAsync($"/api/v1/workspaces/{id}/restore", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+        var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.GetProperty("isEnabled").GetBoolean());
+    }
+
+    [Fact]
+    public async Task RestoreWorkspace_Returns404_For_Unknown_AssignmentId()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsync($"/api/v1/workspaces/{Guid.NewGuid()}/restore", null);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // --- Delete ---
+
+    [Fact]
+    public async Task DeleteWorkspace_Returns204_And_Removes_From_List()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+        var id = await CreateWorkspaceAsync(client);
+
+        var response = await client.DeleteAsync($"/api/v1/workspaces/{id}");
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var listResponse = await client.GetAsync("/api/v1/workspaces");
+        var json = await listResponse.Content.ReadAsStringAsync();
+        var doc = JsonDocument.Parse(json);
+        Assert.Equal(0, doc.RootElement.GetProperty("workspaces").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task DeleteWorkspace_Returns404_For_Unknown_AssignmentId()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.DeleteAsync($"/api/v1/workspaces/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // --- Reset ---
+
+    [Fact]
+    public async Task ResetWorkspaces_Returns204_And_Clears_All_Workspaces()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+        await CreateWorkspaceAsync(client, new { site = "NW", customerNumber = "11111111", isTemporary = false });
+        await CreateWorkspaceAsync(client, new { site = "SW", customerNumber = "22222222", isTemporary = false });
+
+        var response = await client.DeleteAsync("/api/v1/workspaces");
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var listResponse = await client.GetAsync("/api/v1/workspaces");
+        var json = await listResponse.Content.ReadAsStringAsync();
+        var doc = JsonDocument.Parse(json);
+        Assert.Equal(0, doc.RootElement.GetProperty("workspaces").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task ResetWorkspaces_On_Empty_Configuration_Returns204()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.DeleteAsync("/api/v1/workspaces");
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
 }
 

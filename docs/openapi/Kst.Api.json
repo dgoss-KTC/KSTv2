@@ -68,6 +68,27 @@
         }
       }
     },
+    "/api/v1/system/refresh": {
+      "post": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Triggers a refresh cycle across all registered data sources and returns the resulting status.",
+        "operationId": "PostSystemRefresh",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces": {
       "get": {
         "tags": [
@@ -111,6 +132,298 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WorkspaceAssignmentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Removes all workspace configuration and returns to the empty startup state.",
+        "operationId": "ResetWorkspaces",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}": {
+      "put": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Updates and persists an existing workspace configuration.",
+        "operationId": "UpdateWorkspace",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceAssignmentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Permanently deletes a workspace assignment from configuration.",
+        "operationId": "DeleteWorkspace",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/archive": {
+      "post": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Archives a workspace so it no longer appears as an active tab (isEnabled = false).",
+        "operationId": "ArchiveWorkspace",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceAssignmentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/restore": {
+      "post": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Restores a previously archived workspace (isEnabled = true).",
+        "operationId": "RestoreWorkspace",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceAssignmentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/order": {
+      "put": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Persists a new tab order for the currently active (enabled) workspaces.",
+        "operationId": "ReorderWorkspaces",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderWorkspacesRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceListResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/preferences": {
+      "get": {
+        "tags": [
+          "Preferences"
+        ],
+        "summary": "Returns the current user preferences and any nonfatal configuration warning.",
+        "operationId": "GetPreferences",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Preferences"
+        ],
+        "summary": "Validates and persists updated user preferences.",
+        "operationId": "UpdatePreferences",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePreferencesRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesResponseDto"
                 }
               }
             }
@@ -237,6 +550,24 @@
           }
         }
       },
+      "PreferencesResponseDto": {
+        "required": [
+          "preferences",
+          "configurationWarning"
+        ],
+        "type": "object",
+        "properties": {
+          "preferences": {
+            "$ref": "#/components/schemas/UserPreferencesDto"
+          },
+          "configurationWarning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -299,6 +630,21 @@
           }
         }
       },
+      "ReorderWorkspacesRequestDto": {
+        "required": [
+          "assignmentIds"
+        ],
+        "type": "object",
+        "properties": {
+          "assignmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
       "SnapshotStatusDto": {
         "required": [
           "available",
@@ -338,7 +684,9 @@
           "startedAt",
           "currentTime",
           "snapshot",
-          "dataSources"
+          "dataSources",
+          "lastRefreshAttemptAt",
+          "lastSuccessfulRefreshAt"
         ],
         "type": "object",
         "properties": {
@@ -370,6 +718,58 @@
             "items": {
               "$ref": "#/components/schemas/DataSourceDto"
             }
+          },
+          "lastRefreshAttemptAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastSuccessfulRefreshAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "UpdatePreferencesRequestDto": {
+        "required": [
+          "theme",
+          "accentColor",
+          "rowDensity"
+        ],
+        "type": "object",
+        "properties": {
+          "theme": {
+            "type": "string"
+          },
+          "accentColor": {
+            "type": "string"
+          },
+          "rowDensity": {
+            "type": "string"
+          }
+        }
+      },
+      "UserPreferencesDto": {
+        "required": [
+          "theme",
+          "accentColor",
+          "rowDensity"
+        ],
+        "type": "object",
+        "properties": {
+          "theme": {
+            "type": "string"
+          },
+          "accentColor": {
+            "type": "string"
+          },
+          "rowDensity": {
+            "type": "string"
           }
         }
       },
@@ -474,6 +874,9 @@
     },
     {
       "name": "Workspaces"
+    },
+    {
+      "name": "Preferences"
     }
   ]
 }

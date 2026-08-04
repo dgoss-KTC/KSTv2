@@ -20,16 +20,16 @@ Kst.Api ─── (depends on Application, Infrastructure, Integrations, Exports
 ### Kst.Domain
 - **Purpose:** Pure business concepts and business rules.
 - **Must not reference:** ASP.NET Core, Dapper, SQL Server, Infrastructure, Integrations, Exports, or API.
-- **Contains:** `IClock`, `SnapshotId`, `SnapshotStatus`
+- **Contains:** `IClock`, `SnapshotId`, `SnapshotStatus`, `WorkspaceAssignment`
 
 ### Kst.Application
 - **Purpose:** Application use cases and orchestration.
-- **Must not reference:** ASP.NET Core or SQL Server implementation packages.
-- **Contains:** `GetSystemStatusQuery`, `ISnapshotStore`, `SnapshotInfo`, `ApplicationInfo`
+- **Must not reference:** ASP.NET Core or SQL Server implementation packages, or any `Kst.Integrations.*`/`Kst.Exports` project.
+- **Contains:** `GetSystemStatusQuery`, `ISnapshotStore`, `SnapshotInfo`, `ApplicationInfo`, workspace configuration service and contracts, `IDataSourceStatusStore`, the `Kst.Application.Refresh` namespace (`IRefreshProvider`, `DelegateRefreshProvider`, `RefreshHistory`/`IRefreshHistoryStore`, `RefreshCoordinator`), and the `Kst.Application.Preferences` namespace (`IPreferencesStore`, `IPreferencesService`, `PreferencesService`)
 
 ### Kst.Infrastructure
 - **Purpose:** Shared technical implementations.
-- **Contains:** `SystemClock`, `InMemorySnapshotStore`, `LocalAppDataPaths`, `ApplicationInstanceId`
+- **Contains:** `SystemClock`, `InMemorySnapshotStore`, `LocalAppDataPaths`, `ApplicationInstanceId`, JSON workspace configuration store, `InMemoryDataSourceStatusStore`, `InMemoryRefreshHistoryStore`, `JsonPreferencesStore`
 
 ### Kst.Integrations.Qad
 - **Purpose:** QAD ERP database integration boundary.
@@ -49,3 +49,23 @@ Kst.Api ─── (depends on Application, Infrastructure, Integrations, Exports
 - **Purpose:** ASP.NET Core local API.
 - **Responsibilities:** DI wiring, endpoint definitions, DTO mapping, OpenAPI, logging setup.
 - **Binds to:** `127.0.0.1` only (loopback).
+
+## Stage 4 Workspace Configuration Boundary
+
+- Workspace business rules and validation are backend-owned and implemented in `Kst.Application` (`WorkspaceConfigurationService`), including create, update (edit), archive, restore, delete, reset-all, and reorder operations, plus duplicate-scope validation (rejects a new/edited enabled workspace whose site/customer number/product-line range matches another currently-enabled workspace).
+- Local file persistence is infrastructure-owned and implemented in `Kst.Infrastructure` using `LocalAppDataPaths`; every lifecycle operation (edit/archive/restore/delete/reset/reorder) persists atomically through the same `IWorkspaceConfigurationStore` used by create.
+- HTTP request/response mapping and Problem Details formatting are API-owned in `Kst.Api`; update reuses `CreateWorkspaceRequestDto` rather than introducing a parallel DTO, and archive/restore/delete/reset/reorder are thin endpoint handlers with no business logic.
+- Frontend owns presentation state and modal interaction only (tab action menu, Manage Workspaces dialog, confirmation dialogs, toasts, active-tab fallback selection, drag-and-drop/Move Left/Right reorder gestures); it does not read or write workspace files directly.
+
+## Stage 4 Refresh and Data-Source Status Boundary
+
+- Snapshot lifecycle (`Kst.Domain.Snapshots.SnapshotStatus`: NotLoaded/Loading/Current/Stale/Partial/Failed) and data-source status (`Kst.Application.SystemStatus.DataSourceStatus`: NotConfigured/Loading/Current/Stale/Failed/Unavailable) are domain/application-owned concepts; `IDataSourceStatusStore` replaces the earlier static data-source list with a stateful store.
+- `Kst.Application.Refresh.RefreshCoordinator` orchestrates a full refresh cycle (mark snapshot Loading, run all registered `IRefreshProvider`s, derive the new snapshot status, update data-source statuses, record attempt/success timestamps) without depending on any concrete integration. `IRefreshProvider` is a minimal `(SourceName, RefreshAsync)` contract; `DelegateRefreshProvider` is a generic `Func`-based adapter used so `Kst.Api` (the composition root) can wire concrete QAD/Shortage connectivity checks as refresh providers without `Kst.Application` ever referencing `Kst.Integrations.*` (this pattern exists specifically to satisfy `Kst.ArchitectureTests`).
+- `POST /api/v1/system/refresh` is a thin `Kst.Api` endpoint that calls `RefreshCoordinator` then reuses the same `GetSystemStatusQuery` response mapping as `GET /api/v1/system/status`.
+
+## Stage 4 Local Preferences Boundary
+
+- `Kst.Domain.Preferences.UserPreferences` (Theme: System/Light/Dark, AccentColor: Blue/Teal/Amber, RowDensity: Compact/Comfortable) is a pure domain record with a `Default` value.
+- `Kst.Application.Preferences.PreferencesService` validates and persists preference updates (case-insensitive enum parsing with Problem Details-friendly validation errors) through `IPreferencesStore`.
+- `Kst.Infrastructure.Preferences.JsonPreferencesStore` persists to `%LOCALAPPDATA%\KST\config\preferences.json` using the same camelCase JSON, temp-file-and-move, and corrupt-file-rename-aside conventions as `JsonWorkspaceConfigurationStore`.
+- `GET`/`PUT /api/v1/preferences` in `Kst.Api` map `UserPreferences` to/from `UserPreferencesDto`; preferences are local-only application state, not synchronized with QAD or any external system.

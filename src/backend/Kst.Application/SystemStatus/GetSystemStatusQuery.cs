@@ -1,5 +1,6 @@
 using Kst.Domain.Common;
 using Kst.Application.Snapshots;
+using Kst.Application.Refresh;
 
 namespace Kst.Application.SystemStatus;
 
@@ -11,23 +12,27 @@ public sealed class GetSystemStatusQuery
     private readonly IClock _clock;
     private readonly ISnapshotStore _snapshotStore;
     private readonly ApplicationInfo _appInfo;
-    private readonly IReadOnlyList<DataSourceSummary> _dataSources;
+    private readonly IDataSourceStatusStore _dataSourceStatusStore;
+    private readonly IRefreshHistoryStore _refreshHistoryStore;
 
     public GetSystemStatusQuery(
         IClock clock,
         ISnapshotStore snapshotStore,
         ApplicationInfo appInfo,
-        IReadOnlyList<DataSourceSummary> dataSources)
+        IDataSourceStatusStore dataSourceStatusStore,
+        IRefreshHistoryStore refreshHistoryStore)
     {
         _clock = clock;
         _snapshotStore = snapshotStore;
         _appInfo = appInfo;
-        _dataSources = dataSources;
+        _dataSourceStatusStore = dataSourceStatusStore;
+        _refreshHistoryStore = refreshHistoryStore;
     }
 
     public SystemStatusResult Execute()
     {
         var snapshot = _snapshotStore.GetCurrentSnapshot();
+        var history = _refreshHistoryStore.GetHistory();
 
         return new SystemStatusResult(
             ApplicationName: _appInfo.Name,
@@ -37,7 +42,9 @@ public sealed class GetSystemStatusQuery
             StartedAt: _appInfo.StartedAt,
             CurrentTime: _clock.LocalNow,
             Snapshot: snapshot,
-            DataSources: _dataSources
+            DataSources: _dataSourceStatusStore.GetAll(),
+            LastRefreshAttemptAt: history.LastAttemptAt,
+            LastSuccessfulRefreshAt: history.LastSuccessfulAt
         );
     }
 }

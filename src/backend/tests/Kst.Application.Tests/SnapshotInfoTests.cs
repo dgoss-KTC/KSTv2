@@ -14,13 +14,24 @@ public sealed class SnapshotInfoTests
     }
 
     [Fact]
-    public void Loaded_Snapshot_IsAvailable()
+    public void Current_Snapshot_IsAvailable()
     {
         var snapshot = new SnapshotInfo(
             SnapshotId.New(),
             DateTimeOffset.Now,
-            SnapshotStatus.Loaded
+            SnapshotStatus.Current
         );
+
+        Assert.True(snapshot.IsAvailable);
+    }
+
+    [Theory]
+    [InlineData(SnapshotStatus.Current)]
+    [InlineData(SnapshotStatus.Stale)]
+    [InlineData(SnapshotStatus.Partial)]
+    public void DataBearing_Statuses_AreAvailable(SnapshotStatus status)
+    {
+        var snapshot = new SnapshotInfo(SnapshotId.New(), DateTimeOffset.Now, status);
 
         Assert.True(snapshot.IsAvailable);
     }

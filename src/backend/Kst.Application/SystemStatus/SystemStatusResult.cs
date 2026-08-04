@@ -4,13 +4,15 @@ using Kst.Application.Snapshots;
 namespace Kst.Application.SystemStatus;
 
 /// <summary>
-/// Describes the connectivity status of an external data source.
+/// Describes the connectivity/data status of an external data source.
 /// </summary>
 public enum DataSourceStatus
 {
     NotConfigured,
-    Connecting,
-    Connected,
+    Loading,
+    Current,
+    Stale,
+    Failed,
     Unavailable
 }
 
@@ -30,5 +32,7 @@ public sealed record SystemStatusResult(
     DateTimeOffset StartedAt,
     DateTimeOffset CurrentTime,
     SnapshotInfo Snapshot,
-    IReadOnlyList<DataSourceSummary> DataSources
+    IReadOnlyList<DataSourceSummary> DataSources,
+    DateTimeOffset? LastRefreshAttemptAt,
+    DateTimeOffset? LastSuccessfulRefreshAt
 );

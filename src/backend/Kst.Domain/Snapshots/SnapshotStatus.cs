@@ -7,6 +7,8 @@ public enum SnapshotStatus
 {
     NotLoaded,
     Loading,
-    Loaded,
+    Current,
+    Stale,
+    Partial,
     Failed
 }

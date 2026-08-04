@@ -27,3 +27,7 @@ public sealed record WorkspaceListResponseDto(
     IReadOnlyList<WorkspaceAssignmentDto> Workspaces,
     string? ConfigurationWarning
 );
+
+public sealed record ReorderWorkspacesRequestDto(
+    IReadOnlyList<Guid> AssignmentIds
+);

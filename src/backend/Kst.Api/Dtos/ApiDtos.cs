@@ -27,7 +27,9 @@ public sealed record SystemStatusResponse(
     DateTimeOffset StartedAt,
     DateTimeOffset CurrentTime,
     SnapshotStatusDto Snapshot,
-    IReadOnlyList<DataSourceDto> DataSources
+    IReadOnlyList<DataSourceDto> DataSources,
+    DateTimeOffset? LastRefreshAttemptAt,
+    DateTimeOffset? LastSuccessfulRefreshAt
 );
 
 public sealed record SnapshotStatusDto(

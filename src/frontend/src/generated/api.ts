@@ -17,11 +17,41 @@ export interface paths {
     /** Returns typed system status for the frontend walking skeleton. */
     get: operations["GetSystemStatus"];
   };
+  "/api/v1/system/refresh": {
+    /** Triggers a refresh cycle across all registered data sources and returns the resulting status. */
+    post: operations["PostSystemRefresh"];
+  };
   "/api/v1/workspaces": {
     /** Returns the saved workspace list and any nonfatal configuration warning. */
     get: operations["ListWorkspaces"];
     /** Creates and persists a new workspace configuration. */
     post: operations["CreateWorkspace"];
+    /** Removes all workspace configuration and returns to the empty startup state. */
+    delete: operations["ResetWorkspaces"];
+  };
+  "/api/v1/workspaces/{assignmentId}": {
+    /** Updates and persists an existing workspace configuration. */
+    put: operations["UpdateWorkspace"];
+    /** Permanently deletes a workspace assignment from configuration. */
+    delete: operations["DeleteWorkspace"];
+  };
+  "/api/v1/workspaces/{assignmentId}/archive": {
+    /** Archives a workspace so it no longer appears as an active tab (isEnabled = false). */
+    post: operations["ArchiveWorkspace"];
+  };
+  "/api/v1/workspaces/{assignmentId}/restore": {
+    /** Restores a previously archived workspace (isEnabled = true). */
+    post: operations["RestoreWorkspace"];
+  };
+  "/api/v1/workspaces/order": {
+    /** Persists a new tab order for the currently active (enabled) workspaces. */
+    put: operations["ReorderWorkspaces"];
+  };
+  "/api/v1/preferences": {
+    /** Returns the current user preferences and any nonfatal configuration warning. */
+    get: operations["GetPreferences"];
+    /** Validates and persists updated user preferences. */
+    put: operations["UpdatePreferences"];
   };
 }
 
@@ -53,6 +83,10 @@ export interface components {
       /** Format: date-time */
       timestamp: string;
     };
+    PreferencesResponseDto: {
+      preferences: components["schemas"]["UserPreferencesDto"];
+      configurationWarning: null | string;
+    };
     ProblemDetails: {
       type?: null | string;
       title?: null | string;
@@ -67,6 +101,9 @@ export interface components {
       snapshotAvailable: boolean;
       /** Format: date-time */
       timestamp: string;
+    };
+    ReorderWorkspacesRequestDto: {
+      assignmentIds: string[];
     };
     SnapshotStatusDto: {
       available: boolean;
@@ -86,6 +123,20 @@ export interface components {
       currentTime: string;
       snapshot: components["schemas"]["SnapshotStatusDto"];
       dataSources: components["schemas"]["DataSourceDto"][];
+      /** Format: date-time */
+      lastRefreshAttemptAt: null | string;
+      /** Format: date-time */
+      lastSuccessfulRefreshAt: null | string;
+    };
+    UpdatePreferencesRequestDto: {
+      theme: string;
+      accentColor: string;
+      rowDensity: string;
+    };
+    UserPreferencesDto: {
+      theme: string;
+      accentColor: string;
+      rowDensity: string;
     };
     WorkspaceAssignmentDto: {
       /** Format: uuid */
@@ -153,6 +204,17 @@ export interface operations {
       };
     };
   };
+  /** Triggers a refresh cycle across all registered data sources and returns the resulting status. */
+  PostSystemRefresh: {
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SystemStatusResponse"];
+        };
+      };
+    };
+  };
   /** Returns the saved workspace list and any nonfatal configuration warning. */
   ListWorkspaces: {
     responses: {
@@ -176,6 +238,167 @@ export interface operations {
       201: {
         content: {
           "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Removes all workspace configuration and returns to the empty startup state. */
+  ResetWorkspaces: {
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+    };
+  };
+  /** Updates and persists an existing workspace configuration. */
+  UpdateWorkspace: {
+    parameters: {
+      path: {
+        assignmentId: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateWorkspaceRequestDto"];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Permanently deletes a workspace assignment from configuration. */
+  DeleteWorkspace: {
+    parameters: {
+      path: {
+        assignmentId: string;
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never;
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Archives a workspace so it no longer appears as an active tab (isEnabled = false). */
+  ArchiveWorkspace: {
+    parameters: {
+      path: {
+        assignmentId: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Restores a previously archived workspace (isEnabled = true). */
+  RestoreWorkspace: {
+    parameters: {
+      path: {
+        assignmentId: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Persists a new tab order for the currently active (enabled) workspaces. */
+  ReorderWorkspaces: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReorderWorkspacesRequestDto"];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WorkspaceListResponseDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Returns the current user preferences and any nonfatal configuration warning. */
+  GetPreferences: {
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PreferencesResponseDto"];
+        };
+      };
+    };
+  };
+  /** Validates and persists updated user preferences. */
+  UpdatePreferences: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdatePreferencesRequestDto"];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PreferencesResponseDto"];
         };
       };
       /** @description Bad Request */

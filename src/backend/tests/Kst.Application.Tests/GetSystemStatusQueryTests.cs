@@ -4,6 +4,7 @@ using Kst.Domain.Common;
 using Kst.Domain.Snapshots;
 using Kst.Infrastructure.Clock;
 using Kst.Infrastructure.Snapshots;
+using Kst.Infrastructure.SystemStatus;
 
 namespace Kst.Application.Tests;
 
@@ -19,7 +20,8 @@ public sealed class GetSystemStatusQueryTests
             clock ?? new SystemClock(),
             snapshotStore ?? new InMemorySnapshotStore(),
             appInfo ?? new ApplicationInfo("KST", "0.1.0", "test-instance", DateTimeOffset.Now),
-            dataSources ?? []
+            new InMemoryDataSourceStatusStore(dataSources ?? []),
+            new InMemoryRefreshHistoryStore()
         );
     }
 
@@ -53,13 +55,13 @@ public sealed class GetSystemStatusQueryTests
     }
 
     [Fact]
-    public void Execute_Snapshot_IsAvailable_When_Loaded()
+    public void Execute_Snapshot_IsAvailable_When_Current()
     {
         var store = new InMemorySnapshotStore();
         store.ReplaceSnapshot(new SnapshotInfo(
             SnapshotId.New(),
             DateTimeOffset.Now,
-            SnapshotStatus.Loaded
+            SnapshotStatus.Current
         ));
 
         var query = BuildQuery(snapshotStore: store);

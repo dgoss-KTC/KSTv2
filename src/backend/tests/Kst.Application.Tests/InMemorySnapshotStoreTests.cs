@@ -23,14 +23,14 @@ public sealed class InMemorySnapshotStoreTests
         var store = new InMemorySnapshotStore();
         var id = SnapshotId.New();
         var createdAt = DateTimeOffset.Now;
-        var newSnapshot = new SnapshotInfo(id, createdAt, SnapshotStatus.Loaded);
+        var newSnapshot = new SnapshotInfo(id, createdAt, SnapshotStatus.Current);
 
         store.ReplaceSnapshot(newSnapshot);
 
         var result = store.GetCurrentSnapshot();
         Assert.Equal(id, result.Id);
         Assert.Equal(createdAt, result.CreatedAt);
-        Assert.Equal(SnapshotStatus.Loaded, result.Status);
+        Assert.Equal(SnapshotStatus.Current, result.Status);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class InMemorySnapshotStoreTests
         var store = new InMemorySnapshotStore();
         var id = SnapshotId.New();
         var ts = new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.FromHours(-7));
-        var snapshot = new SnapshotInfo(id, ts, SnapshotStatus.Loaded);
+        var snapshot = new SnapshotInfo(id, ts, SnapshotStatus.Current);
 
         store.ReplaceSnapshot(snapshot);
 
@@ -66,7 +66,7 @@ public sealed class InMemorySnapshotStoreTests
             store.ReplaceSnapshot(new SnapshotInfo(
                 SnapshotId.New(),
                 DateTimeOffset.Now,
-                SnapshotStatus.Loaded));
+                SnapshotStatus.Current));
         }));
 
         await Task.WhenAll(tasks); // Should not throw

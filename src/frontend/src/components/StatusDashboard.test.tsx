@@ -30,6 +30,8 @@ const mockStatus: SystemStatusResponse = {
     { name: 'QAD', status: 'notConfigured' },
     { name: 'Shortage Database', status: 'notConfigured' },
   ],
+  lastRefreshAttemptAt: null,
+  lastSuccessfulRefreshAt: null,
 };
 
 const mockWorkspaceList: WorkspaceListResponseDto = {
@@ -62,8 +64,8 @@ describe('App integration', () => {
     fetchMock.mockReturnValue(new Promise(() => {})); // never resolves
     render(<App />);
     expect(
-      screen.queryByText(/starting/i),
-    ).toBeTruthy();
+      screen.getAllByText(/starting/i).length,
+    ).toBeGreaterThan(0);
   });
 
   it('shows Backend connected label when backend is up', async () => {

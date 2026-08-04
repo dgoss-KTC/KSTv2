@@ -18,6 +18,8 @@ const mockStatus: SystemStatusResponse = {
   currentTime: '2026-07-28T12:01:00Z',
   snapshot: { available: false, snapshotId: null, createdAt: null, status: 'notLoaded' },
   dataSources: [],
+  lastRefreshAttemptAt: null,
+  lastSuccessfulRefreshAt: null,
 };
 
 const emptyWorkspaceList: WorkspaceListResponseDto = { workspaces: [], configurationWarning: null };

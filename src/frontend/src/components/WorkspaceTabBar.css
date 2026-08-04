@@ -36,6 +36,104 @@
   color: var(--tx);
 }
 
+.tab-bar__tab-wrapper {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  align-self: center;
+  cursor: grab;
+}
+
+.tab-bar__tab-wrapper--drag-over {
+  outline: 2px dashed var(--accent-solid);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.tab-bar__menu-btn {
+  align-self: center;
+  width: 18px;
+  height: 20px;
+  margin-left: 1px;
+  border: none;
+  background: transparent;
+  color: var(--tx3);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: background 0.1s, color 0.1s, opacity 0.1s;
+}
+
+.tab-bar__tab-wrapper:hover .tab-bar__menu-btn,
+.tab-bar__menu-btn[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.tab-bar__menu-btn:hover {
+  background: var(--chip);
+  color: var(--tx);
+}
+
+.tab-bar__menu-btn:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 1px;
+}
+
+.tab-bar__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 170px;
+  background: var(--panel);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  z-index: 50;
+}
+
+.tab-bar__menu-item {
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--tx);
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 7px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.tab-bar__menu-item:hover {
+  background: var(--row-hover);
+}
+
+.tab-bar__menu-item--destructive {
+  color: var(--danger-tx);
+}
+
+.tab-bar__menu-item--destructive:hover {
+  background: var(--danger-bg);
+}
+
+.tab-bar__menu-item:disabled {
+  color: var(--tx3);
+  cursor: not-allowed;
+}
+
+.tab-bar__menu-item:disabled:hover {
+  background: transparent;
+}
+
 .tab-bar__add {
   align-self: center;
   margin-left: 4px;
@@ -65,6 +163,40 @@
   outline-offset: 2px;
 }
 
+.tab-bar__manage {
+  align-self: center;
+  margin-left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--tx2);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s, color 0.1s;
+  padding: 0;
+}
+
+.tab-bar__manage:hover {
+  background: var(--chip);
+  color: var(--tx);
+}
+
+.tab-bar__manage:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 2px;
+}
+
 .tab-bar__spacer {
   flex: 1;
+}
+
+.tab-bar__tab--general {
+  align-self: center;
+  color: var(--tx2);
 }

@@ -14,10 +14,16 @@
   --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
   --accent-solid: #5b9dd9;
   --accent-text: #71b6e8;
+  --accent-soft: rgba(91, 157, 217, 0.18);
   --row-hover: #1c2531;
   --danger-tx: #ec7d74;
   --danger-bg: rgba(210, 88, 80, 0.2);
   --danger-bd: #bd5750;
+
+  /* Row density (compact = default) */
+  --density-row-height: 30px;
+  --density-control-height: 28px;
+  --density-spacing: 8px;
 
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
   line-height: 1.5;
@@ -46,11 +52,44 @@
   --shadow: 0 10px 30px rgba(40, 55, 80, 0.14);
   --accent-solid: #2563eb;
   --accent-text: #1d6aa6;
+  --accent-soft: rgba(37, 99, 235, 0.12);
   --row-hover: #eef4fa;
   --danger-tx: #b23a31;
   --danger-bg: rgba(214, 82, 72, 0.15);
   --danger-bd: #ec9f97;
   color-scheme: light;
+}
+
+/* Accent color overrides (teal/amber). Blue is the default set above. */
+[data-accent='teal'] {
+  --accent-solid: #3fa79c;
+  --accent-text: #5cc4b9;
+  --accent-soft: rgba(63, 167, 156, 0.18);
+}
+
+[data-accent='amber'] {
+  --accent-solid: #d99a3d;
+  --accent-text: #e8b768;
+  --accent-soft: rgba(217, 154, 61, 0.18);
+}
+
+[data-theme='light'][data-accent='teal'] {
+  --accent-solid: #0f8f83;
+  --accent-text: #0f8f83;
+  --accent-soft: rgba(15, 143, 131, 0.14);
+}
+
+[data-theme='light'][data-accent='amber'] {
+  --accent-solid: #b3791f;
+  --accent-text: #b3791f;
+  --accent-soft: rgba(179, 121, 31, 0.14);
+}
+
+/* Row density (comfortable). Compact defaults live on :root above. */
+[data-density='comfortable'] {
+  --density-row-height: 40px;
+  --density-control-height: 34px;
+  --density-spacing: 14px;
 }
 
 *, *::before, *::after {

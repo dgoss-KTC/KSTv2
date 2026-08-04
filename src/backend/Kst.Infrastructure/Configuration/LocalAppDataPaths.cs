@@ -21,6 +21,7 @@ public sealed class LocalAppDataPaths
     public string ConfigDirectory => Path.Combine(_root, "config");
     public string DataDirectory => Path.Combine(_root, "data");
     public string WorkspacesFilePath => Path.Combine(ConfigDirectory, "workspaces.json");
+    public string PreferencesFilePath => Path.Combine(ConfigDirectory, "preferences.json");
 
     public void EnsureDirectoriesExist()
     {

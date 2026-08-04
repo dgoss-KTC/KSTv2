@@ -109,4 +109,72 @@ public sealed class JsonWorkspaceConfigurationStoreTests : IDisposable
         var result = await _store.LoadAsync();
         Assert.Equal(2, result.Workspaces.Count);
     }
+
+    // --- Service operations persist across a simulated app restart (new store instance, same directory) ---
+
+    private WorkspaceConfigurationService BuildService() =>
+        new(_store, NullLogger<WorkspaceConfigurationService>.Instance);
+
+    private WorkspaceConfigurationService BuildReloadedService()
+    {
+        var reloadedStore = new JsonWorkspaceConfigurationStore(_paths, NullLogger<JsonWorkspaceConfigurationStore>.Instance);
+        return new WorkspaceConfigurationService(reloadedStore, NullLogger<WorkspaceConfigurationService>.Instance);
+    }
+
+    [Fact]
+    public async Task Archived_Workspace_Persists_Across_Reload()
+    {
+        var service = BuildService();
+        var created = await service.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+        await service.ArchiveWorkspaceAsync(created.Workspace!.AssignmentId);
+
+        var reloaded = await BuildReloadedService().GetWorkspacesAsync();
+
+        Assert.Single(reloaded.Workspaces);
+        Assert.False(reloaded.Workspaces[0].IsEnabled);
+    }
+
+    [Fact]
+    public async Task Restored_Workspace_Persists_Across_Reload()
+    {
+        var service = BuildService();
+        var created = await service.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+        await service.ArchiveWorkspaceAsync(created.Workspace!.AssignmentId);
+        await service.RestoreWorkspaceAsync(created.Workspace!.AssignmentId);
+
+        var reloaded = await BuildReloadedService().GetWorkspacesAsync();
+
+        Assert.Single(reloaded.Workspaces);
+        Assert.True(reloaded.Workspaces[0].IsEnabled);
+    }
+
+    [Fact]
+    public async Task Delete_Persists_Across_Reload()
+    {
+        var service = BuildService();
+        var created = await service.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+        await service.DeleteWorkspaceAsync(created.Workspace!.AssignmentId);
+
+        var reloaded = await BuildReloadedService().GetWorkspacesAsync();
+
+        Assert.Empty(reloaded.Workspaces);
+    }
+
+    [Fact]
+    public async Task Reset_Persists_Across_Reload()
+    {
+        var service = BuildService();
+        await service.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+        await service.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "SW", "87654321", null, null, false, null));
+        await service.ResetWorkspacesAsync();
+
+        var reloaded = await BuildReloadedService().GetWorkspacesAsync();
+
+        Assert.Empty(reloaded.Workspaces);
+    }
 }

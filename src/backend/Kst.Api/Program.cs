@@ -3,11 +3,16 @@ using System.Text.Json.Serialization;
 using Serilog;
 using Serilog.Events;
 using Kst.Api.Endpoints;
+using Kst.Application.Preferences;
+using Kst.Application.Refresh;
 using Kst.Application.SystemStatus;
 using Kst.Application.Workspaces;
+using Kst.Domain.Common;
+using Kst.Application.Snapshots;
 using Kst.Infrastructure;
 using Kst.Infrastructure.Configuration;
 using Kst.Infrastructure.Identity;
+using Kst.Infrastructure.SystemStatus;
 using Kst.Integrations.Qad.Connectivity;
 using Kst.Integrations.Qad.Options;
 using Kst.Integrations.Shortages.Connectivity;
@@ -80,16 +85,50 @@ builder.Services.AddSingleton(new ApplicationInfo(
     StartedAt: startedAt
 ));
 
-builder.Services.AddSingleton<IReadOnlyList<DataSourceSummary>>(_ =>
+builder.Services.AddSingleton<IDataSourceStatusStore>(_ => new InMemoryDataSourceStatusStore(
 [
     new DataSourceSummary("QAD",
-        qadOptions.IsConfigured ? DataSourceStatus.Connecting : DataSourceStatus.NotConfigured),
+        qadOptions.IsConfigured ? DataSourceStatus.Loading : DataSourceStatus.NotConfigured),
     new DataSourceSummary("Shortage Database",
-        shortagesOptions.IsConfigured ? DataSourceStatus.Connecting : DataSourceStatus.NotConfigured)
+        shortagesOptions.IsConfigured ? DataSourceStatus.Loading : DataSourceStatus.NotConfigured)
+]));
+
+builder.Services.AddSingleton<IReadOnlyList<IRefreshProvider>>(sp =>
+[
+    new DelegateRefreshProvider("QAD", async ct =>
+    {
+        var result = await sp.GetRequiredService<IQadConnectivityCheck>().CheckAsync(ct);
+        return result.Status switch
+        {
+            ConnectivityStatus.NotConfigured => RefreshProviderOutcome.NotConfigured,
+            ConnectivityStatus.Succeeded => RefreshProviderOutcome.Succeeded,
+            ConnectivityStatus.Failed or ConnectivityStatus.TimedOut => RefreshProviderOutcome.Failed,
+            _ => RefreshProviderOutcome.Unavailable
+        };
+    }),
+    new DelegateRefreshProvider("Shortage Database", async ct =>
+    {
+        var result = await sp.GetRequiredService<IShortagesConnectivityCheck>().CheckAsync(ct);
+        return result.Status switch
+        {
+            ShortagesConnectivityStatus.NotConfigured => RefreshProviderOutcome.NotConfigured,
+            ShortagesConnectivityStatus.Succeeded => RefreshProviderOutcome.Succeeded,
+            ShortagesConnectivityStatus.Failed or ShortagesConnectivityStatus.TimedOut => RefreshProviderOutcome.Failed,
+            _ => RefreshProviderOutcome.Unavailable
+        };
+    })
 ]);
+
+builder.Services.AddSingleton(sp => new RefreshCoordinator(
+    sp.GetRequiredService<IClock>(),
+    sp.GetRequiredService<ISnapshotStore>(),
+    sp.GetRequiredService<IDataSourceStatusStore>(),
+    sp.GetRequiredService<IRefreshHistoryStore>(),
+    sp.GetRequiredService<IReadOnlyList<IRefreshProvider>>()));
 
 builder.Services.AddScoped<GetSystemStatusQuery>();
 builder.Services.AddSingleton<IWorkspaceConfigurationService, WorkspaceConfigurationService>();
+builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddCors(options =>
@@ -129,6 +168,7 @@ app.MapOpenApi();
 app.MapDiagnosticEndpoints();
 app.MapSystemEndpoints();
 app.MapWorkspaceEndpoints();
+app.MapPreferencesEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------
 // Writes a JSON line to stdout once the server is bound so Tauri can read the port.

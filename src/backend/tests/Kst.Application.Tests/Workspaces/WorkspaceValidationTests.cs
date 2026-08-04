@@ -1,5 +1,6 @@
 using Kst.Application.Workspaces;
 using Kst.Domain.Workspaces;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Kst.Application.Tests.Workspaces;
 
@@ -12,7 +13,7 @@ public sealed class WorkspaceValidationTests
         IReadOnlyList<WorkspaceAssignment>? seed = null)
     {
         var store = new InMemoryTestWorkspaceStore(seed ?? []);
-        return new WorkspaceConfigurationService(store);
+        return new WorkspaceConfigurationService(store, NullLogger<WorkspaceConfigurationService>.Instance);
     }
 
     // --- Valid cases ---
@@ -256,6 +257,208 @@ public sealed class WorkspaceValidationTests
             null, "SW", "87654321", null, null, false, null));
         Assert.Equal(1, result.Workspace!.SortOrder);
     }
+
+    // --- Update ---
+
+    [Fact]
+    public async Task Update_Changes_Workspace_Fields()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+
+        var result = await svc.UpdateWorkspaceAsync(
+            created.Workspace!.AssignmentId,
+            new CreateWorkspaceCommand(null, "SW", "87654321", null, null, false, null));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("SW", result.Workspace!.Site);
+        Assert.Equal("87654321", result.Workspace.CustomerNumber);
+    }
+
+    [Fact]
+    public async Task Update_Preserves_AssignmentId()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+
+        var result = await svc.UpdateWorkspaceAsync(
+            created.Workspace!.AssignmentId,
+            new CreateWorkspaceCommand(null, "SW", "87654321", null, null, false, null));
+
+        Assert.Equal(created.Workspace.AssignmentId, result.Workspace!.AssignmentId);
+    }
+
+    [Fact]
+    public async Task Update_Preserves_SortOrder()
+    {
+        var svc = BuildService();
+        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+        var second = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "SW", "87654321", null, null, false, null));
+
+        var result = await svc.UpdateWorkspaceAsync(
+            second.Workspace!.AssignmentId,
+            new CreateWorkspaceCommand(null, "AR", "11112222", null, null, false, null));
+
+        Assert.Equal(1, result.Workspace!.SortOrder);
+    }
+
+    [Fact]
+    public async Task Update_Preserves_IsEnabled()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+        await svc.ArchiveWorkspaceAsync(created.Workspace!.AssignmentId);
+
+        var result = await svc.UpdateWorkspaceAsync(
+            created.Workspace.AssignmentId,
+            new CreateWorkspaceCommand(null, "SW", "87654321", null, null, false, null));
+
+        Assert.False(result.Workspace!.IsEnabled);
+    }
+
+    [Fact]
+    public async Task Update_Rejects_Invalid_Site()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+
+        var result = await svc.UpdateWorkspaceAsync(
+            created.Workspace!.AssignmentId,
+            new CreateWorkspaceCommand(null, "N", "12345678", null, null, false, null));
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.ValidationErrors!, e => e.Field == "site");
+    }
+
+    [Fact]
+    public async Task Update_Returns_NotFound_For_Unknown_AssignmentId()
+    {
+        var svc = BuildService();
+
+        var result = await svc.UpdateWorkspaceAsync(
+            Guid.NewGuid(),
+            new CreateWorkspaceCommand(null, "NW", "12345678", null, null, false, null));
+
+        Assert.True(result.NotFound);
+        Assert.False(result.IsSuccess);
+    }
+
+    // --- Archive / Restore ---
+
+    [Fact]
+    public async Task Archive_Sets_IsEnabled_False()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+
+        var result = await svc.ArchiveWorkspaceAsync(created.Workspace!.AssignmentId);
+
+        Assert.True(result.IsSuccess);
+        Assert.False(result.Workspace!.IsEnabled);
+    }
+
+    [Fact]
+    public async Task Archive_Returns_NotFound_For_Unknown_AssignmentId()
+    {
+        var svc = BuildService();
+        var result = await svc.ArchiveWorkspaceAsync(Guid.NewGuid());
+        Assert.True(result.NotFound);
+    }
+
+    [Fact]
+    public async Task Restore_Sets_IsEnabled_True()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+        await svc.ArchiveWorkspaceAsync(created.Workspace!.AssignmentId);
+
+        var result = await svc.RestoreWorkspaceAsync(created.Workspace.AssignmentId);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Workspace!.IsEnabled);
+    }
+
+    [Fact]
+    public async Task Restore_Returns_NotFound_For_Unknown_AssignmentId()
+    {
+        var svc = BuildService();
+        var result = await svc.RestoreWorkspaceAsync(Guid.NewGuid());
+        Assert.True(result.NotFound);
+    }
+
+    [Fact]
+    public async Task Restore_Preserves_SortOrder()
+    {
+        var svc = BuildService();
+        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+        var second = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "SW", "87654321", null, null, false, null));
+        await svc.ArchiveWorkspaceAsync(second.Workspace!.AssignmentId);
+
+        var result = await svc.RestoreWorkspaceAsync(second.Workspace.AssignmentId);
+
+        Assert.Equal(1, result.Workspace!.SortOrder);
+    }
+
+    // --- Delete ---
+
+    [Fact]
+    public async Task Delete_Removes_Assignment()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+
+        var result = await svc.DeleteWorkspaceAsync(created.Workspace!.AssignmentId);
+        Assert.True(result.IsSuccess);
+
+        var list = await svc.GetWorkspacesAsync();
+        Assert.Empty(list.Workspaces);
+    }
+
+    [Fact]
+    public async Task Delete_Returns_NotFound_For_Unknown_AssignmentId()
+    {
+        var svc = BuildService();
+        var result = await svc.DeleteWorkspaceAsync(Guid.NewGuid());
+        Assert.True(result.NotFound);
+    }
+
+    // --- Reset ---
+
+    [Fact]
+    public async Task Reset_Removes_All_Assignments()
+    {
+        var svc = BuildService();
+        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "NW", "12345678", null, null, false, null));
+        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
+            null, "SW", "87654321", null, null, false, null));
+
+        await svc.ResetWorkspacesAsync();
+
+        var list = await svc.GetWorkspacesAsync();
+        Assert.Empty(list.Workspaces);
+    }
+
+    [Fact]
+    public async Task Reset_On_Empty_Configuration_Succeeds()
+    {
+        var svc = BuildService();
+        await svc.ResetWorkspacesAsync();
+
+        var list = await svc.GetWorkspacesAsync();
+        Assert.Empty(list.Workspaces);
+    }
 }
 
 /// <summary>
@@ -267,7 +470,7 @@ internal sealed class InMemoryTestWorkspaceStore : IWorkspaceConfigurationStore
 
     public InMemoryTestWorkspaceStore(IReadOnlyList<WorkspaceAssignment> seed)
     {
-        _workspaces = [..seed];
+        _workspaces = [.. seed];
     }
 
     public Task<WorkspaceLoadResult> LoadAsync() =>
@@ -275,7 +478,7 @@ internal sealed class InMemoryTestWorkspaceStore : IWorkspaceConfigurationStore
 
     public Task SaveAsync(IReadOnlyList<WorkspaceAssignment> workspaces)
     {
-        _workspaces = [..workspaces];
+        _workspaces = [.. workspaces];
         return Task.CompletedTask;
     }
 }

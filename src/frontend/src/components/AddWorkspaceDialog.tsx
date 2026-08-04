@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import type { WorkspaceAssignmentDto } from '../api/client';
 import type { CreateWorkspaceFields, WorkspaceApiError, WorkspaceValidationErrors } from '../api/workspaceApi';
 import './AddWorkspaceDialog.css';
 
 interface AddWorkspaceDialogProps {
+  workspace?: WorkspaceAssignmentDto;
   onSave: (fields: CreateWorkspaceFields) => Promise<void>;
   onClose: () => void;
 }
@@ -27,14 +29,28 @@ const INITIAL_FORM: FormState = {
   coverageEndsOn: '',
 };
 
+function formFromWorkspace(workspace?: WorkspaceAssignmentDto): FormState {
+  if (!workspace) return INITIAL_FORM;
+  return {
+    displayName: workspace.displayName ?? '',
+    site: workspace.site ?? '',
+    customerNumber: workspace.customerNumber ?? '',
+    productLineFrom: workspace.productLineFrom ?? '',
+    productLineTo: workspace.productLineTo ?? '',
+    isTemporary: workspace.isTemporary,
+    coverageEndsOn: workspace.coverageEndsOn ?? '',
+  };
+}
+
 function hasMinimumScope(form: FormState): boolean {
   const site = form.site.trim();
   if (site.length !== 2 || !/^[A-Za-z]{2}$/.test(site)) return false;
   return form.customerNumber.trim().length > 0 || form.productLineFrom.trim().length > 0;
 }
 
-export function AddWorkspaceDialog({ onSave, onClose }: AddWorkspaceDialogProps) {
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
+export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceDialogProps) {
+  const isEditMode = workspace != null;
+  const [form, setForm] = useState<FormState>(() => formFromWorkspace(workspace));
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<WorkspaceValidationErrors>({});
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -121,7 +137,7 @@ export function AddWorkspaceDialog({ onSave, onClose }: AddWorkspaceDialogProps)
         onKeyDown={handleKeyDown}
       >
         <h2 id="dialog-title" className="dialog__title">
-          Add Workspace
+          {isEditMode ? 'Edit Workspace' : 'Add Workspace'}
         </h2>
 
         <form className="dialog__form" onSubmit={handleSubmit} noValidate>
@@ -286,7 +302,13 @@ export function AddWorkspaceDialog({ onSave, onClose }: AddWorkspaceDialogProps)
               disabled={!hasMinimumScope(form) || saving}
               aria-busy={saving}
             >
-              {saving ? 'Adding\u2026' : 'Add Workspace'}
+              {isEditMode
+                ? saving
+                  ? 'Saving\u2026'
+                  : 'Save Changes'
+                : saving
+                  ? 'Adding\u2026'
+                  : 'Add Workspace'}
             </button>
           </div>
         </form>
@@ -295,7 +317,7 @@ export function AddWorkspaceDialog({ onSave, onClose }: AddWorkspaceDialogProps)
   );
 }
 
-function isWorkspaceApiError(err: unknown): err is WorkspaceApiError {
+function isWorkspaceApiError(err: unknown): err is Extract<WorkspaceApiError, { type: 'validation' }> {
   return (
     typeof err === 'object' &&
     err !== null &&

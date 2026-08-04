@@ -80,6 +80,45 @@ export function useBackendStatus(pollIntervalMs = 0) {
     }
   }, []);
 
+  const triggerRefresh = useCallback(async () => {
+    let backendBaseUrl = getBackendBaseUrl();
+
+    try {
+      backendBaseUrl = await resolveBackendBaseUrl();
+      const client = new ApiClient(backendBaseUrl);
+      const status = await client.refreshSystem();
+      setState({
+        connectionState: 'connected',
+        status,
+        errorMessage: null,
+        lastUpdated: new Date(),
+      });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setState({
+          connectionState: 'api_error',
+          status: null,
+          errorMessage: `API error ${err.status}: ${err.message}`,
+          lastUpdated: new Date(),
+        });
+      } else if (err instanceof TypeError) {
+        setState({
+          connectionState: 'unavailable',
+          status: null,
+          errorMessage: `Backend is unavailable at ${backendBaseUrl}. It may still be starting.`,
+          lastUpdated: new Date(),
+        });
+      } else {
+        setState({
+          connectionState: 'unavailable',
+          status: null,
+          errorMessage: String(err),
+          lastUpdated: new Date(),
+        });
+      }
+    }
+  }, []);
+
   useEffect(() => {
     // Wrap in setTimeout so setState is called from a callback, not the effect body directly.
     const initialId = setTimeout(() => void fetchStatus(), 0);
@@ -159,5 +198,5 @@ export function useBackendStatus(pollIntervalMs = 0) {
     };
   }, [fetchStatus]);
 
-  return { ...state, refresh: fetchStatus };
+  return { ...state, refresh: fetchStatus, triggerRefresh };
 }

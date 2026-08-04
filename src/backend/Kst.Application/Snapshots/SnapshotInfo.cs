@@ -18,5 +18,6 @@ public sealed record SnapshotInfo(
         SnapshotStatus.NotLoaded
     );
 
-    public bool IsAvailable => Status == SnapshotStatus.Loaded;
+    public bool IsAvailable =>
+        Status is SnapshotStatus.Current or SnapshotStatus.Stale or SnapshotStatus.Partial;
 }

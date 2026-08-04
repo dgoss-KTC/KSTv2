@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Kst.Application.Preferences;
 using Kst.Application.Workspaces;
+using Kst.Domain.Preferences;
 using Kst.Domain.Workspaces;
 
 namespace Kst.Api.IntegrationTests;
@@ -19,13 +21,20 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            // Replace the JSON file store with an in-memory store for tests.
-            var descriptor = services.SingleOrDefault(
+            // Replace the JSON file stores with in-memory stores for tests.
+            var workspaceDescriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(IWorkspaceConfigurationStore));
-            if (descriptor is not null)
-                services.Remove(descriptor);
+            if (workspaceDescriptor is not null)
+                services.Remove(workspaceDescriptor);
 
             services.AddSingleton<IWorkspaceConfigurationStore, InMemoryWorkspaceStore>();
+
+            var preferencesDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(IPreferencesStore));
+            if (preferencesDescriptor is not null)
+                services.Remove(preferencesDescriptor);
+
+            services.AddSingleton<IPreferencesStore, InMemoryPreferencesStore>();
         });
 
         builder.ConfigureLogging(logging =>
@@ -47,7 +56,24 @@ internal sealed class InMemoryWorkspaceStore : IWorkspaceConfigurationStore
 
     public Task SaveAsync(IReadOnlyList<WorkspaceAssignment> workspaces)
     {
-        _workspaces = [..workspaces];
+        _workspaces = [.. workspaces];
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// In-memory preferences store for integration tests. Isolates tests from the file system.
+/// </summary>
+internal sealed class InMemoryPreferencesStore : IPreferencesStore
+{
+    private UserPreferences _preferences = UserPreferences.Default;
+
+    public Task<PreferencesLoadResult> LoadAsync() =>
+        Task.FromResult(new PreferencesLoadResult(_preferences, null));
+
+    public Task SaveAsync(UserPreferences preferences)
+    {
+        _preferences = preferences;
         return Task.CompletedTask;
     }
 }

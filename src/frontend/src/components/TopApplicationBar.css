@@ -103,33 +103,3 @@
 .top-bar__status-label {
   color: var(--tx3);
 }
-
-.top-bar__theme-toggle {
-  display: flex;
-  background: var(--chip);
-  border: 1px solid var(--bd);
-  border-radius: 7px;
-  padding: 2px;
-}
-
-.top-bar__theme-btn {
-  background: transparent;
-  border: none;
-  border-radius: 5px;
-  color: var(--tx3);
-  font-family: inherit;
-  font-size: 11px;
-  padding: 2px 8px;
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s;
-}
-
-.top-bar__theme-btn:hover {
-  color: var(--tx);
-  background: var(--row-hover);
-}
-
-.top-bar__theme-btn--active {
-  background: var(--panel2);
-  color: var(--tx);
-}

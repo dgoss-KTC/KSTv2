@@ -43,6 +43,9 @@ import type { components } from '../generated/api';
 type SystemStatusResponse = components['schemas']['SystemStatusResponse'];
 ```
 
+Stage 4 note:
+- Workspace contracts are now included in generated types (for example `WorkspaceAssignmentDto`, `WorkspaceListResponseDto`, `CreateWorkspaceRequestDto`).
+
 ## Updating After API Changes
 
 Whenever you add or change a C# endpoint or DTO:

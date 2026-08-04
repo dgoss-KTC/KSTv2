@@ -1,6 +1,6 @@
 # KST v2 Master Project Checklist
 
-**Current project position:** Stage 3 — Technical Foundation is complete. Stage 4 — Phase 1: Application Shell and Workspace Configuration is next.
+**Current project position:** Stage 3 — Technical Foundation is complete. Stage 4 — Phase 1: Application Shell and Workspace Configuration is implementation-complete pending owner acceptance.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -60,88 +60,104 @@ Later phases may extend or refactor models and services created during earlier p
 
 ## Stage 4 — Phase 1: Application Shell and Workspace Configuration
 
+Status: IN_PROGRESS (initial implementation slice complete; second slice added edit/archive/restore/delete/reset workspace lifecycle; third slice (this change) adds snapshot/data-source lifecycle expansion, the refresh coordinator and endpoint, local user preferences (theme/accent color/row density), the General workspace tab, workspace tab reordering, and duplicate-workspace validation)
+
+Implemented slice reference: `ce717a1` — `feat: Stage 4 Phase 1 — application shell, workspace tabs, and backend configuration`
+
+Second slice: Edit Workspace, Archive Workspace, Restore Archived Workspace, Permanent Delete, Reset All Workspace Configuration, active-tab fallback behavior, confirmation dialogs, and toast notifications.
+
+Third slice (this change): Snapshot/data-source status lifecycle expanded to NotLoaded/Loading/Current/Stale/Partial/Failed; `RefreshCoordinator` orchestrates a full refresh cycle across QAD/Shortage Database providers and exposes `POST /api/v1/system/refresh`; local user preferences (theme, accent color, row density) persisted via `GET`/`PUT /api/v1/preferences`; new General workspace tab with Appearance, Workspace Management, and Application Status sections; `BottomStatusBar` shown for both workspace and General views; workspace tab reordering via drag-and-drop and Move Left/Move Right menu items backed by `PUT /api/v1/workspaces/order`; duplicate-scope validation rejects new/edited workspaces that match an existing enabled workspace's site/customer/product-line range.
+
 ### 4.1 UI behavior review
 
-- [ ] Review the shell prototype
-- [ ] Confirm top application bar behavior
-- [ ] Confirm customer-tab behavior
-- [ ] Confirm General-tab behavior
-- [ ] Confirm theme behavior
-- [ ] Confirm accent-color behavior
-- [ ] Confirm row-density behavior
-- [ ] Confirm bottom action-bar behavior
-- [ ] Confirm refresh and status presentation
-- [ ] Confirm local persistence expectations
+- [x] Review the shell prototype
+- [x] Confirm top application bar behavior
+- [x] Confirm customer-tab behavior
+- [x] Confirm General-tab behavior
+- [x] Confirm theme behavior
+- [x] Confirm accent-color behavior
+- [x] Confirm row-density behavior
+- [x] Confirm bottom action-bar behavior
+- [x] Confirm refresh and status presentation
+- [x] Confirm local persistence expectations
 ### 4.2 Field inventory
 
-- [ ] Filter workbook to Global Shell and Customer Workspace fields
-- [ ] Map application-owned fields
-- [ ] Map customer identifiers
-- [ ] Map site identifiers
-- [ ] Map planner display data
-- [ ] Map lead-time display data
-- [ ] Map active-part counts
-- [ ] Map shortage counts
-- [ ] Identify fields that remain local-only
-- [ ] Add any missing prototype fields
+- [x] Filter workbook to Global Shell and Customer Workspace fields
+- [x] Map application-owned fields
+- [x] Map customer identifiers
+- [x] Map site identifiers
+- [~] Map planner display data
+- [~] Map lead-time display data
+- [~] Map active-part counts
+- [~] Map shortage counts
+- [x] Identify fields that remain local-only
+- [~] Add any missing prototype fields
 ### 4.3 Customer-and-site configuration
 
-- [ ] Define CustomerSiteAssignment
-- [ ] Define site
-- [ ] Define customer code and display name
-- [ ] Define product-line filters
-- [ ] Define planner filters
-- [ ] Define active-part filters if needed
-- [ ] Support one customer at multiple sites
-- [ ] Support temporary customer coverage
-- [ ] Define add, edit, reorder, enable, and remove behavior
-- [ ] Define validation
-- [ ] Persist locally
+- [x] Define CustomerSiteAssignment
+- [x] Define site
+- [x] Define customer code and display name
+- [x] Define product-line filters
+- [~] Define planner filters
+- [~] Define active-part filters if needed
+- [x] Support one customer at multiple sites
+- [x] Support temporary customer coverage
+- [x] Define add, edit, enable/disable (archive/restore), and remove (delete/reset) behavior
+  - Drag-and-drop reorder (plus Move Left/Move Right menu items) is now implemented.
+- [x] Define validation
+  - Includes duplicate-scope rejection (same site/customer/product-line range) among enabled workspaces.
+- [x] Persist locally
 ### 4.4 Snapshot status
 
-- [ ] Define not-loaded state
-- [ ] Define loading state
-- [ ] Define current state
-- [ ] Define stale state
-- [ ] Define partially refreshed state
-- [ ] Define failed state
-- [ ] Display last successful refresh
-- [ ] Display source-level warnings
-- [ ] Preserve cached data after failed refresh
+- [x] Define not-loaded state
+- [x] Define loading state
+- [x] Define current state
+- [x] Define stale state
+- [x] Define partially refreshed state
+- [x] Define failed state
+- [x] Display last successful refresh
+- [~] Display source-level warnings
+  - Per-source status (NotConfigured/Loading/Current/Stale/Failed/Unavailable) is surfaced; detailed per-source error/warning text is deferred.
+- [x] Preserve cached data after failed refresh
 ### 4.5 Backend and API
 
-- [ ] Create workspace configuration service
-- [ ] Create local settings service
-- [ ] Create application status service
-- [ ] Create source-status model
-- [ ] Create workspace-list endpoint
-- [ ] Create workspace-update endpoint
-- [ ] Create preferences endpoints
-- [ ] Create health and status endpoints
+- [x] Create workspace configuration service
+- [x] Create local settings service
+- [x] Create application status service
+- [x] Create source-status model
+- [x] Create workspace-list endpoint
+- [x] Create workspace-update endpoint
+  - Also added: archive, restore, delete, reset-all, and reorder endpoints for the full workspace lifecycle.
+- [x] Create preferences endpoints
+- [x] Create health and status endpoints
+  - Also added: `POST /api/v1/system/refresh` orchestrating the refresh coordinator.
 ### 4.6 Frontend
 
-- [ ] Build top application bar
-- [ ] Build customer tabs
-- [ ] Build General tab
-- [ ] Build customer header
-- [ ] Build theme control
-- [ ] Build accent control
-- [ ] Build density control
-- [ ] Build source-status indicator
-- [ ] Build refresh action shell
-- [ ] Build confirmation dialog
-- [ ] Build toast notifications
+- [x] Build top application bar
+- [x] Build customer tabs
+- [x] Build General tab
+- [x] Build customer header
+- [x] Build theme control
+- [x] Build accent control
+- [x] Build density control
+- [x] Build source-status indicator
+- [x] Build refresh action shell
+- [x] Build confirmation dialog
+- [x] Build toast notifications
 ### 4.7 Validation
 
-- [ ] Test local settings persistence
-- [ ] Test customer/site distinction
-- [ ] Test temporary coverage
-- [ ] Test corrupted local configuration
-- [ ] Test empty workspace
-- [ ] Test backend unavailable state
-- [ ] Test failed refresh state
+- [x] Test local settings persistence
+- [x] Test customer/site distinction
+- [x] Test temporary coverage
+- [x] Test corrupted local configuration
+- [x] Test empty workspace
+- [x] Test backend unavailable state
+- [x] Test workspace edit, archive, restore, delete, and reset flows
+- [x] Test active-tab fallback behavior after archive/delete
+- [x] Test failed refresh state
 - [ ] Owner acceptance
-Phase 1 completion gate: The user can configure and switch among site-specific customer workspaces, and the shell correctly displays backend and snapshot status.
+Phase 1 completion gate: Implementation-complete pending owner acceptance. Real QAD-backed planner/lead-time/active-part/shortage-count field mapping and per-source warning detail text remain intentionally deferred to the rolling-wave phase(s) that first require live QAD/shortage data (Stage 5 onward).
+
 
 
 ## Stage 5 — Phase 2: MPS Dashboard Grid
