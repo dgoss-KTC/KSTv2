@@ -27,9 +27,9 @@ function makeWorkspace(overrides: Partial<WorkspaceAssignmentDto> = {}): Workspa
     assignmentId: 'id-1',
     displayName: 'Customer 11111111',
     site: 'NW',
-    customerNumber: '11111111',
     productLineFrom: null,
     productLineTo: null,
+    parentParts: ['ABC100'],
     isTemporary: false,
     coverageEndsOn: null,
     isEnabled: true,
@@ -170,7 +170,7 @@ describe('Workspace lifecycle (edit / archive / restore / delete / reset)', () =
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('heading', { name: /edit workspace/i })).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/site/i)).toHaveValue('NW');
-    expect(within(dialog).getByLabelText(/customer number/i)).toHaveValue('11111111');
+    expect(within(dialog).getByLabelText(/^parent part 1$/i)).toHaveValue('ABC100');
 
     await user.click(within(dialog).getByRole('button', { name: /save changes/i }));
 
@@ -285,7 +285,7 @@ describe('Workspace lifecycle (edit / archive / restore / delete / reset)', () =
 
   it('reset requires confirmation and returns to the empty startup screen', async () => {
     const list: WorkspaceListResponseDto = {
-      workspaces: [makeWorkspace(), makeWorkspace({ assignmentId: 'id-2', displayName: 'Customer 22222222', customerNumber: '22222222', sortOrder: 1 })],
+      workspaces: [makeWorkspace(), makeWorkspace({ assignmentId: 'id-2', displayName: 'Customer 22222222', parentParts: ['XYZ900'], sortOrder: 1 })],
       configurationWarning: null,
     };
     setupBackend(list, {
@@ -312,7 +312,7 @@ describe('Workspace lifecycle (edit / archive / restore / delete / reset)', () =
     const list: WorkspaceListResponseDto = {
       workspaces: [
         makeWorkspace(),
-        makeWorkspace({ assignmentId: 'id-2', displayName: 'Customer 22222222', customerNumber: '22222222', sortOrder: 1 }),
+        makeWorkspace({ assignmentId: 'id-2', displayName: 'Customer 22222222', parentParts: ['XYZ900'], sortOrder: 1 }),
       ],
       configurationWarning: null,
     };

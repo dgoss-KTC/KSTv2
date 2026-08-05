@@ -13,13 +13,15 @@ interface ManageWorkspacesDialogProps {
 
 function describeScope(w: WorkspaceAssignmentDto): string {
   const parts: string[] = [];
-  if (w.customerNumber) parts.push(`Customer ${w.customerNumber}`);
   if (w.productLineFrom) {
     parts.push(
       w.productLineTo && w.productLineTo !== w.productLineFrom
         ? `PL ${w.productLineFrom}\u2013${w.productLineTo}`
         : `PL ${w.productLineFrom}`,
     );
+  }
+  if (w.parentParts && w.parentParts.length > 0) {
+    parts.push(`${w.parentParts.length} ${w.parentParts.length === 1 ? 'part' : 'parts'}`);
   }
   return parts.join(' \u00b7 ') || '\u2014';
 }

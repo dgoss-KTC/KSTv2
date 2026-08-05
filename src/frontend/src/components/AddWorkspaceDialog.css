@@ -106,6 +106,56 @@
   margin-top: -8px;
 }
 
+.dialog__collapsible-toggle {
+  background: none;
+  border: none;
+  color: var(--tx2);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+}
+
+.dialog__collapsible-toggle:hover {
+  color: var(--tx);
+}
+
+.dialog__parent-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dialog__parent-part-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialog__parent-part-row .dialog__input {
+  flex: 1;
+}
+
+.dialog__btn--icon {
+  border-radius: 6px;
+  border: 1px solid var(--bd);
+  background: var(--chip);
+  color: var(--tx2);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.dialog__btn--icon:hover {
+  background: var(--row-hover);
+  color: var(--tx);
+}
+
 .dialog__actions {
   display: flex;
   justify-content: flex-end;

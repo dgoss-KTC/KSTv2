@@ -27,11 +27,11 @@ const emptyWorkspaceList: WorkspaceListResponseDto = { workspaces: [], configura
 function makeWorkspace(overrides: Partial<WorkspaceAssignmentDto> = {}): WorkspaceAssignmentDto {
   return {
     assignmentId: 'abc-123',
-    displayName: 'Customer 12345678',
+    displayName: '1 parent part',
     site: 'NW',
-    customerNumber: '12345678',
     productLineFrom: null,
     productLineTo: null,
+    parentParts: ['ABC100'],
     isTemporary: false,
     coverageEndsOn: null,
     isEnabled: true,
@@ -111,17 +111,34 @@ describe('AddWorkspaceDialog', () => {
     expect(submitBtn).toBeDisabled();
   });
 
-  it('customer-based workspace enables the submit button', async () => {
+  it('parent-part-based workspace enables the submit button', async () => {
     setupConnected();
     render(<App />);
     await openDialog();
 
     const dialog = screen.getByRole('dialog');
     await user.type(within(dialog).getByLabelText(/site/i), 'NW');
-    await user.type(within(dialog).getByLabelText(/customer number/i), '12345678');
+    await user.click(within(dialog).getByRole('button', { name: /limit to specific parent parts/i }));
+    await user.type(within(dialog).getByLabelText(/^parent part 1$/i), 'ABC100');
 
     const submitBtn = within(dialog).getByRole('button', { name: /add workspace/i });
     expect(submitBtn).not.toBeDisabled();
+  });
+
+  it('parent-parts section can add and remove rows', async () => {
+    setupConnected();
+    render(<App />);
+    await openDialog();
+
+    const dialog = screen.getByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: /limit to specific parent parts/i }));
+    expect(within(dialog).getByLabelText(/^parent part 1$/i)).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: /^\+ add parent part$/i }));
+    expect(within(dialog).getByLabelText(/^parent part 2$/i)).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: /remove parent part 2/i }));
+    expect(within(dialog).queryByLabelText(/^parent part 2$/i)).not.toBeInTheDocument();
   });
 
   it('product-line-based workspace enables the submit button', async () => {
@@ -166,21 +183,22 @@ describe('AddWorkspaceDialog', () => {
 
     const dialog = screen.getByRole('dialog');
     await user.type(within(dialog).getByLabelText(/site/i), 'NW');
-    await user.type(within(dialog).getByLabelText(/customer number/i), '12345678');
+    await user.click(within(dialog).getByRole('button', { name: /limit to specific parent parts/i }));
+    await user.type(within(dialog).getByLabelText(/^parent part 1$/i), 'ABC100');
     await user.click(within(dialog).getByRole('button', { name: /add workspace/i }));
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    expect(screen.getByRole('tab', { name: /customer 12345678/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /1 parent part/i })).toBeInTheDocument();
   });
 
   it('saved workspaces render as tabs after loading', async () => {
     const list: WorkspaceListResponseDto = {
       workspaces: [
-        makeWorkspace({ assignmentId: 'id-1', displayName: 'Customer 11111111', customerNumber: '11111111', sortOrder: 0 }),
-        makeWorkspace({ assignmentId: 'id-2', displayName: 'PL 0040', customerNumber: null, productLineFrom: '0040', productLineTo: '0040', sortOrder: 1 }),
+        makeWorkspace({ assignmentId: 'id-1', displayName: '1 parent part', parentParts: ['ABC100'], sortOrder: 0 }),
+        makeWorkspace({ assignmentId: 'id-2', displayName: 'PL 0040', parentParts: [], productLineFrom: '0040', productLineTo: '0040', sortOrder: 1 }),
       ],
       configurationWarning: null,
     };
@@ -189,7 +207,7 @@ describe('AddWorkspaceDialog', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /customer 11111111/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /1 parent part/i })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /pl 0040/i })).toBeInTheDocument();
     });
   });
@@ -197,8 +215,8 @@ describe('AddWorkspaceDialog', () => {
   it('tab switching changes the workspace placeholder details', async () => {
     const list: WorkspaceListResponseDto = {
       workspaces: [
-        makeWorkspace({ assignmentId: 'id-1', displayName: 'Customer 11111111', customerNumber: '11111111', sortOrder: 0 }),
-        makeWorkspace({ assignmentId: 'id-2', displayName: 'Customer 22222222', customerNumber: '22222222', sortOrder: 1 }),
+        makeWorkspace({ assignmentId: 'id-1', displayName: '1 parent part', parentParts: ['ABC100'], sortOrder: 0 }),
+        makeWorkspace({ assignmentId: 'id-2', displayName: '1 parent part', parentParts: ['XYZ900'], sortOrder: 1 }),
       ],
       configurationWarning: null,
     };
@@ -207,13 +225,14 @@ describe('AddWorkspaceDialog', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /customer 22222222/i })).toBeInTheDocument();
+      expect(screen.getAllByRole('tab', { name: /1 parent part/i })).toHaveLength(2);
     });
 
-    await user.click(screen.getByRole('tab', { name: /customer 22222222/i }));
+    const tabs = screen.getAllByRole('tab', { name: /1 parent part/i });
+    await user.click(tabs[1]);
 
     await waitFor(() => {
-      expect(screen.getByText('22222222')).toBeInTheDocument();
+      expect(screen.getByText('XYZ900')).toBeInTheDocument();
     });
   });
 
@@ -246,7 +265,8 @@ describe('AddWorkspaceDialog', () => {
 
     const dialog = screen.getByRole('dialog');
     await user.type(within(dialog).getByLabelText(/site/i), 'NW');
-    await user.type(within(dialog).getByLabelText(/customer number/i), '12345678');
+    await user.click(within(dialog).getByRole('button', { name: /limit to specific parent parts/i }));
+    await user.type(within(dialog).getByLabelText(/^parent part 1$/i), 'ABC100');
 
     // Override the submit mock for this test
     fetchMock.mockImplementationOnce(() =>

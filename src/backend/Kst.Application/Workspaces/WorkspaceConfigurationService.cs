@@ -33,20 +33,20 @@ public sealed class WorkspaceConfigurationService : IWorkspaceConfigurationServi
             return WorkspaceCreateResult.Failure(errors);
 
         var site = command.Site!.Trim().ToUpperInvariant();
-        var customerNumber = NormalizeOptionalString(command.CustomerNumber);
         var productLineFrom = NormalizeOptionalString(command.ProductLineFrom);
         var productLineTo = NormalizeOptionalString(command.ProductLineTo);
+        var parentParts = ParentPartNormalizer.Normalize(command.ParentParts);
 
         // When ProductLineFrom is set and ProductLineTo is blank, treat as single product line.
         if (productLineFrom is not null && productLineTo is null)
             productLineTo = productLineFrom;
 
-        var displayName = DeriveDisplayName(command.DisplayName, customerNumber, productLineFrom, productLineTo);
+        var displayName = DeriveDisplayName(command.DisplayName, productLineFrom, productLineTo, parentParts);
 
         var loaded = await _store.LoadAsync();
         var existing = loaded.Workspaces.ToList();
 
-        if (IsDuplicateScope(existing, site, customerNumber, productLineFrom, productLineTo, excludeAssignmentId: null))
+        if (IsDuplicateScope(existing, site, productLineFrom, productLineTo, parentParts, excludeAssignmentId: null))
             return WorkspaceCreateResult.Failure([DuplicateScopeError]);
 
         var nextSortOrder = existing.Count == 0 ? 0 : existing.Max(w => w.SortOrder) + 1;
@@ -55,9 +55,9 @@ public sealed class WorkspaceConfigurationService : IWorkspaceConfigurationServi
             AssignmentId: Guid.NewGuid(),
             DisplayName: displayName,
             Site: site,
-            CustomerNumber: customerNumber,
             ProductLineFrom: productLineFrom,
             ProductLineTo: productLineTo,
+            ParentParts: parentParts,
             IsTemporary: command.IsTemporary,
             CoverageEndsOn: command.CoverageEndsOn,
             IsEnabled: true,
@@ -86,26 +86,26 @@ public sealed class WorkspaceConfigurationService : IWorkspaceConfigurationServi
         }
 
         var site = command.Site!.Trim().ToUpperInvariant();
-        var customerNumber = NormalizeOptionalString(command.CustomerNumber);
         var productLineFrom = NormalizeOptionalString(command.ProductLineFrom);
         var productLineTo = NormalizeOptionalString(command.ProductLineTo);
+        var parentParts = ParentPartNormalizer.Normalize(command.ParentParts);
 
         // When ProductLineFrom is set and ProductLineTo is blank, treat as single product line.
         if (productLineFrom is not null && productLineTo is null)
             productLineTo = productLineFrom;
 
-        var displayName = DeriveDisplayName(command.DisplayName, customerNumber, productLineFrom, productLineTo);
+        var displayName = DeriveDisplayName(command.DisplayName, productLineFrom, productLineTo, parentParts);
 
-        if (IsDuplicateScope(existing, site, customerNumber, productLineFrom, productLineTo, excludeAssignmentId: assignmentId))
+        if (IsDuplicateScope(existing, site, productLineFrom, productLineTo, parentParts, excludeAssignmentId: assignmentId))
             return WorkspaceUpdateResult.Failure([DuplicateScopeError]);
 
         var updated = existing[index] with
         {
             DisplayName = displayName,
             Site = site,
-            CustomerNumber = customerNumber,
             ProductLineFrom = productLineFrom,
             ProductLineTo = productLineTo,
+            ParentParts = parentParts,
             IsTemporary = command.IsTemporary,
             CoverageEndsOn = command.CoverageEndsOn,
         };
@@ -208,27 +208,28 @@ public sealed class WorkspaceConfigurationService : IWorkspaceConfigurationServi
 
     private static readonly WorkspaceValidationError DuplicateScopeError = new(
         "scope",
-        "A workspace with this site, customer number, and product-line range already exists.");
+        "A workspace with this site, product-line range, and parent-part set already exists.");
 
     /// <summary>
-    /// Structural duplicate protection: the same site + customer number + product-line range must
-    /// not exist among currently enabled (active) workspaces. Archived assignments are excluded so
-    /// they never block creating a legitimate new active assignment. Friendly names may duplicate.
+    /// Structural duplicate protection: the same site + product-line range + normalized parent-part
+    /// set must not exist among currently enabled (active) workspaces. Archived assignments are
+    /// excluded so they never block creating a legitimate new active assignment. Friendly names may
+    /// duplicate. Parent-part order and duplicate input entries do not affect scope identity.
     /// </summary>
     private static bool IsDuplicateScope(
         IReadOnlyList<WorkspaceAssignment> existing,
         string site,
-        string? customerNumber,
         string? productLineFrom,
         string? productLineTo,
+        IReadOnlyList<string> parentParts,
         Guid? excludeAssignmentId) =>
         existing.Any(w =>
             w.IsEnabled &&
             w.AssignmentId != excludeAssignmentId &&
             string.Equals(w.Site, site, StringComparison.Ordinal) &&
-            string.Equals(w.CustomerNumber, customerNumber, StringComparison.Ordinal) &&
             string.Equals(w.ProductLineFrom, productLineFrom, StringComparison.Ordinal) &&
-            string.Equals(w.ProductLineTo, productLineTo, StringComparison.Ordinal));
+            string.Equals(w.ProductLineTo, productLineTo, StringComparison.Ordinal) &&
+            ParentPartNormalizer.SetEquals(w.ParentParts, parentParts));
 
     private static IReadOnlyList<WorkspaceValidationError> Validate(CreateWorkspaceCommand cmd)
     {
@@ -241,13 +242,6 @@ public sealed class WorkspaceConfigurationService : IWorkspaceConfigurationServi
             errors.Add(new WorkspaceValidationError("site", "Site must be exactly 2 characters."));
         else if (!site.All(char.IsLetter))
             errors.Add(new WorkspaceValidationError("site", "Site must contain letters only."));
-
-        var customerNumber = cmd.CustomerNumber?.Trim();
-        if (!string.IsNullOrEmpty(customerNumber))
-        {
-            if (customerNumber.Length != 8 || !customerNumber.All(char.IsDigit))
-                errors.Add(new WorkspaceValidationError("customerNumber", "Customer number must be exactly 8 digits."));
-        }
 
         var productLineFrom = cmd.ProductLineFrom?.Trim();
         if (!string.IsNullOrEmpty(productLineFrom))
@@ -267,13 +261,15 @@ public sealed class WorkspaceConfigurationService : IWorkspaceConfigurationServi
                 errors.Add(new WorkspaceValidationError("productLineTo", "Product Line To must be greater than or equal to Product Line From."));
         }
 
+        var parentParts = ParentPartNormalizer.Normalize(cmd.ParentParts);
+
         // Check scope requirement only when basic field validation has passed
         if (errors.Count == 0)
         {
-            var hasCustomer = !string.IsNullOrEmpty(customerNumber);
             var hasProductLine = !string.IsNullOrEmpty(productLineFrom);
-            if (!hasCustomer && !hasProductLine)
-                errors.Add(new WorkspaceValidationError("scope", "A workspace requires a customer number, a product-line range, or both."));
+            var hasParentParts = parentParts.Count > 0;
+            if (!hasProductLine && !hasParentParts)
+                errors.Add(new WorkspaceValidationError("scope", "A workspace requires a product-line range, at least one parent part, or both."));
         }
 
         return errors;
@@ -287,30 +283,27 @@ public sealed class WorkspaceConfigurationService : IWorkspaceConfigurationServi
 
     private static string DeriveDisplayName(
         string? displayName,
-        string? customerNumber,
         string? productLineFrom,
-        string? productLineTo)
+        string? productLineTo,
+        IReadOnlyList<string> parentParts)
     {
         if (!string.IsNullOrWhiteSpace(displayName))
             return displayName.Trim();
 
-        if (customerNumber is not null && productLineFrom is not null)
-        {
-            var plLabel = productLineTo != productLineFrom
+        string? plLabel = productLineFrom is not null
+            ? productLineTo != productLineFrom
                 ? $"PL {productLineFrom}\u2013{productLineTo}"
-                : $"PL {productLineFrom}";
-            return $"Customer {customerNumber} \u00b7 {plLabel}";
-        }
+                : $"PL {productLineFrom}"
+            : null;
 
-        if (customerNumber is not null)
-            return $"Customer {customerNumber}";
+        if (plLabel is not null && parentParts.Count > 0)
+            return $"{plLabel} \u00b7 {parentParts.Count} {(parentParts.Count == 1 ? "part" : "parts")}";
 
-        if (productLineFrom is not null)
-        {
-            return productLineTo != productLineFrom
-                ? $"PL {productLineFrom}\u2013{productLineTo}"
-                : $"PL {productLineFrom}";
-        }
+        if (plLabel is not null)
+            return plLabel;
+
+        if (parentParts.Count > 0)
+            return $"{parentParts.Count} {(parentParts.Count == 1 ? "parent part" : "parent parts")}";
 
         return "Workspace";
     }

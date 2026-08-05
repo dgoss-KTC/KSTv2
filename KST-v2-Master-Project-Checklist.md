@@ -68,6 +68,8 @@ Second slice: Edit Workspace, Archive Workspace, Restore Archived Workspace, Per
 
 Third slice (this change): Snapshot/data-source status lifecycle expanded to NotLoaded/Loading/Current/Stale/Partial/Failed; `RefreshCoordinator` orchestrates a full refresh cycle across QAD/Shortage Database providers and exposes `POST /api/v1/system/refresh`; local user preferences (theme, accent color, row density) persisted via `GET`/`PUT /api/v1/preferences`; new General workspace tab with Appearance, Workspace Management, and Application Status sections; `BottomStatusBar` shown for both workspace and General views; workspace tab reordering via drag-and-drop and Move Left/Move Right menu items backed by `PUT /api/v1/workspaces/order`; duplicate-scope validation rejects new/edited workspaces that match an existing enabled workspace's site/customer/product-line range.
 
+Stage 4B slice (this change): Workspace Scope Extension — removed `CustomerNumber` as an authoritative scope field; added optional `ParentParts[]` explicit parent-part-number collection; new scope rule is `Site AND (ProductLineFrom OR at least one explicit ParentPart)`; backward-compatible loading of legacy `workspaces.json` files (missing `parentParts` or containing obsolete `customerNumber`); Add/Edit Workspace UI now has a collapsible "Limit to specific parent parts" section; duplicate-scope detection and display-name derivation updated for parent parts; full backend/frontend automated test coverage added. CSV import of parent parts is explicitly deferred as future work.
+
 ### 4.1 UI behavior review
 
 - [x] Review the shell prototype

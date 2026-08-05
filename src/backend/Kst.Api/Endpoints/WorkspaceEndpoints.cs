@@ -82,9 +82,9 @@ public static class WorkspaceEndpoints
         var command = new CreateWorkspaceCommand(
             DisplayName: request.DisplayName,
             Site: request.Site,
-            CustomerNumber: request.CustomerNumber,
             ProductLineFrom: request.ProductLineFrom,
             ProductLineTo: request.ProductLineTo,
+            ParentParts: request.ParentParts,
             IsTemporary: request.IsTemporary,
             CoverageEndsOn: request.CoverageEndsOn);
 
@@ -113,9 +113,9 @@ public static class WorkspaceEndpoints
         var command = new CreateWorkspaceCommand(
             DisplayName: request.DisplayName,
             Site: request.Site,
-            CustomerNumber: request.CustomerNumber,
             ProductLineFrom: request.ProductLineFrom,
             ProductLineTo: request.ProductLineTo,
+            ParentParts: request.ParentParts,
             IsTemporary: request.IsTemporary,
             CoverageEndsOn: request.CoverageEndsOn);
 
@@ -184,7 +184,7 @@ public static class WorkspaceEndpoints
     }
 
     private static WorkspaceAssignmentDto ToDto(WorkspaceAssignment w) =>
-        new(w.AssignmentId, w.DisplayName, w.Site, w.CustomerNumber,
-            w.ProductLineFrom, w.ProductLineTo, w.IsTemporary,
+        new(w.AssignmentId, w.DisplayName, w.Site,
+            w.ProductLineFrom, w.ProductLineTo, w.ParentParts, w.IsTemporary,
             w.CoverageEndsOn, w.IsEnabled, w.SortOrder);
 }

@@ -448,9 +448,9 @@
         "required": [
           "displayName",
           "site",
-          "customerNumber",
           "productLineFrom",
           "productLineTo",
+          "parentParts",
           "isTemporary",
           "coverageEndsOn"
         ],
@@ -468,12 +468,6 @@
               "string"
             ]
           },
-          "customerNumber": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
           "productLineFrom": {
             "type": [
               "null",
@@ -485,6 +479,15 @@
               "null",
               "string"
             ]
+          },
+          "parentParts": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           },
           "isTemporary": {
             "type": "boolean"
@@ -778,9 +781,9 @@
           "assignmentId",
           "displayName",
           "site",
-          "customerNumber",
           "productLineFrom",
           "productLineTo",
+          "parentParts",
           "isTemporary",
           "coverageEndsOn",
           "isEnabled",
@@ -801,12 +804,6 @@
           "site": {
             "type": "string"
           },
-          "customerNumber": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
           "productLineFrom": {
             "type": [
               "null",
@@ -818,6 +815,12 @@
               "null",
               "string"
             ]
+          },
+          "parentParts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "isTemporary": {
             "type": "boolean"

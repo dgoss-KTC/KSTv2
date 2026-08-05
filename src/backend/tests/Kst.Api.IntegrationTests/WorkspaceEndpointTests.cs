@@ -44,12 +44,12 @@ public sealed class WorkspaceEndpointTests
     // --- Create ---
 
     [Fact]
-    public async Task CreateWorkspace_Returns201_For_Valid_Customer_Request()
+    public async Task CreateWorkspace_Returns201_For_Valid_ParentParts_Request()
     {
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
 
-        var request = new { site = "NW", customerNumber = "12345678", isTemporary = false };
+        var request = new { site = "NW", parentParts = new[] { "ABC100" }, isTemporary = false };
         var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
@@ -77,12 +77,23 @@ public sealed class WorkspaceEndpointTests
     }
 
     [Fact]
+    public async Task CreateWorkspace_Returns201_For_ProductLine_Plus_ParentParts()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+
+        var request = new { site = "AR", productLineFrom = "0040", parentParts = new[] { "ABC100" }, isTemporary = false };
+        var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateWorkspace_Response_Contains_AssignmentId()
     {
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
 
-        var request = new { site = "NW", customerNumber = "12345678", isTemporary = false };
+        var request = new { site = "NW", parentParts = new[] { "ABC100" }, isTemporary = false };
         var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
 
         var json = await response.Content.ReadAsStringAsync();
@@ -98,7 +109,7 @@ public sealed class WorkspaceEndpointTests
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
 
-        var request = new { site = "NW", customerNumber = "12345678", isTemporary = false };
+        var request = new { site = "NW", parentParts = new[] { "ABC100" }, isTemporary = false };
         var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
 
         var json = await response.Content.ReadAsStringAsync();
@@ -107,9 +118,10 @@ public sealed class WorkspaceEndpointTests
         Assert.True(doc.RootElement.TryGetProperty("assignmentId", out _));
         Assert.True(doc.RootElement.TryGetProperty("displayName", out _));
         Assert.True(doc.RootElement.TryGetProperty("site", out _));
-        Assert.True(doc.RootElement.TryGetProperty("customerNumber", out _));
+        Assert.True(doc.RootElement.TryGetProperty("parentParts", out _));
         Assert.True(doc.RootElement.TryGetProperty("isEnabled", out _));
         Assert.True(doc.RootElement.TryGetProperty("sortOrder", out _));
+        Assert.False(doc.RootElement.TryGetProperty("customerNumber", out _));
     }
 
     [Fact]
@@ -118,12 +130,27 @@ public sealed class WorkspaceEndpointTests
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
 
-        var request = new { site = "nw", customerNumber = "12345678", isTemporary = false };
+        var request = new { site = "nw", parentParts = new[] { "ABC100" }, isTemporary = false };
         var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
 
         var json = await response.Content.ReadAsStringAsync();
         var doc = JsonDocument.Parse(json);
         Assert.Equal("NW", doc.RootElement.GetProperty("site").GetString());
+    }
+
+    [Fact]
+    public async Task CreateWorkspace_Normalizes_ParentParts()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+
+        var request = new { site = "NW", parentParts = new[] { "  ABC100  ", "ABC100", "" }, isTemporary = false };
+        var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
+
+        var json = await response.Content.ReadAsStringAsync();
+        var doc = JsonDocument.Parse(json);
+        var parts = doc.RootElement.GetProperty("parentParts").EnumerateArray().Select(p => p.GetString()).ToList();
+        Assert.Equal(["ABC100"], parts);
     }
 
     // --- Validation errors (Problem Details) ---
@@ -145,18 +172,18 @@ public sealed class WorkspaceEndpointTests
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
 
-        var request = new { customerNumber = "12345678", isTemporary = false };
+        var request = new { productLineFrom = "0040", isTemporary = false };
         var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
-    public async Task CreateWorkspace_Returns400_For_Invalid_CustomerNumber()
+    public async Task CreateWorkspace_Returns400_For_Only_Blank_ParentParts()
     {
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
 
-        var request = new { site = "NW", customerNumber = "123", isTemporary = false };
+        var request = new { site = "NW", parentParts = new[] { "  ", "" }, isTemporary = false };
         var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -193,7 +220,7 @@ public sealed class WorkspaceEndpointTests
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
 
-        var request = new { site = "NW", customerNumber = "12345678", isTemporary = false };
+        var request = new { site = "NW", parentParts = new[] { "ABC100" }, isTemporary = false };
         await client.PostAsJsonAsync("/api/v1/workspaces", request);
 
         var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
@@ -211,7 +238,7 @@ public sealed class WorkspaceEndpointTests
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
 
-        var request = new { site = "NW", customerNumber = "99999999", isTemporary = false };
+        var request = new { site = "NW", parentParts = new[] { "ABC999" }, isTemporary = false };
         await client.PostAsJsonAsync("/api/v1/workspaces", request);
 
         var listResponse = await client.GetAsync("/api/v1/workspaces");
@@ -219,14 +246,15 @@ public sealed class WorkspaceEndpointTests
         var doc = JsonDocument.Parse(json);
         var arr = doc.RootElement.GetProperty("workspaces").EnumerateArray().ToList();
         Assert.Single(arr);
-        Assert.Equal("99999999", arr[0].GetProperty("customerNumber").GetString());
+        var parts = arr[0].GetProperty("parentParts").EnumerateArray().Select(p => p.GetString()).ToList();
+        Assert.Equal(["ABC999"], parts);
     }
 
     // --- Update ---
 
     private static async Task<Guid> CreateWorkspaceAsync(HttpClient client, object? request = null)
     {
-        request ??= new { site = "NW", customerNumber = "12345678", isTemporary = false };
+        request ??= new { site = "NW", parentParts = new[] { "ABC100" }, isTemporary = false };
         var response = await client.PostAsJsonAsync("/api/v1/workspaces", request);
         var json = await response.Content.ReadAsStringAsync();
         var doc = JsonDocument.Parse(json);
@@ -240,14 +268,15 @@ public sealed class WorkspaceEndpointTests
         using var client = factory.CreateClient();
         var id = await CreateWorkspaceAsync(client);
 
-        var update = new { site = "SW", customerNumber = "87654321", isTemporary = false };
+        var update = new { site = "SW", parentParts = new[] { "XYZ900" }, isTemporary = false };
         var response = await client.PutAsJsonAsync($"/api/v1/workspaces/{id}", update);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var json = await response.Content.ReadAsStringAsync();
         var doc = JsonDocument.Parse(json);
         Assert.Equal("SW", doc.RootElement.GetProperty("site").GetString());
-        Assert.Equal("87654321", doc.RootElement.GetProperty("customerNumber").GetString());
+        var parts = doc.RootElement.GetProperty("parentParts").EnumerateArray().Select(p => p.GetString()).ToList();
+        Assert.Equal(["XYZ900"], parts);
         Assert.Equal(id, doc.RootElement.GetProperty("assignmentId").GetGuid());
     }
 
@@ -258,7 +287,7 @@ public sealed class WorkspaceEndpointTests
         using var client = factory.CreateClient();
         var id = await CreateWorkspaceAsync(client);
 
-        var update = new { site = "N", customerNumber = "87654321", isTemporary = false };
+        var update = new { site = "N", parentParts = new[] { "ABC100" }, isTemporary = false };
         var response = await client.PutAsJsonAsync($"/api/v1/workspaces/{id}", update);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -268,12 +297,25 @@ public sealed class WorkspaceEndpointTests
     }
 
     [Fact]
+    public async Task UpdateWorkspace_Returns400_For_Removing_Final_Scope_Mechanism()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+        var id = await CreateWorkspaceAsync(client);
+
+        var update = new { site = "NW", parentParts = Array.Empty<string>(), isTemporary = false };
+        var response = await client.PutAsJsonAsync($"/api/v1/workspaces/{id}", update);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task UpdateWorkspace_Returns404_For_Unknown_AssignmentId()
     {
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
 
-        var update = new { site = "SW", customerNumber = "87654321", isTemporary = false };
+        var update = new { site = "SW", parentParts = new[] { "ABC100" }, isTemporary = false };
         var response = await client.PutAsJsonAsync($"/api/v1/workspaces/{Guid.NewGuid()}", update);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -369,8 +411,8 @@ public sealed class WorkspaceEndpointTests
     {
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
-        await CreateWorkspaceAsync(client, new { site = "NW", customerNumber = "11111111", isTemporary = false });
-        await CreateWorkspaceAsync(client, new { site = "SW", customerNumber = "22222222", isTemporary = false });
+        await CreateWorkspaceAsync(client, new { site = "NW", parentParts = new[] { "ABC100" }, isTemporary = false });
+        await CreateWorkspaceAsync(client, new { site = "SW", parentParts = new[] { "ABC200" }, isTemporary = false });
 
         var response = await client.DeleteAsync("/api/v1/workspaces");
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);

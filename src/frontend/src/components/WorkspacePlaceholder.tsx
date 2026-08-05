@@ -17,13 +17,6 @@ export function WorkspacePlaceholder({ workspace }: WorkspacePlaceholderProps) {
         <dt>Site</dt>
         <dd>{workspace.site}</dd>
 
-        {workspace.customerNumber && (
-          <>
-            <dt>Customer number</dt>
-            <dd className="workspace-placeholder__mono">{workspace.customerNumber}</dd>
-          </>
-        )}
-
         {workspace.productLineFrom && (
           <>
             <dt>Product line</dt>
@@ -31,6 +24,17 @@ export function WorkspacePlaceholder({ workspace }: WorkspacePlaceholderProps) {
               {workspace.productLineTo && workspace.productLineTo !== workspace.productLineFrom
                 ? `${workspace.productLineFrom}\u2013${workspace.productLineTo}`
                 : workspace.productLineFrom}
+            </dd>
+          </>
+        )}
+
+        {workspace.parentParts && workspace.parentParts.length > 0 && (
+          <>
+            <dt>Parent parts</dt>
+            <dd className="workspace-placeholder__mono">
+              {workspace.parentParts.length === 1
+                ? workspace.parentParts[0]
+                : `${workspace.parentParts.length} parts`}
             </dd>
           </>
         )}

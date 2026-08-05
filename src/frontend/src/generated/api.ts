@@ -62,9 +62,9 @@ export interface components {
     CreateWorkspaceRequestDto: {
       displayName: null | string;
       site: null | string;
-      customerNumber: null | string;
       productLineFrom: null | string;
       productLineTo: null | string;
+      parentParts: null | string[];
       isTemporary: boolean;
       /** Format: date */
       coverageEndsOn: null | string;
@@ -143,9 +143,9 @@ export interface components {
       assignmentId: string;
       displayName: null | string;
       site: string;
-      customerNumber: null | string;
       productLineFrom: null | string;
       productLineTo: null | string;
+      parentParts: string[];
       isTemporary: boolean;
       /** Format: date */
       coverageEndsOn: null | string;

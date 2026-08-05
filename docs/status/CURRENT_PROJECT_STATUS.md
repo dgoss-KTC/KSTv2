@@ -13,6 +13,7 @@ Reference implementation commits:
 - `ce717a1` - Stage 4 Phase 1 initial slice (application shell, workspace tabs, modal, backend workspace config, local persistence, workspace list/create API, frontend restore, tests)
 - Second slice (uncommitted at time of writing) - full workspace lifecycle (edit/archive/restore/delete/reset), confirmation dialogs, toast notifications.
 - Third slice (uncommitted at time of writing) - snapshot/data-source lifecycle expansion, refresh coordinator and `POST /api/v1/system/refresh`, local user preferences (theme/accent/density) with `GET`/`PUT /api/v1/preferences`, General workspace tab, `BottomStatusBar`, workspace tab reordering (drag-and-drop + Move Left/Right) via `PUT /api/v1/workspaces/order`, and duplicate-workspace-scope validation.
+- Stage 4B slice (uncommitted at time of writing) - Workspace Scope Extension: removed `CustomerNumber` as an authoritative scope field, added optional `ParentParts[]` explicit parent-part-number collection, new scope rule `Site AND (ProductLineFrom OR at least one explicit ParentPart)`, backward-compatible loading of legacy `workspaces.json` files (missing `parentParts` or containing obsolete `customerNumber`), Add/Edit Workspace UI collapsible "Limit to specific parent parts" section, updated duplicate-scope detection and display-name derivation, and full backend/frontend automated test coverage.
 
 Detailed Stage 4 progress and remaining scope are tracked in `docs/status/STAGE_4_PHASE_1_PROGRESS.md`.
 

@@ -16,42 +16,49 @@ public sealed class WorkspaceValidationTests
         return new WorkspaceConfigurationService(store, NullLogger<WorkspaceConfigurationService>.Instance);
     }
 
-    // --- Valid cases ---
+    private static CreateWorkspaceCommand Command(
+        string? displayName = null,
+        string? site = "NW",
+        string? productLineFrom = null,
+        string? productLineTo = null,
+        IReadOnlyList<string>? parentParts = null,
+        bool isTemporary = false,
+        DateOnly? coverageEndsOn = null) =>
+        new(displayName, site, productLineFrom, productLineTo, parentParts, isTemporary, coverageEndsOn);
 
-    [Fact]
-    public async Task Valid_Site_And_CustomerNumber_Succeeds()
-    {
-        var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
-        Assert.True(result.IsSuccess);
-        Assert.NotNull(result.Workspace);
-    }
+    // --- Valid cases ---
 
     [Fact]
     public async Task Valid_Site_And_SingleProductLine_Succeeds()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "SW", null, "0040", null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(site: "SW", productLineFrom: "0040"));
         Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Workspace);
     }
 
     [Fact]
     public async Task Valid_Site_And_ProductLineRange_Succeeds()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "AR", null, "0040", "0045", false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(site: "AR", productLineFrom: "0040", productLineTo: "0045"));
         Assert.True(result.IsSuccess);
     }
 
     [Fact]
-    public async Task Valid_Site_Customer_And_ProductLineRange_Succeeds()
+    public async Task Valid_Site_And_ExplicitParentParts_Succeeds()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "VT", "12345678", "0040", "0045", false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(site: "VT", parentParts: ["ABC100"]));
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task Valid_Site_ProductLine_And_ExplicitParentParts_Succeeds()
+    {
+        var svc = BuildService();
+        var result = await svc.CreateWorkspaceAsync(Command(
+            site: "VT", productLineFrom: "0040", productLineTo: "0045", parentParts: ["ABC100"]));
         Assert.True(result.IsSuccess);
     }
 
@@ -61,8 +68,7 @@ public sealed class WorkspaceValidationTests
     public async Task Site_Is_Normalized_To_Uppercase()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "nw", "12345678", null, null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(site: "nw", parentParts: ["ABC100"]));
         Assert.True(result.IsSuccess);
         Assert.Equal("NW", result.Workspace!.Site);
     }
@@ -73,8 +79,7 @@ public sealed class WorkspaceValidationTests
     public async Task Invalid_Site_TooShort_Fails()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "N", "12345678", null, null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(site: "N", parentParts: ["ABC100"]));
         Assert.False(result.IsSuccess);
         Assert.Contains(result.ValidationErrors!, e => e.Field == "site");
     }
@@ -83,8 +88,7 @@ public sealed class WorkspaceValidationTests
     public async Task Invalid_Site_TooLong_Fails()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NWW", "12345678", null, null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(site: "NWW", parentParts: ["ABC100"]));
         Assert.False(result.IsSuccess);
         Assert.Contains(result.ValidationErrors!, e => e.Field == "site");
     }
@@ -93,8 +97,7 @@ public sealed class WorkspaceValidationTests
     public async Task Invalid_Site_NonLetters_Fails()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "1W", "12345678", null, null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(site: "1W", parentParts: ["ABC100"]));
         Assert.False(result.IsSuccess);
         Assert.Contains(result.ValidationErrors!, e => e.Field == "site");
     }
@@ -103,42 +106,9 @@ public sealed class WorkspaceValidationTests
     public async Task Missing_Site_Fails()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, null, "12345678", null, null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(site: null, parentParts: ["ABC100"]));
         Assert.False(result.IsSuccess);
         Assert.Contains(result.ValidationErrors!, e => e.Field == "site");
-    }
-
-    // --- CustomerNumber validation ---
-
-    [Fact]
-    public async Task CustomerNumber_TooShort_Fails()
-    {
-        var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "1234567", null, null, false, null));
-        Assert.False(result.IsSuccess);
-        Assert.Contains(result.ValidationErrors!, e => e.Field == "customerNumber");
-    }
-
-    [Fact]
-    public async Task CustomerNumber_TooLong_Fails()
-    {
-        var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "123456789", null, null, false, null));
-        Assert.False(result.IsSuccess);
-        Assert.Contains(result.ValidationErrors!, e => e.Field == "customerNumber");
-    }
-
-    [Fact]
-    public async Task CustomerNumber_NonDigits_Fails()
-    {
-        var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "1234567A", null, null, false, null));
-        Assert.False(result.IsSuccess);
-        Assert.Contains(result.ValidationErrors!, e => e.Field == "customerNumber");
     }
 
     // --- ProductLine validation ---
@@ -147,8 +117,7 @@ public sealed class WorkspaceValidationTests
     public async Task ProductLineFrom_TooShort_Fails()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", null, "004", null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(productLineFrom: "004"));
         Assert.False(result.IsSuccess);
         Assert.Contains(result.ValidationErrors!, e => e.Field == "productLineFrom");
     }
@@ -157,8 +126,7 @@ public sealed class WorkspaceValidationTests
     public async Task ProductLineTo_Without_ProductLineFrom_Fails()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", null, null, "0045", false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(productLineTo: "0045"));
         Assert.False(result.IsSuccess);
         Assert.Contains(result.ValidationErrors!, e => e.Field == "productLineTo");
     }
@@ -167,8 +135,7 @@ public sealed class WorkspaceValidationTests
     public async Task ProductLineTo_Below_ProductLineFrom_Fails()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", null, "0045", "0040", false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(productLineFrom: "0045", productLineTo: "0040"));
         Assert.False(result.IsSuccess);
         Assert.Contains(result.ValidationErrors!, e => e.Field == "productLineTo");
     }
@@ -179,8 +146,16 @@ public sealed class WorkspaceValidationTests
     public async Task Site_Only_Workspace_Is_Rejected()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", null, null, null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command());
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.ValidationErrors!, e => e.Field == "scope");
+    }
+
+    [Fact]
+    public async Task Site_And_Only_Blank_Parent_Part_Rows_Is_Rejected()
+    {
+        var svc = BuildService();
+        var result = await svc.CreateWorkspaceAsync(Command(parentParts: ["   ", "", "  "]));
         Assert.False(result.IsSuccess);
         Assert.Contains(result.ValidationErrors!, e => e.Field == "scope");
     }
@@ -191,30 +166,48 @@ public sealed class WorkspaceValidationTests
     public async Task ProductLineTo_Is_Set_To_ProductLineFrom_When_Blank()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", null, "0040", null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(productLineFrom: "0040"));
         Assert.True(result.IsSuccess);
         Assert.Equal("0040", result.Workspace!.ProductLineFrom);
         Assert.Equal("0040", result.Workspace.ProductLineTo);
     }
 
-    // --- Display name derivation ---
+    // --- Parent-part normalization ---
 
     [Fact]
-    public async Task DisplayName_Derived_From_CustomerNumber()
+    public async Task ParentParts_Are_Trimmed_And_Blanks_Removed()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
-        Assert.Equal("Customer 12345678", result.Workspace!.DisplayName);
+        var result = await svc.CreateWorkspaceAsync(Command(parentParts: ["  ABC100  ", "", "   "]));
+        Assert.True(result.IsSuccess);
+        Assert.Equal(["ABC100"], result.Workspace!.ParentParts);
     }
+
+    [Fact]
+    public async Task ParentParts_Duplicate_Identical_Entries_Are_Deduplicated()
+    {
+        var svc = BuildService();
+        var result = await svc.CreateWorkspaceAsync(Command(parentParts: ["ABC100", "ABC100", " ABC100 "]));
+        Assert.True(result.IsSuccess);
+        Assert.Equal(["ABC100"], result.Workspace!.ParentParts);
+    }
+
+    [Fact]
+    public async Task ParentParts_Empty_Collection_Means_No_Narrowing()
+    {
+        var svc = BuildService();
+        var result = await svc.CreateWorkspaceAsync(Command(productLineFrom: "0040", parentParts: []));
+        Assert.True(result.IsSuccess);
+        Assert.Empty(result.Workspace!.ParentParts);
+    }
+
+    // --- Display name derivation ---
 
     [Fact]
     public async Task DisplayName_Derived_From_SingleProductLine()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", null, "0040", null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(productLineFrom: "0040"));
         Assert.Equal("PL 0040", result.Workspace!.DisplayName);
     }
 
@@ -222,17 +215,39 @@ public sealed class WorkspaceValidationTests
     public async Task DisplayName_Derived_From_ProductLineRange()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", null, "0040", "0045", false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(productLineFrom: "0040", productLineTo: "0045"));
         Assert.Equal("PL 0040\u20130045", result.Workspace!.DisplayName);
+    }
+
+    [Fact]
+    public async Task DisplayName_Derived_From_ParentParts_Only()
+    {
+        var svc = BuildService();
+        var result = await svc.CreateWorkspaceAsync(Command(parentParts: ["ABC100", "ABC200", "ABC300"]));
+        Assert.Equal("3 parent parts", result.Workspace!.DisplayName);
+    }
+
+    [Fact]
+    public async Task DisplayName_Derived_From_Single_ParentPart_Uses_Singular()
+    {
+        var svc = BuildService();
+        var result = await svc.CreateWorkspaceAsync(Command(parentParts: ["ABC100"]));
+        Assert.Equal("1 parent part", result.Workspace!.DisplayName);
+    }
+
+    [Fact]
+    public async Task DisplayName_Derived_From_ProductLine_And_ParentParts()
+    {
+        var svc = BuildService();
+        var result = await svc.CreateWorkspaceAsync(Command(productLineFrom: "2380", parentParts: ["A", "B", "C"]));
+        Assert.Equal("PL 2380 \u00b7 3 parts", result.Workspace!.DisplayName);
     }
 
     [Fact]
     public async Task Explicit_DisplayName_Is_Preserved()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            "My Workspace", "NW", "12345678", null, null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(displayName: "My Workspace", parentParts: ["ABC100"]));
         Assert.Equal("My Workspace", result.Workspace!.DisplayName);
     }
 
@@ -242,8 +257,7 @@ public sealed class WorkspaceValidationTests
     public async Task First_Workspace_Gets_SortOrder_Zero()
     {
         var svc = BuildService();
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(parentParts: ["ABC100"]));
         Assert.Equal(0, result.Workspace!.SortOrder);
     }
 
@@ -251,10 +265,8 @@ public sealed class WorkspaceValidationTests
     public async Task Second_Workspace_Gets_Next_SortOrder()
     {
         var svc = BuildService();
-        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "SW", "87654321", null, null, false, null));
+        await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
+        var result = await svc.CreateWorkspaceAsync(Command(site: "SW", parentParts: ["ABC200"]));
         Assert.Equal(1, result.Workspace!.SortOrder);
     }
 
@@ -264,28 +276,26 @@ public sealed class WorkspaceValidationTests
     public async Task Update_Changes_Workspace_Fields()
     {
         var svc = BuildService();
-        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        var created = await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
 
         var result = await svc.UpdateWorkspaceAsync(
             created.Workspace!.AssignmentId,
-            new CreateWorkspaceCommand(null, "SW", "87654321", null, null, false, null));
+            Command(site: "SW", parentParts: ["ABC200"]));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("SW", result.Workspace!.Site);
-        Assert.Equal("87654321", result.Workspace.CustomerNumber);
+        Assert.Equal(["ABC200"], result.Workspace.ParentParts);
     }
 
     [Fact]
     public async Task Update_Preserves_AssignmentId()
     {
         var svc = BuildService();
-        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        var created = await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
 
         var result = await svc.UpdateWorkspaceAsync(
             created.Workspace!.AssignmentId,
-            new CreateWorkspaceCommand(null, "SW", "87654321", null, null, false, null));
+            Command(site: "SW", parentParts: ["ABC200"]));
 
         Assert.Equal(created.Workspace.AssignmentId, result.Workspace!.AssignmentId);
     }
@@ -294,14 +304,12 @@ public sealed class WorkspaceValidationTests
     public async Task Update_Preserves_SortOrder()
     {
         var svc = BuildService();
-        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
-        var second = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "SW", "87654321", null, null, false, null));
+        await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
+        var second = await svc.CreateWorkspaceAsync(Command(site: "SW", parentParts: ["ABC200"]));
 
         var result = await svc.UpdateWorkspaceAsync(
             second.Workspace!.AssignmentId,
-            new CreateWorkspaceCommand(null, "AR", "11112222", null, null, false, null));
+            Command(site: "AR", parentParts: ["ABC300"]));
 
         Assert.Equal(1, result.Workspace!.SortOrder);
     }
@@ -310,13 +318,12 @@ public sealed class WorkspaceValidationTests
     public async Task Update_Preserves_IsEnabled()
     {
         var svc = BuildService();
-        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        var created = await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
         await svc.ArchiveWorkspaceAsync(created.Workspace!.AssignmentId);
 
         var result = await svc.UpdateWorkspaceAsync(
             created.Workspace.AssignmentId,
-            new CreateWorkspaceCommand(null, "SW", "87654321", null, null, false, null));
+            Command(site: "SW", parentParts: ["ABC200"]));
 
         Assert.False(result.Workspace!.IsEnabled);
     }
@@ -325,15 +332,70 @@ public sealed class WorkspaceValidationTests
     public async Task Update_Rejects_Invalid_Site()
     {
         var svc = BuildService();
-        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        var created = await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
 
         var result = await svc.UpdateWorkspaceAsync(
             created.Workspace!.AssignmentId,
-            new CreateWorkspaceCommand(null, "N", "12345678", null, null, false, null));
+            Command(site: "N", parentParts: ["ABC100"]));
 
         Assert.False(result.IsSuccess);
         Assert.Contains(result.ValidationErrors!, e => e.Field == "site");
+    }
+
+    [Fact]
+    public async Task Update_Adds_ParentParts()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(Command(productLineFrom: "0040"));
+
+        var result = await svc.UpdateWorkspaceAsync(
+            created.Workspace!.AssignmentId,
+            Command(productLineFrom: "0040", parentParts: ["ABC100", "ABC200"]));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(["ABC100", "ABC200"], result.Workspace!.ParentParts);
+    }
+
+    [Fact]
+    public async Task Update_Removes_Some_ParentParts()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(Command(productLineFrom: "0040", parentParts: ["ABC100", "ABC200"]));
+
+        var result = await svc.UpdateWorkspaceAsync(
+            created.Workspace!.AssignmentId,
+            Command(productLineFrom: "0040", parentParts: ["ABC100"]));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(["ABC100"], result.Workspace!.ParentParts);
+    }
+
+    [Fact]
+    public async Task Update_Clears_ParentParts_When_ProductLine_Remains()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(Command(productLineFrom: "0040", parentParts: ["ABC100"]));
+
+        var result = await svc.UpdateWorkspaceAsync(
+            created.Workspace!.AssignmentId,
+            Command(productLineFrom: "0040", parentParts: []));
+
+        Assert.True(result.IsSuccess);
+        Assert.Empty(result.Workspace!.ParentParts);
+    }
+
+    [Fact]
+    public async Task Update_Rejects_Removing_Final_Scope_Mechanism()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(Command(parentParts: ["ABC100"]));
+
+        var result = await svc.UpdateWorkspaceAsync(
+            created.Workspace!.AssignmentId,
+            Command(parentParts: []));
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.ValidationErrors!, e => e.Field == "scope");
     }
 
     [Fact]
@@ -343,7 +405,7 @@ public sealed class WorkspaceValidationTests
 
         var result = await svc.UpdateWorkspaceAsync(
             Guid.NewGuid(),
-            new CreateWorkspaceCommand(null, "NW", "12345678", null, null, false, null));
+            Command(parentParts: ["ABC100"]));
 
         Assert.True(result.NotFound);
         Assert.False(result.IsSuccess);
@@ -355,13 +417,23 @@ public sealed class WorkspaceValidationTests
     public async Task Archive_Sets_IsEnabled_False()
     {
         var svc = BuildService();
-        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        var created = await svc.CreateWorkspaceAsync(Command(parentParts: ["ABC100"]));
 
         var result = await svc.ArchiveWorkspaceAsync(created.Workspace!.AssignmentId);
 
         Assert.True(result.IsSuccess);
         Assert.False(result.Workspace!.IsEnabled);
+    }
+
+    [Fact]
+    public async Task Archive_Preserves_ParentParts()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(Command(parentParts: ["ABC100", "ABC200"]));
+
+        var result = await svc.ArchiveWorkspaceAsync(created.Workspace!.AssignmentId);
+
+        Assert.Equal(["ABC100", "ABC200"], result.Workspace!.ParentParts);
     }
 
     [Fact]
@@ -376,14 +448,25 @@ public sealed class WorkspaceValidationTests
     public async Task Restore_Sets_IsEnabled_True()
     {
         var svc = BuildService();
-        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        var created = await svc.CreateWorkspaceAsync(Command(parentParts: ["ABC100"]));
         await svc.ArchiveWorkspaceAsync(created.Workspace!.AssignmentId);
 
         var result = await svc.RestoreWorkspaceAsync(created.Workspace.AssignmentId);
 
         Assert.True(result.IsSuccess);
         Assert.True(result.Workspace!.IsEnabled);
+    }
+
+    [Fact]
+    public async Task Restore_Preserves_ParentParts()
+    {
+        var svc = BuildService();
+        var created = await svc.CreateWorkspaceAsync(Command(parentParts: ["ABC100", "ABC200"]));
+        await svc.ArchiveWorkspaceAsync(created.Workspace!.AssignmentId);
+
+        var result = await svc.RestoreWorkspaceAsync(created.Workspace.AssignmentId);
+
+        Assert.Equal(["ABC100", "ABC200"], result.Workspace!.ParentParts);
     }
 
     [Fact]
@@ -398,10 +481,8 @@ public sealed class WorkspaceValidationTests
     public async Task Restore_Preserves_SortOrder()
     {
         var svc = BuildService();
-        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
-        var second = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "SW", "87654321", null, null, false, null));
+        await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
+        var second = await svc.CreateWorkspaceAsync(Command(site: "SW", parentParts: ["ABC200"]));
         await svc.ArchiveWorkspaceAsync(second.Workspace!.AssignmentId);
 
         var result = await svc.RestoreWorkspaceAsync(second.Workspace.AssignmentId);
@@ -415,8 +496,7 @@ public sealed class WorkspaceValidationTests
     public async Task Delete_Removes_Assignment()
     {
         var svc = BuildService();
-        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        var created = await svc.CreateWorkspaceAsync(Command(parentParts: ["ABC100"]));
 
         var result = await svc.DeleteWorkspaceAsync(created.Workspace!.AssignmentId);
         Assert.True(result.IsSuccess);
@@ -439,10 +519,8 @@ public sealed class WorkspaceValidationTests
     public async Task Reset_Removes_All_Assignments()
     {
         var svc = BuildService();
-        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
-        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "SW", "87654321", null, null, false, null));
+        await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
+        await svc.CreateWorkspaceAsync(Command(site: "SW", parentParts: ["ABC200"]));
 
         await svc.ResetWorkspacesAsync();
 

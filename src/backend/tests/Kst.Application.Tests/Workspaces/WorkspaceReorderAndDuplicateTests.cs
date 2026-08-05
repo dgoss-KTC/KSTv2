@@ -16,32 +16,84 @@ public sealed class WorkspaceReorderAndDuplicateTests
         return new WorkspaceConfigurationService(store, NullLogger<WorkspaceConfigurationService>.Instance);
     }
 
+    private static CreateWorkspaceCommand Command(
+        string? displayName = null,
+        string? site = "NW",
+        string? productLineFrom = null,
+        string? productLineTo = null,
+        IReadOnlyList<string>? parentParts = null,
+        bool isTemporary = false,
+        DateOnly? coverageEndsOn = null) =>
+        new(displayName, site, productLineFrom, productLineTo, parentParts, isTemporary, coverageEndsOn);
+
     // --- Duplicate scope validation ---
 
     [Fact]
-    public async Task Create_Duplicate_Scope_Among_Enabled_Workspaces_Fails()
+    public async Task Create_Duplicate_ProductLine_Only_Scope_Among_Enabled_Workspaces_Fails()
     {
         var svc = BuildService();
-        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        await svc.CreateWorkspaceAsync(Command(site: "NW", productLineFrom: "2380"));
 
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "nw", "12345678", null, null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(site: "nw", productLineFrom: "2380"));
 
         Assert.False(result.IsSuccess);
         Assert.Contains(result.ValidationErrors!, e => e.Field == "scope");
     }
 
     [Fact]
+    public async Task Create_Duplicate_ParentParts_Only_Scope_Fails()
+    {
+        var svc = BuildService();
+        await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100", "ABC200"]));
+
+        var result = await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC200", "ABC100"]));
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.ValidationErrors!, e => e.Field == "scope");
+    }
+
+    [Fact]
+    public async Task Create_Duplicate_ProductLine_And_ParentParts_Scope_Regardless_Of_Input_Order_Fails()
+    {
+        var svc = BuildService();
+        await svc.CreateWorkspaceAsync(Command(site: "NW", productLineFrom: "2380", parentParts: ["ABC100", "ABC200"]));
+
+        var result = await svc.CreateWorkspaceAsync(Command(site: "NW", productLineFrom: "2380", parentParts: ["ABC200", "ABC100"]));
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.ValidationErrors!, e => e.Field == "scope");
+    }
+
+    [Fact]
+    public async Task ProductLine_Only_And_Narrowed_ProductLine_Are_Distinct_Scopes()
+    {
+        var svc = BuildService();
+        await svc.CreateWorkspaceAsync(Command(site: "NW", productLineFrom: "2380"));
+
+        var result = await svc.CreateWorkspaceAsync(Command(site: "NW", productLineFrom: "2380", parentParts: ["ABC100"]));
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task Different_ParentPart_Subsets_Are_Distinct_Scopes()
+    {
+        var svc = BuildService();
+        await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100", "ABC200"]));
+
+        var result = await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
     public async Task Create_Same_Scope_As_Archived_Workspace_Succeeds()
     {
         var svc = BuildService();
-        var first = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        var first = await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
         await svc.ArchiveWorkspaceAsync(first.Workspace!.AssignmentId);
 
-        var result = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        var result = await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
 
         Assert.True(result.IsSuccess);
     }
@@ -50,11 +102,10 @@ public sealed class WorkspaceReorderAndDuplicateTests
     public async Task Update_Workspace_To_Its_Own_Scope_Succeeds()
     {
         var svc = BuildService();
-        var created = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            "Original", "NW", "12345678", null, null, false, null));
+        var created = await svc.CreateWorkspaceAsync(Command(displayName: "Original", site: "NW", parentParts: ["ABC100"]));
 
-        var result = await svc.UpdateWorkspaceAsync(created.Workspace!.AssignmentId, new CreateWorkspaceCommand(
-            "Renamed", "NW", "12345678", null, null, false, null));
+        var result = await svc.UpdateWorkspaceAsync(created.Workspace!.AssignmentId,
+            Command(displayName: "Renamed", site: "NW", parentParts: ["ABC100"]));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("Renamed", result.Workspace!.DisplayName);
@@ -64,13 +115,11 @@ public sealed class WorkspaceReorderAndDuplicateTests
     public async Task Update_Workspace_To_Another_Enabled_Workspaces_Scope_Fails()
     {
         var svc = BuildService();
-        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
-        var second = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(
-            null, "SW", "87654321", null, null, false, null));
+        await svc.CreateWorkspaceAsync(Command(site: "NW", parentParts: ["ABC100"]));
+        var second = await svc.CreateWorkspaceAsync(Command(site: "SW", parentParts: ["ABC200"]));
 
-        var result = await svc.UpdateWorkspaceAsync(second.Workspace!.AssignmentId, new CreateWorkspaceCommand(
-            null, "NW", "12345678", null, null, false, null));
+        var result = await svc.UpdateWorkspaceAsync(second.Workspace!.AssignmentId,
+            Command(site: "NW", parentParts: ["ABC100"]));
 
         Assert.False(result.IsSuccess);
         Assert.Contains(result.ValidationErrors!, e => e.Field == "scope");
@@ -82,9 +131,9 @@ public sealed class WorkspaceReorderAndDuplicateTests
     public async Task Reorder_Persists_New_SortOrder_For_Enabled_Workspaces()
     {
         var svc = BuildService();
-        var a = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "AA", "11111111", null, null, false, null));
-        var b = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "BB", "22222222", null, null, false, null));
-        var c = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "CC", "33333333", null, null, false, null));
+        var a = await svc.CreateWorkspaceAsync(Command(site: "AA", parentParts: ["ABC100"]));
+        var b = await svc.CreateWorkspaceAsync(Command(site: "BB", parentParts: ["ABC200"]));
+        var c = await svc.CreateWorkspaceAsync(Command(site: "CC", parentParts: ["ABC300"]));
 
         var result = await svc.ReorderWorkspacesAsync(new ReorderWorkspacesCommand([
             c.Workspace!.AssignmentId, a.Workspace!.AssignmentId, b.Workspace!.AssignmentId
@@ -101,11 +150,29 @@ public sealed class WorkspaceReorderAndDuplicateTests
     }
 
     [Fact]
+    public async Task Reorder_Preserves_ParentParts()
+    {
+        var svc = BuildService();
+        var a = await svc.CreateWorkspaceAsync(Command(site: "AA", parentParts: ["ABC100", "ABC200"]));
+        var b = await svc.CreateWorkspaceAsync(Command(site: "BB", parentParts: ["XYZ900"]));
+
+        var result = await svc.ReorderWorkspacesAsync(new ReorderWorkspacesCommand([
+            b.Workspace!.AssignmentId, a.Workspace!.AssignmentId
+        ]));
+
+        Assert.True(result.IsSuccess);
+        var reorderedA = result.Workspaces!.Single(w => w.AssignmentId == a.Workspace!.AssignmentId);
+        var reorderedB = result.Workspaces!.Single(w => w.AssignmentId == b.Workspace!.AssignmentId);
+        Assert.Equal(["ABC100", "ABC200"], reorderedA.ParentParts);
+        Assert.Equal(["XYZ900"], reorderedB.ParentParts);
+    }
+
+    [Fact]
     public async Task Reorder_With_Duplicate_Ids_Fails()
     {
         var svc = BuildService();
-        var a = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "AA", "11111111", null, null, false, null));
-        var b = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "BB", "22222222", null, null, false, null));
+        var a = await svc.CreateWorkspaceAsync(Command(site: "AA", parentParts: ["ABC100"]));
+        var b = await svc.CreateWorkspaceAsync(Command(site: "BB", parentParts: ["ABC200"]));
 
         var result = await svc.ReorderWorkspacesAsync(new ReorderWorkspacesCommand([
             a.Workspace!.AssignmentId, a.Workspace!.AssignmentId
@@ -123,8 +190,8 @@ public sealed class WorkspaceReorderAndDuplicateTests
     public async Task Reorder_Missing_An_Enabled_Id_Fails()
     {
         var svc = BuildService();
-        var a = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "AA", "11111111", null, null, false, null));
-        await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "BB", "22222222", null, null, false, null));
+        var a = await svc.CreateWorkspaceAsync(Command(site: "AA", parentParts: ["ABC100"]));
+        await svc.CreateWorkspaceAsync(Command(site: "BB", parentParts: ["ABC200"]));
 
         var result = await svc.ReorderWorkspacesAsync(new ReorderWorkspacesCommand([a.Workspace!.AssignmentId]));
 
@@ -136,7 +203,7 @@ public sealed class WorkspaceReorderAndDuplicateTests
     public async Task Reorder_With_Unknown_Id_Fails()
     {
         var svc = BuildService();
-        var a = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "AA", "11111111", null, null, false, null));
+        var a = await svc.CreateWorkspaceAsync(Command(site: "AA", parentParts: ["ABC100"]));
 
         var result = await svc.ReorderWorkspacesAsync(new ReorderWorkspacesCommand([
             a.Workspace!.AssignmentId, Guid.NewGuid()
@@ -150,8 +217,8 @@ public sealed class WorkspaceReorderAndDuplicateTests
     public async Task Reorder_With_Archived_Id_Included_Fails()
     {
         var svc = BuildService();
-        var a = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "AA", "11111111", null, null, false, null));
-        var b = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "BB", "22222222", null, null, false, null));
+        var a = await svc.CreateWorkspaceAsync(Command(site: "AA", parentParts: ["ABC100"]));
+        var b = await svc.CreateWorkspaceAsync(Command(site: "BB", parentParts: ["ABC200"]));
         await svc.ArchiveWorkspaceAsync(b.Workspace!.AssignmentId);
 
         var result = await svc.ReorderWorkspacesAsync(new ReorderWorkspacesCommand([
@@ -165,9 +232,9 @@ public sealed class WorkspaceReorderAndDuplicateTests
     public async Task Reorder_Preserves_Archived_Workspaces_Relative_Order_After_Enabled()
     {
         var svc = BuildService();
-        var a = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "AA", "11111111", null, null, false, null));
-        var b = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "BB", "22222222", null, null, false, null));
-        var c = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "CC", "33333333", null, null, false, null));
+        var a = await svc.CreateWorkspaceAsync(Command(site: "AA", parentParts: ["ABC100"]));
+        var b = await svc.CreateWorkspaceAsync(Command(site: "BB", parentParts: ["ABC200"]));
+        var c = await svc.CreateWorkspaceAsync(Command(site: "CC", parentParts: ["ABC300"]));
 
         await svc.ArchiveWorkspaceAsync(a.Workspace!.AssignmentId);
         await svc.ArchiveWorkspaceAsync(c.Workspace!.AssignmentId);
@@ -188,8 +255,8 @@ public sealed class WorkspaceReorderAndDuplicateTests
     {
         var store = new InMemoryTestWorkspaceStore([]);
         var svc = new WorkspaceConfigurationService(store, NullLogger<WorkspaceConfigurationService>.Instance);
-        var a = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "AA", "11111111", null, null, false, null));
-        var b = await svc.CreateWorkspaceAsync(new CreateWorkspaceCommand(null, "BB", "22222222", null, null, false, null));
+        var a = await svc.CreateWorkspaceAsync(Command(site: "AA", parentParts: ["ABC100"]));
+        var b = await svc.CreateWorkspaceAsync(Command(site: "BB", parentParts: ["ABC200"]));
 
         await svc.ReorderWorkspacesAsync(new ReorderWorkspacesCommand([
             b.Workspace!.AssignmentId, a.Workspace!.AssignmentId

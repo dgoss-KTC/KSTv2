@@ -9,10 +9,10 @@ namespace Kst.Api.IntegrationTests;
 /// </summary>
 public sealed class WorkspaceReorderEndpointTests
 {
-    private static async Task<Guid> CreateWorkspaceAsync(HttpClient client, string site, string customerNumber)
+    private static async Task<Guid> CreateWorkspaceAsync(HttpClient client, string site, string parentPart)
     {
         var response = await client.PostAsJsonAsync("/api/v1/workspaces",
-            new { site, customerNumber, isTemporary = false });
+            new { site, parentParts = new[] { parentPart }, isTemporary = false });
         var json = await response.Content.ReadAsStringAsync();
         var doc = JsonDocument.Parse(json);
         return doc.RootElement.GetProperty("assignmentId").GetGuid();

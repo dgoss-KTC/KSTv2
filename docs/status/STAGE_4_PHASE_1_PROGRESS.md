@@ -152,3 +152,48 @@ Rust/Tauri:
 - `docs/openapi/Kst.Api.json` regenerated (via `OpenApiGenerateDocumentsOnBuild=true` on `dotnet build`) and confirmed to include the new preferences and reorder schemas/paths and the extended `SystemStatusResponse`.
 - `src/frontend/src/generated/api.ts` regenerated via `npm run generate:types` (never hand-edited).
 
+## Completed in Stage 4B Slice — Workspace Scope Extension (this change)
+
+Scope: Remove `CustomerNumber` as an authoritative workspace-scope field; introduce an optional
+`ParentParts[]` explicit-parent-part-number collection. New scope rule:
+`Site AND (ProductLineFrom OR at least one explicit ParentPart)`.
+
+Implemented:
+- `WorkspaceAssignment` domain record: `CustomerNumber` removed, `IReadOnlyList<string> ParentParts` added.
+- New `ParentPartNormalizer` (Domain layer): trims, drops blanks, dedupes ordinally while preserving
+  first-occurrence order; `SetEquals` provides order-independent set comparison for duplicate-scope detection.
+- `WorkspaceConfigurationService`: validation now requires a product-line range and/or at least one
+  parent part; duplicate-scope detection compares Site + ProductLineFrom/To + normalized parent-part set;
+  display-name derivation covers PL-only, parts-only (singular/plural), and PL+parts combinations
+  (e.g. `"PL 2380 · 3 parts"`, `"1 parent part"`).
+- API DTOs/endpoints (`CreateWorkspaceRequestDto`, `WorkspaceAssignmentDto`, `WorkspaceEndpoints`) updated
+  to drop `customerNumber` and add `parentParts`.
+- `JsonWorkspaceConfigurationStore`: backward compatible with legacy `workspaces.json` files — missing
+  `parentParts` normalizes to an empty list on load; obsolete `customerNumber` properties are silently
+  ignored by the default JSON deserialization behavior (no migration infrastructure required).
+- Frontend: `workspaceApi.ts` (`CreateWorkspaceFields`/`toRequestDto`), `AddWorkspaceDialog` (collapsible
+  "Limit to specific parent parts" section with add/remove rows, replacing the customer-number field),
+  `ManageWorkspacesDialog` (`describeScope` now reports PL range and/or parent-part count),
+  `WorkspacePlaceholder` (parent-parts summary replacing the customer-number block).
+- Backend test coverage: `WorkspaceValidationTests`, `WorkspaceReorderAndDuplicateTests`,
+  `JsonWorkspaceConfigurationStoreTests` (including new backward-compatibility tests for legacy
+  `customerNumber`/missing `parentParts` files), `WorkspaceEndpointTests`, `WorkspaceReorderEndpointTests`,
+  and a new `ParentPartNormalizerTests` (Domain.Tests).
+- Frontend test coverage: `AddWorkspaceDialog.test.tsx`, `GeneralWorkspace.test.tsx`,
+  `WorkspaceLifecycle.test.tsx` updated for the new scope model, plus new parent-part row
+  add/remove/expand tests.
+
+Explicitly not implemented in this slice (deferred, per task scope):
+- CSV import of parent parts (future work).
+- Stage 5A (QAD data investigation) and Stage 5B (MPS implementation).
+
+Verification:
+- Backend: `dotnet restore`/`format --verify-no-changes`/`build`/`test` on `Kst.slnx` — all clean
+  (188/188 tests passing across `Kst.Domain.Tests`, `Kst.Application.Tests`, `Kst.ArchitectureTests`,
+  `Kst.Api.IntegrationTests`).
+- Frontend: `npm run generate:types` (confirmed `customerNumber` gone, `parentParts` present),
+  `npm run lint`, `npm run typecheck`, `npm test` (31/31 passing), `npm run build` — all clean.
+- Rust/Tauri: `cargo check` succeeded (no business-logic changes required in the Tauri shell).
+- Sidecar rebuilt via `scripts/build-sidecar.ps1` to pick up the updated backend contract.
+
+

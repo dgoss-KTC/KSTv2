@@ -42,7 +42,14 @@ public sealed class JsonWorkspaceConfigurationStore : IWorkspaceConfigurationSto
             var json = await File.ReadAllTextAsync(path);
             var workspaces = JsonSerializer.Deserialize<List<WorkspaceAssignment>>(json, JsonOptions)
                 ?? [];
-            return new WorkspaceLoadResult(workspaces, null);
+
+            // Backward compatibility: files saved before ParentParts existed (or with a null value)
+            // must load with an empty parent-parts collection rather than null.
+            var normalized = workspaces
+                .Select(w => w.ParentParts is null ? w with { ParentParts = [] } : w)
+                .ToList();
+
+            return new WorkspaceLoadResult(normalized, null);
         }
         catch (Exception ex)
         {

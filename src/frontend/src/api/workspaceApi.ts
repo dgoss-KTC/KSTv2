@@ -5,9 +5,9 @@ import { resolveBackendBaseUrl } from './tauri-bridge';
 export interface CreateWorkspaceFields {
   displayName?: string;
   site: string;
-  customerNumber?: string;
   productLineFrom?: string;
   productLineTo?: string;
+  parentParts?: string[];
   isTemporary: boolean;
   coverageEndsOn?: string | null;
 }
@@ -30,9 +30,9 @@ function toRequestDto(fields: CreateWorkspaceFields): CreateWorkspaceRequestDto 
   return {
     displayName: fields.displayName || null,
     site: fields.site,
-    customerNumber: fields.customerNumber || null,
     productLineFrom: fields.productLineFrom || null,
     productLineTo: fields.productLineTo || null,
+    parentParts: fields.parentParts ?? null,
     isTemporary: fields.isTemporary,
     coverageEndsOn: fields.coverageEndsOn ?? null,
   };

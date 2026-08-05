@@ -12,9 +12,9 @@ interface AddWorkspaceDialogProps {
 interface FormState {
   displayName: string;
   site: string;
-  customerNumber: string;
   productLineFrom: string;
   productLineTo: string;
+  parentParts: string[];
   isTemporary: boolean;
   coverageEndsOn: string;
 }
@@ -22,9 +22,9 @@ interface FormState {
 const INITIAL_FORM: FormState = {
   displayName: '',
   site: '',
-  customerNumber: '',
   productLineFrom: '',
   productLineTo: '',
+  parentParts: [],
   isTemporary: false,
   coverageEndsOn: '',
 };
@@ -34,9 +34,9 @@ function formFromWorkspace(workspace?: WorkspaceAssignmentDto): FormState {
   return {
     displayName: workspace.displayName ?? '',
     site: workspace.site ?? '',
-    customerNumber: workspace.customerNumber ?? '',
     productLineFrom: workspace.productLineFrom ?? '',
     productLineTo: workspace.productLineTo ?? '',
+    parentParts: workspace.parentParts && workspace.parentParts.length > 0 ? [...workspace.parentParts] : [],
     isTemporary: workspace.isTemporary,
     coverageEndsOn: workspace.coverageEndsOn ?? '',
   };
@@ -45,7 +45,8 @@ function formFromWorkspace(workspace?: WorkspaceAssignmentDto): FormState {
 function hasMinimumScope(form: FormState): boolean {
   const site = form.site.trim();
   if (site.length !== 2 || !/^[A-Za-z]{2}$/.test(site)) return false;
-  return form.customerNumber.trim().length > 0 || form.productLineFrom.trim().length > 0;
+  const hasParentPart = form.parentParts.some((p) => p.trim().length > 0);
+  return hasParentPart || form.productLineFrom.trim().length > 0;
 }
 
 export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceDialogProps) {
@@ -53,6 +54,7 @@ export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceD
   const [form, setForm] = useState<FormState>(() => formFromWorkspace(workspace));
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<WorkspaceValidationErrors>({});
+  const [parentPartsExpanded, setParentPartsExpanded] = useState(() => form.parentParts.length > 0);
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,6 +99,40 @@ export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceD
     }
   };
 
+  const setParentPart = (index: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setForm((prev) => {
+      const next = [...prev.parentParts];
+      next[index] = value;
+      return { ...prev, parentParts: next };
+    });
+    if (fieldErrors['parentParts']) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next['parentParts'];
+        return next;
+      });
+    }
+  };
+
+  const addParentPartRow = () => {
+    setForm((prev) => ({ ...prev, parentParts: [...prev.parentParts, ''] }));
+  };
+
+  const removeParentPartRow = (index: number) => {
+    setForm((prev) => ({ ...prev, parentParts: prev.parentParts.filter((_, i) => i !== index) }));
+  };
+
+  const toggleParentPartsExpanded = () => {
+    setParentPartsExpanded((prev) => {
+      const next = !prev;
+      if (next && form.parentParts.length === 0) {
+        setForm((prevForm) => ({ ...prevForm, parentParts: [''] }));
+      }
+      return next;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hasMinimumScope(form) || saving) return;
@@ -105,12 +141,13 @@ export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceD
     setFieldErrors({});
 
     try {
+      const trimmedParts = form.parentParts.map((p) => p.trim()).filter((p) => p.length > 0);
       await onSave({
         displayName: form.displayName.trim() || undefined,
         site: form.site.trim(),
-        customerNumber: form.customerNumber.trim() || undefined,
         productLineFrom: form.productLineFrom.trim() || undefined,
         productLineTo: form.productLineTo.trim() || undefined,
+        parentParts: trimmedParts,
         isTemporary: form.isTemporary,
         coverageEndsOn: form.isTemporary && form.coverageEndsOn ? form.coverageEndsOn : null,
       });
@@ -142,8 +179,8 @@ export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceD
 
         <form className="dialog__form" onSubmit={handleSubmit} noValidate>
           <div className="dialog__helper-text">
-            Enter a customer number, a product-line range, or both. All entered filters will be
-            applied together.
+            Enter a product-line range, one or more parent parts, or both. All entered filters will
+            be applied together.
           </div>
 
           <div className="dialog__field">
@@ -166,28 +203,6 @@ export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceD
             {fieldError('site') && (
               <span id="dlg-site-err" className="dialog__field-error" role="alert">
                 {fieldError('site')}
-              </span>
-            )}
-          </div>
-
-          <div className="dialog__field">
-            <label htmlFor="dlg-customer" className="dialog__label">
-              Customer number
-            </label>
-            <input
-              id="dlg-customer"
-              type="text"
-              className={`dialog__input${fieldError('customerNumber') ? ' dialog__input--error' : ''}`}
-              value={form.customerNumber}
-              onChange={setField('customerNumber')}
-              maxLength={8}
-              placeholder="12345678"
-              autoComplete="off"
-              aria-describedby={fieldError('customerNumber') ? 'dlg-customer-err' : undefined}
-            />
-            {fieldError('customerNumber') && (
-              <span id="dlg-customer-err" className="dialog__field-error" role="alert">
-                {fieldError('customerNumber')}
               </span>
             )}
           </div>
@@ -239,7 +254,56 @@ export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceD
             </div>
           </div>
 
-          {fieldErrors['scope'] && !fieldError('site') && !fieldError('customerNumber') && (
+          <div className="dialog__field">
+            <button
+              type="button"
+              className="dialog__collapsible-toggle"
+              aria-expanded={parentPartsExpanded}
+              aria-controls="dlg-parent-parts-section"
+              onClick={toggleParentPartsExpanded}
+            >
+              {parentPartsExpanded ? '\u25be' : '\u25b8'} Limit to specific parent parts
+            </button>
+            {parentPartsExpanded && (
+              <div id="dlg-parent-parts-section" className="dialog__parent-parts">
+                {form.parentParts.map((part, index) => (
+                  <div className="dialog__parent-part-row" key={index}>
+                    <input
+                      type="text"
+                      className={`dialog__input${fieldError('parentParts') ? ' dialog__input--error' : ''}`}
+                      value={part}
+                      onChange={setParentPart(index)}
+                      placeholder="Parent part number"
+                      autoComplete="off"
+                      aria-label={`Parent part ${index + 1}`}
+                    />
+                    <button
+                      type="button"
+                      className="dialog__btn dialog__btn--icon"
+                      onClick={() => removeParentPartRow(index)}
+                      aria-label={`Remove parent part ${index + 1}`}
+                    >
+                      −
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="dialog__btn dialog__btn--icon"
+                  onClick={addParentPartRow}
+                >
+                  + Add parent part
+                </button>
+                {fieldError('parentParts') && (
+                  <span className="dialog__field-error" role="alert">
+                    {fieldError('parentParts')}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {fieldErrors['scope'] && !fieldError('site') && (
             <div className="dialog__field-error dialog__scope-error" role="alert">
               {fieldErrors['scope'][0]}
             </div>

@@ -41,11 +41,11 @@ const defaultPreferences: UserPreferencesDto = {
 function makeWorkspace(overrides: Partial<WorkspaceAssignmentDto> = {}): WorkspaceAssignmentDto {
   return {
     assignmentId: 'id-1',
-    displayName: 'Customer 11111111',
+    displayName: '1 parent part',
     site: 'NW',
-    customerNumber: '11111111',
     productLineFrom: null,
     productLineTo: null,
+    parentParts: ['ABC100'],
     isTemporary: false,
     coverageEndsOn: null,
     isEnabled: true,
