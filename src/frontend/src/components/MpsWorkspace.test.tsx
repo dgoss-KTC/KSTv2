@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
 import type {
@@ -7,6 +7,8 @@ import type {
   WorkspaceListResponseDto,
   WorkspaceAssignmentDto,
   MpsDashboardResponseDto,
+  UserPreferencesDto,
+  PreferencesResponseDto,
 } from '../api/client';
 
 vi.mock('@tauri-apps/api/event', () => ({
@@ -243,5 +245,127 @@ describe('MpsWorkspace', () => {
         ),
       ).toBe(true);
     });
+  });
+
+  it('horizon selection survives navigating to General and back', async () => {
+    setupBackend();
+    render(<App />);
+    await waitForConnected();
+
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+    });
+
+    const horizonInput = screen.getByLabelText(/horizon in weeks/i);
+    fireEvent.change(horizonInput, { target: { value: '24' } });
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('horizonWeeks=24')),
+      ).toBe(true);
+    });
+
+    await user.click(screen.getByRole('tab', { name: /general/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /^general$/i })).toBeInTheDocument();
+    });
+
+    fetchMock.mockClear();
+    await user.click(screen.getByRole('tab', { name: 'Line 1' }));
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('horizonWeeks=24')),
+      ).toBe(true);
+    });
+    await waitFor(() => {
+      expect(screen.getByLabelText(/horizon in weeks/i)).toHaveValue(24);
+    });
+  });
+
+  it('Due/Release selection persists through the same preference mechanism as horizon', async () => {
+    setupBackend();
+    render(<App />);
+    await waitForConnected();
+
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+    });
+
+    await user.click(within(screen.getByRole('main')).getByRole('button', { name: /release date/i }));
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('dateBasis=releaseDate')),
+      ).toBe(true);
+    });
+
+    await user.click(screen.getByRole('tab', { name: /general/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /^general$/i })).toBeInTheDocument();
+    });
+
+    fetchMock.mockClear();
+    await user.click(screen.getByRole('tab', { name: 'Line 1' }));
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('dateBasis=releaseDate')),
+      ).toBe(true);
+    });
+    expect(
+      within(screen.getByRole('main')).getByRole('button', { name: /release date/i }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('comfortable density selected in General remains applied to the shell after returning to the workspace', async () => {
+    let preferences: UserPreferencesDto = { theme: 'system', accentColor: 'blue', rowDensity: 'compact' };
+    function preferencesResponse(): PreferencesResponseDto {
+      return { preferences, configurationWarning: null };
+    }
+    fetchMock.mockImplementation((url: string, opts?: RequestInit) => {
+      const method = opts?.method ?? 'GET';
+      if (url.includes('/api/v1/preferences') && method === 'PUT') {
+        const body = JSON.parse(String(opts?.body)) as Partial<UserPreferencesDto>;
+        preferences = { ...preferences, ...body };
+        return Promise.resolve({ ok: true, json: async () => preferencesResponse() });
+      }
+      if (url.includes('/api/v1/preferences')) {
+        return Promise.resolve({ ok: true, json: async () => preferencesResponse() });
+      }
+      if (method === 'POST' && url.includes('/mps/refresh')) {
+        return Promise.resolve({ ok: true, json: async () => makeDashboard() });
+      }
+      if (method === 'GET' && url.includes('/mps')) {
+        return Promise.resolve({ ok: true, json: async () => makeDashboard() });
+      }
+      if (method === 'GET' && url.includes('/api/v1/workspaces')) {
+        return Promise.resolve({ ok: true, json: async () => workspaceList });
+      }
+      return Promise.resolve({ ok: true, json: async () => mockStatus });
+    });
+
+    render(<App />);
+    await waitForConnected();
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+    });
+    expect(document.querySelector('.shell')).toHaveAttribute('data-density', 'compact');
+
+    await user.click(screen.getByRole('tab', { name: /general/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /^general$/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /^comfortable$/i }));
+    await waitFor(() => {
+      expect(document.querySelector('.shell')).toHaveAttribute('data-density', 'comfortable');
+    });
+
+    await user.click(screen.getByRole('tab', { name: 'Line 1' }));
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+    });
+
+    expect(document.querySelector('.shell')).toHaveAttribute('data-density', 'comfortable');
   });
 });

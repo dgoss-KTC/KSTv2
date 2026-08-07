@@ -1,12 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import type { MpsBucketDto } from '../api/client';
+import type { FiscalDisplayInfo } from '../fiscal/types';
 import {
+  bucketCellClassNames,
   describeBucket,
   executionStatusClass,
   formatQuantity,
   formatWeekLabel,
   groupConsecutive,
   parseIsoDateOnly,
+  withPeriodColor,
+  withQuarterColor,
 } from './mpsPresentation';
 
 function makeBucket(overrides: Partial<MpsBucketDto> = {}): MpsBucketDto {
@@ -110,5 +114,79 @@ describe('describeBucket', () => {
   it('falls back to the raw status string for unrecognized values', () => {
     const description = describeBucket(makeBucket({ executionStatus: 'weird-status' as never, quantity: 1 }));
     expect(description).toBe('weird-status — 1 units');
+  });
+});
+
+describe('bucketCellClassNames', () => {
+  it('includes the base cell class and mapped status class', () => {
+    expect(bucketCellClassNames(makeBucket({ executionStatus: 'frozen' }))).toBe('mps-cell mps-cell--frozen');
+  });
+
+  it('maps an unrecognized status to the "none" status class', () => {
+    expect(bucketCellClassNames(makeBucket({ executionStatus: 'unknown' }))).toBe('mps-cell mps-cell--none');
+  });
+
+  it('adds the planned marker class when containsPlannedWork is true', () => {
+    const classNames = bucketCellClassNames(makeBucket({ containsPlannedWork: true }));
+    expect(classNames).toBe('mps-cell mps-cell--none mps-cell--planned');
+  });
+
+  it('adds the explicit marker class when containsExplicitlyScheduledWork is true', () => {
+    const classNames = bucketCellClassNames(makeBucket({ containsExplicitlyScheduledWork: true }));
+    expect(classNames).toBe('mps-cell mps-cell--none mps-cell--explicit');
+  });
+
+  it('combines status, planned, and explicit classes together', () => {
+    const classNames = bucketCellClassNames(
+      makeBucket({ executionStatus: 'released', containsPlannedWork: true, containsExplicitlyScheduledWork: true }),
+    );
+    expect(classNames).toBe('mps-cell mps-cell--released mps-cell--planned mps-cell--explicit');
+  });
+});
+
+function makeInfo(overrides: Partial<FiscalDisplayInfo> = {}): FiscalDisplayInfo {
+  return { fiscalYear: 2027, fiscalWeek: 1, fiscalPeriod: 1, fiscalQuarter: 1, ...overrides };
+}
+
+describe('withQuarterColor', () => {
+  it('annotates each group with the fiscal quarter number found at its starting index', () => {
+    const infos = [makeInfo({ fiscalQuarter: 1 }), makeInfo({ fiscalQuarter: 1 }), makeInfo({ fiscalQuarter: 2 })];
+    const groups = groupConsecutive(infos, (i) => i.fiscalQuarter);
+    const bands = withQuarterColor(groups, infos);
+    expect(bands).toEqual([
+      { key: 1, span: 2, quarterNum: 1 },
+      { key: 2, span: 1, quarterNum: 2 },
+    ]);
+  });
+
+  it('defaults to quarter 1 when fiscal info is missing at a group start', () => {
+    const groups = [{ key: 'n/a', span: 2 }];
+    expect(withQuarterColor(groups, [null, null])).toEqual([{ key: 'n/a', span: 2, quarterNum: 1 }]);
+  });
+});
+
+describe('withPeriodColor', () => {
+  it('inherits the parent quarter number and alternates shade per period within that quarter', () => {
+    const infos = [
+      makeInfo({ fiscalQuarter: 1, fiscalPeriod: 1 }),
+      makeInfo({ fiscalQuarter: 1, fiscalPeriod: 2 }),
+      makeInfo({ fiscalQuarter: 1, fiscalPeriod: 3 }),
+      makeInfo({ fiscalQuarter: 2, fiscalPeriod: 4 }),
+    ];
+    const groups = groupConsecutive(infos, (i) => `${i.fiscalYear}-P${i.fiscalPeriod}`);
+    const bands = withPeriodColor(groups, infos);
+    expect(bands).toEqual([
+      { key: '2027-P1', span: 1, quarterNum: 1, altShade: false },
+      { key: '2027-P2', span: 1, quarterNum: 1, altShade: true },
+      { key: '2027-P3', span: 1, quarterNum: 1, altShade: false },
+      { key: '2027-P4', span: 1, quarterNum: 2, altShade: false },
+    ]);
+  });
+
+  it('defaults to quarter 1 and no alt shade when fiscal info is missing at a group start', () => {
+    const groups = [{ key: 'n/a', span: 2 }];
+    expect(withPeriodColor(groups, [null, null])).toEqual([
+      { key: 'n/a', span: 2, quarterNum: 1, altShade: false },
+    ]);
   });
 });

@@ -7,12 +7,14 @@ import {
 } from '../hooks/useMpsDashboard';
 import { getFiscalDisplayInfo } from '../fiscal/fiscalCalendar';
 import {
+  bucketCellClassNames,
   describeBucket,
-  executionStatusClass,
   formatQuantity,
   formatWeekLabel,
   groupConsecutive,
   parseIsoDateOnly,
+  withPeriodColor,
+  withQuarterColor,
 } from '../mps/mpsPresentation';
 import './MpsWorkspace.css';
 
@@ -67,6 +69,13 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     info ? `${info.fiscalYear}-P${info.fiscalPeriod}` : 'n/a',
   );
 
+  // Fiscal-quarter color family (1-4, cycling blue/green/amber/purple regardless of fiscal year —
+  // see MpsWorkspace.css `.mps-grid__band-col--q1..4`). Period bands inherit their parent quarter's
+  // family and alternate a reduced tint per period within that quarter, mirroring the prototype's
+  // `qColors` / `periodBandsV` construction.
+  const quarterBands = withQuarterColor(quarterGroups, weekFiscalInfo);
+  const periodBands = withPeriodColor(periodGroups, weekFiscalInfo);
+
   return (
     <div className="mps-workspace">
       <header className="mps-workspace__header">
@@ -117,7 +126,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
 
           <button
             type="button"
-            className="mps-workspace__btn"
+            className="mps-workspace__btn mps-workspace__btn--primary"
             onClick={() => void refresh()}
             disabled={isRefreshing}
           >
@@ -140,7 +149,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
       {!isLoading && error && !dashboard && (
         <div className="mps-workspace__state mps-workspace__state--error">
           <p>{error.type === 'unavailable' ? error.detail : 'Could not load MPS data.'}</p>
-          <button type="button" className="mps-workspace__btn" onClick={() => void reload()}>
+          <button type="button" className="mps-workspace__btn mps-workspace__btn--primary" onClick={() => void reload()}>
             Retry
           </button>
         </div>
@@ -153,74 +162,87 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
       )}
 
       {!isLoading && dashboard && parts.length > 0 && (
-        <div className="mps-grid-scroll">
-          <table className="mps-grid">
-            <thead>
-              <tr>
-                <th className="mps-grid__sticky mps-grid__part-col" rowSpan={3}>
-                  Parent Part
-                </th>
-                <th className="mps-grid__sticky mps-grid__falldown-col" rowSpan={3}>
-                  Falldown
-                </th>
-                {quarterGroups.map((group, idx) => (
-                  <th key={`q-${idx}`} colSpan={group.span}>
-                    {group.key === 'n/a' ? '' : `Q${group.key.split('-Q')[1]}`}
+        <div className="mps-grid-frame">
+          <div className="mps-grid-scroll">
+            <table className="mps-grid">
+              <thead>
+                <tr>
+                  <th className="mps-grid__sticky mps-grid__part-col" rowSpan={3}>
+                    Parent Part
                   </th>
-                ))}
-              </tr>
-              <tr>
-                {periodGroups.map((group, idx) => (
-                  <th key={`p-${idx}`} colSpan={group.span}>
-                    {group.key === 'n/a' ? '' : `P${group.key.split('-P')[1]}`}
+                  <th className="mps-grid__sticky mps-grid__falldown-col" rowSpan={3}>
+                    Falldown
                   </th>
-                ))}
-              </tr>
-              <tr>
-                {weeklyBuckets.map((bucket, idx) => (
-                  <th key={bucket.weekLabel ?? `week-${idx}`}>{formatWeekLabel(bucket.weekLabel)}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {parts.map((part) => {
-                const falldown = part.buckets[0];
-                const weekly = part.buckets.slice(1);
-                return (
-                  <tr key={part.parentPart}>
-                    <td className="mps-grid__sticky mps-grid__part-col">
-                      <div className="mps-grid__part-number">{part.parentPart}</div>
-                      <div className="mps-grid__part-desc">{part.description ?? '\u2014'}</div>
-                    </td>
-                    <td
-                      className="mps-grid__sticky mps-grid__falldown-col mps-cell"
-                      title={falldown ? describeBucket(falldown) : undefined}
+                  {quarterBands.map((group, idx) => (
+                    <th
+                      key={`q-${idx}`}
+                      className={`mps-grid__band-col mps-grid__band-col--q${group.quarterNum}`}
+                      colSpan={group.span}
                     >
-                      {falldown ? formatQuantity(falldown.quantity) : '\u2014'}
-                      <span className="visually-hidden">{falldown ? describeBucket(falldown) : ''}</span>
-                    </td>
-                    {weekly.map((bucket, idx) => (
-                      <td
-                        key={bucket.weekLabel ?? `week-${idx}`}
-                        className={[
-                          'mps-cell',
-                          `mps-cell--${executionStatusClass(bucket.executionStatus)}`,
-                          bucket.containsPlannedWork ? 'mps-cell--planned' : '',
-                          bucket.containsExplicitlyScheduledWork ? 'mps-cell--explicit' : '',
-                        ]
-                          .filter(Boolean)
-                          .join(' ')}
-                        title={describeBucket(bucket)}
-                      >
-                        {formatQuantity(bucket.quantity)}
-                        <span className="visually-hidden">{describeBucket(bucket)}</span>
+                      {group.key === 'n/a' ? '' : `Q${group.key.split('-Q')[1]}`}
+                    </th>
+                  ))}
+                </tr>
+                <tr>
+                  {periodBands.map((group, idx) => (
+                    <th
+                      key={`p-${idx}`}
+                      className={`mps-grid__band-col mps-grid__band-col--q${group.quarterNum}${
+                        group.altShade ? ' mps-grid__band-col--alt' : ''
+                      }`}
+                      colSpan={group.span}
+                    >
+                      {group.key === 'n/a' ? '' : `P${group.key.split('-P')[1]}`}
+                    </th>
+                  ))}
+                </tr>
+                <tr>
+                  {weeklyBuckets.map((bucket, idx) => (
+                    <th key={bucket.weekLabel ?? `week-${idx}`} className="mps-grid__week-col">
+                      {formatWeekLabel(bucket.weekLabel)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {parts.map((part) => {
+                  const falldown = part.buckets[0];
+                  const weekly = part.buckets.slice(1);
+                  return (
+                    <tr key={part.parentPart}>
+                      <td className="mps-grid__sticky mps-grid__part-col">
+                        <div className="mps-grid__part-cell">
+                          <span className="mps-grid__part-number">{part.parentPart}</span>
+                          <span className="mps-grid__part-desc" title={part.description ?? undefined}>
+                            {part.description ?? '\u2014'}
+                          </span>
+                        </div>
                       </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <td
+                        className={`mps-grid__sticky mps-grid__falldown-col${
+                          falldown ? ` ${bucketCellClassNames(falldown)}` : ' mps-cell'
+                        }`}
+                        title={falldown ? describeBucket(falldown) : undefined}
+                      >
+                        {falldown ? formatQuantity(falldown.quantity) : '\u2014'}
+                        <span className="visually-hidden">{falldown ? describeBucket(falldown) : ''}</span>
+                      </td>
+                      {weekly.map((bucket, idx) => (
+                        <td
+                          key={bucket.weekLabel ?? `week-${idx}`}
+                          className={`mps-grid__week-col ${bucketCellClassNames(bucket)}`}
+                          title={describeBucket(bucket)}
+                        >
+                          {formatQuantity(bucket.quantity)}
+                          <span className="visually-hidden">{describeBucket(bucket)}</span>
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

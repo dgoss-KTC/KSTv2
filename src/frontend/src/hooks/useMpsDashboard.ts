@@ -7,10 +7,15 @@ import {
   type MpsApiError,
   type MpsDateBasis,
 } from '../api/mpsApi';
+import {
+  DEFAULT_MPS_HORIZON_WEEKS,
+  MIN_MPS_HORIZON_WEEKS,
+  MAX_MPS_HORIZON_WEEKS,
+  loadMpsDisplayPreferences,
+  saveMpsDisplayPreferences,
+} from '../mps/mpsDisplayPreferences';
 
-export const DEFAULT_MPS_HORIZON_WEEKS = 12;
-export const MIN_MPS_HORIZON_WEEKS = 1;
-export const MAX_MPS_HORIZON_WEEKS = 72;
+export { DEFAULT_MPS_HORIZON_WEEKS, MIN_MPS_HORIZON_WEEKS, MAX_MPS_HORIZON_WEEKS };
 
 export interface MpsDashboardState {
   dashboard: MpsDashboardResponseDto | null;
@@ -24,14 +29,31 @@ export interface MpsDashboardState {
 /**
  * Loads and locally re-projects the MPS dashboard for one workspace. Changing dateBasis/horizonWeeks
  * re-calls GET (fast local re-projection on the backend, no QAD re-query); only refresh() forces QAD reload.
+ * dateBasis/horizonWeeks are seeded from — and persisted to — local storage so this user display
+ * preference survives component remount, navigation, and application restarts.
  */
 export function useMpsDashboard(assignmentId: string) {
-  const [dateBasis, setDateBasis] = useState<MpsDateBasis>('dueDate');
-  const [horizonWeeks, setHorizonWeeks] = useState<number>(DEFAULT_MPS_HORIZON_WEEKS);
+  const [{ dateBasis, horizonWeeks }, setDisplayPreferences] = useState(() => loadMpsDisplayPreferences());
   const [dashboard, setDashboard] = useState<MpsDashboardResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<MpsApiError | null>(null);
+
+  const setDateBasis = useCallback((next: MpsDateBasis) => {
+    setDisplayPreferences((prev) => {
+      const merged = { ...prev, dateBasis: next };
+      saveMpsDisplayPreferences(merged);
+      return merged;
+    });
+  }, []);
+
+  const setHorizonWeeks = useCallback((next: number) => {
+    setDisplayPreferences((prev) => {
+      const merged = { ...prev, horizonWeeks: next };
+      saveMpsDisplayPreferences(merged);
+      return merged;
+    });
+  }, []);
 
   const load = useCallback(async () => {
     setIsLoading(true);
