@@ -1,0 +1,2390 @@
+{
+  "metadata": {
+    "source_file": "DataMap.xlsx",
+    "generated_utc": "2026-08-06T23:23:17+00:00",
+    "table_count": 25,
+    "field_count": 555,
+    "validated_field_count": 552,
+    "notes": [
+      "Generated from the KST v2 DataMap workbook.",
+      "Validated is true when the source workbook contained x/yes/y/true/1.",
+      "This file is documentation metadata only. It does not include live data."
+    ]
+  },
+  "databases": {
+    "QADPRO2": {
+      "ad_mstr": {
+        "business_name": "Address Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "ad_addr": {
+            "description": "Address Code",
+            "validated": true
+          },
+          "ad_attn": {
+            "description": "Attention",
+            "validated": true
+          },
+          "ad_attn2": {
+            "description": "Attention 2",
+            "validated": true
+          },
+          "ad_bus_relation": {
+            "description": "Business Relation Code",
+            "validated": true
+          },
+          "ad_city": {
+            "description": "City",
+            "validated": true
+          },
+          "ad_country": {
+            "description": "Country",
+            "validated": true
+          },
+          "ad_county": {
+            "description": "County",
+            "validated": true
+          },
+          "ad_ctry": {
+            "description": "Country Code",
+            "validated": true
+          },
+          "ad_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "ad_email": {
+            "description": "E-mail",
+            "validated": true
+          },
+          "ad_email2": {
+            "description": "E-mail 2",
+            "validated": true
+          },
+          "ad_ext": {
+            "description": "Extension",
+            "validated": true
+          },
+          "ad_ext2": {
+            "description": "Extension",
+            "validated": true
+          },
+          "ad_lang": {
+            "description": "Language",
+            "validated": true
+          },
+          "ad_line1": {
+            "description": "Address Line 1",
+            "validated": true
+          },
+          "ad_line2": {
+            "description": "Address Line 2",
+            "validated": true
+          },
+          "ad_line3": {
+            "description": "Address Line 3",
+            "validated": true
+          },
+          "ad_name": {
+            "description": "Company/Customer Name",
+            "validated": true
+          },
+          "ad_phone": {
+            "description": "Phone Number",
+            "validated": true
+          },
+          "ad_phone2": {
+            "description": "Phone Number 2",
+            "validated": true
+          },
+          "ad_sort": {
+            "description": "Company/Customer Name",
+            "validated": true
+          },
+          "ad_state": {
+            "description": "State",
+            "validated": true
+          },
+          "ad_type": {
+            "description": "Company, Customer, Enduser, Ship-To, slsprsn, or Supplier",
+            "validated": true
+          },
+          "ad_zip": {
+            "description": "Zip Code",
+            "validated": true
+          }
+        }
+      },
+      "cmt_det": {
+        "business_name": "Transaction Comments",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "cmt_cmmt##1": {
+            "description": "Comment 1",
+            "validated": true
+          },
+          "cmt_cmmt##10": {
+            "description": "Comment 10",
+            "validated": true
+          },
+          "cmt_cmmt##11": {
+            "description": "Comment 11",
+            "validated": true
+          },
+          "cmt_cmmt##12": {
+            "description": "Comment 12",
+            "validated": true
+          },
+          "cmt_cmmt##13": {
+            "description": "Comment 13",
+            "validated": true
+          },
+          "cmt_cmmt##14": {
+            "description": "Comment 14",
+            "validated": true
+          },
+          "cmt_cmmt##15": {
+            "description": "Comment 15",
+            "validated": true
+          },
+          "cmt_cmmt##2": {
+            "description": "Comment 2",
+            "validated": true
+          },
+          "cmt_cmmt##3": {
+            "description": "Comment 3",
+            "validated": true
+          },
+          "cmt_cmmt##4": {
+            "description": "Comment 4",
+            "validated": true
+          },
+          "cmt_cmmt##5": {
+            "description": "Comment 5",
+            "validated": true
+          },
+          "cmt_cmmt##6": {
+            "description": "Comment 6",
+            "validated": true
+          },
+          "cmt_cmmt##7": {
+            "description": "Comment 7",
+            "validated": true
+          },
+          "cmt_cmmt##8": {
+            "description": "Comment 8",
+            "validated": true
+          },
+          "cmt_cmmt##9": {
+            "description": "Comment 9",
+            "validated": true
+          },
+          "cmt_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "cmt_indx": {
+            "description": "Comment Index",
+            "validated": true
+          },
+          "cmt_ref": {
+            "description": "Comment Reference",
+            "validated": true
+          },
+          "cmt_seq": {
+            "description": "Comment Sequence/Page Number",
+            "validated": true
+          }
+        }
+      },
+      "in_mstr": {
+        "business_name": "Inventory Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "in_avg_iss": {
+            "description": "Average Issues",
+            "validated": true
+          },
+          "in_cnt_date": {
+            "description": "Last Cycle Count Date",
+            "validated": true
+          },
+          "in_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "in_loc": {
+            "description": "Location",
+            "validated": true
+          },
+          "in_mrp": {
+            "description": "MRP Required (T/F)",
+            "validated": true
+          },
+          "in_part": {
+            "description": "Part Number",
+            "validated": true
+          },
+          "in_proj_use": {
+            "description": "Projected Use",
+            "validated": true
+          },
+          "in_qty_all": {
+            "description": "Total Allocated",
+            "validated": true
+          },
+          "in_qty_avail": {
+            "description": "Quantity Available to Use",
+            "validated": true
+          },
+          "in_qty_nonet": {
+            "description": "Total Quantity NonNet",
+            "validated": true
+          },
+          "in_qty_oh": {
+            "description": "Total Quantity On Hand",
+            "validated": true
+          },
+          "in_qty_ord": {
+            "description": "Total Quantity On Order",
+            "validated": true
+          },
+          "in_qty_req": {
+            "description": "Total Quantity Required for Demand",
+            "validated": true
+          },
+          "in_rec_date": {
+            "description": "Last Receive Date",
+            "validated": true
+          },
+          "in_sfty_stk": {
+            "description": "Safety Stock",
+            "validated": true
+          },
+          "in_site": {
+            "description": "Site",
+            "validated": true
+          },
+          "in_supp_consign_qty": {
+            "description": "Supplier Consigned Quantity",
+            "validated": true
+          }
+        }
+      },
+      "is_mstr": {
+        "business_name": "Inventory Status Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "is_avail": {
+            "description": "Available (T/F)",
+            "validated": true
+          },
+          "is_desc": {
+            "description": "Status Code Description",
+            "validated": true
+          },
+          "is_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "is_frozen": {
+            "description": "Frozen (T/F)",
+            "validated": true
+          },
+          "is_nettable": {
+            "description": "Nettable (T/F)",
+            "validated": true
+          },
+          "is_status": {
+            "description": "Inventory Status Code",
+            "validated": true
+          }
+        }
+      },
+      "kmfg_mstr": {
+        "business_name": "Manufacturer Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "kmfg_id": {
+            "description": "QAD Manufacturer ID",
+            "validated": true
+          },
+          "kmfg_name": {
+            "description": "Manufacturer Name",
+            "validated": true
+          },
+          "kmfg_reach": {
+            "description": "REACH Level",
+            "validated": true
+          },
+          "kmfg_reach_exp": {
+            "description": "REACH Expiration Date",
+            "validated": true
+          },
+          "kmfg_status": {
+            "description": "Status",
+            "validated": true
+          },
+          "kmfg_type": {
+            "description": "Manufacturer Type",
+            "validated": true
+          }
+        }
+      },
+      "kmfg_part": {
+        "business_name": "Manufacturer Parts",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "kmp_apr": {
+            "description": "APR",
+            "validated": true
+          },
+          "kmp_apr_cmmt": {
+            "description": "APR Comment",
+            "validated": true
+          },
+          "kmp_mfg_id": {
+            "description": "QAD Manufacturer ID",
+            "validated": true
+          },
+          "kmp_mfg_part": {
+            "description": "Manufacturer Part Number",
+            "validated": true
+          },
+          "kmp_rohs_cmmt": {
+            "description": "RoHS Comment",
+            "validated": true
+          },
+          "kmp_rohs_date": {
+            "description": "RoHS Date",
+            "validated": true
+          },
+          "kmp_status": {
+            "description": "Part Status",
+            "validated": true
+          },
+          "kmp_um": {
+            "description": "Unit of Measure",
+            "validated": true
+          }
+        }
+      },
+      "ktlot_mstr": {
+        "business_name": "Supplimental Lot Information",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "ktlot_auditor": {
+            "description": "Auditor",
+            "validated": true
+          },
+          "ktlot_chr01": {
+            "description": "Category Code",
+            "validated": true
+          },
+          "ktlot_chr03": {
+            "description": "Manufacturer Part Number",
+            "validated": true
+          },
+          "ktlot_chr04": {
+            "description": "CMS Bin Location",
+            "validated": true
+          },
+          "ktlot_container": {
+            "description": "Container Type",
+            "validated": true
+          },
+          "ktlot_container_id": {
+            "description": "Container ID",
+            "validated": true
+          },
+          "ktlot_coo": {
+            "description": "Country of Origin",
+            "validated": true
+          },
+          "ktlot_loc_from": {
+            "description": "Receipt Location",
+            "validated": true
+          },
+          "ktlot_loc_to": {
+            "description": "Dist Location",
+            "validated": true
+          },
+          "ktlot_log01": {
+            "description": "Bonded Material (T/F)",
+            "validated": true
+          },
+          "ktlot_nbr": {
+            "description": "Lot Number",
+            "validated": true
+          },
+          "ktlot_num_lab": {
+            "description": "Number Label",
+            "validated": true
+          },
+          "ktlot_origin": {
+            "description": "Lot Origin",
+            "validated": true
+          },
+          "ktlot_part": {
+            "description": "Lot Part Number",
+            "validated": true
+          },
+          "ktlot_part_rev": {
+            "description": "Lot Part Revision",
+            "validated": true
+          },
+          "ktlot_prod_type": {
+            "description": "Product Type",
+            "validated": true
+          }
+        }
+      },
+      "ld_det": {
+        "business_name": "Location Detail",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "ld_cmtindx": {
+            "description": "Comment Index Number",
+            "validated": true
+          },
+          "ld_cnt_date": {
+            "description": "Last Cycle Count Date",
+            "validated": true
+          },
+          "ld_cust_consign_qty": {
+            "description": "Customer Consigned Quantity",
+            "validated": true
+          },
+          "ld_date": {
+            "description": "Received Date",
+            "validated": true
+          },
+          "ld_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "ld_expire": {
+            "description": "Expiration Date",
+            "validated": true
+          },
+          "ld_loc": {
+            "description": "Location",
+            "validated": true
+          },
+          "ld_lot": {
+            "description": "Lot/Serial",
+            "validated": true
+          },
+          "ld_part": {
+            "description": "Item Number",
+            "validated": true
+          },
+          "ld_qty_oh": {
+            "description": "Location Quantity On-Hand",
+            "validated": true
+          },
+          "ld_ref": {
+            "description": "Reference",
+            "validated": true
+          },
+          "ld_site": {
+            "description": "Site",
+            "validated": true
+          },
+          "ld_status": {
+            "description": "Inventory Status",
+            "validated": true
+          },
+          "ld_supp_consign_qty": {
+            "description": "Supplier Consigned Quantity",
+            "validated": true
+          }
+        }
+      },
+      "lot_mstr": {
+        "business_name": "Lot Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "lot__chr01": {
+            "description": "Manufactured Lot",
+            "validated": true
+          },
+          "lot__chr05": {
+            "description": "Receiver Number",
+            "validated": true
+          },
+          "lot__chr06": {
+            "description": "Site",
+            "validated": true
+          },
+          "lot__dec01": {
+            "description": "Lot Quantity",
+            "validated": true
+          },
+          "lot__dte01": {
+            "description": "Manufacture Date",
+            "validated": true
+          },
+          "lot__dte02": {
+            "description": "Expiration Date",
+            "validated": true
+          },
+          "lot__dte03": {
+            "description": "Receipt Date",
+            "validated": true
+          },
+          "lot__dte04": {
+            "description": "FIFO Date",
+            "validated": true
+          },
+          "lot_cmtindx": {
+            "description": "Lot Comment Index Number",
+            "validated": true
+          },
+          "lot_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "lot_line": {
+            "description": "Line/ID",
+            "validated": true
+          },
+          "lot_nbr": {
+            "description": "Lot PO Number or KSS Designation",
+            "validated": true
+          },
+          "lot_part": {
+            "description": "Part Number",
+            "validated": true
+          },
+          "lot_serial": {
+            "description": "Lot Serial Number",
+            "validated": true
+          },
+          "lot_rev": {
+            "description": "Lot Revision",
+            "validated": true
+          }
+        }
+      },
+      "mrp_det": {
+        "business_name": "Material Requirements Detail",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "mrp_dataset": {
+            "description": "fcs_sum, pod_det, rps_mstr, sod_det, wod_det, wo_mstr, wo_scrap",
+            "validated": true
+          },
+          "mrp_detail": {
+            "description": "Work Order Component, Planned Order, Purchase Order, FORECAST, Repetitive Component, Repetitive Schedule, Sales Order, Scrap Requirement, Purchase Order, Work Order, Work Order Component",
+            "validated": true
+          },
+          "mrp_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "mrp_due_date": {
+            "description": "Due Date",
+            "validated": true
+          },
+          "mrp_line": {
+            "description": "WOID",
+            "validated": true
+          },
+          "mrp_nbr": {
+            "description": "WO#",
+            "validated": true
+          },
+          "mrp_ord_site": {
+            "description": "MRP Site",
+            "validated": false
+          },
+          "mrp_part": {
+            "description": "Item Number",
+            "validated": true
+          },
+          "mrp_qty": {
+            "description": "Quantity",
+            "validated": true
+          },
+          "mrp_rel_date": {
+            "description": "Release Date",
+            "validated": true
+          },
+          "mrp_site": {
+            "description": "Production Site (AR, KS, KV, SW, CH, VT, VM, NW)",
+            "validated": true
+          },
+          "mrp_type": {
+            "description": "SUPPLY, SUPPLYF, SUPPLYP, DEMAND",
+            "validated": true
+          }
+        }
+      },
+      "pi_mstr": {
+        "business_name": "Price List Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "pi__chr01": {
+            "description": "Quote Identifier",
+            "validated": true
+          },
+          "pi__dec01": {
+            "description": "Quoted Volume",
+            "validated": true
+          },
+          "pi_cmtindx": {
+            "description": "Comment Index Number",
+            "validated": true
+          },
+          "pi_curr": {
+            "description": "Currency",
+            "validated": true
+          },
+          "pi_desc": {
+            "description": "Price List Description",
+            "validated": true
+          },
+          "pi_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "pi_expire": {
+            "description": "Pricing Expiration Date",
+            "validated": true
+          },
+          "pi_list": {
+            "description": "Price List Name",
+            "validated": true
+          },
+          "pi_list_id": {
+            "description": "QAD Price List ID Number",
+            "validated": true
+          },
+          "pi_manual": {
+            "description": "Manual Prices (T/F)",
+            "validated": true
+          },
+          "pi_max_ord": {
+            "description": "Maximum Orders",
+            "validated": true
+          },
+          "pi_max_qty": {
+            "description": "Maximum Quantity",
+            "validated": true
+          },
+          "pi_min_net": {
+            "description": "Minimum Order",
+            "validated": true
+          },
+          "pi_part_code": {
+            "description": "Part Number",
+            "validated": true
+          },
+          "pi_start": {
+            "description": "Pricing Start Date",
+            "validated": true
+          },
+          "pi_um": {
+            "description": "Unit of Measure",
+            "validated": true
+          }
+        }
+      },
+      "pid_det": {
+        "business_name": "Price List Detail",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "pid_amt": {
+            "description": "Price",
+            "validated": true
+          },
+          "pid_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "pid_list_id": {
+            "description": "QAD Price List ID Number",
+            "validated": true
+          },
+          "pid_qty": {
+            "description": "Minimum Order Quantity for Price",
+            "validated": true
+          }
+        }
+      },
+      "pl_mstr": {
+        "business_name": "Product Line Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "pl__chr01": {
+            "description": "Customer Name",
+            "validated": true
+          },
+          "pl__chr02": {
+            "description": "Program Name",
+            "validated": true
+          },
+          "pl__chr03": {
+            "description": "Product Line Code (IOS)",
+            "validated": true
+          },
+          "pl__chr04": {
+            "description": "Product Line Status Code",
+            "validated": true
+          },
+          "pl_desc": {
+            "description": "Product Line Description",
+            "validated": true
+          },
+          "pl_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "pl_prod_line": {
+            "description": "Product Line",
+            "validated": true
+          },
+          "pl_sls_acct": {
+            "description": "Sales Account",
+            "validated": true
+          }
+        }
+      },
+      "po_mstr": {
+        "business_name": "Purchase Order Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "po__chr01": {
+            "description": "Credit Terms Comment",
+            "validated": true
+          },
+          "po_buyer": {
+            "description": "Buyer Initials",
+            "validated": true
+          },
+          "po_cmtindx": {
+            "description": "Purchase Order Comment Index Number",
+            "validated": true
+          },
+          "po_confirm": {
+            "description": "PO Confirmed (T/F)",
+            "validated": true
+          },
+          "po_consignment": {
+            "description": "Consignment (T/F)",
+            "validated": true
+          },
+          "po_cr_terms": {
+            "description": "Credit Terms",
+            "validated": true
+          },
+          "po_curr": {
+            "description": "Currency",
+            "validated": true
+          },
+          "po_disc_pct": {
+            "description": "Discount Percentage",
+            "validated": true
+          },
+          "po_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "po_due_date": {
+            "description": "Due Date",
+            "validated": true
+          },
+          "po_ex_rate": {
+            "description": "Exchange Rate",
+            "validated": true
+          },
+          "po_fob": {
+            "description": "FOB Shipping Point",
+            "validated": true
+          },
+          "po_nbr": {
+            "description": "Purchase Order Number",
+            "validated": true
+          },
+          "po_ord_date": {
+            "description": "Order Date",
+            "validated": true
+          },
+          "po_print": {
+            "description": "Unprinted (T/F)",
+            "validated": true
+          },
+          "po_rev": {
+            "description": "Order Revision",
+            "validated": true
+          },
+          "po_rev_date": {
+            "description": "Revision Date",
+            "validated": true
+          },
+          "po_rmks": {
+            "description": "Remarks",
+            "validated": true
+          },
+          "po_sched": {
+            "description": "Supplier Scheduled (T/F)  (KSS)",
+            "validated": true
+          },
+          "po_ship": {
+            "description": "Ship To Code",
+            "validated": true
+          },
+          "po_shipvia": {
+            "description": "Ship Via",
+            "validated": true
+          },
+          "po_site": {
+            "description": "Site",
+            "validated": true
+          },
+          "po_stat": {
+            "description": "PO Status",
+            "validated": true
+          },
+          "po_type": {
+            "description": "Purchase Order Type",
+            "validated": true
+          },
+          "po_user_id": {
+            "description": "Entered By",
+            "validated": true
+          },
+          "po_vend": {
+            "description": "Supplier Code",
+            "validated": true
+          }
+        }
+      },
+      "pod_det": {
+        "business_name": "Purchase Order Detail",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "pod__chr06": {
+            "description": "Tracking Number",
+            "validated": true
+          },
+          "pod__chr09": {
+            "description": "PER/Air Authorization Number",
+            "validated": true
+          },
+          "pod__chr10": {
+            "description": "Proforma Invoice Number",
+            "validated": true
+          },
+          "pod__dte01": {
+            "description": "Ship Date",
+            "validated": true
+          },
+          "pod__dte02": {
+            "description": "Line Added Date",
+            "validated": true
+          },
+          "pod__log01": {
+            "description": "Confirmed (T/F)",
+            "validated": true
+          },
+          "pod_consignment": {
+            "description": "Consignment (T/F)",
+            "validated": true
+          },
+          "pod_desc": {
+            "description": "Description",
+            "validated": true
+          },
+          "pod_domain": {
+            "description": "Domain",
+            "validated": false
+          },
+          "pod_due_date": {
+            "description": "Due Date",
+            "validated": true
+          },
+          "pod_line": {
+            "description": "Line",
+            "validated": true
+          },
+          "pod_loc": {
+            "description": "PO Location",
+            "validated": true
+          },
+          "pod_nbr": {
+            "description": "Purchase Order Number",
+            "validated": true
+          },
+          "pod_part": {
+            "description": "Item Number",
+            "validated": true
+          },
+          "pod_po_site": {
+            "description": "Site",
+            "validated": true
+          },
+          "pod_pr_list": {
+            "description": "Price List",
+            "validated": true
+          },
+          "pod_project": {
+            "description": "Project Code",
+            "validated": true
+          },
+          "pod_pur_cost": {
+            "description": "PO Price",
+            "validated": true
+          },
+          "pod_qty_ord": {
+            "description": "Quantity Ordered",
+            "validated": true
+          },
+          "pod_qty_rcvd": {
+            "description": "Quantity Received",
+            "validated": true
+          },
+          "pod_rev": {
+            "description": "Revision",
+            "validated": true
+          },
+          "pod_sched": {
+            "description": "KSS/Feed",
+            "validated": true
+          },
+          "pod_site": {
+            "description": "Site",
+            "validated": true
+          },
+          "pod_so_status": {
+            "description": "Sales Order Status",
+            "validated": true
+          },
+          "pod_sod_line": {
+            "description": "Line Number",
+            "validated": true
+          },
+          "pod_status": {
+            "description": "Line Status",
+            "validated": true
+          },
+          "pod_std_cost": {
+            "description": "Standard Cost",
+            "validated": true
+          },
+          "pod_type": {
+            "description": "PO Type",
+            "validated": true
+          },
+          "pod_um": {
+            "description": "Unit of Measure",
+            "validated": true
+          },
+          "pod_um_conv": {
+            "description": "UM Conversion",
+            "validated": true
+          },
+          "pod_vpart": {
+            "description": "Supplier Part Number",
+            "validated": true
+          },
+          "pod_wo_lot": {
+            "description": "Work Order ID",
+            "validated": true
+          }
+        }
+      },
+      "ps_mstr": {
+        "business_name": "Product Structure Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "ps_cmtindx": {
+            "description": "Comment Index Number",
+            "validated": true
+          },
+          "ps_comp": {
+            "description": "Component Number",
+            "validated": true
+          },
+          "ps_comp_um": {
+            "description": "Unit of Measure",
+            "validated": true
+          },
+          "ps_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "ps_end": {
+            "description": "null or >=today",
+            "validated": true
+          },
+          "ps_exclusive": {
+            "description": "ps_comp exclusive to ps_par (T/F)",
+            "validated": true
+          },
+          "ps_mandatory": {
+            "description": "Mandatory (T/F)",
+            "validated": true
+          },
+          "ps_mod_date": {
+            "description": "Last Modified Date",
+            "validated": true
+          },
+          "ps_op": {
+            "description": "Operation Level",
+            "validated": true
+          },
+          "ps_par": {
+            "description": "First level below parent item.  Main Subassembly",
+            "validated": true
+          },
+          "ps_qty_per": {
+            "description": "Quantity Per",
+            "validated": true
+          },
+          "ps_ref": {
+            "description": "Reference Number",
+            "validated": true
+          },
+          "ps_rmks": {
+            "description": "Remarks",
+            "validated": true
+          },
+          "ps_scrp_pct": {
+            "description": "Scrap Percentage",
+            "validated": true
+          },
+          "ps_start": {
+            "description": "As Of Date (null or <=today)",
+            "validated": true
+          }
+        }
+      },
+      "pt_mstr": {
+        "business_name": "Part Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "pt_abc": {
+            "description": "Part ABC Class",
+            "validated": true
+          },
+          "pt_added": {
+            "description": "Added Date",
+            "validated": true
+          },
+          "pt_article": {
+            "description": "Article Number",
+            "validated": true
+          },
+          "pt_atp_family": {
+            "description": "ATP Family",
+            "validated": true
+          },
+          "pt_atp_horizon": {
+            "description": "ATP Horizon",
+            "validated": true
+          },
+          "pt_auto_lot": {
+            "description": "Auto Lot",
+            "validated": true
+          },
+          "pt_avg_int": {
+            "description": "Average Interval",
+            "validated": true
+          },
+          "pt_bom_code": {
+            "description": "BOM Code",
+            "validated": true
+          },
+          "pt_break_cat": {
+            "description": "Part Price Break Category",
+            "validated": true
+          },
+          "pt_buyer": {
+            "description": "Buyer/Planner",
+            "validated": true
+          },
+          "pt_comm_code": {
+            "description": "Commodity Code",
+            "validated": true
+          },
+          "pt_critical": {
+            "description": "Key Item",
+            "validated": true
+          },
+          "pt_cum_lead": {
+            "description": "Cumulative Lead Time",
+            "validated": true
+          },
+          "pt_desc1": {
+            "description": "Item Description 1",
+            "validated": true
+          },
+          "pt_desc2": {
+            "description": "Item Description 2",
+            "validated": true
+          },
+          "pt_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "pt_draw": {
+            "description": "Part Drawing",
+            "validated": true
+          },
+          "pt_drwg_loc": {
+            "description": "Part Drawing Location",
+            "validated": true
+          },
+          "pt_drwg_size": {
+            "description": "Part Drawing Size",
+            "validated": true
+          },
+          "pt_dsgn_grp": {
+            "description": "Part Design Group",
+            "validated": true
+          },
+          "pt_group": {
+            "description": "Part Group",
+            "validated": true
+          },
+          "pt_insp_lead": {
+            "description": "Inspection Lead Time",
+            "validated": true
+          },
+          "pt_insp_rqd": {
+            "description": "Inspection Required (T/F)",
+            "validated": true
+          },
+          "pt_loc": {
+            "description": "Location",
+            "validated": true
+          },
+          "pt_loc_type": {
+            "description": "Location Type",
+            "validated": true
+          },
+          "pt_memo_type": {
+            "description": "Memo Order Type",
+            "validated": true
+          },
+          "pt_mfg_lead": {
+            "description": "Manufacturing Lead Time",
+            "validated": true
+          },
+          "pt_mod_date": {
+            "description": "Modified Date",
+            "validated": true
+          },
+          "pt_mrp": {
+            "description": "MRP (T/F)",
+            "validated": true
+          },
+          "pt_ord_max": {
+            "description": "Maximum Order",
+            "validated": true
+          },
+          "pt_ord_min": {
+            "description": "Minimum Order",
+            "validated": true
+          },
+          "pt_ord_mult": {
+            "description": "Order Multiple",
+            "validated": true
+          },
+          "pt_ord_pol": {
+            "description": "Order Policy",
+            "validated": true
+          },
+          "pt_part": {
+            "description": "Item Number",
+            "validated": true
+          },
+          "pt_part_type": {
+            "description": "Part Type",
+            "validated": true
+          },
+          "pt_phantom": {
+            "description": "Phantom (T/F)",
+            "validated": true
+          },
+          "pt_pm_code": {
+            "description": "PM Code",
+            "validated": true
+          },
+          "pt_po_site": {
+            "description": "PO Site",
+            "validated": true
+          },
+          "pt_prod_line": {
+            "description": "Product Line",
+            "validated": true
+          },
+          "pt_pur_lead": {
+            "description": "Purchasing Lead Time",
+            "validated": true
+          },
+          "pt_rev": {
+            "description": "Revision",
+            "validated": true
+          },
+          "pt_sfty_stk": {
+            "description": "Safety Stock Quantity",
+            "validated": true
+          },
+          "pt_sfty_time": {
+            "description": "Safety Time",
+            "validated": true
+          },
+          "pt_shelflife": {
+            "description": "Shelf Life",
+            "validated": true
+          },
+          "pt_ship_wt": {
+            "description": "Ship Weight",
+            "validated": true
+          },
+          "pt_ship_wt_um": {
+            "description": "Ship Weight UM",
+            "validated": true
+          },
+          "pt_site": {
+            "description": "Site",
+            "validated": true
+          },
+          "pt_size": {
+            "description": "Size",
+            "validated": true
+          },
+          "pt_size_um": {
+            "description": "Size Unit of Measure",
+            "validated": true
+          },
+          "pt_status": {
+            "description": "Part Status Code",
+            "validated": true
+          },
+          "pt_taxable": {
+            "description": "Taxable",
+            "validated": true
+          },
+          "pt_taxc": {
+            "description": "Tax Class",
+            "validated": true
+          },
+          "pt_transtype": {
+            "description": "",
+            "validated": false
+          },
+          "pt_um": {
+            "description": "Unit of Measure",
+            "validated": true
+          },
+          "pt_user1": {
+            "description": "ROHS",
+            "validated": true
+          },
+          "pt_user2": {
+            "description": "User Field 2",
+            "validated": true
+          },
+          "pt_userid": {
+            "description": "User ID",
+            "validated": true
+          },
+          "pt_vend": {
+            "description": "Vendor/Supplier",
+            "validated": true
+          },
+          "pt_warr_cd": {
+            "description": "IOS",
+            "validated": true
+          },
+          "pt_yield_pct": {
+            "description": "Yield Percentage",
+            "validated": true
+          }
+        }
+      },
+      "ptp_det": {
+        "business_name": "Part Detail",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "ptp_bom_code": {
+            "description": "BOM Code",
+            "validated": true
+          },
+          "ptp_buyer": {
+            "description": "Buyer Number (Purchased Parts)/Planner Code (Manufactured Parts)",
+            "validated": true
+          },
+          "ptp_cum_lead": {
+            "description": "Cumulative Lead Time",
+            "validated": true
+          },
+          "ptp_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "ptp_draw": {
+            "description": "Part Drawing",
+            "validated": true
+          },
+          "ptp_ins_lead": {
+            "description": "Inspection Lead Time",
+            "validated": true
+          },
+          "ptp_ins_rqd": {
+            "description": "Inspection Required (T/F)",
+            "validated": true
+          },
+          "ptp_iss_pol": {
+            "description": "Issue Policy",
+            "validated": true
+          },
+          "ptp_mfg_lead": {
+            "description": "Manufacturing Lead Time",
+            "validated": true
+          },
+          "ptp_mod_date": {
+            "description": "Modified Date",
+            "validated": true
+          },
+          "ptp_ord_max": {
+            "description": "Maximum Order",
+            "validated": true
+          },
+          "ptp_ord_min": {
+            "description": "Minimum Order",
+            "validated": true
+          },
+          "ptp_ord_mult": {
+            "description": "Order Multiple",
+            "validated": true
+          },
+          "ptp_ord_per": {
+            "description": "Order Period",
+            "validated": true
+          },
+          "ptp_ord_pol": {
+            "description": "Order Policy",
+            "validated": true
+          },
+          "ptp_ord_qty": {
+            "description": "Order Quantity",
+            "validated": true
+          },
+          "ptp_part": {
+            "description": "Item Number",
+            "validated": true
+          },
+          "ptp_phantom": {
+            "description": "Phantom (T/F)",
+            "validated": true
+          },
+          "ptp_plan_ord": {
+            "description": "Planned Order (T/F)",
+            "validated": true
+          },
+          "ptp_pm_code": {
+            "description": "PM Code (P - Purchased, M - Manufactured)",
+            "validated": true
+          },
+          "ptp_po_site": {
+            "description": "PO Site",
+            "validated": true
+          },
+          "ptp_pur_lead": {
+            "description": "Purchasing Lead Time",
+            "validated": true
+          },
+          "ptp_rev": {
+            "description": "Revision",
+            "validated": true
+          },
+          "ptp_routing": {
+            "description": "Routing Code",
+            "validated": true
+          },
+          "ptp_sfty_stk": {
+            "description": "Safety Stock",
+            "validated": true
+          },
+          "ptp_sfty_tme": {
+            "description": "Safety Time",
+            "validated": true
+          },
+          "ptp_site": {
+            "description": "Site",
+            "validated": true
+          },
+          "ptp_timefnce": {
+            "description": "Timefence",
+            "validated": true
+          },
+          "ptp_vend": {
+            "description": "Supplier",
+            "validated": true
+          },
+          "ptp_yld_pct": {
+            "description": "Yield Percentage",
+            "validated": true
+          }
+        }
+      },
+      "so_mstr": {
+        "business_name": "Sales Order Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "so__chr01": {
+            "description": "Shipping Account",
+            "validated": true
+          },
+          "so__chr03": {
+            "description": "C/S Hold (T/F)",
+            "validated": true
+          },
+          "so__chr05": {
+            "description": "No-Charge Account",
+            "validated": true
+          },
+          "so__chr06": {
+            "description": "Shipping Comment",
+            "validated": true
+          },
+          "so_bill": {
+            "description": "Sales Order Bill To",
+            "validated": true
+          },
+          "so_bol": {
+            "description": "Sales Order Bill Of Lading",
+            "validated": true
+          },
+          "so_channel": {
+            "description": "Sales Order Channel (NRE, Standard, ADJ, RMA-IW, RMA-OOW)",
+            "validated": true
+          },
+          "so_cmtindx": {
+            "description": "Comment Index Number",
+            "validated": true
+          },
+          "so_conf_date": {
+            "description": "Confirmed Date",
+            "validated": true
+          },
+          "so_consignment": {
+            "description": "Consignment (T/F)",
+            "validated": true
+          },
+          "so_cr_terms": {
+            "description": "Credit Terms",
+            "validated": true
+          },
+          "so_curr": {
+            "description": "Currency",
+            "validated": true
+          },
+          "so_cust": {
+            "description": "Customer Number",
+            "validated": true
+          },
+          "so_cust_po": {
+            "description": "Customer Purchase Order Number",
+            "validated": true
+          },
+          "so_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "so_due_date": {
+            "description": "Due Date",
+            "validated": true
+          },
+          "so_fob": {
+            "description": "FOB",
+            "validated": true
+          },
+          "so_fr_terms": {
+            "description": "Sales Order Freight Terms",
+            "validated": true
+          },
+          "so_lang": {
+            "description": "Language",
+            "validated": true
+          },
+          "so_nbr": {
+            "description": "Sales Order Number",
+            "validated": true
+          },
+          "so_ord_date": {
+            "description": "Order Date",
+            "validated": true
+          },
+          "so_po": {
+            "description": "Customer PO Number",
+            "validated": true
+          },
+          "so_pricing_dt": {
+            "description": "Pricing Date",
+            "validated": true
+          },
+          "so_quote": {
+            "description": "Quote Number",
+            "validated": true
+          },
+          "so_req_date": {
+            "description": "Requested Date",
+            "validated": true
+          },
+          "so_rev": {
+            "description": "Sales Order Revision",
+            "validated": true
+          },
+          "so_reviewed": {
+            "description": "Reviewed (T/F)",
+            "validated": true
+          },
+          "so_rmks": {
+            "description": "Remarks",
+            "validated": true
+          },
+          "so_sched": {
+            "description": "Scheduled (T/F)",
+            "validated": true
+          },
+          "so_ship": {
+            "description": "Ship To",
+            "validated": true
+          },
+          "so_ship_date": {
+            "description": "Date Shipped",
+            "validated": true
+          },
+          "so_shipvia": {
+            "description": "Ship Via",
+            "validated": true
+          },
+          "so_site": {
+            "description": "Sites",
+            "validated": true
+          },
+          "so_slspsn##1": {
+            "description": "Salesperson 1",
+            "validated": true
+          },
+          "so_slspsn##2": {
+            "description": "Salesperson 2",
+            "validated": true
+          },
+          "so_slspsn##3": {
+            "description": "Salesperson 3",
+            "validated": true
+          },
+          "so_slspsn##4": {
+            "description": "Salesperson 4",
+            "validated": true
+          },
+          "so_stat": {
+            "description": "Action Status",
+            "validated": true
+          },
+          "so_trl1_amt": {
+            "description": "Trailer 1 Amount",
+            "validated": true
+          },
+          "so_type": {
+            "description": "Sales Order Type",
+            "validated": true
+          },
+          "so_userid": {
+            "description": "Sales Order Entered By",
+            "validated": true
+          }
+        }
+      },
+      "sod_det": {
+        "business_name": "Sales Order Detail",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "sod__chr03": {
+            "description": "C/S Line Hold (T/F)",
+            "validated": true
+          },
+          "sod__chr05": {
+            "description": "Revision",
+            "validated": true
+          },
+          "sod__chr06": {
+            "description": "QA Hold (T/F)",
+            "validated": true
+          },
+          "sod_cmtindx": {
+            "description": "Comment Index",
+            "validated": true
+          },
+          "sod_comment##1": {
+            "description": "Line Comment 1",
+            "validated": true
+          },
+          "sod_comment##2": {
+            "description": "Line Comment 2",
+            "validated": true
+          },
+          "sod_comment##3": {
+            "description": "Line Comment 3",
+            "validated": true
+          },
+          "sod_comment##4": {
+            "description": "Line Comment 4",
+            "validated": true
+          },
+          "sod_comment##5": {
+            "description": "Line Comment 5",
+            "validated": true
+          },
+          "sod_compl_date": {
+            "description": "Complete Date",
+            "validated": true
+          },
+          "sod_compl_stat": {
+            "description": "Complete Status",
+            "validated": true
+          },
+          "sod_confirm": {
+            "description": "Confirmed (T/F)",
+            "validated": true
+          },
+          "sod_consignment": {
+            "description": "Consignment (T/F)",
+            "validated": true
+          },
+          "sod_custpart": {
+            "description": "Customer Part Number",
+            "validated": true
+          },
+          "sod_custref": {
+            "description": "Customer Reference",
+            "validated": true
+          },
+          "sod_desc": {
+            "description": "Description",
+            "validated": true
+          },
+          "sod_disc_pct": {
+            "description": "Discount Percentage",
+            "validated": true
+          },
+          "sod_dock": {
+            "description": "Dock Date",
+            "validated": true
+          },
+          "sod_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "sod_due_date": {
+            "description": "Due Date",
+            "validated": true
+          },
+          "sod_hold_stat": {
+            "description": "Hold Status",
+            "validated": true
+          },
+          "sod_intrans_loc": {
+            "description": "Transit Location",
+            "validated": true
+          },
+          "sod_inv_nbr": {
+            "description": "Invoice Number",
+            "validated": true
+          },
+          "sod_line": {
+            "description": "Line Number",
+            "validated": true
+          },
+          "sod_list_pr": {
+            "description": "List Price",
+            "validated": true
+          },
+          "sod_loc": {
+            "description": "SO Location",
+            "validated": true
+          },
+          "sod_mod_date": {
+            "description": "Modified Date",
+            "validated": true
+          },
+          "sod_modelyr": {
+            "description": "Model Year",
+            "validated": true
+          },
+          "sod_nbr": {
+            "description": "Sales Order number",
+            "validated": true
+          },
+          "sod_part": {
+            "description": "Part Number",
+            "validated": true
+          },
+          "sod_partial": {
+            "description": "Partial Shipments Ok",
+            "validated": true
+          },
+          "sod_per_date": {
+            "description": "Perform Date",
+            "validated": true
+          },
+          "sod_price": {
+            "description": "PO Price",
+            "validated": true
+          },
+          "sod_pricing_dt": {
+            "description": "Pricing Date",
+            "validated": true
+          },
+          "sod_prodline": {
+            "description": "Product Line",
+            "validated": true
+          },
+          "sod_project": {
+            "description": "Project Code",
+            "validated": true
+          },
+          "sod_promise_date": {
+            "description": "Promise Date",
+            "validated": true
+          },
+          "sod_qty_ivcd": {
+            "description": "Quantity Invoiced",
+            "validated": true
+          },
+          "sod_qty_ord": {
+            "description": "Quantity Ordered",
+            "validated": true
+          },
+          "sod_qty_pend": {
+            "description": "Quantity Pending",
+            "validated": true
+          },
+          "sod_qty_pick": {
+            "description": "Quantity Picked",
+            "validated": true
+          },
+          "sod_qty_ship": {
+            "description": "Quantity Shipped",
+            "validated": true
+          },
+          "sod_req_date": {
+            "description": "Required Date",
+            "validated": true
+          },
+          "sod_sched": {
+            "description": "Scheduled (T/F)",
+            "validated": true
+          },
+          "sod_shipvia": {
+            "description": "Ship Via",
+            "validated": true
+          },
+          "sod_site": {
+            "description": "Site",
+            "validated": true
+          },
+          "sod_slspsn##1": {
+            "description": "Salesperson #1 - Scheduler",
+            "validated": true
+          },
+          "sod_slspsn##2": {
+            "description": "Salesperson #2",
+            "validated": true
+          },
+          "sod_slspsn##3": {
+            "description": "Salesperson #3",
+            "validated": true
+          },
+          "sod_slspsn##4": {
+            "description": "Salesperson #4 - Accounting Tech",
+            "validated": true
+          },
+          "sod_status": {
+            "description": "Status",
+            "validated": true
+          },
+          "sod_std_cost": {
+            "description": "Standard Cost",
+            "validated": true
+          },
+          "sod_trade_sale_po": {
+            "description": "Trade Sales PO",
+            "validated": true
+          },
+          "sod_type": {
+            "description": "Ship Type",
+            "validated": true
+          },
+          "sod_um": {
+            "description": "Unit of Measure",
+            "validated": true
+          }
+        }
+      },
+      "tr_hist": {
+        "business_name": "Inventory Transaction History",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "tr_addr": {
+            "description": "Shipment Address",
+            "validated": true
+          },
+          "tr_assay": {
+            "description": "Assay Percentage",
+            "validated": true
+          },
+          "tr_batch": {
+            "description": "Batch",
+            "validated": true
+          },
+          "tr_begin_qoh": {
+            "description": "Beginning Total On Hand Balance",
+            "validated": true
+          },
+          "tr_date": {
+            "description": "Transaction date",
+            "validated": true
+          },
+          "tr_domain": {
+            "description": "Transaction Domain",
+            "validated": true
+          },
+          "tr_expire": {
+            "description": "Expire Date",
+            "validated": true
+          },
+          "tr_line": {
+            "description": "Transaction Line",
+            "validated": true
+          },
+          "tr_loc": {
+            "description": "Transaction location",
+            "validated": true
+          },
+          "tr_loc_begin": {
+            "description": "Beginning Location Balance",
+            "validated": true
+          },
+          "tr_lot": {
+            "description": "Work Order ID Number",
+            "validated": true
+          },
+          "tr_nbr": {
+            "description": "WO Number",
+            "validated": true
+          },
+          "tr_part": {
+            "description": "Part Number",
+            "validated": true
+          },
+          "tr_prod_line": {
+            "description": "Transaction Product Line",
+            "validated": true
+          },
+          "tr_qty_chg": {
+            "description": "Quantity Change",
+            "validated": true
+          },
+          "tr_qty_loc": {
+            "description": "Local Quantity Change",
+            "validated": true
+          },
+          "tr_qty_req": {
+            "description": "Required Quantity",
+            "validated": true
+          },
+          "tr_qty_short": {
+            "description": "Short Quanitty",
+            "validated": true
+          },
+          "tr_ref": {
+            "description": "Reference",
+            "validated": true
+          },
+          "tr_rmks": {
+            "description": "Transaction Remarks",
+            "validated": true
+          },
+          "tr_rsn_code": {
+            "description": "Reason Code",
+            "validated": true
+          },
+          "tr_serial": {
+            "description": "Lot/Serial Number",
+            "validated": true
+          },
+          "tr_ship_date": {
+            "description": "Ship Date",
+            "validated": true
+          },
+          "tr_ship_id": {
+            "description": "Shipper  Number",
+            "validated": true
+          },
+          "tr_ship_inv_mov": {
+            "description": "Inventory Movement Code",
+            "validated": true
+          },
+          "tr_ship_type": {
+            "description": "Ship Type",
+            "validated": true
+          },
+          "tr_site": {
+            "description": "Transaction Site",
+            "validated": true
+          },
+          "tr_slspsn##1": {
+            "description": "Salesperson #1 - Scheduler",
+            "validated": true
+          },
+          "tr_slspsn##2": {
+            "description": "Salesperson #2",
+            "validated": true
+          },
+          "tr_slspsn##3": {
+            "description": "Salesperson #3",
+            "validated": true
+          },
+          "tr_slspsn##4": {
+            "description": "Salesperson #4 - Accounting Tech",
+            "validated": true
+          },
+          "tr_so_job": {
+            "description": "Sales Order Number",
+            "validated": true
+          },
+          "tr_status": {
+            "description": "Inventory Status",
+            "validated": true
+          },
+          "tr_trnbr": {
+            "description": "Transaction Number",
+            "validated": true
+          },
+          "tr_type": {
+            "description": "Transaction Type Code",
+            "validated": true
+          },
+          "tr_um": {
+            "description": "Unit of Measure",
+            "validated": true
+          },
+          "tr_userid": {
+            "description": "Transaction conducted by",
+            "validated": true
+          },
+          "tr_vend_lot": {
+            "description": "Supplier Lot Number",
+            "validated": true
+          },
+          "tr_wod_op": {
+            "description": "Operation",
+            "validated": true
+          }
+        }
+      },
+      "vp_mstr": {
+        "business_name": "Supplier Item Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "vp__chr01": {
+            "description": "Disqualified",
+            "validated": true
+          },
+          "vp__chr03": {
+            "description": "Quote Number",
+            "validated": true
+          },
+          "vp__chr04": {
+            "description": "Country of Origin",
+            "validated": true
+          },
+          "vp__chr05": {
+            "description": "NCNR (T/F)",
+            "validated": true
+          },
+          "vp__dec01": {
+            "description": "Reach Certificate Status",
+            "validated": true
+          },
+          "vp__dte01": {
+            "description": "Certificate of Origin Effective Date",
+            "validated": true
+          },
+          "vp__dte02": {
+            "description": "Certificate of Origin Requested",
+            "validated": true
+          },
+          "vp__log01": {
+            "description": "Multiple Country of Origin (T/F)",
+            "validated": true
+          },
+          "vp_appr_date": {
+            "description": "Approved Date",
+            "validated": true
+          },
+          "vp_comment": {
+            "description": "Comments",
+            "validated": true
+          },
+          "vp_curr": {
+            "description": "Currency",
+            "validated": true
+          },
+          "vp_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "vp_ins_rqd": {
+            "description": "Inspection Required (T/F)",
+            "validated": true
+          },
+          "vp_mfgr": {
+            "description": "Manufacturer",
+            "validated": true
+          },
+          "vp_mfgr_part": {
+            "description": "Manufacturer Part Number",
+            "validated": true
+          },
+          "vp_mod_date": {
+            "description": "Modified Date",
+            "validated": true
+          },
+          "vp_part": {
+            "description": "Item Number",
+            "validated": true
+          },
+          "vp_pr_list": {
+            "description": "Price List",
+            "validated": true
+          },
+          "vp_q_price": {
+            "description": "AVL Price",
+            "validated": true
+          },
+          "vp_um": {
+            "description": "Unit of Measure",
+            "validated": true
+          },
+          "vp_user1": {
+            "description": "Manufacturing ID",
+            "validated": true
+          },
+          "vp_user2": {
+            "description": "Media Type",
+            "validated": true
+          },
+          "vp_vend": {
+            "description": "Supplier",
+            "validated": true
+          },
+          "vp_vend_lead": {
+            "description": "Supplier Lead Time",
+            "validated": true
+          },
+          "vp_vend_part": {
+            "description": "Supplier Part Number",
+            "validated": true
+          }
+        }
+      },
+      "wo_mstr": {
+        "business_name": "Work Order Master",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "wo__chr01": {
+            "description": "Build Area",
+            "validated": true
+          },
+          "wo__chr04": {
+            "description": "ID/PO Cross Reference",
+            "validated": true
+          },
+          "wo__dec01": {
+            "description": "MS Runnbr",
+            "validated": true
+          },
+          "wo__dec02": {
+            "description": "Est Completion Date",
+            "validated": true
+          },
+          "wo__dte02": {
+            "description": "Estimated Completion Date",
+            "validated": true
+          },
+          "wo_batch": {
+            "description": "Batch",
+            "validated": true
+          },
+          "wo_bdn_tot": {
+            "description": "Burden Cost Total",
+            "validated": true
+          },
+          "wo_bom_code": {
+            "description": "BOM Code",
+            "validated": true
+          },
+          "wo_cmtindx": {
+            "description": "Comment Index Number",
+            "validated": true
+          },
+          "wo_doc_id": {
+            "description": "Document ID",
+            "validated": true
+          },
+          "wo_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "wo_draw": {
+            "description": "Drawing Number",
+            "validated": true
+          },
+          "wo_due_date": {
+            "description": "Due Date",
+            "validated": true
+          },
+          "wo_eng_code": {
+            "description": "Engineering Code",
+            "validated": true
+          },
+          "wo_lead_time": {
+            "description": "Work Order Lead Time",
+            "validated": true
+          },
+          "wo_line": {
+            "description": "Production Line",
+            "validated": true
+          },
+          "wo_loc": {
+            "description": "Work Order Location",
+            "validated": true
+          },
+          "wo_lot": {
+            "description": "Work Order ID",
+            "validated": true
+          },
+          "wo_lot_next": {
+            "description": "Lot/Serial",
+            "validated": true
+          },
+          "wo_nbr": {
+            "description": "Work Order Number",
+            "validated": true
+          },
+          "wo_ord_date": {
+            "description": "Order Date",
+            "validated": true
+          },
+          "wo_ovh_tot": {
+            "description": "Overhead Cost Total",
+            "validated": true
+          },
+          "wo_part": {
+            "description": "Item Number",
+            "validated": true
+          },
+          "wo_qty_comp": {
+            "description": "Quanity Complete",
+            "validated": true
+          },
+          "wo_qty_ord": {
+            "description": "Quantity Ordered",
+            "validated": true
+          },
+          "wo_qty_rjct": {
+            "description": "Quantity Rejected",
+            "validated": true
+          },
+          "wo_rel_date": {
+            "description": "Release Date",
+            "validated": true
+          },
+          "wo_rmks": {
+            "description": "Remarks",
+            "validated": true
+          },
+          "wo_routing": {
+            "description": "Routing Code",
+            "validated": true
+          },
+          "wo_seq": {
+            "description": "Sequence",
+            "validated": true
+          },
+          "wo_shift": {
+            "description": "Shift",
+            "validated": true
+          },
+          "wo_site": {
+            "description": "Site",
+            "validated": true
+          },
+          "wo_so_job": {
+            "description": "Sales Order/Job",
+            "validated": true
+          },
+          "wo_status": {
+            "description": "Work Order Status",
+            "validated": true
+          },
+          "wo_type": {
+            "description": "Type",
+            "validated": true
+          },
+          "wo_user1": {
+            "description": "WO Created By",
+            "validated": true
+          },
+          "wo_user2": {
+            "description": "NPI/PROTO Flag",
+            "validated": true
+          },
+          "wo_vend": {
+            "description": "Supplier",
+            "validated": true
+          },
+          "wo_wip_tot": {
+            "description": "WIP Cost",
+            "validated": true
+          },
+          "wo_yield_pct": {
+            "description": "Work Order Yield Percentage",
+            "validated": true
+          }
+        }
+      },
+      "wod_det": {
+        "business_name": "Work Order Detail",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "wod_bom_amt": {
+            "description": "Unit Cost",
+            "validated": true
+          },
+          "wod_bom_qty": {
+            "description": "Quantity Per Unit",
+            "validated": true
+          },
+          "wod_cmtindx": {
+            "description": "Comment Index Number",
+            "validated": true
+          },
+          "wod_critical": {
+            "description": "Key Item",
+            "validated": true
+          },
+          "wod_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "wod_iss_date": {
+            "description": "Issue Date",
+            "validated": true
+          },
+          "wod_loc": {
+            "description": "Location",
+            "validated": true
+          },
+          "wod_lot": {
+            "description": "Work Order ID",
+            "validated": true
+          },
+          "wod_nbr": {
+            "description": "Work Order Number",
+            "validated": true
+          },
+          "wod_op": {
+            "description": "Operation Number",
+            "validated": true
+          },
+          "wod_part": {
+            "description": "Component Item",
+            "validated": true
+          },
+          "wod_prod_line": {
+            "description": "Product Line",
+            "validated": true
+          },
+          "wod_qty_all": {
+            "description": "Quantity Allocated",
+            "validated": true
+          },
+          "wod_qty_iss": {
+            "description": "Quantity Issued",
+            "validated": true
+          },
+          "wod_qty_pick": {
+            "description": "Quantity Picked",
+            "validated": true
+          },
+          "wod_qty_req": {
+            "description": "Quantity Required",
+            "validated": true
+          },
+          "wod_site": {
+            "description": "Site",
+            "validated": true
+          },
+          "wod_sod_line": {
+            "description": "Work Order Sales Order Line",
+            "validated": true
+          },
+          "wod_sod_nbr": {
+            "description": "Work Order Sales Order Number",
+            "validated": true
+          },
+          "wod_status": {
+            "description": "Status",
+            "validated": true
+          }
+        }
+      }
+    },
+    "Analysis": {
+      "in_price": {
+        "business_name": "in_price",
+        "source_sheet": "Analysis",
+        "fields": {
+          "inp_list_id": {
+            "description": "Price List ID Number",
+            "validated": true
+          },
+          "inp_start_date": {
+            "description": "Price List Start Date",
+            "validated": true
+          },
+          "inp_part": {
+            "description": "Part Number",
+            "validated": true
+          },
+          "inp_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "inp_custprice": {
+            "description": "Customer's Price",
+            "validated": true
+          },
+          "inp_qctc": {
+            "description": "Quoted Cost",
+            "validated": true
+          },
+          "inp_site": {
+            "description": "Site",
+            "validated": true
+          }
+        }
+      }
+    }
+  }
+}
