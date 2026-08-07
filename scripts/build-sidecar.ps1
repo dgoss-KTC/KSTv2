@@ -41,6 +41,10 @@ $dotnetArgs = @(
     '/p:PublishAot=false',
     '/p:DebugType=None',
     '/p:DebugSymbols=false',
+    # Required for PublishSingleFile: without this, native interop libraries (e.g. SqlClient's
+    # SNI.dll, needed for Windows Integrated Auth) are not extracted and QAD connections fail
+    # with System.DllNotFoundException at runtime.
+    '/p:IncludeNativeLibrariesForSelfExtract=true',
     '-o', $publishOutput
 )
 
@@ -64,6 +68,18 @@ if (-not (Test-Path $targetSidecarPath)) {
     throw "Failed to copy sidecar to Tauri binaries path: $targetSidecarPath"
 }
 
+# The sidecar is launched by Tauri as a bare executable (no `dotnet publish` output folder
+# alongside it), so its appsettings*.json files must be copied next to it explicitly - otherwise
+# ASP.NET Core's optional JSON config providers silently find nothing and QadDatabase/etc. bind
+# to their empty defaults regardless of ASPNETCORE_ENVIRONMENT.
+$configFiles = @('appsettings.json', 'appsettings.Development.json')
+foreach ($configFile in $configFiles) {
+    $sourcePath = Join-Path $publishOutput $configFile
+    if (Test-Path $sourcePath) {
+        Copy-Item -Path $sourcePath -Destination (Join-Path $tauriBinDir $configFile) -Force
+    }
+}
+
 $publishedInfo = Get-Item $publishedExe
 $targetInfo = Get-Item $targetSidecarPath
 
@@ -73,3 +89,4 @@ Write-Host "Published executable: $($publishedInfo.FullName)"
 Write-Host ("Published size: {0:N0} bytes" -f $publishedInfo.Length)
 Write-Host "Copied sidecar: $($targetInfo.FullName)"
 Write-Host ("Copied size: {0:N0} bytes" -f $targetInfo.Length)
+Write-Host "Copied config files: $($configFiles -join ', ')"

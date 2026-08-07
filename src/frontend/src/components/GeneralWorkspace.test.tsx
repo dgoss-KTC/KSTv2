@@ -70,11 +70,13 @@ describe('General workspace', () => {
       writable: true,
       value: { transformCallback: vi.fn() },
     });
+    window.localStorage.clear();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
+    window.localStorage.clear();
   });
 
   async function waitForConnected() {
@@ -225,5 +227,81 @@ describe('General workspace', () => {
     await waitFor(() => {
       expect(orderedIds).toEqual(['b', 'a']);
     });
+  });
+
+  it('shows the Fiscal Calendar section with the FY26 anchor', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/api/v1/workspaces')) {
+        return Promise.resolve({ ok: true, json: async () => emptyWorkspaceList });
+      }
+      if (url.includes('/api/v1/preferences')) {
+        return Promise.resolve({ ok: true, json: async () => preferencesResponse(defaultPreferences) });
+      }
+      return Promise.resolve({ ok: true, json: async () => mockStatus });
+    });
+
+    render(<App />);
+    await waitForConnected();
+    await user.click(screen.getByRole('tab', { name: /general/i }));
+
+    expect(screen.getByRole('heading', { name: /fiscal calendar/i })).toBeInTheDocument();
+    expect(screen.getByText('FY2026')).toBeInTheDocument();
+    expect(screen.getByText('June 29, 2025')).toBeInTheDocument();
+  });
+
+  it('adds and removes a fiscal year exception, persisting it locally', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/api/v1/workspaces')) {
+        return Promise.resolve({ ok: true, json: async () => emptyWorkspaceList });
+      }
+      if (url.includes('/api/v1/preferences')) {
+        return Promise.resolve({ ok: true, json: async () => preferencesResponse(defaultPreferences) });
+      }
+      return Promise.resolve({ ok: true, json: async () => mockStatus });
+    });
+
+    render(<App />);
+    await waitForConnected();
+    await user.click(screen.getByRole('tab', { name: /general/i }));
+
+    await user.click(screen.getByRole('button', { name: /\+ add exception/i }));
+    await user.type(screen.getByLabelText(/^fiscal year$/i), '2027');
+    await user.type(screen.getByLabelText(/extra week period/i), '4');
+    await user.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(await screen.findByText('FY2027')).toBeInTheDocument();
+    expect(screen.getByText('P4')).toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem('kst.fiscalCalendarSettings.v1')!)).toMatchObject({
+      exceptions: [{ fiscalYear: 2027, extraWeekPeriod: 4 }],
+    });
+
+    await user.click(screen.getByRole('button', { name: /remove fy2027 exception/i }));
+    await waitFor(() => {
+      expect(screen.queryByText('FY2027')).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows a validation error when adding a duplicate fiscal year exception', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/api/v1/workspaces')) {
+        return Promise.resolve({ ok: true, json: async () => emptyWorkspaceList });
+      }
+      if (url.includes('/api/v1/preferences')) {
+        return Promise.resolve({ ok: true, json: async () => preferencesResponse(defaultPreferences) });
+      }
+      return Promise.resolve({ ok: true, json: async () => mockStatus });
+    });
+
+    render(<App />);
+    await waitForConnected();
+    await user.click(screen.getByRole('tab', { name: /general/i }));
+
+    await user.click(screen.getByRole('button', { name: /\+ add exception/i }));
+    await user.type(screen.getByLabelText(/extra week period/i), '20');
+    await user.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(
+      await screen.findByText(/extra week period must be between 1 and 12/i),
+    ).toBeInTheDocument();
   });
 });

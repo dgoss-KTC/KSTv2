@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import type { SystemStatusResponse, UserPreferencesDto } from '../api/client';
 import type { ConnectionState } from '../hooks/useBackendStatus';
+import { useFiscalCalendarSettings } from '../hooks/useFiscalCalendarSettings';
+import type { FiscalExceptionValidationError } from '../fiscal/fiscalCalendarSettings';
 import './GeneralWorkspace.css';
 
 interface GeneralWorkspaceProps {
@@ -34,6 +37,13 @@ function formatTimestamp(value: string | null | undefined): string {
   return date.toLocaleString();
 }
 
+function formatAnchorDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
 export function GeneralWorkspace({
   preferences,
   onSetTheme,
@@ -47,6 +57,35 @@ export function GeneralWorkspace({
 }: GeneralWorkspaceProps) {
   const qad = status?.dataSources.find((d) => d.name === 'QAD');
   const shortages = status?.dataSources.find((d) => d.name === 'Shortage Database');
+
+  const { settings: fiscalSettings, addException, removeException } = useFiscalCalendarSettings();
+  const [isAddingException, setIsAddingException] = useState(false);
+  const [exceptionFiscalYear, setExceptionFiscalYear] = useState('');
+  const [exceptionPeriod, setExceptionPeriod] = useState('');
+  const [exceptionErrors, setExceptionErrors] = useState<FiscalExceptionValidationError[]>([]);
+
+  function errorFor(field: FiscalExceptionValidationError['field']): string | undefined {
+    return exceptionErrors.find((e) => e.field === field)?.message;
+  }
+
+  function resetExceptionForm() {
+    setIsAddingException(false);
+    setExceptionFiscalYear('');
+    setExceptionPeriod('');
+    setExceptionErrors([]);
+  }
+
+  function handleSaveException() {
+    const errors = addException({
+      fiscalYear: Number(exceptionFiscalYear),
+      extraWeekPeriod: Number(exceptionPeriod),
+    });
+    if (errors.length > 0) {
+      setExceptionErrors(errors);
+      return;
+    }
+    resetExceptionForm();
+  }
 
   return (
     <div className="general-workspace">
@@ -119,6 +158,98 @@ export function GeneralWorkspace({
         >
           Manage Workspaces&hellip;
         </button>
+      </section>
+
+      <section className="general-workspace__section">
+        <h3 className="general-workspace__section-title">Fiscal Calendar</h3>
+
+        <dl className="general-workspace__details">
+          <dt>Anchor fiscal year</dt>
+          <dd>{`FY${fiscalSettings.anchorFiscalYear}`}</dd>
+
+          <dt>Anchor start date</dt>
+          <dd>{formatAnchorDate(fiscalSettings.anchorStartDate)}</dd>
+
+          <dt>Pattern</dt>
+          <dd>4-4-5 &times; 4</dd>
+        </dl>
+
+        {fiscalSettings.exceptions.length > 0 && (
+          <table className="general-workspace__table">
+            <thead>
+              <tr>
+                <th>Fiscal Year</th>
+                <th>Extra Week Period</th>
+                <th aria-label="Actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {fiscalSettings.exceptions.map((exception) => (
+                <tr key={exception.fiscalYear}>
+                  <td>{`FY${exception.fiscalYear}`}</td>
+                  <td>{`P${exception.extraWeekPeriod}`}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="general-workspace__btn"
+                      onClick={() => removeException(exception.fiscalYear)}
+                      aria-label={`Remove FY${exception.fiscalYear} exception`}
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {isAddingException ? (
+          <div className="general-workspace__exception-form">
+            <label className="general-workspace__field">
+              <span className="general-workspace__field-label">Fiscal year</span>
+              <input
+                type="number"
+                value={exceptionFiscalYear}
+                onChange={(e) => setExceptionFiscalYear(e.target.value)}
+                aria-label="Fiscal year"
+              />
+            </label>
+            {errorFor('fiscalYear') && (
+              <p className="general-workspace__error">{errorFor('fiscalYear')}</p>
+            )}
+
+            <label className="general-workspace__field">
+              <span className="general-workspace__field-label">Extra week period (1-12)</span>
+              <input
+                type="number"
+                value={exceptionPeriod}
+                onChange={(e) => setExceptionPeriod(e.target.value)}
+                aria-label="Extra week period"
+              />
+            </label>
+            {errorFor('extraWeekPeriod') && (
+              <p className="general-workspace__error">{errorFor('extraWeekPeriod')}</p>
+            )}
+
+            <div className="general-workspace__exception-form-actions">
+              <button type="button" className="general-workspace__btn" onClick={handleSaveException}>
+                Save
+              </button>
+              <button type="button" className="general-workspace__btn" onClick={resetExceptionForm}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="general-workspace__btn"
+            onClick={() => setIsAddingException(true)}
+          >
+            + Add Exception
+          </button>
+        )}
       </section>
 
       <section className="general-workspace__section">

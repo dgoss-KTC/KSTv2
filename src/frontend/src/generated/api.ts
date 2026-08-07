@@ -53,6 +53,14 @@ export interface paths {
     /** Validates and persists updated user preferences. */
     put: operations["UpdatePreferences"];
   };
+  "/api/v1/workspaces/{assignmentId}/mps": {
+    /** Returns the projected MPS dashboard for a workspace, auto-loading from QAD on first access. */
+    get: operations["GetMpsDashboard"];
+  };
+  "/api/v1/workspaces/{assignmentId}/mps/refresh": {
+    /** Forces one reload of MPS source facts from QAD for the workspace and returns the projected dashboard. */
+    post: operations["RefreshMpsDashboard"];
+  };
 }
 
 export type webhooks = Record<string, never>;
@@ -82,6 +90,45 @@ export interface components {
       instanceId: string;
       /** Format: date-time */
       timestamp: string;
+    };
+    MpsBucketDto: {
+      kind: string;
+      /** Format: date */
+      weekLabel: null | string;
+      /** Format: double */
+      quantity: number | string;
+      executionStatus: string;
+      containsPlannedWork: boolean;
+      containsExplicitlyScheduledWork: boolean;
+    };
+    MpsDashboardResponseDto: {
+      snapshot: components["schemas"]["MpsSnapshotMetadataDto"];
+      dateBasis: string;
+      /** Format: int32 */
+      horizonWeeks: number | string;
+      parts: components["schemas"]["MpsPartScheduleDto"][];
+    };
+    MpsPartScheduleDto: {
+      parentPart: string;
+      description: null | string;
+      buckets: components["schemas"]["MpsBucketDto"][];
+    };
+    MpsSnapshotMetadataDto: {
+      snapshotId: null | string;
+      /** Format: date-time */
+      createdAtUtc: null | string;
+      /** Format: date-time */
+      lastSuccessfulRefreshAtUtc: null | string;
+      status: string;
+      /** Format: uuid */
+      workspaceId: string;
+      site: null | string;
+      /** Format: int32 */
+      resolvedParentPartCount: number | string;
+      /** Format: int32 */
+      sourceRowCount: number | string;
+      isRefreshInProgress: boolean;
+      lastRefreshError: null | string;
     };
     PreferencesResponseDto: {
       preferences: components["schemas"]["UserPreferencesDto"];
@@ -403,6 +450,82 @@ export interface operations {
       };
       /** @description Bad Request */
       400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Returns the projected MPS dashboard for a workspace, auto-loading from QAD on first access. */
+  GetMpsDashboard: {
+    parameters: {
+      query?: {
+        dateBasis?: string;
+        horizonWeeks?: number | string;
+      };
+      path: {
+        assignmentId: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MpsDashboardResponseDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Service Unavailable */
+      503: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Forces one reload of MPS source facts from QAD for the workspace and returns the projected dashboard. */
+  RefreshMpsDashboard: {
+    parameters: {
+      query?: {
+        dateBasis?: string;
+        horizonWeeks?: number | string;
+      };
+      path: {
+        assignmentId: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MpsDashboardResponseDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Service Unavailable */
+      503: {
         content: {
           "application/problem+json": components["schemas"]["ProblemDetails"];
         };

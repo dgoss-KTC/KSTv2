@@ -11,7 +11,7 @@ import { AddWorkspaceDialog } from './AddWorkspaceDialog';
 import { ManageWorkspacesDialog } from './ManageWorkspacesDialog';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ToastStack } from './ToastStack';
-import { WorkspacePlaceholder } from './WorkspacePlaceholder';
+import { MpsWorkspace } from './MpsWorkspace';
 import { GeneralWorkspace } from './GeneralWorkspace';
 import { BottomStatusBar } from './BottomStatusBar';
 import './ApplicationShell.css';
@@ -217,7 +217,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
         ) : activeWorkspaces.length === 0 ? (
           <EmptyWorkspace />
         ) : activeWorkspace ? (
-          <WorkspacePlaceholder workspace={activeWorkspace} />
+          <MpsWorkspace workspace={activeWorkspace} />
         ) : null}
       </main>
 

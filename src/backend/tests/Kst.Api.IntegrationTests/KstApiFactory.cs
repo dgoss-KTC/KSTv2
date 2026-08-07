@@ -19,6 +19,15 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
 
+        // Program.cs reads QadDatabase into a local variable at the top level, before the
+        // test host's Build() runs - so ConfigureAppConfiguration/UseSetting overrides arrive
+        // too late to affect it. Environment variables are read by WebApplication.CreateBuilder
+        // itself, so setting them here (before the factory invokes Program's entry point)
+        // reliably forces "not configured" regardless of what real dev values later land in
+        // appsettings.json.
+        Environment.SetEnvironmentVariable("QadDatabase__Server", "");
+        Environment.SetEnvironmentVariable("QadDatabase__Database", "");
+
         builder.ConfigureServices(services =>
         {
             // Replace the JSON file stores with in-memory stores for tests.

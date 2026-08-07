@@ -1,61 +1,60 @@
 # Current Project Status
 
-Date: 2026-08-10
-Workstation: Windows (C:\Dev\kst_v2)
-Phase: Stage 4 - Phase 1 Application Shell and Workspace Configuration
-Stage 4 / Phase 1: IMPLEMENTATION_COMPLETE_PENDING_OWNER_ACCEPTANCE (third implementation slice complete)
+Date: 2026-08-07  
+Workstation: Windows (`C:\Dev\kst_v2`)  
+Current stage: Stage 5B — MPS Dashboard Implementation  
+Stage 5A status: **COMPLETE / ACCEPTED — 2026-08-07**  
+Stage 5B status: **READY TO BEGIN**
 
-## Stage 4 Current Position
+## Current Position
 
-Status: IMPLEMENTATION_COMPLETE_PENDING_OWNER_ACCEPTANCE
+Stages 1–4B are complete. Stage 5A completed the MPS data/source investigation, accepted the production query strategy and data contracts, reconciled project documentation, produced the Stage 5B implementation plan, and received final project-owner acceptance on 2026-08-07.
 
-Reference implementation commits:
-- `ce717a1` - Stage 4 Phase 1 initial slice (application shell, workspace tabs, modal, backend workspace config, local persistence, workspace list/create API, frontend restore, tests)
-- Second slice (uncommitted at time of writing) - full workspace lifecycle (edit/archive/restore/delete/reset), confirmation dialogs, toast notifications.
-- Third slice (uncommitted at time of writing) - snapshot/data-source lifecycle expansion, refresh coordinator and `POST /api/v1/system/refresh`, local user preferences (theme/accent/density) with `GET`/`PUT /api/v1/preferences`, General workspace tab, `BottomStatusBar`, workspace tab reordering (drag-and-drop + Move Left/Right) via `PUT /api/v1/workspaces/order`, and duplicate-workspace-scope validation.
-- Stage 4B slice (uncommitted at time of writing) - Workspace Scope Extension: removed `CustomerNumber` as an authoritative scope field, added optional `ParentParts[]` explicit parent-part-number collection, new scope rule `Site AND (ProductLineFrom OR at least one explicit ParentPart)`, backward-compatible loading of legacy `workspaces.json` files (missing `parentParts` or containing obsolete `customerNumber`), Add/Edit Workspace UI collapsible "Limit to specific parent parts" section, updated duplicate-scope detection and display-name derivation, and full backend/frontend automated test coverage.
+Stage 5B is now the active project stage. Implementation should follow the accepted Stage 5B plan in controlled checkpoints, beginning with repository preflight/reconciliation before production changes.
 
-Detailed Stage 4 progress and remaining scope are tracked in `docs/status/STAGE_4_PHASE_1_PROGRESS.md`.
+## Accepted Stage 5A MPS Decisions
 
-## Stage 3 Overall
+- Workspace scope is site + product-line/range and/or explicit parent parts; customer code and IOS are not authoritative scope inputs.
+- Domain is inferred from site at the QAD integration boundary.
+- Initial MPS uses a direct parameterized SQL Server 2016-compatible query in `Kst.Integrations.Qad`; it does not call `sp_QAD_ktmpswkm` and does not require a new stored procedure/TVF.
+- QAD integration uses the existing architecture: `Microsoft.Data.SqlClient`, Dapper, Windows-integrated authentication, and read-only access.
+- MPS source rows are work-order-backed `mrp_det` facts with `mrp_dataset = 'wo_mstr'` and `mrp_type IN ('supply','supplyf','supplyp')`.
+- MRP-to-WO identity uses domain + site + part + WO number + WO ID.
+- Closed work orders are excluded.
+- RMA work orders (`wo_bom_code = 'RMABOM'`) are excluded.
+- `rps_mstr` repetitive-schedule rows are intentionally not consumed directly; schedulers should run MRP after schedule changes, with overnight MRP providing eventual reconciliation.
+- All qualifying historical unfinished work is retained for due-date Falldown; future coverage supports the maximum 72-week Due/Release horizon.
+- Due Date and Release Date are retained in the same source snapshot so view changes are local.
+- A/F/R drive execution-state presentation; multiple distinct A/F/R states produce Mixed. P and e are independent Planned / Explicitly Scheduled presentation flags.
+- MPS snapshots load automatically with the workspace, replace atomically after successful refresh, retain old good data on refresh failure, and are not persisted across sessions initially.
+- Fiscal calendar logic is frontend-only. FY26 starts June 29, 2025; normal years use 4-4-5 × 4; users maintain only 53-week exceptions and choose which period receives the extra week.
 
-Status: PASS (previously completed)
+## Stage 5A Durable Artifacts
 
-Reason:
-- Core implementation tasks for sidecar lifecycle ownership, shutdown behavior, orphan prevention paths, termination signaling, single-instance enforcement, sidecar automation, and repo policy files were completed.
-- Development manual runtime checks have been completed and recorded.
-- Packaged startup verification now succeeded in owner manual testing.
-- Packaged shutdown and packaged second-launch verifications are now completed.
-- Log review was completed with acceptable results.
+- `KST_v2_STAGE_5A_MPS_DATA_INVENTORY.md`
+- `KST_v2_STAGE_5A_MPS_BACKEND_DATA_CONTRACT.md`
+- `KST_v2_STAGE_5A_SNAPSHOT_REFRESH_STRATEGY.md`
+- `KST_v2_STAGE_5A_DATABASE_ACCESS_PERFORMANCE_STRATEGY.md`
+- `KST_v2_STAGE_5A_MPS_API_SNAPSHOT_CONTRACT.md`
+- `KST_v2_STAGE_5A_FISCAL_CALENDAR_STRATEGY.md`
+- `KST_v2_STAGE_5B_IMPLEMENTATION_PLAN.md`
+- `KST_v2_STAGE_5B_VSCODE_IMPLEMENTATION_PROMPT.md`
+- `KST_v2_Master_Project_Checklist_STAGE_5_REVISION.md`
+- `KST-v2-Master-Project-Checklist.md`
+- `KST v2 Revised Phased Implementation Strategy — Stage 5A Reconciled.docx`
 
-## Implementation Highlights Completed
+## Stage 5B Next Action
 
-- Tauri host now retains and manages owned backend process handle and PID in runtime state.
-- Startup/teardown race prevention added (launch and shutdown guards).
-- Readiness timeout now fails closed (no false backend-ready state; failed sidecar is terminated).
-- Explicit shutdown with timeout and force-kill fallback for owned PID added to app/window exit paths.
-- Unexpected backend termination now clears state and emits frontend lifecycle events.
-- Frontend now responds to backend termination/unavailable lifecycle events.
-- Single-instance policy added with Tauri single-instance plugin and focus/restore behavior.
-- Repeatable sidecar publish/copy script added at scripts/build-sidecar.ps1.
-- Root .editorconfig, global.json, and explicit built-in .NET analyzer policy are now present.
+1. Start a fresh VS Code/Copilot agent conversation using `KST_v2_STAGE_5B_VSCODE_IMPLEMENTATION_PROMPT.md`.
+2. Begin with Stage 5B.0 repository preflight rather than immediately writing MPS production code.
+3. Progress through controlled checkpoints: QAD connectivity → source query → normalization → week/status logic → snapshot/refresh → API/OpenAPI → frontend fiscal calendar → real MPS grid → validation/closeout.
 
-## CORS Status
+## Previous Verified Foundation
 
-- Development CORS policy remains narrow and explicit.
-- No AllowAnyOrigin was introduced.
-- Existing CORS integration test is preserved.
-- Packaged runtime CORS behavior was manually validated after adding explicit support for `http://tauri.localhost`.
+Stage 3 Technical Foundation remains PASS. Stage 4 / 4B application shell, workspace configuration, and workspace scope extension are complete and are the accepted foundation for Stage 5.
 
-## Manual Validation State
+Reference historical commits:
 
-- Development startup/shutdown/crash/second-launch checks: VERIFIED.
-	- Startup connected successfully.
-	- Normal close removed owned backend process.
-	- Forced backend kill moved UI to Backend unavailable with no auto-restart observed.
-	- Second launch exited immediately without creating another active backend.
-- Packaged startup/shutdown/second-launch checks: PARTIALLY_VERIFIED.
-	- Packaged startup verified (NSIS install and launch successful).
-	- Packaged shutdown verified (no lingering app/backend processes after close).
-	- Packaged second-launch behavior verified (no duplicate active instance).
-- Log inspection checklist: VERIFIED (owner reviewed latest logs and reported acceptable results).
+- `d0e592b` — initial technical foundation
+- `6f5644c` — Stage 3 final closeout
+- `ce717a1` — Stage 4 initial implementation slice

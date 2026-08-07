@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Serilog;
 using Serilog.Events;
 using Kst.Api.Endpoints;
+using Kst.Application.Mps;
 using Kst.Application.Preferences;
 using Kst.Application.Refresh;
 using Kst.Application.SystemStatus;
@@ -12,8 +13,10 @@ using Kst.Application.Snapshots;
 using Kst.Infrastructure;
 using Kst.Infrastructure.Configuration;
 using Kst.Infrastructure.Identity;
+using Kst.Infrastructure.Mps;
 using Kst.Infrastructure.SystemStatus;
 using Kst.Integrations.Qad.Connectivity;
+using Kst.Integrations.Qad.Mps;
 using Kst.Integrations.Qad.Options;
 using Kst.Integrations.Shortages.Connectivity;
 using Kst.Integrations.Shortages.Options;
@@ -71,7 +74,10 @@ var shortagesOptions = builder.Configuration
 builder.Services.AddInfrastructure();
 
 builder.Services.AddSingleton(qadOptions);
-builder.Services.AddSingleton<IQadConnectivityCheck, DisabledQadConnectivityCheck>();
+if (qadOptions.IsConfigured)
+    builder.Services.AddSingleton<IQadConnectivityCheck, SqlServerQadConnectivityCheck>();
+else
+    builder.Services.AddSingleton<IQadConnectivityCheck, DisabledQadConnectivityCheck>();
 builder.Services.AddSingleton(shortagesOptions);
 builder.Services.AddSingleton<IShortagesConnectivityCheck, DisabledShortagesConnectivityCheck>();
 
@@ -129,6 +135,30 @@ builder.Services.AddSingleton(sp => new RefreshCoordinator(
 builder.Services.AddScoped<GetSystemStatusQuery>();
 builder.Services.AddSingleton<IWorkspaceConfigurationService, WorkspaceConfigurationService>();
 builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
+
+// -- MPS (Stage 5B) --------------------------------------------------------
+builder.Services.AddSingleton<IMpsSnapshotStore, InMemoryMpsSnapshotStore>();
+
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadMpsSourceReader>();
+    builder.Services.AddSingleton<QadMpsScopeResolver>();
+    builder.Services.AddSingleton<IMpsSourceReader>(sp => new DelegateMpsSourceReader(
+        (site, parentParts, ct) => sp.GetRequiredService<QadMpsSourceReader>().ReadAsync(site, parentParts, ct)));
+    builder.Services.AddSingleton<IMpsScopeResolver>(sp => new DelegateMpsScopeResolver(
+        (workspace, ct) => sp.GetRequiredService<QadMpsScopeResolver>().ResolveAsync(workspace, ct)));
+}
+else
+{
+    const string notConfiguredMessage = "QAD connection is not configured.";
+    builder.Services.AddSingleton<IMpsSourceReader>(_ => new DelegateMpsSourceReader(
+        (_, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+    builder.Services.AddSingleton<IMpsScopeResolver>(_ => new DelegateMpsScopeResolver(
+        (_, _) => throw new InvalidOperationException(notConfiguredMessage)));
+}
+
+builder.Services.AddSingleton<MpsWorkspaceSnapshotService>();
+
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddCors(options =>
@@ -169,6 +199,7 @@ app.MapDiagnosticEndpoints();
 app.MapSystemEndpoints();
 app.MapWorkspaceEndpoints();
 app.MapPreferencesEndpoints();
+app.MapMpsEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------
 // Writes a JSON line to stdout once the server is bound so Tauri can read the port.

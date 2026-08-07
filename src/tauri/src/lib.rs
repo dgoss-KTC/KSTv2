@@ -200,6 +200,26 @@ async fn launch_backend(app: AppHandle, state: SharedBackendState) {
         }
     };
 
+    // ASP.NET Core resolves appsettings*.json relative to its content root, which defaults to
+    // the process's current working directory - not the directory the sidecar exe actually runs
+    // from (Tauri stages/copies the sidecar into its own build output, e.g. target/debug in dev).
+    // Point it explicitly at the stable "binaries" location where these config files are known to
+    // live (copied there by scripts/build-sidecar.ps1 for dev, bundled as resources for packaged
+    // builds), independent of wherever Tauri actually executes the sidecar binary from.
+    let content_root = if cfg!(debug_assertions) {
+        Some(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("binaries"))
+    } else {
+        app.path().resource_dir().ok().map(|dir| dir.join("binaries"))
+    };
+
+    let sidecar = match content_root {
+        Some(root) => sidecar.env("ASPNETCORE_CONTENTROOT", root.to_string_lossy().to_string()),
+        None => {
+            warn!("KST Tauri: could not resolve sidecar content root; falling back to default");
+            sidecar
+        }
+    };
+
     let (mut rx, child) = match sidecar.spawn() {
         Ok(pair) => pair,
         Err(e) => {

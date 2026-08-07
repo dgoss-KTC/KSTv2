@@ -440,6 +440,168 @@
           }
         }
       }
+    },
+    "/api/v1/workspaces/{assignmentId}/mps": {
+      "get": {
+        "tags": [
+          "Mps"
+        ],
+        "summary": "Returns the projected MPS dashboard for a workspace, auto-loading from QAD on first access.",
+        "operationId": "GetMpsDashboard",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dateBasis",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "horizonWeeks",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MpsDashboardResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/mps/refresh": {
+      "post": {
+        "tags": [
+          "Mps"
+        ],
+        "summary": "Forces one reload of MPS source facts from QAD for the workspace and returns the projected dashboard.",
+        "operationId": "RefreshMpsDashboard",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dateBasis",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "horizonWeeks",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MpsDashboardResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -550,6 +712,177 @@
           "timestamp": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "MpsBucketDto": {
+        "required": [
+          "kind",
+          "weekLabel",
+          "quantity",
+          "executionStatus",
+          "containsPlannedWork",
+          "containsExplicitlyScheduledWork"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "weekLabel": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "executionStatus": {
+            "type": "string"
+          },
+          "containsPlannedWork": {
+            "type": "boolean"
+          },
+          "containsExplicitlyScheduledWork": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MpsDashboardResponseDto": {
+        "required": [
+          "snapshot",
+          "dateBasis",
+          "horizonWeeks",
+          "parts"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/MpsSnapshotMetadataDto"
+          },
+          "dateBasis": {
+            "type": "string"
+          },
+          "horizonWeeks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MpsPartScheduleDto"
+            }
+          }
+        }
+      },
+      "MpsPartScheduleDto": {
+        "required": [
+          "parentPart",
+          "description",
+          "buckets"
+        ],
+        "type": "object",
+        "properties": {
+          "parentPart": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MpsBucketDto"
+            }
+          }
+        }
+      },
+      "MpsSnapshotMetadataDto": {
+        "required": [
+          "snapshotId",
+          "createdAtUtc",
+          "lastSuccessfulRefreshAtUtc",
+          "status",
+          "workspaceId",
+          "site",
+          "resolvedParentPartCount",
+          "sourceRowCount",
+          "isRefreshInProgress",
+          "lastRefreshError"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastSuccessfulRefreshAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "site": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "resolvedParentPartCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "sourceRowCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isRefreshInProgress": {
+            "type": "boolean"
+          },
+          "lastRefreshError": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -880,6 +1213,9 @@
     },
     {
       "name": "Preferences"
+    },
+    {
+      "name": "Mps"
     }
   ]
 }

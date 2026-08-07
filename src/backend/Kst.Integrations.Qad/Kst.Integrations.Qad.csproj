@@ -1,9 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <!--
     Kst.Integrations.Qad: QAD ERP integration boundary.
-    Intended to use Microsoft.Data.SqlClient, Dapper, and Windows-integrated authentication.
-    Do not add production queries in this phase.
+    Uses Microsoft.Data.SqlClient, Dapper, and Windows-integrated authentication.
   -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Kst.Domain\Kst.Domain.csproj" />

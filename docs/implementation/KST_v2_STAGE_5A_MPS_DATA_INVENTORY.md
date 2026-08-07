@@ -1,10 +1,11 @@
 # KST v2 — Stage 5A MPS Data Inventory
 
-**Status:** Draft for owner review  
+**Status:** Accepted — initial MPS inventory  
 **Stage:** 5A — Data Inventory and Data Strategy  
 **Capability:** Master Production Schedule (initial dashboard grid)  
-**Related accepted contract:** `KST_v2_MPS_Source_Stored_Procedure_Contract_Accepted.docx`  
-**Primary schema reference:** `qadpro2-data-map.md` / `qadpro2-data-map.json` / `qadpro2-data-map.yaml`
+**Related historical artifact:** `KST_v2_MPS_Source_Stored_Procedure_Contract_Accepted.docx` — business rules retained; stored-procedure deployment approach superseded by the accepted direct QAD-adapter query strategy  
+**Primary schema reference:** `qadpro2-data-map.md` / `qadpro2-data-map.json` / `qadpro2-data-map.yaml`  
+**Derived contracts:** `KST_v2_STAGE_5A_MPS_BACKEND_DATA_CONTRACT.md`; `KST_v2_STAGE_5A_FISCAL_CALENDAR_STRATEGY.md`
 
 ---
 
@@ -119,7 +120,7 @@ The table below describes the fields the initial MPS grid needs as business conc
 | Release Date | Calculation input | `mrp_det.mrp_rel_date` | MRP supply fact | Authoritative operational source | Yes | Candidate date basis for Release Date view. |
 | Quantity | Calculation input / Display after aggregation | `mrp_det.mrp_qty` | MRP supply fact | Authoritative operational source | Yes | Summed into parent/week bucket. |
 | MRP Type | Filter / Classification input | `mrp_det.mrp_type` | MRP supply fact | Authoritative operational source | Yes, backend | Initial accepted values: `SUPPLY`, `SUPPLYF`, `SUPPLYP`. |
-| Source Dataset | Filter / Diagnostic metadata | `mrp_det.mrp_dataset` | MRP supply fact | Authoritative source metadata | Yes, backend | Used to exclude `pod_det`; useful for diagnostics. |
+| Source Dataset | Source qualification | `mrp_det.mrp_dataset` | MRP supply fact | Authoritative source metadata | SQL-only | Initial MPS requires `mrp_dataset = 'wo_mstr'`; do not carry into the application contract. |
 | Work Order ID | Join key / drill-down reference | `mrp_det.mrp_line` -> `wo_mstr.wo_lot` | MRP supply fact / WO | Authoritative relationship input | Yes, backend | Preserve to support later drill-down without changing MPS source semantics. |
 | Work Order Status | Status input | `wo_mstr.wo_status` | Work order | Authoritative WO status | Yes, backend | Drives execution status and planned/scheduled flags. |
 | Week Start | Derived display / identity | C# calendar service | Parent + weekly bucket | Derived | Yes | Monday is the displayed bucket anchor. |
@@ -145,12 +146,12 @@ These are the physical source fields needed to construct the initial MPS contrac
 | `mrp_site` | Production site | Join / Filter | Yes | Workspace site authority for MPS fact. |
 | `mrp_part` | Parent part | Identity / Join / Display | Yes | Must match `wo_part` for safe WO association. |
 | `mrp_line` | Work-order ID | Join key | Yes | Join to `wo_lot`. |
-| `mrp_nbr` | Work-order number | Deferred metadata | No for initial MPS | Available for future drill-down if needed. |
+| `mrp_nbr` | Work-order number | Join key | No (join only) | Required to match `wo_mstr.wo_nbr`; may be exposed later for drill-down. |
 | `mrp_due_date` | Due date | Calculation input | Yes | Due-date mode / Falldown input. |
 | `mrp_rel_date` | Release date | Calculation input | Yes | Release-date mode candidate. |
 | `mrp_qty` | Schedule quantity | Calculation input | Yes | Aggregated in C#. |
 | `mrp_type` | Supply classification | Filter / status input | Yes | Include `SUPPLY`, `SUPPLYF`, `SUPPLYP`. |
-| `mrp_dataset` | Source dataset | Filter / diagnostic | Yes | Exclude `pod_det`. |
+| `mrp_dataset` | Source dataset | Source qualification | No (filter only) | Require exactly `wo_mstr` for the initial MPS. `rps_mstr` is intentionally excluded as pre-MRP repetitive-schedule state. |
 | `mrp_detail` | Specific planning event | Deferred diagnostic / future drill-down | No for initial MPS | Known useful later; intentionally excluded from initial API surface. |
 | `mrp_ord_site` | MRP site candidate | None | No | Not validated in curated map; do not use. |
 
@@ -163,7 +164,7 @@ These are the physical source fields needed to construct the initial MPS contrac
 | `wo_part` | Parent item | Join verification | No if redundant after join | Prevents component/incorrect WO association. |
 | `wo_lot` | Work-order ID | Join key | Yes or alias as WorkOrderId | Matches `mrp_line`. |
 | `wo_status` | Work-order status | Status input / Filter | Yes | Exclude C; preserve A/F/R/P/e. |
-| `wo_nbr` | Work-order number | Deferred display/drill-down | No | Future work-order drill-down. |
+| `wo_nbr` | Work-order number | Join key / deferred display | No (join only) | Required to match `mrp_det.mrp_nbr`; may be exposed later for drill-down. |
 | `wo_due_date` | Work-order due date | Deferred validation/drill-down | No | MPS uses MRP date source initially. |
 | `wo_rel_date` | Work-order release date | Deferred validation/drill-down | No | MPS uses MRP date source initially. |
 | `wo_qty_ord` | Ordered quantity | Deferred drill-down | No | Future work-order cards. |
@@ -214,6 +215,7 @@ The accepted work-order association rule is:
 mrp_det.mrp_domain = wo_mstr.wo_domain
 mrp_det.mrp_site   = wo_mstr.wo_site
 mrp_det.mrp_part   = wo_mstr.wo_part
+mrp_det.mrp_nbr    = wo_mstr.wo_nbr
 mrp_det.mrp_line   = wo_mstr.wo_lot
 ```
 
@@ -230,19 +232,24 @@ mrp_det.mrp_part   = pt_mstr.pt_part
 
 ---
 
-## 7. Initial SQL filtering rules
+## 7. Initial QAD adapter query rules
 
-The KST-specific MPS source query/procedure should apply the following source-level filters:
+The initial MPS source is a **direct, parameterized query owned by `Kst.Integrations.Qad`**, not a stored procedure or table-valued function. The database remains free of KST-specific query objects for this straightforward source read.
 
-- required domain,
-- required site,
-- workspace-resolved parent scope,
-- `mrp_dataset <> 'pod_det'`,
+The query must apply the following source-level rules:
+
+- required workspace domain,
+- required workspace site,
+- workspace-resolved parent-part list supplied by the application,
+- `mrp_dataset = 'wo_mstr'`,
 - `mrp_type IN ('supply', 'supplyf', 'supplyp')`,
-- `wo_status <> 'C'` after safe WO association,
-- appropriate item-master scope qualification when product-line scope is used.
+- safe WO association on domain + site + part + WO number + WO ID,
+- `wo_status <> 'C'`,
+- `pt_mstr` joined only for `pt_desc1` and other approved metadata, not for operational site-use authority.
 
-The procedure should return row-oriented facts. It must not dynamically pivot weeks into columns.
+The resolved part list should be parameterized by the QAD adapter. A generated `VALUES`/`IN` list is acceptable; the adapter must chunk unusually large scopes rather than assume an unbounded parameter list.
+
+The query returns row-oriented facts. It must not dynamically pivot weeks, aggregate weekly quantities, apply `DISTINCT`, or add defensive deduplication without evidence that source behavior has changed. Product-line logic belongs to workspace part-scope resolution and should not be reimplemented inside the MPS source query.
 
 ---
 
@@ -306,7 +313,7 @@ Color-independent status signaling remains required for accessibility.
 
 ### 9.2 Falldown
 
-Falldown represents unfinished work orders whose applicable MPS date falls before the current business week.
+Falldown represents unfinished work orders whose applicable MPS date falls before the current business week. The legacy business definition is due-date based; Release Date mode remains a Stage 5B behavior to validate rather than an excuse to change Falldown semantics silently.
 
 C# owns the calendar calculation rather than reproducing the legacy dynamic-pivot date expression.
 
@@ -319,6 +326,20 @@ Candidate authoritative inputs:
 
 These sources are confirmed available. Final UI behavior for switching between the two modes should be validated during Stage 5B against representative data.
 
+### 9.4 Fiscal display calendar
+
+Fiscal year / period / quarter metadata is a **frontend planning and display concern**. QAD and the backend do not own fiscal-calendar semantics.
+
+Accepted frontend strategy:
+
+- FY26 anchor start: Sunday, June 29, 2025,
+- standard pattern: 4-4-5 repeated four times (52 weeks),
+- normal years generated from the anchor without annual code or configuration maintenance,
+- 53-week years represented as user-maintained exceptions that identify the fiscal year and the period receiving the extra week,
+- the current Settings page will gain a Fiscal Calendar section; navigation can be reorganized later when the final settings surface is known.
+
+The backend `MpsSourceRow` / `MpsBucket` contract must not contain fiscal year, fiscal week, fiscal period, or fiscal quarter fields.
+
 ---
 
 ## 10. Data grain map
@@ -327,12 +348,12 @@ These sources are confirmed available. Final UI behavior for switching between t
 |---|---|
 | Workspace configuration | One local assignment/configuration record per workspace |
 | Resolved workspace part scope | One row per site + resolved parent part for a refresh |
-| MPS source row | One row per retained MRP supply fact / safely associated WO fact at the smallest grain that preserves quantity, date, MRP type, WO ID, and WO status |
+| MPS source row | One row per qualifying `mrp_dataset = wo_mstr` MRP supply fact / safely associated WO fact at the smallest grain that preserves quantity, date, MRP type, WO ID, and WO status |
 | MPS bucket | One row per site + parent part + date basis + weekly bucket, plus Falldown as a special bucket |
 | Work-order reference retained with bucket | One reference per distinct work order contributing to the bucket |
 | MPS snapshot | One snapshot per workspace refresh |
 
-SQL may perform only aggregation/deduplication that is proven not to destroy work-order identity or status information required for bucket classification.
+The initial SQL query performs no aggregation or deduplication. If future evidence shows duplicate source facts, investigate and revise the contract explicitly rather than masking them with `DISTINCT`.
 
 ---
 
@@ -343,15 +364,16 @@ SQL may perform only aggregation/deduplication that is proven not to destroy wor
 | Infer QAD domain from site | QAD integration / application boundary |
 | Apply domain/site filtering | SQL |
 | Apply resolved part scope | SQL |
-| Apply product-line/item-master source filters where required | SQL |
-| Exclude `pod_det` | SQL |
+| Resolve product-line/range + explicit-part workspace scope | C# application / QAD scope resolver before MPS query |
+| Require `mrp_dataset = wo_mstr` | SQL |
 | Select `SUPPLY`, `SUPPLYF`, `SUPPLYP` | SQL |
-| Safely associate MRP facts to `wo_mstr` | SQL |
+| Safely associate MRP facts to `wo_mstr` using domain + site + part + WO number + WO ID | SQL |
 | Exclude closed WO (`C`) | SQL |
 | Return raw due/release dates | SQL |
 | Return raw quantity | SQL |
 | Return raw WO status | SQL |
 | Return part description (`pt_desc1`) | SQL or QAD adapter result mapping |
+| Execute direct parameterized MPS query | `Kst.Integrations.Qad` |
 | Determine Monday weekly anchor | C# |
 | Determine current-week boundary / Falldown | C# |
 | Aggregate source facts into parent/week bucket | C# |
@@ -359,6 +381,7 @@ SQL may perform only aggregation/deduplication that is proven not to destroy wor
 | Determine planned flag from P | C# |
 | Determine scheduled flag from e | C# |
 | Construct snapshot | C# application layer |
+| Calculate fiscal year/week/period/quarter display metadata | Frontend |
 | Choose box colors / font colors / markers | Frontend |
 | Work-order drill-down data | Deferred later phase |
 
@@ -462,7 +485,10 @@ These should be activated only when the corresponding UI phase reaches field-inv
 | `pod_det.pod_domain` | Not validated in curated map | Do not assume; follow source-specific join evidence when PO work begins. |
 | `wo_status = e` exact QAD label | Unknown | Preserve raw code; business meaning for MPS is explicitly scheduler-scheduled. |
 | Part status D | Unknown | Do not invent meaning. |
-| Fiscal calendar source | Open | Must be resolved before fiscal period/quarter bands are implementation-ready. |
+| Fiscal calendar authority | Confirmed | Frontend-owned settings + deterministic 4-4-5 generator anchored at FY26 start (2025-06-29); only 53-week exceptions require user maintenance. |
+| Repetitive schedule `rps_mstr` rows | Confirmed transitional state | Do not consume directly in initial MPS. Scheduler should run MRP after schedule changes; overnight MRP provides eventual reconciliation into `wo_mstr`-backed facts. |
+| MPS source duplicate behavior | Representative test passed | KTC/SW diagnostic returned no duplicates at domain + site + part + WO ID + due date + release date + MRP type grain. Do not add `DISTINCT`/aggregation defensively; revisit only if future evidence differs. |
+| MPS database object ownership | Resolved | No stored procedure/TVF required. Query is owned by `Kst.Integrations.Qad`. |
 
 ---
 
@@ -474,7 +500,7 @@ Stage 5B must validate at least the following against real QAD results:
 2. Product-line range returns expected combined parent scope.
 3. Explicit-part workspace includes valid configured parts even when current MRP activity is absent.
 4. Site/domain inference produces correct domain for KTC and KTV sites.
-5. Same WO ID cannot incorrectly attach to a component because domain/site/part/lot join prevents it.
+5. Same WO ID cannot incorrectly attach to the wrong WO because domain/site/part/WO-number/WO-ID join prevents it.
 6. Single A bucket -> Allocating.
 7. Single F bucket -> Frozen.
 8. Single R bucket -> Released.
@@ -492,26 +518,33 @@ Stage 5B must validate at least the following against real QAD results:
 20. Due-date and release-date modes map to `mrp_due_date` and `mrp_rel_date` respectively.
 21. Part description displays `pt_desc1` only.
 22. A 72-week horizon remains row-oriented through API contracts; no dynamic week properties are introduced.
+23. `rps_mstr` repetitive-schedule rows are absent until MRP creates the corresponding `wo_mstr`-backed supply facts; after manual/overnight MRP and QADPRO2 sync, KST reflects the updated schedule.
+24. Representative KTC/SW source execution produces no duplicate rows at the accepted source grain.
+25. Fiscal period/quarter display metadata is generated entirely in the frontend and does not appear in backend MPS contracts.
 
 ---
 
-## 16. Open items before Stage 5A MPS data-contract finalization
+## 16. Finalization items — resolved
 
-### 16.1 Fiscal calendar source
+### 16.1 Fiscal calendar
 
-The current curated QAD map does not identify an authoritative fiscal period / quarter / fiscal year calendar source.
+Resolved as KST frontend-owned planning/display configuration. FY26 starts on June 29, 2025. Standard years use 4-4-5 × 4. Users maintain only exceptional 53-week years and choose the period that receives the extra week. No backend or QAD fiscal-calendar dependency is required.
 
-This must be resolved before the fiscal period and quarter header bands in the MPS prototype are considered implementation-ready.
+### 16.2 MPS database object / deployment ownership
 
-### 16.2 Exact MPS source stored-procedure name and deployment ownership
-
-The accepted contract defines behavior, not the final database object name. Final naming and deployment ownership should be agreed with IT / the data analyst before Stage 5B integration work.
+Resolved by eliminating the database object. The MPS source read is a direct parameterized SQL Server 2016-compatible query implemented in `Kst.Integrations.Qad`. No KST-specific stored procedure or table-valued function is required for the initial MPS.
 
 ### 16.3 Source-row duplicate behavior
 
-Representative execution must confirm whether the raw join can produce duplicate MRP/WO rows and whether any SQL-side deduplication is both safe and necessary. No deduplication rule should be invented before observing real results.
+Representative KTC/SW testing returned no rows when grouping qualifying supply facts by domain, site, part, WO ID, due date, release date, and MRP type and filtering for counts greater than one. The initial query therefore performs no SQL-side deduplication or pre-aggregation. This is an observed production-data property, not a permanent database guarantee; future contradictory evidence should trigger review rather than silent `DISTINCT` logic.
 
----
+### 16.4 `rps_mstr` repetitive-schedule behavior
+
+`SUPPLYF / rps_mstr` rows are legitimate repetitive-schedule supply intent but are generally pre-work-order state. After MRP is run for the affected parts, those rows transition to work-order-backed supply and disappear from the `rps_mstr` population. The initial KST MPS intentionally requires `mrp_dataset = 'wo_mstr'`.
+
+Operational freshness rule:
+
+> After changing a repetitive schedule, the scheduler should run MRP for the affected parts before expecting KST to reflect the change. If not run manually, the normal overnight MRP process provides eventual reconciliation.
 
 ## 17. Stage 5A disposition
 
@@ -534,10 +567,11 @@ Representative execution must confirm whether the raw join can produce duplicate
 - initial snapshot versus deferred drill-down boundary,
 - SQL-versus-C# ownership for the initial MPS.
 
-### Still open
+### Remaining Stage 5B verification, not Stage 5A inventory blockers
 
-- authoritative fiscal calendar source,
-- final stored-procedure object name/deployment ownership,
-- observed duplicate behavior under representative production data.
+- validate Due Date / Release Date switching against representative production data,
+- validate Falldown behavior at Sunday/Saturday boundaries,
+- validate parameterized part-scope batching at realistic workspace sizes,
+- validate the frontend fiscal-calendar preview and 53-week exception behavior.
 
-Once these items are resolved or explicitly deferred with owner acceptance, the MPS Data Inventory can be marked **Accepted** and used to derive the backend `MpsSourceRow` / `MpsBucket` contract for Stage 5B planning.
+The initial MPS Data Inventory is **Accepted** and may be used as the implementation basis for Stage 5B planning.

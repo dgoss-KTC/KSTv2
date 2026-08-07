@@ -4,6 +4,7 @@
     <Project Path="tests/Kst.Application.Tests/Kst.Application.Tests.csproj" />
     <Project Path="tests/Kst.ArchitectureTests/Kst.ArchitectureTests.csproj" />
     <Project Path="tests/Kst.Domain.Tests/Kst.Domain.Tests.csproj" />
+    <Project Path="tests/Kst.Integrations.Qad.Tests/Kst.Integrations.Qad.Tests.csproj" />
   </Folder>
   <Project Path="Kst.Api/Kst.Api.csproj" />
   <Project Path="Kst.Application/Kst.Application.csproj" />

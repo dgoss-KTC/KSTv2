@@ -61,6 +61,35 @@ describe('AddWorkspaceDialog', () => {
 
   function setupConnected(workspaceListOverride = emptyWorkspaceList) {
     fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/mps')) {
+        const match = url.match(/workspaces\/([^/]+)\/mps/);
+        const id = match ? match[1] : '';
+        const workspace = workspaceListOverride.workspaces.find((w) => w.assignmentId === id);
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            snapshot: {
+              snapshotId: 'snap-1',
+              createdAtUtc: '2026-01-01T00:00:00Z',
+              lastSuccessfulRefreshAtUtc: '2026-01-01T00:00:00Z',
+              status: 'current',
+              workspaceId: id,
+              site: workspace?.site ?? 'NW',
+              resolvedParentPartCount: workspace?.parentParts.length ?? 0,
+              sourceRowCount: 0,
+              isRefreshInProgress: false,
+              lastRefreshError: null,
+            },
+            dateBasis: 'dueDate',
+            horizonWeeks: 12,
+            parts: (workspace?.parentParts ?? []).map((partNumber) => ({
+              parentPart: partNumber,
+              description: 'Test part',
+              buckets: [],
+            })),
+          }),
+        });
+      }
       if (url.includes('/api/v1/workspaces')) {
         return Promise.resolve({ ok: true, json: async () => workspaceListOverride });
       }
@@ -212,7 +241,7 @@ describe('AddWorkspaceDialog', () => {
     });
   });
 
-  it('tab switching changes the workspace placeholder details', async () => {
+  it('tab switching changes the active workspace grid content', async () => {
     const list: WorkspaceListResponseDto = {
       workspaces: [
         makeWorkspace({ assignmentId: 'id-1', displayName: '1 parent part', parentParts: ['ABC100'], sortOrder: 0 }),

@@ -14,6 +14,10 @@ export type ReorderWorkspacesRequestDto = components['schemas']['ReorderWorkspac
 export type UserPreferencesDto = components['schemas']['UserPreferencesDto'];
 export type PreferencesResponseDto = components['schemas']['PreferencesResponseDto'];
 export type UpdatePreferencesRequestDto = components['schemas']['UpdatePreferencesRequestDto'];
+export type MpsDashboardResponseDto = components['schemas']['MpsDashboardResponseDto'];
+export type MpsSnapshotMetadataDto = components['schemas']['MpsSnapshotMetadataDto'];
+export type MpsPartScheduleDto = components['schemas']['MpsPartScheduleDto'];
+export type MpsBucketDto = components['schemas']['MpsBucketDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -92,6 +96,24 @@ export class ApiClient {
     return this.postEmpty<SystemStatusResponse>('/api/v1/system/refresh');
   }
 
+  async getMpsDashboard(
+    assignmentId: string,
+    dateBasis: string,
+    horizonWeeks: number,
+  ): Promise<MpsDashboardResponseDto> {
+    const query = `?dateBasis=${encodeURIComponent(dateBasis)}&horizonWeeks=${horizonWeeks}`;
+    return this.get<MpsDashboardResponseDto>(`/api/v1/workspaces/${assignmentId}/mps${query}`);
+  }
+
+  async refreshMpsDashboard(
+    assignmentId: string,
+    dateBasis: string,
+    horizonWeeks: number,
+  ): Promise<MpsDashboardResponseDto> {
+    const query = `?dateBasis=${encodeURIComponent(dateBasis)}&horizonWeeks=${horizonWeeks}`;
+    return this.postEmpty<MpsDashboardResponseDto>(`/api/v1/workspaces/${assignmentId}/mps/refresh${query}`);
+  }
+
   private async get<T>(path: string): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const response = await fetch(url, {
@@ -100,7 +122,8 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      throw new ApiError(response.status, url, `HTTP ${response.status} from ${url}`);
+      const text = await response.text();
+      throw new ApiError(response.status, url, text || `HTTP ${response.status} from ${url}`);
     }
 
     return response.json() as Promise<T>;
