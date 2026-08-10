@@ -78,3 +78,23 @@ Action:
 1. Check `%LOCALAPPDATA%\KST\logs\` for the termination reason and exit code/signal.
 2. Restart the application.
 3. If reproducible, keep logs and PID evidence for debugging.
+
+## MPS / QAD operational notes
+
+### MPS reports database unavailable
+
+The normal user-facing message is intentionally generic: the database is currently unavailable and the user should retry, then contact IT if the condition persists. Detailed `Microsoft.Data.SqlClient` exceptions belong in backend logs only and must not be exposed to the UI.
+
+For the current corporate environment, QADPRO2 connectivity uses Windows Integrated authentication against the configured QAD server/database through `QadConnectionOptions`; application/domain code must not hard-code connection details. QAD reads are read-only and use `READ UNCOMMITTED`.
+
+### Repetitive schedule changes do not immediately appear
+
+The MPS intentionally consumes work-order-backed `mrp_det` state (`mrp_dataset = 'wo_mstr'`) and does not directly consume `rps_mstr`. After changing a repetitive schedule, run MRP for the affected part(s) before expecting KST to reflect the change. Overnight MRP provides eventual reconciliation; the downstream QADPRO2 sync must also complete.
+
+### RMA work orders
+
+RMA work orders are intentionally excluded from the MPS with the accepted `wo_bom_code = 'RMABOM'` exclusion. Do not remove the filter to reconcile an RMA quantity with another report.
+
+### Large-workspace first-load latency
+
+Stage 5B.9 measured an 816-part product-line workspace at roughly 36 seconds for a cold first load and roughly 3 seconds for a warm 72-week refresh. The cold cost was dominated by SQL Server first-execution/plan-compilation behavior for large batched part scopes. Treat this as a known operational characteristic unless new evidence shows a correctness or persistent performance defect.

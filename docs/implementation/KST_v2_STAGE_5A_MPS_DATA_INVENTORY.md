@@ -575,3 +575,25 @@ Operational freshness rule:
 - validate the frontend fiscal-calendar preview and 53-week exception behavior.
 
 The initial MPS Data Inventory is **Accepted** and may be used as the implementation basis for Stage 5B planning.
+
+
+---
+
+## Stage 5B.9 implementation-confirmed observations
+
+**Validation status: PASS / owner-accepted 2026-08-10.** Durable detailed evidence is in `STAGE_5B_9_REAL_DATA_VALIDATION.md`.
+
+Implementation/live-QAD confirmation added after Stage 5A design acceptance:
+
+- Real connectivity: `KNWVM13 / QADPRO2`, Windows Integrated authentication, read-only, `READ UNCOMMITTED`.
+- Seven representative workspace-level source counts matched equivalent direct QAD SQL exactly.
+- Thirty-one individually checked source rows matched WO identity, quantity, due date, release date, and status exactly.
+- Product-line, product-line range, explicit-parent, large-workspace, KTC, and KTV scope behavior was confirmed.
+- Closed and `RMABOM` exclusions are active against real data and behave correctly.
+- No qualifying live source row in the sampled population had a NULL due date or NULL release date; defensive null handling remains appropriate.
+- Falldown retains all qualifying unfinished historical work with no lower date cutoff.
+- Due/Release and horizon reprojection reuse the current snapshot and do not require a QAD reload while snapshot coverage is sufficient.
+- All accepted A/F/R/Mixed/P/e presentation combinations were confirmed with live examples.
+- The project owner manually compared the 72-week KST v2 MPS grid with the legacy Excel MPS report and confirmed the schedule output looks identical.
+- No correctness defect was found in Stage 5B.9.
+- Operational characteristic: an 816-part workspace measured approximately 36 seconds on a cold first load and approximately 3 seconds on a warm 72-week refresh. This is tracked as a performance characteristic rather than a data-contract defect.

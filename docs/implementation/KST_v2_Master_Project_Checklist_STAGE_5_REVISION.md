@@ -318,30 +318,32 @@ Stage 5A is complete only when:
 
 # Stage 5B — MPS Dashboard Implementation
 
-**Status:** READY TO BEGIN — Stage 5A accepted 2026-08-07
+**Status:** VERIFICATION COMPLETE — checkpoints 5B.1–5B.9 complete; 5B.9 owner-accepted 2026-08-10; 5B.10 automated/manual verification passed 2026-08-10, owner acceptance pending
 
 ## Purpose
 
 Implement the MPS dashboard vertical slice using the accepted Stage 5A data/query/snapshot contracts.
 
+Stage 5B.9 validation evidence: `STAGE_5B_9_REAL_DATA_VALIDATION.md` — **PASS / OWNER-ACCEPTED 2026-08-10**. The remaining work is Stage 5B.10 closeout only.
+
 ---
 
 ## 5B.1 QAD Database Integration
 
-- [ ] Implement the approved direct parameterized MPS query in `Kst.Integrations.Qad`.
-- [ ] Use approved SQL Server client/database-access mechanism.
-- [ ] Implement Windows-integrated QAD connectivity.
-- [ ] Apply resolved workspace site/domain/parent-part scope.
-- [ ] Implement parameterized part-list batching/chunking.
-- [ ] Apply `mrp_dataset = 'wo_mstr'`.
-- [ ] Apply `mrp_type IN ('supply','supplyf','supplyp')`.
-- [ ] Apply safe WO join on domain + site + part + WO number + WO ID.
-- [ ] Exclude `wo_status = 'C'`.
-- [ ] Exclude `wo_bom_code = 'RMABOM'`.
-- [ ] Retrieve all historical qualifying unfinished work needed for Falldown.
-- [ ] Retrieve future source facts sufficient for the maximum 72-week Due/Release views.
-- [ ] Support cancellation and approved command timeout.
-- [ ] Log execution diagnostics without leaking sensitive information.
+- [x] Implement the approved direct parameterized MPS query in `Kst.Integrations.Qad`.
+- [x] Use approved SQL Server client/database-access mechanism.
+- [x] Implement Windows-integrated QAD connectivity.
+- [x] Apply resolved workspace site/domain/parent-part scope.
+- [x] Implement parameterized part-list batching/chunking.
+- [x] Apply `mrp_dataset = 'wo_mstr'`.
+- [x] Apply `mrp_type IN ('supply','supplyf','supplyp')`.
+- [x] Apply safe WO join on domain + site + part + WO number + WO ID.
+- [x] Exclude `wo_status = 'C'`.
+- [x] Exclude `wo_bom_code = 'RMABOM'`.
+- [x] Retrieve all historical qualifying unfinished work needed for Falldown.
+- [x] Retrieve future source facts sufficient for the maximum 72-week Due/Release views.
+- [x] Support cancellation and approved command timeout.
+- [x] Log execution diagnostics without leaking sensitive information.
 
 Do not implement `sp_QAD_ktmpswkm` or create a new database procedure for the initial MPS.
 
@@ -349,27 +351,27 @@ Do not implement `sp_QAD_ktmpswkm` or create a new database procedure for the in
 
 ## 5B.2 MPS Source Normalization
 
-- [ ] Map QAD query rows into integration records.
-- [ ] Normalize into `MpsSourceRow`.
-- [ ] Normalize SUPPLY/SUPPLYF/SUPPLYP.
-- [ ] Normalize A/F/R/P/e WO states.
-- [ ] Handle unexpected non-C WO state defensively.
-- [ ] Preserve both Due Date and Release Date.
-- [ ] Preserve WO ID/status references.
-- [ ] Preserve site/domain diagnostics where required.
-- [ ] Do not introduce source deduplication unless new evidence requires it.
+- [x] Map QAD query rows into integration records.
+- [x] Normalize into `MpsSourceRow`.
+- [x] Normalize SUPPLY/SUPPLYF/SUPPLYP.
+- [x] Normalize A/F/R/P/e WO states.
+- [x] Handle unexpected non-C WO state defensively.
+- [x] Preserve both Due Date and Release Date.
+- [x] Preserve WO ID/status references.
+- [x] Preserve site/domain diagnostics where required.
+- [x] Do not introduce source deduplication unless new evidence requires it.
 
 ---
 
 ## 5B.3 Week Bucketing / Falldown
 
-- [ ] Implement Sunday-Saturday business-week boundary.
-- [ ] Use Monday as visible week label.
-- [ ] Implement weekly buckets.
-- [ ] Implement due-date-based Falldown with no historical lower cutoff.
-- [ ] Implement maximum 72-week horizon.
-- [ ] Rebuild Due/Release bucket views from the current source snapshot without QAD re-query.
-- [ ] Test Sunday/Saturday boundaries and year transitions.
+- [x] Implement Sunday-Saturday business-week boundary.
+- [x] Use Monday as visible week label.
+- [x] Implement weekly buckets.
+- [x] Implement due-date-based Falldown with no historical lower cutoff.
+- [x] Implement maximum 72-week horizon.
+- [x] Rebuild Due/Release bucket views from the current source snapshot without QAD re-query.
+- [x] Test Sunday/Saturday boundaries and year transitions.
 
 Fiscal period/quarter/year mapping is **not backend work**.
 
@@ -377,15 +379,15 @@ Fiscal period/quarter/year mapping is **not backend work**.
 
 ## 5B.4 MPS Status Classification
 
-- [ ] Implement Allocating (`A`).
-- [ ] Implement Frozen (`F`).
-- [ ] Implement Released (`R`).
-- [ ] Implement Mixed for 2+ distinct A/F/R states.
-- [ ] Implement `ContainsPlannedWork` from `P`.
-- [ ] Implement `ContainsExplicitlyScheduledWork` from `e`.
-- [ ] Implement None when no A/F/R state exists.
-- [ ] Aggregate quantities across all included WOs in a bucket.
-- [ ] Add unit tests for mixed P/e/A/F/R combinations.
+- [x] Implement Allocating (`A`).
+- [x] Implement Frozen (`F`).
+- [x] Implement Released (`R`).
+- [x] Implement Mixed for 2+ distinct A/F/R states.
+- [x] Implement `ContainsPlannedWork` from `P`.
+- [x] Implement `ContainsExplicitlyScheduledWork` from `e`.
+- [x] Implement None when no A/F/R state exists.
+- [x] Aggregate quantities across all included WOs in a bucket.
+- [x] Add unit tests for mixed P/e/A/F/R combinations.
 
 Shortage status is deferred to the later shortages capability and is not an initial MPS execution state.
 
@@ -393,117 +395,117 @@ Shortage status is deferred to the later shortages capability and is not an init
 
 ## 5B.5 Snapshot Integration and Refresh
 
-- [ ] Start MPS load automatically when a workspace opens.
-- [ ] Keep workspace shell usable while MPS loads.
-- [ ] Keep explicit parent rows visible with no MPS activity.
-- [ ] Populate snapshot ID / timestamps / source state per Stage 5A contract.
-- [ ] Preserve old snapshot while refresh runs.
-- [ ] Replace snapshot atomically after successful load.
-- [ ] Preserve prior snapshot on refresh failure.
-- [ ] Show last successful refresh time.
-- [ ] Implement approved initial database-unavailable message and Retry.
-- [ ] Prevent concurrent refreshes for one workspace.
-- [ ] Avoid QAD reload on tab switching, Due/Release toggle, fiscal display changes, or horizon changes ≤72 weeks.
-- [ ] Do not persist MPS snapshot across application sessions initially.
+- [x] Start MPS load automatically when a workspace opens.
+- [x] Keep workspace shell usable while MPS loads.
+- [x] Keep explicit parent rows visible with no MPS activity.
+- [x] Populate snapshot ID / timestamps / source state per Stage 5A contract.
+- [x] Preserve old snapshot while refresh runs.
+- [x] Replace snapshot atomically after successful load.
+- [x] Preserve prior snapshot on refresh failure.
+- [x] Show last successful refresh time.
+- [x] Implement approved initial database-unavailable message and Retry.
+- [x] Prevent concurrent refreshes for one workspace.
+- [x] Avoid QAD reload on tab switching, Due/Release toggle, fiscal display changes, or horizon changes ≤72 weeks.
+- [x] Do not persist MPS snapshot across application sessions initially.
 
 ---
 
 ## 5B.6 MPS API
 
-- [ ] Define workspace MPS endpoint(s) from the accepted snapshot model.
-- [ ] Return parent schedules and normalized buckets.
-- [ ] Return MPS semantic status fields.
-- [ ] Return snapshot/refresh metadata.
-- [ ] Support Due/Release and horizon view requests without forcing QAD re-query when snapshot coverage is sufficient.
-- [ ] Do **not** return fiscal year/period/quarter metadata from backend solely for display.
-- [ ] Update OpenAPI.
-- [ ] Regenerate TypeScript contracts.
+- [x] Define workspace MPS endpoint(s) from the accepted snapshot model.
+- [x] Return parent schedules and normalized buckets.
+- [x] Return MPS semantic status fields.
+- [x] Return snapshot/refresh metadata.
+- [x] Support Due/Release and horizon view requests without forcing QAD re-query when snapshot coverage is sufficient.
+- [x] Do **not** return fiscal year/period/quarter metadata from backend solely for display.
+- [x] Update OpenAPI.
+- [x] Regenerate TypeScript contracts.
 
 ---
 
 ## 5B.7 Frontend Fiscal Calendar / Settings
 
-- [ ] Add Fiscal Calendar section to Settings.
-- [ ] Seed FY26 anchor: June 29, 2025.
-- [ ] Implement standard 4-4-5 generation.
-- [ ] Implement 53-week exception records with selected extra-week period.
-- [ ] Validate exception uniqueness and period range.
-- [ ] Generate fiscal year/week/period/quarter display metadata in frontend.
-- [ ] Test 52/53-week transitions and 72-week horizon coverage.
+- [x] Add Fiscal Calendar section to Settings.
+- [x] Seed FY26 anchor: June 29, 2025.
+- [x] Implement standard 4-4-5 generation.
+- [x] Implement 53-week exception records with selected extra-week period.
+- [x] Validate exception uniqueness and period range.
+- [x] Generate fiscal year/week/period/quarter display metadata in frontend.
+- [x] Test 52/53-week transitions and 72-week horizon coverage.
 
 ---
 
 ## 5B.8 Frontend MPS Grid
 
-- [ ] Implement MPS grid shell.
-- [ ] Implement sticky parent-part/description column.
-- [ ] Implement horizontal scrolling.
-- [ ] Implement week headers.
-- [ ] Implement fiscal period bands.
-- [ ] Implement fiscal quarter bands.
-- [ ] Implement schedule quantities.
-- [ ] Implement A/F/R/Mixed box presentation.
-- [ ] Implement accessible Planned font treatment.
-- [ ] Implement explicitly-scheduled non-color marker.
-- [ ] Implement horizon selector up to 72 weeks.
-- [ ] Implement Due/Release mode.
-- [ ] Implement loading, empty, unavailable, stale/refresh, and retry states.
-- [ ] Implement row/week-cell selection only to the extent required by the initial dashboard slice.
+- [x] Implement MPS grid shell.
+- [x] Implement sticky parent-part/description column.
+- [x] Implement horizontal scrolling.
+- [x] Implement week headers.
+- [x] Implement fiscal period bands.
+- [x] Implement fiscal quarter bands.
+- [x] Implement schedule quantities.
+- [x] Implement A/F/R/Mixed box presentation.
+- [x] Implement accessible Planned font treatment.
+- [x] Implement explicitly-scheduled non-color marker.
+- [x] Implement horizon selector up to 72 weeks.
+- [x] Implement Due/Release mode.
+- [x] Implement loading, empty, unavailable, stale/refresh, and retry states.
+- [x] Implement row/week-cell selection only to the extent required by the initial dashboard slice.
 
 ---
 
 ## 5B.9 Data Validation
 
-- [ ] Compare KST v2 source rows to direct database results.
-- [ ] Compare schedule totals to source evidence / legacy output where applicable.
-- [ ] Validate representative sites.
-- [ ] Validate product-line-derived scope.
-- [ ] Validate explicit-part scope.
-- [ ] Validate parent with no MPS rows.
-- [ ] Validate one-WO and multi-WO buckets.
-- [ ] Validate A/F/R/Mixed/P/e classification.
-- [ ] Validate Falldown including an old unfinished WO.
-- [ ] Validate `RMABOM` exclusion.
-- [ ] Validate repetitive-schedule change after MRP/QADPRO2 sync.
-- [ ] Validate empty results.
-- [ ] Validate large-workspace performance / batching.
-- [ ] Record discrepancies and resolutions.
+- [x] Compare KST v2 source rows to direct database results.
+- [x] Compare schedule totals to source evidence / legacy output where applicable.
+- [x] Validate representative sites.
+- [x] Validate product-line-derived scope.
+- [x] Validate explicit-part scope.
+- [x] Validate parent with no MPS rows.
+- [x] Validate one-WO and multi-WO buckets.
+- [x] Validate A/F/R/Mixed/P/e classification.
+- [x] Validate Falldown including an old unfinished WO.
+- [x] Validate `RMABOM` exclusion.
+- [x] Validate repetitive-schedule change after MRP/QADPRO2 sync. (Accepted operational behavior established during Stage 5A live investigation; Stage 5B.9 reconfirmed work-order-backed post-MRP source semantics.)
+- [x] Validate empty results.
+- [x] Validate large-workspace performance / batching.
+- [x] Record discrepancies and resolutions.
 
 ---
 
 ## 5B.10 Automated Verification
 
-- [ ] QAD adapter tests.
-- [ ] Normalization tests.
-- [ ] Status-rule tests.
-- [ ] Business-week/Falldown tests.
-- [ ] Frontend fiscal-calendar tests.
-- [ ] Snapshot tests.
-- [ ] API integration tests.
-- [ ] Frontend component tests.
-- [ ] Refresh/error-state tests.
-- [ ] Architecture-boundary tests.
-- [ ] Full backend build/test.
-- [ ] Full frontend lint/typecheck/test/build.
-- [ ] Rust/Tauri verification.
-- [ ] Sidecar rebuild.
-- [ ] Live Tauri manual verification.
+- [x] QAD adapter tests.
+- [x] Normalization tests.
+- [x] Status-rule tests.
+- [x] Business-week/Falldown tests.
+- [x] Frontend fiscal-calendar tests.
+- [x] Snapshot tests.
+- [x] API integration tests.
+- [x] Frontend component tests.
+- [x] Refresh/error-state tests.
+- [x] Architecture-boundary tests.
+- [x] Full backend build/test.
+- [x] Full frontend lint/typecheck/test/build.
+- [x] Rust/Tauri verification.
+- [x] Sidecar rebuild.
+- [x] Live Tauri manual verification.
 
 ---
 
 ## 5B.11 Documentation
 
-- [ ] Document final direct-query contract.
-- [ ] Document query parameters and batching behavior.
-- [ ] Document result/source-row columns.
-- [ ] Document normalization/status rules.
-- [ ] Document fiscal settings/calculation behavior.
-- [ ] Document snapshot/refresh behavior.
-- [ ] Document MRP freshness dependency and RMA exclusion.
-- [ ] Update project status.
-- [ ] Update Master Project Checklist.
-- [ ] Update API documentation.
-- [ ] Update data inventory with implementation-confirmed mappings.
+- [x] Document final direct-query contract.
+- [x] Document query parameters and batching behavior.
+- [x] Document result/source-row columns.
+- [x] Document normalization/status rules.
+- [x] Document fiscal settings/calculation behavior.
+- [x] Document snapshot/refresh behavior.
+- [x] Document MRP freshness dependency and RMA exclusion.
+- [x] Update project status.
+- [x] Update Master Project Checklist.
+- [x] Update API documentation.
+- [x] Update data inventory with implementation-confirmed mappings.
 
 ---
 
@@ -511,20 +513,20 @@ Shortage status is deferred to the later shortages capability and is not an init
 
 Stage 5B is complete only when:
 
-- [ ] A configured workspace loads real MPS data from the approved direct QAD source.
-- [ ] Workspace site/part scope is validated.
-- [ ] Schedule quantities are validated.
-- [ ] Work-order associations are validated.
-- [ ] MPS semantic classification is validated.
-- [ ] Falldown and RMA exclusion are validated.
-- [ ] Refresh/snapshot behavior is validated.
-- [ ] Due/Release and horizon changes reuse the current snapshot appropriately.
-- [ ] Frontend fiscal bands are validated.
-- [ ] The real MPS grid is usable.
-- [ ] No fake production data remains.
-- [ ] Loading/error/empty/refresh states work.
-- [ ] Automated verification passes.
-- [ ] Representative data matches source evidence.
+- [x] A configured workspace loads real MPS data from the approved direct QAD source.
+- [x] Workspace site/part scope is validated.
+- [x] Schedule quantities are validated.
+- [x] Work-order associations are validated.
+- [x] MPS semantic classification is validated.
+- [x] Falldown and RMA exclusion are validated.
+- [x] Refresh/snapshot behavior is validated.
+- [x] Due/Release and horizon changes reuse the current snapshot appropriately.
+- [x] Frontend fiscal bands are validated.
+- [x] The real MPS grid is usable.
+- [x] No fake production data remains.
+- [x] Loading/error/empty/refresh states work.
+- [x] Automated verification passes.
+- [x] Representative data matches source evidence.
 - [ ] Owner acceptance passes.
 
 **Completion gate:** A scheduler can open a configured workspace and use a validated, cached, real-data MPS grid for schedule review.

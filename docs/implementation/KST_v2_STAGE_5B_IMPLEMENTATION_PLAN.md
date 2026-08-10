@@ -1,6 +1,6 @@
 # KST v2 — Stage 5B MPS Dashboard Implementation Plan
 
-**Status:** READY TO BEGIN — Stage 5A accepted 2026-08-07  
+**Status:** VERIFICATION COMPLETE — Stage 5B.9 accepted 2026-08-10; Stage 5B.10 automated/manual verification passed 2026-08-10; owner acceptance of Stage 5B.10 pending  
 **Stage:** 5B — MPS Dashboard Implementation  
 **Purpose:** Implement the first real-data scheduling vertical slice using the accepted Stage 5A source, data, snapshot, refresh, API, and fiscal-calendar contracts.
 
@@ -600,6 +600,10 @@ Do not invent a hard SLA in advance. Tune batching/queries only from observed ev
 
 Representative data and timing evidence are recorded, discrepancies are explained, and no known correctness issue remains hidden by aggregation or UI formatting.
 
+**Result: PASS / ACCEPTED — 2026-08-10.** See `STAGE_5B_9_REAL_DATA_VALIDATION.md`. The project owner also manually compared the 72-week KST v2 grid to the legacy Excel report and confirmed the schedule output matches visually.
+
+Known operational characteristic carried into closeout: an 816-part workspace measured approximately 36 seconds on a cold first load but approximately 3 seconds on a warm 72-week refresh. This is not a correctness defect and should not trigger premature query redesign during Stage 5B.10.
+
 ---
 
 ## 5B.10 — Full verification, packaging, and documentation closeout
@@ -629,6 +633,13 @@ Add focused tests for:
 - frontend fiscal calendar;
 - MPS component states.
 
+**Result: PASS — 2026-08-10 (Stage 5B.10).**
+
+- Backend: `dotnet build Kst.slnx --nologo` clean; `dotnet test Kst.slnx --nologo` **273/273 passed** (matches Stage 5B.9 baseline exactly, no regression).
+- Frontend: `npm run lint`, `npm run typecheck` clean; `npm test` **101/101 passed** (matches Stage 5B.9 baseline exactly); `npm run build` clean.
+- Rust/Tauri: `cargo check` and `cargo build` in `src/tauri` both clean.
+- Sidecar: `.\scripts\build-sidecar.ps1` republished `Kst.Api.exe` and copied it plus both `appsettings*.json` files to `src/tauri/binaries/Kst.Api-x86_64-pc-windows-msvc.exe`.
+
 ### Manual verification
 
 - Development launch with real QAD connectivity.
@@ -639,6 +650,18 @@ Add focused tests for:
 - large-workspace behavior.
 - packaged Tauri sidecar launch and MPS load, if the Stage 5B completion gate requires the packaged path.
 - application close leaves no backend orphan process (Stage 3 regression).
+
+**Result: PASS — 2026-08-10 (Stage 5B.10).** Verified through the real `npx @tauri-apps/cli dev` desktop launch path (not a separately run API):
+
+- The real sidecar started under the Tauri-managed `Production` hosting environment, content root `src/tauri/binaries`, listening on a dynamic loopback port — consistent with the documented sidecar-lifecycle contract.
+- The live desktop app auto-loaded real MPS data from QAD for all three configured workspaces during the session ("Shure SMT" 38 parts / 638 rows, "SHU Metals" 4 parts / 71 rows, "SHU Molding" 6 parts / 58 rows), confirmed via structured backend log lines.
+- Due/Release and horizon switching (`dateBasis=dueDate`/`releaseDate`, `horizonWeeks=12`/`72`) were exercised against the live running sidecar and returned the same `snapshotId` for both, confirming local reprojection with no extra QAD query, and correct bucket counts (13 = 1 Falldown + 12 weekly; 73 = 1 Falldown + 72 weekly).
+- An explicit `POST /mps/refresh` call produced a new `snapshotId` and an updated `lastSuccessfulRefreshAtUtc` timestamp while the same real source row count (638) was retained — refresh and last-successful-refresh metadata both work correctly.
+- Large-workspace loading behavior (816-part cold ~36s / warm ~3s) is carried forward as existing Stage 5B.9 evidence; it was not required to be re-measured since no source-query code changed in Stage 5B.10.
+- Single-instance regression: launching a second `kst-tauri.exe` instance while the first was running exited immediately with no second sidecar spawned — confirms Stage 3 single-instance behavior is intact.
+- Shutdown/orphan regression: after stopping the running dev instance, no `Kst.Api` or `kst-tauri` process remained (`Get-Process` returned none).
+- Grid visual usability, Due/Release button clicks, horizon-input interaction, and Settings-tab navigation-and-back state persistence could not be exercised as literal mouse/keyboard interaction with the native desktop window from this automated session (no GUI-automation tooling is available for the Tauri WebView2 window in this environment). These UI code paths were not modified in Stage 5B.10 and were already manually click-verified and owner-accepted in Stage 5B.8/5B.9; the API-level checks above exercise the same backend contracts those UI actions depend on. Literal click-through remains a recommended owner spot-check before final acceptance.
+- Packaged-path verification (MSI/NSIS) was not performed: the Stage 5B completion gate (5B.12) does not require it, and no installer-affecting code changed in Stage 5B.10.
 
 ### Documentation
 
@@ -655,7 +678,7 @@ Update:
 
 ### Exit gate
 
-All automated/manual gates pass and the project owner accepts Stage 5B behavior.
+All automated/manual gates pass; project-owner acceptance of Stage 5B.10 remains pending review of this report.
 
 ---
 
