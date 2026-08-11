@@ -172,6 +172,12 @@
   overflow: hidden;
 }
 
+/* Focused mode (a single parent row): stop stretching to fill the workspace's remaining vertical
+   space so the frame hugs the header + one row instead of leaving blank area above Part Info. */
+.mps-grid-frame--focused {
+  flex: 0 1 auto;
+}
+
 .mps-grid-scroll {
   flex: 1;
   min-height: 0;
@@ -206,6 +212,23 @@
 
 .mps-grid tbody tr:hover {
   background: var(--row-hover);
+}
+
+.mps-grid tbody tr {
+  cursor: pointer;
+}
+
+.mps-grid tbody tr:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: -2px;
+}
+
+.mps-grid tbody tr.mps-grid__row--selected {
+  background: var(--accent-soft);
+}
+
+.mps-grid tbody tr.mps-grid__row--selected .mps-grid__sticky {
+  background: var(--accent-soft);
 }
 
 .mps-grid thead th {

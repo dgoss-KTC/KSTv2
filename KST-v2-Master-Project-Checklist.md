@@ -1,6 +1,6 @@
 # KST v2 Master Project Checklist
 
-**Current project position:** Stage 4/4B and Stage 5A are complete. Stage 5B implementation through 5B.9 is complete and accepted; Stage 5B.10 automated regression, Rust/Tauri/sidecar/live-desktop verification, and documentation closeout are complete with no regressions found, pending project-owner acceptance.
+**Current project position:** Stages 1–6 are complete and accepted. Stage 7 — Work Orders and Kitting is ready for rolling-wave discovery/planning.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -391,7 +391,7 @@ Stage 5A is complete only when:
 
 # Stage 5B — MPS Dashboard Implementation
 
-**Status:** VERIFICATION COMPLETE — checkpoints 5B.1–5B.9 complete; 5B.9 owner-accepted 2026-08-10; 5B.10 automated/manual verification passed 2026-08-10, owner acceptance pending
+**Status:** COMPLETE / ACCEPTED — Stage 5 closed out before Stage 6 planning
 
 ## Purpose
 
@@ -537,7 +537,7 @@ Shortage status is deferred to the later shortages capability and is not an init
 - [x] Validate A/F/R/Mixed/P/e classification.
 - [x] Validate Falldown including an old unfinished WO.
 - [x] Validate `RMABOM` exclusion.
-- [x] Validate repetitive-schedule change after MRP/QADPRO2 sync. (Accepted operational behavior established during Stage 5A live investigation; Stage 5B.9 reconfirmed work-order-backed post-MRP source semantics.)
+- [x] Validate repetitive-schedule change after MRP/QADPRO2 sync.
 - [x] Validate empty results.
 - [x] Validate large-workspace performance / batching.
 - [x] Record discrepancies and resolutions.
@@ -598,50 +598,200 @@ Stage 5B is complete only when:
 - [x] Loading/error/empty/refresh states work.
 - [x] Automated verification passes.
 - [x] Representative data matches source evidence.
-- [ ] Owner acceptance passes.
+- [x] Owner acceptance passes.
 
-**Completion gate:** A scheduler can open a configured workspace and use a validated, cached, real-data MPS grid for schedule review.
+**Completion gate: PASS.** A scheduler can open a configured workspace and use a validated, cached, real-data MPS grid for schedule review.
 
 
-## Stage 6 — Phase 3: Part Information Drill-Down
+## Stage 6 — Phase 3: Part Information Drill-Down ✅
 
-### 6.1 UI and fields
+**Status:** COMPLETE / ACCEPTED — 2026-08-11
 
-- [ ] Confirm the Part Info tab
-- [ ] Map revision
-- [ ] Map planner
-- [ ] Map lead time
-- [ ] Map UOM
-- [ ] Map item class
-- [ ] Map description
-- [ ] Map component count
-- [ ] Map on-hand finished goods
-- [ ] Map WIP
-- [ ] Map safety stock
-- [ ] Map part-level schedule status
-### 6.2 Backend
+**Accepted contract:** `KST_v2_STAGE_6_PART_INFO_CONTRACT.md`  
+**Implementation prompt:** `KST_v2_STAGE_6_VSCODE_IMPLEMENTATION_PROMPT.md`  
+**Implementation/validation record:** `KST_v2_STAGE_6D_IMPLEMENTATION_PROGRESS.md`  
+**Closeout record:** `KST_v2_STAGE_6_CLOSEOUT.md`
 
-- [ ] Create part-master adapter
-- [ ] Create site-planning-parameter adapter
-- [ ] Define effective planner fallback
-- [ ] Define effective lead-time fallback
-- [ ] Define inventory summary
-- [ ] Define WIP calculation
-- [ ] Define component count
-- [ ] Create PartDetail
-- [ ] Create part-detail endpoint
-- [ ] Cache stable part information where appropriate
-### 6.3 Frontend and validation
+### Purpose
 
-- [ ] Build Part Info panel
-- [ ] Build loading state
-- [ ] Build missing-part state
-- [ ] Build partial-data warnings
-- [ ] Validate against QAD
-- [ ] Validate fallback behavior
-- [ ] Owner acceptance
-Phase 3 completion gate: Selecting an MPS part displays validated part attributes and inventory summaries.
+Selecting an MPS parent part collapses/focuses the grid around that parent and displays validated QAD part-master attributes, inventory summaries, and current MOQ/price information through a lazy-loaded Part Info pane.
 
+Part Info is parent-part scoped, not week scoped. Clicking the selected parent again or using `Back to full grid` restores the full MPS view.
+
+---
+
+### 6A — UI Behavior and Field Discovery ✅
+
+- [x] Parent-row selection is the Stage 6 interaction entry point.
+- [x] Selected-parent MPS collapse/focus behavior accepted.
+- [x] Part Info opens directly beneath the focused parent row.
+- [x] Focused grid shrinks to the selected row without retaining blank full-grid height.
+- [x] `Back to full grid` restores the normal MPS view.
+- [x] Clicking the selected parent again also restores the full MPS view.
+- [x] Keyboard activation follows the same toggle behavior.
+- [x] Part Info is parent-part scoped rather than week scoped.
+- [x] Due/Release, horizon, fiscal, density, and presentation changes do not reload PartDetail.
+- [x] Prototype-only UOM, Item Class, Component Count, WIP, and Part-level MPS schedule status were removed from Stage 6 scope.
+- [x] Accepted field set includes Safety Time, QAD Part Status code + description, IOS Code, Qty Non-Net, and MOQ/Current Price tier(s).
+- [x] Blank/null informational data is accepted as normal Part Info behavior.
+
+### 6B — Source Mapping and Business Rules ✅
+
+#### Part master
+
+- [x] Part Number → `pt_mstr.pt_part` / selected parent identity.
+- [x] Planner → `pt_mstr.pt_buyer`; for manufactured parent parts this is the planner code.
+- [x] Mfg Lead Time → `pt_mstr.pt_mfg_lead`, days.
+- [x] Safety Time → `pt_mstr.pt_sfty_time`, days.
+- [x] Part Status → `pt_mstr.pt_status` with backend-owned description mapping.
+- [x] Current Revision → `pt_mstr.pt_rev`.
+- [x] Description → `pt_mstr.pt_desc1`.
+- [x] IOS Code → `pt_mstr.pt_warr_cd`.
+- [x] Safety Stock → `pt_mstr.pt_sfty_stk`, part units.
+- [x] Zero has no special missing/not-configured semantics for informational part-master values.
+- [x] Blank/null informational fields may display blank or `No Data Found`.
+- [x] `ptp_det`, planner fallback, and lead-time fallback are not part of Stage 6.
+
+#### Part Status descriptions
+
+- [x] Raw code is preserved and displayed with the human-readable description.
+- [x] Accepted mappings: A=AEMR, B=BYPASS, C=CURRENTLY IN PRODUCTION, E=END OF LIFE, F=FORECAST, H=PURCHASING HOLD, I=INACTIVE PURCHASED PARTS, M=MFA, N=NPI, O=OBSOLETE, P=PROTO, Q=QUOTED PARTS, U=UNRELEASED.
+- [x] Unknown status codes preserve the raw code without failing PartDetail.
+
+#### Inventory summary
+
+- [x] Inventory sources are `ld_det` + `loc_mstr` + `is_mstr` at domain + site + part grain.
+- [x] Stage 6 queries the exact selected parent; the investigative `EligibleParts` CTE is not used.
+- [x] Only `ld_qty_oh > 0` contributes to displayed inventory.
+- [x] Zero and negative inventory rows are ignored.
+- [x] `ld_lot LIKE 'RA%'` is excluded from both Stage 6 displayed totals.
+- [x] Qty On Hand = positive, non-RMA, nettable inventory.
+- [x] Qty Non-Net = positive, non-RMA, non-nettable inventory.
+- [x] No qualifying inventory rows returns 0 / 0 rather than missing data.
+
+#### MOQ / price
+
+- [x] Price-header source is `pi_mstr`; tier source is `pid_det`.
+- [x] Current price-list rule is the latest `pi_start <= today` for selected domain + part.
+- [x] No end/expiration-date rule is added.
+- [x] MOQ → `pid_det.pid_qty`; Unit Price → `pid_det.pid_amt`.
+- [x] One or more MOQ/price tiers are supported and normalized in MOQ order.
+- [x] No current price is normal missing informational data, not an error.
+
+### 6C — Backend/API Contract ✅
+
+- [x] Normalized `PartDetail` and `PartPriceBreak` contracts accepted.
+- [x] QAD-specific SQL/table/column details remain inside the QAD integration boundary.
+- [x] Existing Stage 5 site→domain, connection, authentication, read-only, Dapper/SqlClient, cancellation, timeout, and logging patterns are reused.
+- [x] PartDetail validates the selected parent against current workspace/MPS parent scope.
+- [x] PartDetail is lazy-loaded rather than preloaded with MPS.
+- [x] Data identity is Site + Parent Part.
+- [x] Cache/freshness identity is Workspace + Parent Part + current MPS snapshot identity/generation.
+- [x] Same-parent/same-snapshot detail is reused.
+- [x] Successful workspace refresh makes prior detail stale for next access; failed workspace refresh preserves compatible last-good detail.
+- [x] Fresh-detail failure may return stale last-good detail with warning when prior detail exists.
+- [x] No PartDetail persistence across sessions initially.
+- [x] Endpoint: `GET /api/v1/workspaces/{workspaceId}/part-detail?partNumber={partNumber}`.
+- [x] Accepted 404/409/503/200 stale/missing-data semantics implemented.
+- [x] C# DTO → OpenAPI → generated TypeScript contract workflow retained.
+- [x] Stage 6 contract accepted by project owner.
+
+### 6D — Implementation ✅
+
+#### 6D.0 Repository preflight
+
+- [x] Current Stage 5 QAD integration, snapshot identity, API, frontend, CSS, and test patterns inspected.
+- [x] Clean baseline automated verification recorded before Stage 6 changes.
+- [x] Stage 6 implementation progress artifact created and maintained.
+
+#### 6D.1 Domain/application
+
+- [x] `PartDetail` / `PartPriceBreak` normalized models implemented.
+- [x] Part Status mapping and unknown-code behavior implemented.
+- [x] Application orchestration, parent-scope validation, in-memory cache, and stale-last-good behavior implemented.
+- [x] Domain/application tests added.
+
+#### 6D.2 QAD integration
+
+- [x] Focused part-master retrieval implemented.
+- [x] Focused nettable/non-nettable inventory aggregation implemented with positive-only and RMA-exclusion rules.
+- [x] Latest `pi_start <= today` price-list selection and MOQ/price-tier retrieval implemented.
+- [x] Price tiers normalized in stable MOQ order.
+- [x] Stage 5 QAD infrastructure conventions reused.
+- [x] QAD integration tests added using repository test seams/fixtures.
+
+#### 6D.3 API / OpenAPI
+
+- [x] Workspace-scoped PartDetail endpoint and DTOs implemented.
+- [x] Accepted Problem Details/outcome mappings implemented.
+- [x] API integration tests added.
+- [x] OpenAPI spec and generated TypeScript contracts regenerated through the canonical pipeline.
+
+#### 6D.4 Frontend
+
+- [x] Parent rows support mouse and keyboard selection.
+- [x] Selected parent collapses/focuses the MPS to the actual selected row rather than hidden placeholders.
+- [x] Part Info renders immediately below the focused grid with normal spacing.
+- [x] PartDetail lazy load integrated through generated API types.
+- [x] `Back to full grid` and selected-parent toggle both clear focus and close Part Info.
+- [x] Accepted PartDetail fields, status code+description, single/multiple price-tier presentation, and normal no-data behavior implemented.
+- [x] Loading, missing-part, error/retry, and stale-last-good states implemented.
+- [x] Due/Release/horizon/fiscal presentation changes do not trigger PartDetail refetch.
+- [x] Frontend component/state tests added.
+
+### 6E — Validation and Verification ✅
+
+#### Automated verification
+
+- [x] Part Status mappings, unknown status, blank/null values, inventory classification/exclusions, pricing-effective-date rules, single/multiple/no-price cases, cache/refresh/stale behavior, API outcomes, and frontend interactions covered.
+- [x] Backend final suite: **316/316 tests passing**.
+- [x] Backend format/build verification clean.
+- [x] Frontend final suite after owner-review refinements: **119/119 tests passing**.
+- [x] Frontend lint, typecheck, and production build clean.
+- [x] Rust/Tauri `cargo check` clean.
+- [x] Backend sidecar rebuilt after backend changes.
+
+#### Live QAD / manual validation
+
+- [x] Live validation performed against read-only `QADPRO2` across five available development workspaces and 71 representative parent parts.
+- [x] Happy-path PartDetail response validated end to end.
+- [x] Workspace 404, MPS-not-loaded 409, invalid request, and out-of-scope-part behavior validated safely.
+- [x] Repeated same-parent access verified cache reuse through identical `loadedAtUtc`.
+- [x] Representative Part Status codes including C/P/B validated.
+- [x] Positive nettable and non-nettable quantities cross-checked against direct read-only SQL and matched.
+- [x] Current price-list selection cross-checked against direct read-only SQL; latest `pi_start <= today` behavior confirmed.
+- [x] Rare live cases not naturally present in the available validation set (multi-tier `pid_det`, RMA exclusion, no-current-price, additional site/domain) were covered by deterministic automated tests; no QAD data was modified to manufacture examples.
+- [x] Full Tauri desktop owner-review click-through completed after UI refinements.
+- [x] Focused-grid spacing, row-toggle close behavior, `Back to full grid`, and keyboard behavior manually verified.
+- [x] Tauri shutdown verified without orphan processes.
+
+### 6F — Documentation and Closeout ✅
+
+- [x] Stage 6 contract documented and accepted.
+- [x] Implementation/validation progress recorded.
+- [x] Backend boundary and API-contract documentation updated.
+- [x] Master Project Checklist reconciled to implemented Stage 6 behavior.
+- [x] Current Project Status advanced beyond Stage 6.
+- [x] Owner-review UI refinements documented and verified.
+- [x] Project-owner acceptance received on **2026-08-11**.
+- [ ] Record final Stage 6 commit hash after the repository commit is made.
+
+### Stage 6 completion gate
+
+- [x] Selecting an MPS parent collapses/focuses the grid and opens Part Info directly beneath it.
+- [x] Clicking the selected parent again or `Back to full grid` restores the full MPS grid.
+- [x] Accepted PartDetail fields use validated authoritative QAD sources/rules.
+- [x] Part Status code + description is validated.
+- [x] Qty On Hand / Qty Non-Net are validated.
+- [x] Current MOQ/price selection and multi-tier contract behavior are validated.
+- [x] PartDetail contract is typed through C# → OpenAPI → generated TypeScript.
+- [x] Lazy-load/cache and stale-last-good behavior are validated.
+- [x] Loading, missing, error, retry, and stale states work.
+- [x] Automated verification passes.
+- [x] Representative live-QAD/direct-SQL comparisons pass.
+- [x] Project-owner acceptance received.
+
+**Completion gate: PASS.** Selecting an MPS parent part displays validated QAD part-master attributes, inventory summaries, and current MOQ/price information through an accepted lazy-loaded drill-down workflow.
 
 ## Stage 7 — Phase 4: Work Orders and Kitting
 
@@ -1410,14 +1560,12 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [x] Stage 3 — Technical Foundation.
 - [x] Stage 4 / 4B — Application Shell, Workspace Configuration, and Workspace Scope Extension.
 - [x] Stage 5A technical/data artifacts, documentation reconciliation, and Stage 5B implementation plan.
-- [x] Stage 5B.1–5B.9 — real-data MPS implementation, UI refinement, and representative QAD/legacy validation.
 
 ### Current focus
 
-- [x] Stage 5B.9 real-data validation and owner acceptance.
-- [x] Complete Stage 5B.10 — final regression, Rust/Tauri/sidecar verification, live-desktop manual verification, and documentation closeout.
-- [ ] Obtain project-owner acceptance of Stage 5B.10.
-- [ ] After Stage 5B acceptance, begin Stage 6 — Part Information Drill-Down planning/implementation.
+- [x] Final project-owner acceptance of Stage 5A.
+- [x] After acceptance, generate the Stage 5B VS Code/Copilot implementation prompt.
+- [ ] Implement Stage 5B — MPS Dashboard in controlled checkpoints.
 
 ### Planning rule going forward
 

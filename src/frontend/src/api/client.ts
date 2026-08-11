@@ -18,6 +18,8 @@ export type MpsDashboardResponseDto = components['schemas']['MpsDashboardRespons
 export type MpsSnapshotMetadataDto = components['schemas']['MpsSnapshotMetadataDto'];
 export type MpsPartScheduleDto = components['schemas']['MpsPartScheduleDto'];
 export type MpsBucketDto = components['schemas']['MpsBucketDto'];
+export type PartDetailResponseDto = components['schemas']['PartDetailResponseDto'];
+export type PartPriceBreakDto = components['schemas']['PartPriceBreakDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -112,6 +114,11 @@ export class ApiClient {
   ): Promise<MpsDashboardResponseDto> {
     const query = `?dateBasis=${encodeURIComponent(dateBasis)}&horizonWeeks=${horizonWeeks}`;
     return this.postEmpty<MpsDashboardResponseDto>(`/api/v1/workspaces/${assignmentId}/mps/refresh${query}`);
+  }
+
+  async getPartDetail(assignmentId: string, partNumber: string): Promise<PartDetailResponseDto> {
+    const query = `?partNumber=${encodeURIComponent(partNumber)}`;
+    return this.get<PartDetailResponseDto>(`/api/v1/workspaces/${assignmentId}/part-detail${query}`);
   }
 
   private async get<T>(path: string): Promise<T> {

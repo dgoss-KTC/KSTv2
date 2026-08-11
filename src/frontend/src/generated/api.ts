@@ -61,6 +61,10 @@ export interface paths {
     /** Forces one reload of MPS source facts from QAD for the workspace and returns the projected dashboard. */
     post: operations["RefreshMpsDashboard"];
   };
+  "/api/v1/workspaces/{assignmentId}/part-detail": {
+    /** Returns lazily-loaded Part Info for a workspace's selected MPS parent part. */
+    get: operations["GetPartDetail"];
+  };
 }
 
 export type webhooks = Record<string, never>;
@@ -129,6 +133,39 @@ export interface components {
       sourceRowCount: number | string;
       isRefreshInProgress: boolean;
       lastRefreshError: null | string;
+    };
+    PartDetailResponseDto: {
+      site: string;
+      partNumber: string;
+      plannerCode: null | string;
+      /** Format: double */
+      manufacturingLeadTimeDays: null | number | string;
+      /** Format: double */
+      safetyTimeDays: null | number | string;
+      partStatusCode: null | string;
+      partStatusDescription: null | string;
+      currentRevision: null | string;
+      description: null | string;
+      iosCode: null | string;
+      /** Format: double */
+      safetyStockQuantity: null | number | string;
+      /** Format: double */
+      quantityOnHand: number | string;
+      /** Format: double */
+      quantityNonNet: number | string;
+      /** Format: double */
+      quantityRmaOnHand: number | string;
+      priceBreaks: components["schemas"]["PartPriceBreakDto"][];
+      /** Format: date-time */
+      loadedAtUtc: string;
+      isStale: boolean;
+      warning: null | string;
+    };
+    PartPriceBreakDto: {
+      /** Format: double */
+      minimumOrderQuantity: number | string;
+      /** Format: double */
+      unitPrice: number | string;
     };
     PreferencesResponseDto: {
       preferences: components["schemas"]["UserPreferencesDto"];
@@ -520,6 +557,49 @@ export interface operations {
       };
       /** @description Not Found */
       404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Service Unavailable */
+      503: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Returns lazily-loaded Part Info for a workspace's selected MPS parent part. */
+  GetPartDetail: {
+    parameters: {
+      query?: {
+        partNumber?: string;
+      };
+      path: {
+        assignmentId: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PartDetailResponseDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Conflict */
+      409: {
         content: {
           "application/problem+json": components["schemas"]["ProblemDetails"];
         };

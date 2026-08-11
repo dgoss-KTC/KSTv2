@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { WorkspaceAssignmentDto } from '../api/client';
 import { useFiscalCalendarSettings } from '../hooks/useFiscalCalendarSettings';
 import {
@@ -5,6 +6,8 @@ import {
   MIN_MPS_HORIZON_WEEKS,
   useMpsDashboard,
 } from '../hooks/useMpsDashboard';
+import { usePartDetail } from '../hooks/usePartDetail';
+import { PartInfoPanel } from './PartInfoPanel';
 import { getFiscalDisplayInfo } from '../fiscal/fiscalCalendar';
 import {
   bucketCellClassNames,
@@ -53,9 +56,33 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   } = useMpsDashboard(workspace.assignmentId);
   const { settings: fiscalSettings } = useFiscalCalendarSettings();
 
+  // Parent selection is transient UI state, not persisted workspace configuration; it resets
+  // whenever the workspace context changes (see the accepted Stage 6 contract §2).
+  const [selectedParent, setSelectedParent] = useState<string | null>(null);
+  useEffect(() => {
+    const id = setTimeout(() => setSelectedParent(null), 0);
+    return () => clearTimeout(id);
+  }, [workspace.assignmentId]);
+
+  const { detail: partDetail, isLoading: isPartDetailLoading, error: partDetailError, retry: retryPartDetail } =
+    usePartDetail(workspace.assignmentId, selectedParent);
+
+  const clearPartSelection = () => setSelectedParent(null);
+
+  // Parent-row selection is a toggle: selecting the already-selected parent closes Part Info and
+  // returns to the full grid, using the same clear-selection path as the explicit Back button.
+  function handleParentRowSelect(partNumber: string) {
+    if (selectedParent === partNumber) {
+      clearPartSelection();
+      return;
+    }
+    setSelectedParent(partNumber);
+  }
+
   const title = workspace.displayName ?? workspace.site;
-  const parts = dashboard?.parts ?? [];
-  const weeklyBuckets = parts[0]?.buckets.slice(1) ?? [];
+  const allParts = dashboard?.parts ?? [];
+  const parts = selectedParent ? allParts.filter((p) => p.parentPart === selectedParent) : allParts;
+  const weeklyBuckets = allParts[0]?.buckets.slice(1) ?? [];
 
   const weekFiscalInfo = weeklyBuckets.map((bucket) =>
     bucket.weekLabel
@@ -162,7 +189,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
       )}
 
       {!isLoading && dashboard && parts.length > 0 && (
-        <div className="mps-grid-frame">
+        <div className={`mps-grid-frame${selectedParent ? ' mps-grid-frame--focused' : ''}`}>
           <div className="mps-grid-scroll">
             <table className="mps-grid">
               <thead>
@@ -208,8 +235,21 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
                 {parts.map((part) => {
                   const falldown = part.buckets[0];
                   const weekly = part.buckets.slice(1);
+                  const isSelected = part.parentPart === selectedParent;
                   return (
-                    <tr key={part.parentPart}>
+                    <tr
+                      key={part.parentPart}
+                      className={isSelected ? 'mps-grid__row--selected' : undefined}
+                      onClick={() => handleParentRowSelect(part.parentPart)}
+                      aria-selected={isSelected}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleParentRowSelect(part.parentPart);
+                        }
+                      }}
+                    >
                       <td className="mps-grid__sticky mps-grid__part-col">
                         <div className="mps-grid__part-cell">
                           <span className="mps-grid__part-number">{part.parentPart}</span>
@@ -244,6 +284,17 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
             </table>
           </div>
         </div>
+      )}
+
+      {selectedParent && (
+        <PartInfoPanel
+          partNumber={selectedParent}
+          detail={partDetail}
+          isLoading={isPartDetailLoading}
+          error={partDetailError}
+          onRetry={() => void retryPartDetail()}
+          onBack={clearPartSelection}
+        />
       )}
     </div>
   );

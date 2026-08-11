@@ -74,3 +74,16 @@ npm run typecheck
     - Permanently removes the assignment. Returns `204` on success, `404` if the ID is unknown.
 - `DELETE /api/v1/workspaces`
     - Permanently removes all workspace assignments. Idempotent — returns `204` even when already empty.
+
+## Stage 6 Part Detail Endpoint
+
+- `GET /api/v1/workspaces/{assignmentId}/part-detail?partNumber={partNumber}`
+    - Returns QAD-sourced Part Info (planner, lead/safety time, status code+description, revision, description, IOS code, safety stock, on-hand/non-net quantity, MOQ/price tiers) for a single parent part already resolved into the workspace's currently-loaded MPS scope.
+    - Never triggers an MPS auto-load — reads the existing MPS snapshot state only.
+    - Served from an in-memory cache keyed to the MPS snapshot it was loaded against; a fresh MPS refresh invalidates the cache for that workspace, while a *failed* MPS refresh leaves the cache untouched.
+    - `200` — loaded (body includes `isStale`/`warning` when serving a last-known-good cached value after a failed live refresh attempt).
+    - `400` — blank/missing `partNumber`.
+    - `404` — unknown workspace, part not in the workspace's resolved MPS scope, or no matching QAD `pt_mstr` record (the latter case's Problem Details `title` is exactly `"Part not found"`, used by the frontend to distinguish it from other 404s).
+    - `409` — the workspace's MPS data has not been loaded yet.
+    - `503` — QAD is unavailable and no cached value exists to fall back to.
+

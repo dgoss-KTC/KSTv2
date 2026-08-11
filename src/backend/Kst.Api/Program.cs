@@ -4,6 +4,7 @@ using Serilog;
 using Serilog.Events;
 using Kst.Api.Endpoints;
 using Kst.Application.Mps;
+using Kst.Application.PartDetail;
 using Kst.Application.Preferences;
 using Kst.Application.Refresh;
 using Kst.Application.SystemStatus;
@@ -14,10 +15,12 @@ using Kst.Infrastructure;
 using Kst.Infrastructure.Configuration;
 using Kst.Infrastructure.Identity;
 using Kst.Infrastructure.Mps;
+using Kst.Infrastructure.PartDetail;
 using Kst.Infrastructure.SystemStatus;
 using Kst.Integrations.Qad.Connectivity;
 using Kst.Integrations.Qad.Mps;
 using Kst.Integrations.Qad.Options;
+using Kst.Integrations.Qad.PartDetail;
 using Kst.Integrations.Shortages.Connectivity;
 using Kst.Integrations.Shortages.Options;
 
@@ -159,6 +162,24 @@ else
 
 builder.Services.AddSingleton<MpsWorkspaceSnapshotService>();
 
+// -- Part Detail (Stage 6) -------------------------------------------------
+builder.Services.AddSingleton<IPartDetailCacheStore, InMemoryPartDetailCacheStore>();
+
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadPartDetailReader>();
+    builder.Services.AddSingleton<IPartDetailSourceReader>(sp => new DelegatePartDetailSourceReader(
+        (site, partNumber, today, ct) => sp.GetRequiredService<QadPartDetailReader>().ReadAsync(site, partNumber, today, ct)));
+}
+else
+{
+    const string notConfiguredMessage = "QAD connection is not configured.";
+    builder.Services.AddSingleton<IPartDetailSourceReader>(_ => new DelegatePartDetailSourceReader(
+        (_, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+}
+
+builder.Services.AddSingleton<PartDetailService>();
+
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddCors(options =>
@@ -200,6 +221,7 @@ app.MapSystemEndpoints();
 app.MapWorkspaceEndpoints();
 app.MapPreferencesEndpoints();
 app.MapMpsEndpoints();
+app.MapPartDetailEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------
 // Writes a JSON line to stdout once the server is bound so Tauri can read the port.

@@ -1,0 +1,169 @@
+.part-info-panel {
+  flex-shrink: 0;
+  margin: 0 20px 14px;
+  padding: 14px 18px;
+  background: var(--grid);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+}
+
+.part-info-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.part-info-panel__title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--tx);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.part-info-panel__back-btn {
+  height: var(--density-control-height);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 0 14px;
+  cursor: pointer;
+  background: var(--chip);
+  border: 1px solid var(--bd);
+  color: var(--tx2);
+  transition: background 0.1s, color 0.1s;
+}
+
+.part-info-panel__back-btn:hover {
+  background: var(--row-hover);
+  color: var(--tx);
+}
+
+.part-info-panel__state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 4px;
+  color: var(--tx3);
+  font-size: 12.5px;
+}
+
+.part-info-panel__state--missing {
+  color: var(--tx2);
+}
+
+.part-info-panel__state--error {
+  color: var(--danger-tx);
+}
+
+.part-info-panel__retry-btn {
+  height: var(--density-control-height);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 0 14px;
+  cursor: pointer;
+  background: var(--accent-solid);
+  border: 1px solid var(--accent-solid);
+  color: #0c1118;
+}
+
+.part-info-panel__banner {
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  background: var(--danger-bg);
+  color: var(--danger-tx);
+  border: 1px solid var(--danger-bd);
+  font-size: 12px;
+}
+
+.part-info-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px 16px;
+  margin: 0 0 14px;
+}
+
+.part-info-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.part-info-panel__field--wide {
+  grid-column: span 2;
+}
+
+.part-info-panel__field dt {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tx3);
+}
+
+.part-info-panel__field dd {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--tx);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.part-info-panel__pricing {
+  border-top: 1px solid var(--bd-soft);
+  padding-top: 10px;
+}
+
+.part-info-panel__pricing-title {
+  margin: 0 0 6px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tx3);
+  font-weight: 600;
+}
+
+.part-info-panel__no-data {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--tx3);
+}
+
+.part-info-panel__price-compact {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tx);
+  font-variant-numeric: tabular-nums;
+}
+
+.part-info-panel__price-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.part-info-panel__price-table th {
+  text-align: left;
+  color: var(--tx3);
+  font-weight: 600;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 16px 4px 0;
+}
+
+.part-info-panel__price-table td {
+  padding: 2px 16px 2px 0;
+  color: var(--tx);
+  font-variant-numeric: tabular-nums;
+}

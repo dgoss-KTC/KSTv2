@@ -7,6 +7,7 @@ import type {
   WorkspaceListResponseDto,
   WorkspaceAssignmentDto,
   MpsDashboardResponseDto,
+  PartDetailResponseDto,
   UserPreferencesDto,
   PreferencesResponseDto,
 } from '../api/client';
@@ -117,6 +118,30 @@ function makeDashboard(overrides: Partial<MpsDashboardResponseDto> = {}): MpsDas
   };
 }
 
+function makePartDetail(overrides: Partial<PartDetailResponseDto> = {}): PartDetailResponseDto {
+  return {
+    site: 'NW',
+    partNumber: 'ABC100',
+    plannerCode: 'JSMITH',
+    manufacturingLeadTimeDays: 10,
+    safetyTimeDays: 2,
+    partStatusCode: 'C',
+    partStatusDescription: 'CURRENT',
+    currentRevision: 'B',
+    description: 'Widget Assembly',
+    iosCode: '1234',
+    safetyStockQuantity: 250,
+    quantityOnHand: 1325,
+    quantityNonNet: 75,
+    quantityRmaOnHand: 25,
+    priceBreaks: [{ minimumOrderQuantity: 100, unitPrice: 12.45 }],
+    loadedAtUtc: '2026-08-10T22:30:00Z',
+    isStale: false,
+    warning: null,
+    ...overrides,
+  };
+}
+
 describe('MpsWorkspace', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
   const user = userEvent.setup();
@@ -141,9 +166,14 @@ describe('MpsWorkspace', () => {
   function setupBackend(handlers: {
     onGetMps?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onRefreshMps?: () => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
+    onGetPartDetail?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
   } = {}) {
     fetchMock.mockImplementation((url: string, opts?: RequestInit) => {
       const method = opts?.method ?? 'GET';
+      if (method === 'GET' && url.includes('/part-detail')) {
+        const result = handlers.onGetPartDetail?.(url) ?? { ok: true, json: async () => makePartDetail() };
+        return Promise.resolve(result);
+      }
       if (method === 'POST' && url.includes('/mps/refresh')) {
         const result = handlers.onRefreshMps?.() ?? { ok: true, json: async () => makeDashboard() };
         return Promise.resolve(result);
@@ -367,5 +397,233 @@ describe('MpsWorkspace', () => {
     });
 
     expect(document.querySelector('.shell')).toHaveAttribute('data-density', 'comfortable');
+  });
+
+  it('clicking a parent part row opens the Part Info panel and loads part detail', async () => {
+    setupBackend();
+    render(<App />);
+    await waitForConnected();
+
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('ABC100'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/part info/i)).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByText('10 days')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/CURRENT/)).toBeInTheDocument();
+  });
+
+  it('collapses the grid to the selected parent and restores it via Back to full grid', async () => {
+    setupBackend({
+      onGetMps: () => ({
+        ok: true,
+        json: async () =>
+          makeDashboard({
+            parts: [
+              ...makeDashboard().parts,
+              { ...makeDashboard().parts[0], parentPart: 'XYZ200', description: 'Other Part' },
+            ],
+          }),
+      }),
+    });
+    render(<App />);
+    await waitForConnected();
+
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('XYZ200')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('ABC100'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/part info/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText('ABC100')).toBeInTheDocument();
+    expect(screen.queryByText('XYZ200')).not.toBeInTheDocument();
+
+    // Focused mode renders only the selected row (no hidden placeholders for the rest of the grid)
+    // and the frame is marked with the modifier that stops it stretching to fill leftover height.
+    expect(within(screen.getByRole('main')).getAllByRole('row')).toHaveLength(4); // 3 header rows + 1 body row
+    expect(document.querySelector('.mps-grid-frame')).toHaveClass('mps-grid-frame--focused');
+
+    await user.click(screen.getByRole('button', { name: /back to full grid/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/part info/i)).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('ABC100')).toBeInTheDocument();
+    expect(screen.getByText('XYZ200')).toBeInTheDocument();
+    expect(document.querySelector('.mps-grid-frame')).not.toHaveClass('mps-grid-frame--focused');
+  });
+
+  it('clicking the selected parent row again toggles Part Info closed and restores the full grid', async () => {
+    setupBackend({
+      onGetMps: () => ({
+        ok: true,
+        json: async () =>
+          makeDashboard({
+            parts: [
+              ...makeDashboard().parts,
+              { ...makeDashboard().parts[0], parentPart: 'XYZ200', description: 'Other Part' },
+            ],
+          }),
+      }),
+    });
+    render(<App />);
+    await waitForConnected();
+
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('XYZ200')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('ABC100'));
+    await waitFor(() => {
+      expect(screen.getByText(/part info/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText('XYZ200')).not.toBeInTheDocument();
+
+    fetchMock.mockClear();
+    await user.click(screen.getByText('ABC100'));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/part info/i)).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('ABC100')).toBeInTheDocument();
+    expect(screen.getByText('XYZ200')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/part-detail'))).toBe(
+      false,
+    );
+  });
+
+  it('keyboard activation of the selected parent row also toggles Part Info closed', async () => {
+    setupBackend();
+    render(<App />);
+    await waitForConnected();
+
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+    });
+
+    const row = screen.getByText('ABC100').closest('tr');
+    if (!row) throw new Error('row not found');
+    row.focus();
+    fireEvent.keyDown(row, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(screen.getByText(/part info/i)).toBeInTheDocument();
+    });
+
+    const focusedRow = screen.getByText('ABC100').closest('tr');
+    if (!focusedRow) throw new Error('row not found');
+    fireEvent.keyDown(focusedRow, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/part info/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows a not-found message when QAD has no part master record for the selected part', async () => {
+    setupBackend({
+      onGetPartDetail: () => ({
+        ok: false,
+        status: 404,
+        text: async () => JSON.stringify({ title: 'Part not found', detail: 'No QAD part master record.' }),
+      }),
+    });
+    render(<App />);
+    await waitForConnected();
+
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('ABC100'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no qad part master record was found/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows an error with a retry option when the part detail request fails', async () => {
+    setupBackend({
+      onGetPartDetail: () => ({
+        ok: false,
+        status: 503,
+        text: async () => JSON.stringify({ detail: 'Database currently unavailable.' }),
+      }),
+    });
+    render(<App />);
+    await waitForConnected();
+
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('ABC100'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Database currently unavailable.')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+  });
+
+  it('does not refetch part detail when changing date basis while a part is selected', async () => {
+    setupBackend();
+    render(<App />);
+    await waitForConnected();
+
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('ABC100'));
+    await waitFor(() => {
+      expect(screen.getByText('10 days')).toBeInTheDocument();
+    });
+
+    fetchMock.mockClear();
+    await user.click(within(screen.getByRole('main')).getByRole('button', { name: /release date/i }));
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('dateBasis=releaseDate')),
+      ).toBe(true);
+    });
+    expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/part-detail'))).toBe(
+      false,
+    );
+  });
+
+  it('does not refetch part detail when clicking Back to full grid', async () => {
+    setupBackend();
+    render(<App />);
+    await waitForConnected();
+
+    await waitFor(() => {
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('ABC100'));
+    await waitFor(() => {
+      expect(screen.getByText('10 days')).toBeInTheDocument();
+    });
+
+    fetchMock.mockClear();
+    await user.click(screen.getByRole('button', { name: /back to full grid/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/part info/i)).not.toBeInTheDocument();
+    });
+    expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/part-detail'))).toBe(
+      false,
+    );
   });
 });

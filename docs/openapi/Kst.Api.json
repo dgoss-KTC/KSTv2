@@ -602,6 +602,85 @@
           }
         }
       }
+    },
+    "/api/v1/workspaces/{assignmentId}/part-detail": {
+      "get": {
+        "tags": [
+          "PartDetail"
+        ],
+        "summary": "Returns lazily-loaded Part Info for a workspace's selected MPS parent part.",
+        "operationId": "GetPartDetail",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "partNumber",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartDetailResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -883,6 +962,168 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "PartDetailResponseDto": {
+        "required": [
+          "site",
+          "partNumber",
+          "plannerCode",
+          "manufacturingLeadTimeDays",
+          "safetyTimeDays",
+          "partStatusCode",
+          "partStatusDescription",
+          "currentRevision",
+          "description",
+          "iosCode",
+          "safetyStockQuantity",
+          "quantityOnHand",
+          "quantityNonNet",
+          "quantityRmaOnHand",
+          "priceBreaks",
+          "loadedAtUtc",
+          "isStale",
+          "warning"
+        ],
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string"
+          },
+          "partNumber": {
+            "type": "string"
+          },
+          "plannerCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "manufacturingLeadTimeDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "safetyTimeDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "partStatusCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partStatusDescription": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "currentRevision": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "iosCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "safetyStockQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "quantityOnHand": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "quantityNonNet": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "quantityRmaOnHand": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "priceBreaks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartPriceBreakDto"
+            }
+          },
+          "loadedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isStale": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PartPriceBreakDto": {
+        "required": [
+          "minimumOrderQuantity",
+          "unitPrice"
+        ],
+        "type": "object",
+        "properties": {
+          "minimumOrderQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "unitPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },
@@ -1216,6 +1457,9 @@
     },
     {
       "name": "Mps"
+    },
+    {
+      "name": "PartDetail"
     }
   ]
 }
