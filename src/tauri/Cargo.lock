@@ -1848,7 +1848,7 @@ dependencies = [
 
 [[package]]
 name = "kst-tauri"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 dependencies = [
  "log",
  "reqwest 0.12.28",

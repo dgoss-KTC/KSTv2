@@ -8,4 +8,21 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
   </PropertyGroup>
+
+  <!--
+    Authoritative application version (see docs/development/VERSIONING.md).
+    VersionPrefix/VersionSuffix is the .NET SDK's built-in mechanism for prerelease SemVer:
+    - AssemblyVersion/FileVersion default to VersionPrefix only (numeric-only, required by the CLR).
+    - InformationalVersion/PackageVersion default to VersionPrefix-VersionSuffix (full SemVer).
+    Non-.NET tooling (Tauri, frontend) is kept in sync via scripts/check-version.ps1 rather than
+    reading this file directly.
+  -->
+  <PropertyGroup>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionSuffix>alpha.1</VersionSuffix>
+    <!-- Keep InformationalVersion exactly "0.1.0-alpha.1" - the SDK otherwise appends
+         "+<git-commit-sha>" automatically, which would drift from the Tauri/frontend
+         version files and from the documented version string. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
 </Project>

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Kst.Api.Dtos;
 using Kst.Application.Snapshots;
+using Kst.Application.SystemStatus;
 using Kst.Infrastructure.Identity;
 
 namespace Kst.Api.Endpoints;
@@ -28,14 +29,12 @@ public static class DiagnosticEndpoints
 
     private static IResult GetHealth(
         ISnapshotStore snapshotStore,
-        IConfiguration configuration)
+        ApplicationInfo appInfo)
     {
-        var version = configuration["AppVersion"] ?? "0.1.0";
-
         return Results.Ok(new HealthResponse(
             Status: "healthy",
             Application: "KST",
-            BackendVersion: version,
+            BackendVersion: appInfo.Version,
             ProcessId: Environment.ProcessId,
             InstanceId: ApplicationInstanceId.Value,
             Timestamp: DateTimeOffset.Now

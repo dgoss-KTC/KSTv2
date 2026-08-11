@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Serilog;
@@ -84,7 +85,11 @@ else
 builder.Services.AddSingleton(shortagesOptions);
 builder.Services.AddSingleton<IShortagesConnectivityCheck, DisabledShortagesConnectivityCheck>();
 
-var appVersion = builder.Configuration["AppVersion"] ?? "0.1.0";
+// Authoritative version source: assembly InformationalVersion, derived at build time from
+// src/backend/Directory.Build.props (VersionPrefix/VersionSuffix). See docs/development/VERSIONING.md.
+var appVersion = typeof(Program).Assembly
+    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+    ?? "0.0.0-unknown";
 var startedAt = DateTimeOffset.Now;
 
 builder.Services.AddSingleton(new ApplicationInfo(

@@ -2,8 +2,9 @@
 
 Date: 2026-08-11  
 Workstation: Windows (`C:\Dev\kst_v2`)  
-Current stage: **Stage 7 — Work Orders and Kitting — discovery/planning ready**  
-Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11**
+Current stage: **Stage 7 — Work Orders and Kitting — discovery/planning ready (NOT started)**  
+Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**  
+Application version: **`0.1.0-alpha.1`** (see [Versioning Foundation](#versioning-foundation) below)
 
 ## Current Position
 
@@ -49,7 +50,27 @@ The next rolling-wave phase is Stage 7 — Work Orders and Kitting. Do not begin
 
 ## Administrative Follow-Up
 
-After committing the accepted Stage 6 changes, record the final Stage 6 commit hash in the checklist/status documentation.
+Stage 6 final commit hash: `863a638` (`feat: complete Stage 6 part information drill-down`).
+
+## Versioning Foundation
+
+Between Stage 6 and Stage 7, a lightweight application versioning foundation was
+established (inter-stage housekeeping, not a Stage 7 activity):
+
+- Product identity `KST v2` remains distinct from the semantic application version.
+- Current application version: **`0.1.0-alpha.1`** ([SemVer 2.0.0](https://semver.org/)).
+- Authoritative source: `src/backend/Directory.Build.props` (`VersionPrefix`/`VersionSuffix`),
+  propagated to the backend (assembly `InformationalVersion`, system status/health endpoints,
+  frontend top bar), `src/tauri/Cargo.toml`, `src/frontend/package.json` (full version), and
+  `src/tauri/tauri.conf.json` (numeric-only, for MSI/WiX installer compatibility - see
+  `docs/development/VERSIONING.md`).
+- New tests: 2 backend integration tests (`SystemStatusEndpointTests`), 3
+  `Kst.ArchitectureTests` (`VersionConsistencyTests`) guarding future drift. Full backend suite:
+  329/329 passing.
+- New repeatable sync/check script: `scripts/check-version.ps1` (`-Fix` to auto-correct drift).
+- Full documentation: `docs/development/VERSIONING.md`.
+- Packaged Windows build (NSIS + MSI) verified successfully with the new version metadata.
+- This work does not begin, renumber, or otherwise affect Stage 7.
 
 ## Next Action
 

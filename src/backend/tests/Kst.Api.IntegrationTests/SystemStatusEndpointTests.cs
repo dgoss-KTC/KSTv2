@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Text.Json;
 
 namespace Kst.Api.IntegrationTests;
@@ -110,5 +111,33 @@ public sealed class SystemStatusEndpointTests : IClassFixture<KstApiFactory>
 
         Assert.True(DateTimeOffset.TryParse(startedAt, out _), "startedAt must be a valid DateTimeOffset.");
         Assert.True(DateTimeOffset.TryParse(currentTime, out _), "currentTime must be a valid DateTimeOffset.");
+    }
+
+    [Fact]
+    public async Task GetSystemStatus_ApplicationVersion_Is_Not_Empty()
+    {
+        var response = await _client.GetAsync("/api/v1/system/status");
+        var json = await response.Content.ReadAsStringAsync();
+        var doc = JsonDocument.Parse(json);
+
+        var version = doc.RootElement.GetProperty("applicationVersion").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(version));
+    }
+
+    [Fact]
+    public async Task GetSystemStatus_ApplicationVersion_Matches_Assembly_InformationalVersion()
+    {
+        var response = await _client.GetAsync("/api/v1/system/status");
+        var json = await response.Content.ReadAsStringAsync();
+        var doc = JsonDocument.Parse(json);
+
+        var version = doc.RootElement.GetProperty("applicationVersion").GetString();
+        var expected = typeof(Program).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        Assert.Equal(expected, version);
+        // Guards against reverting to the old hardcoded/config-duplicated "0.1.0" fallback string
+        // once the authoritative version (Directory.Build.props) advances beyond it.
+        Assert.NotEqual("0.1.0", version);
     }
 }

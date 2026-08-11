@@ -774,7 +774,7 @@ Part Info is parent-part scoped, not week scoped. Clicking the selected parent a
 - [x] Current Project Status advanced beyond Stage 6.
 - [x] Owner-review UI refinements documented and verified.
 - [x] Project-owner acceptance received on **2026-08-11**.
-- [ ] Record final Stage 6 commit hash after the repository commit is made.
+- [x] Record final Stage 6 commit hash after the repository commit is made. Commit: `863a638` (`feat: complete Stage 6 part information drill-down`).
 
 ### Stage 6 completion gate
 
@@ -792,6 +792,32 @@ Part Info is parent-part scoped, not week scoped. Clicking the selected parent a
 - [x] Project-owner acceptance received.
 
 **Completion gate: PASS.** Selecting an MPS parent part displays validated QAD part-master attributes, inventory summaries, and current MOQ/price information through an accepted lazy-loaded drill-down workflow.
+
+## Versioning Foundation (inter-stage housekeeping)
+
+This is administrative housekeeping performed between Stage 6 and Stage 7 — it is **not**
+part of Stage 7 and does **not** renumber or otherwise affect any stage below. **Stage 7 has
+not begun.**
+
+- [x] Product identity `KST v2` established as distinct from the semantic application version.
+- [x] Single authoritative version source: `src/backend/Directory.Build.props`
+  (`VersionPrefix`/`VersionSuffix`).
+- [x] Initial application version set: `0.1.0-alpha.1` (SemVer 2.0.0).
+- [x] Version propagated to backend assemblies (`InformationalVersion`, system status/health
+  endpoints, startup logs, frontend top bar), `src/tauri/Cargo.toml`, `src/frontend/package.json`.
+- [x] `src/tauri/tauri.conf.json` kept numeric-only (`0.1.0`) — MSI/WiX installer bundling
+  rejects non-numeric SemVer pre-release identifiers (empirically discovered/documented).
+- [x] Repeatable sync/check script added: `scripts/check-version.ps1` (supports `-Fix`).
+- [x] Automated drift guards added: 2 backend integration tests
+  (`SystemStatusEndpointTests`), 3 `Kst.ArchitectureTests` (`VersionConsistencyTests`).
+- [x] Full documentation added: `docs/development/VERSIONING.md`.
+- [x] Full verification: backend 329/329 tests, frontend 121/121 tests, backend
+  format/build clean, frontend lint/typecheck/build clean, `cargo check`/`cargo build`
+  clean, sidecar rebuilt, manual `tauri dev` verification, packaged Windows build
+  (NSIS + MSI) verified.
+- [x] No auto-update, release-channel, or CI/CD infrastructure introduced.
+- [x] No configuration-schema migrations introduced (configuration schema versioning
+  remains a distinct, not-yet-existing concept — see `docs/development/VERSIONING.md`).
 
 ## Stage 7 — Phase 4: Work Orders and Kitting
 
