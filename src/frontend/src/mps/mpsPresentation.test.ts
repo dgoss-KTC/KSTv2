@@ -1,17 +1,40 @@
 import { describe, it, expect } from 'vitest';
-import type { MpsBucketDto } from '../api/client';
+import type { MpsBucketDto, WorkOrderMaterialLineDto } from '../api/client';
 import type { FiscalDisplayInfo } from '../fiscal/types';
 import {
   bucketCellClassNames,
   describeBucket,
+  describeBucketSelection,
   executionStatusClass,
+  filterMaterialLinesByPart,
   formatQuantity,
   formatWeekLabel,
   groupConsecutive,
+  isMaterialLineException,
+  isWeeklyBucketWorkOrderEligible,
+  materialLineDeparture,
   parseIsoDateOnly,
+  sortMaterialLines,
   withPeriodColor,
   withQuarterColor,
+  workOrderStatusLabel,
+  WORK_ORDER_DRILLDOWN_HORIZON_WEEKS,
 } from './mpsPresentation';
+
+function makeMaterialLine(overrides: Partial<WorkOrderMaterialLineDto> = {}): WorkOrderMaterialLineDto {
+  return {
+    componentPart: 'COMP1',
+    componentDescription: 'Fastener',
+    requiredQuantity: 10,
+    issuedQuantity: 10,
+    varianceQuantity: 0,
+    issuedPercent: 100,
+    issueStatus: 'withinExpectedRange',
+    isManufactured: false,
+    isFullyIssued: true,
+    ...overrides,
+  };
+}
 
 function makeBucket(overrides: Partial<MpsBucketDto> = {}): MpsBucketDto {
   return {
@@ -188,5 +211,126 @@ describe('withPeriodColor', () => {
     expect(withPeriodColor(groups, [null, null])).toEqual([
       { key: 'n/a', span: 2, quarterNum: 1, altShade: false },
     ]);
+  });
+});
+
+describe('isWeeklyBucketWorkOrderEligible', () => {
+  it('is eligible for the first WORK_ORDER_DRILLDOWN_HORIZON_WEEKS zero-based indices', () => {
+    expect(WORK_ORDER_DRILLDOWN_HORIZON_WEEKS).toBe(6);
+    for (let i = 0; i < WORK_ORDER_DRILLDOWN_HORIZON_WEEKS; i++) {
+      expect(isWeeklyBucketWorkOrderEligible(i)).toBe(true);
+    }
+  });
+
+  it('is not eligible at or beyond the configured horizon', () => {
+    expect(isWeeklyBucketWorkOrderEligible(WORK_ORDER_DRILLDOWN_HORIZON_WEEKS)).toBe(false);
+    expect(isWeeklyBucketWorkOrderEligible(WORK_ORDER_DRILLDOWN_HORIZON_WEEKS + 10)).toBe(false);
+  });
+});
+
+describe('describeBucketSelection', () => {
+  it('labels a Falldown selection', () => {
+    expect(describeBucketSelection({ parentPart: 'ABC100', kind: 'falldown', weekLabel: null })).toBe('Falldown');
+  });
+
+  it('labels a weekly selection with its formatted week', () => {
+    expect(
+      describeBucketSelection({ parentPart: 'ABC100', kind: 'weekly', weekLabel: '2025-06-30' }),
+    ).toBe('Week of Jun 30');
+  });
+});
+
+describe('workOrderStatusLabel', () => {
+  it('maps known Stage 7 status codes to their semantic label', () => {
+    expect(workOrderStatusLabel('allocating')).toBe('Allocating');
+    expect(workOrderStatusLabel('frozen')).toBe('Frozen');
+    expect(workOrderStatusLabel('released')).toBe('Released');
+  });
+
+  it('falls back to the raw value for an unrecognized status', () => {
+    expect(workOrderStatusLabel('unknown')).toBe('unknown');
+  });
+});
+
+describe('materialLineDeparture', () => {
+  it('returns the absolute distance from 100', () => {
+    expect(materialLineDeparture(120)).toBe(20);
+    expect(materialLineDeparture(80)).toBe(20);
+    expect(materialLineDeparture(100)).toBe(0);
+    expect(materialLineDeparture('95')).toBe(5);
+  });
+
+  it('returns null for a missing or non-numeric value', () => {
+    expect(materialLineDeparture(null)).toBeNull();
+    expect(materialLineDeparture(undefined)).toBeNull();
+  });
+});
+
+describe('isMaterialLineException', () => {
+  it('treats under- and over-issued as exceptions', () => {
+    expect(isMaterialLineException('underIssuedException')).toBe(true);
+    expect(isMaterialLineException('overIssuedException')).toBe(true);
+  });
+
+  it('treats within-range and missing status as non-exceptions', () => {
+    expect(isMaterialLineException('withinExpectedRange')).toBe(false);
+    expect(isMaterialLineException(null)).toBe(false);
+  });
+});
+
+describe('sortMaterialLines', () => {
+  it('sorts larger departures from 100% ahead of smaller ones, exceptions first', () => {
+    const lines = [
+      makeMaterialLine({ componentPart: 'NORMAL', issuedPercent: 98, issueStatus: 'withinExpectedRange' }),
+      makeMaterialLine({ componentPart: 'OVER', issuedPercent: 160, issueStatus: 'overIssuedException' }),
+      makeMaterialLine({ componentPart: 'UNDER', issuedPercent: 50, issueStatus: 'underIssuedException' }),
+      makeMaterialLine({ componentPart: 'EXACT', issuedPercent: 100, issueStatus: 'withinExpectedRange' }),
+    ];
+    const sorted = sortMaterialLines(lines).map((line) => line.componentPart);
+    expect(sorted).toEqual(['OVER', 'UNDER', 'NORMAL', 'EXACT']);
+  });
+
+  it('breaks ties deterministically by component part, then original position for true duplicates', () => {
+    const lines = [
+      makeMaterialLine({ componentPart: 'B', issuedPercent: 100 }),
+      makeMaterialLine({ componentPart: 'A', issuedPercent: 100 }),
+      makeMaterialLine({ componentPart: 'A', issuedPercent: 100 }),
+    ];
+    const sorted = sortMaterialLines(lines);
+    expect(sorted.map((line) => line.componentPart)).toEqual(['A', 'A', 'B']);
+  });
+
+  it('sorts lines with an unknown Issued % last, without throwing', () => {
+    const lines = [
+      makeMaterialLine({ componentPart: 'KNOWN', issuedPercent: 50, issueStatus: 'underIssuedException' }),
+      makeMaterialLine({ componentPart: 'UNKNOWN', issuedPercent: null, issueStatus: null }),
+    ];
+    expect(sortMaterialLines(lines).map((line) => line.componentPart)).toEqual(['KNOWN', 'UNKNOWN']);
+  });
+
+  it('does not mutate the input array', () => {
+    const lines = [makeMaterialLine({ componentPart: 'B' }), makeMaterialLine({ componentPart: 'A' })];
+    const original = [...lines];
+    sortMaterialLines(lines);
+    expect(lines).toEqual(original);
+  });
+});
+
+describe('filterMaterialLinesByPart', () => {
+  const lines = [makeMaterialLine({ componentPart: 'ABC-100' }), makeMaterialLine({ componentPart: 'xyz-200' })];
+
+  it('returns all lines for an empty or whitespace-only query', () => {
+    expect(filterMaterialLinesByPart(lines, '')).toHaveLength(2);
+    expect(filterMaterialLinesByPart(lines, '   ')).toHaveLength(2);
+  });
+
+  it('matches case-insensitively and partially', () => {
+    expect(filterMaterialLinesByPart(lines, 'abc').map((l) => l.componentPart)).toEqual(['ABC-100']);
+    expect(filterMaterialLinesByPart(lines, 'XYZ').map((l) => l.componentPart)).toEqual(['xyz-200']);
+    expect(filterMaterialLinesByPart(lines, '-100').map((l) => l.componentPart)).toEqual(['ABC-100']);
+  });
+
+  it('returns an empty array when nothing matches', () => {
+    expect(filterMaterialLinesByPart(lines, 'none-such')).toEqual([]);
   });
 });

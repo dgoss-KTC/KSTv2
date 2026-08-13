@@ -10,6 +10,11 @@ import type {
   PartDetailResponseDto,
   UserPreferencesDto,
   PreferencesResponseDto,
+  WorkOrderBucketResponseDto,
+  WorkOrderSummaryDto,
+  WorkOrderMaterialResponseDto,
+  WorkOrderMaterialLineDto,
+  WorkOrderCandidateResponseDto,
 } from '../api/client';
 
 vi.mock('@tauri-apps/api/event', () => ({
@@ -142,6 +147,80 @@ function makePartDetail(overrides: Partial<PartDetailResponseDto> = {}): PartDet
   };
 }
 
+function makeWorkOrderSummary(overrides: Partial<WorkOrderSummaryDto> = {}): WorkOrderSummaryDto {
+  return {
+    partNumber: 'ABC100',
+    woid: 'WO1001',
+    status: 'released',
+    orderedQuantity: 100,
+    completedQuantity: 40,
+    openQuantity: 60,
+    releaseDate: '2025-06-20',
+    dueDate: '2025-06-30',
+    salesOrder: null,
+    kitting: { applicableLineCount: 4, fullyIssuedLineCount: 3, kittingPercent: 75 },
+    ...overrides,
+  };
+}
+
+function makeBucketWorkOrdersResponse(
+  overrides: Partial<WorkOrderBucketResponseDto> = {},
+): WorkOrderBucketResponseDto {
+  return {
+    snapshotId: 'snap-1',
+    workOrders: [makeWorkOrderSummary()],
+    ...overrides,
+  };
+}
+
+function makeMaterialLine(overrides: Partial<WorkOrderMaterialLineDto> = {}): WorkOrderMaterialLineDto {
+  return {
+    componentPart: 'COMP1',
+    componentDescription: 'Fastener',
+    requiredQuantity: 10,
+    issuedQuantity: 10,
+    varianceQuantity: 0,
+    issuedPercent: 100,
+    issueStatus: 'withinExpectedRange',
+    isManufactured: false,
+    isFullyIssued: true,
+    ...overrides,
+  };
+}
+
+function makeMaterialResponse(
+  overrides: Partial<WorkOrderMaterialResponseDto> = {},
+): WorkOrderMaterialResponseDto {
+  return {
+    snapshotId: 'snap-1',
+    woid: 'WO1001',
+    kitting: { applicableLineCount: 4, fullyIssuedLineCount: 3, kittingPercent: 75 },
+    lines: [makeMaterialLine()],
+    ...overrides,
+  };
+}
+
+function makeCandidateWorkOrder(overrides: Partial<WorkOrderSummaryDto> = {}): WorkOrderSummaryDto {
+  return makeWorkOrderSummary({
+    woid: 'WO2001',
+    partNumber: 'SUBASSY',
+    status: 'allocating',
+    kitting: { applicableLineCount: 2, fullyIssuedLineCount: 1, kittingPercent: 50 },
+    ...overrides,
+  });
+}
+
+function makeCandidateResponse(
+  overrides: Partial<WorkOrderCandidateResponseDto> = {},
+): WorkOrderCandidateResponseDto {
+  return {
+    snapshotId: 'snap-1',
+    candidates: [makeCandidateWorkOrder()],
+    isTruncated: false,
+    ...overrides,
+  };
+}
+
 describe('MpsWorkspace', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
   const user = userEvent.setup();
@@ -167,11 +246,28 @@ describe('MpsWorkspace', () => {
     onGetMps?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onRefreshMps?: () => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onGetPartDetail?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
+    onGetBucketWorkOrders?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
+    onGetMaterialLines?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
+    onGetWorkOrderCandidates?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
   } = {}) {
     fetchMock.mockImplementation((url: string, opts?: RequestInit) => {
       const method = opts?.method ?? 'GET';
       if (method === 'GET' && url.includes('/part-detail')) {
         const result = handlers.onGetPartDetail?.(url) ?? { ok: true, json: async () => makePartDetail() };
+        return Promise.resolve(result);
+      }
+      if (method === 'GET' && url.includes('/work-orders/candidates')) {
+        const result =
+          handlers.onGetWorkOrderCandidates?.(url) ?? { ok: true, json: async () => makeCandidateResponse() };
+        return Promise.resolve(result);
+      }
+      if (method === 'GET' && url.includes('/work-orders/bucket')) {
+        const result =
+          handlers.onGetBucketWorkOrders?.(url) ?? { ok: true, json: async () => makeBucketWorkOrdersResponse() };
+        return Promise.resolve(result);
+      }
+      if (method === 'GET' && url.includes('/work-orders/') && url.includes('/material')) {
+        const result = handlers.onGetMaterialLines?.(url) ?? { ok: true, json: async () => makeMaterialResponse() };
         return Promise.resolve(result);
       }
       if (method === 'POST' && url.includes('/mps/refresh')) {
@@ -411,7 +507,7 @@ describe('MpsWorkspace', () => {
     await user.click(screen.getByText('ABC100'));
 
     await waitFor(() => {
-      expect(screen.getByText(/part info/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
     });
     await waitFor(() => {
       expect(screen.getByText('10 days')).toBeInTheDocument();
@@ -443,7 +539,7 @@ describe('MpsWorkspace', () => {
     await user.click(screen.getByText('ABC100'));
 
     await waitFor(() => {
-      expect(screen.getByText(/part info/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
     });
     expect(screen.getByText('ABC100')).toBeInTheDocument();
     expect(screen.queryByText('XYZ200')).not.toBeInTheDocument();
@@ -486,7 +582,7 @@ describe('MpsWorkspace', () => {
 
     await user.click(screen.getByText('ABC100'));
     await waitFor(() => {
-      expect(screen.getByText(/part info/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
     });
     expect(screen.queryByText('XYZ200')).not.toBeInTheDocument();
 
@@ -518,7 +614,7 @@ describe('MpsWorkspace', () => {
     fireEvent.keyDown(row, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(screen.getByText(/part info/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
     });
 
     const focusedRow = screen.getByText('ABC100').closest('tr');
@@ -625,5 +721,744 @@ describe('MpsWorkspace', () => {
     expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/part-detail'))).toBe(
       false,
     );
+  });
+
+  describe('Stage 7D.6 selection and tab behavior', () => {
+    it('parent-only selection opens Part Info and leaves Work Orders and later tabs disabled', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('ABC100'));
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+      expect(screen.getByRole('tab', { name: 'Part Info' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: 'Work Orders' })).toBeDisabled();
+      expect(screen.getByRole('tab', { name: 'Shortages' })).toBeDisabled();
+      expect(screen.getByRole('tab', { name: 'Future Shortages' })).toBeDisabled();
+      expect(screen.getByRole('tab', { name: 'Components' })).toBeDisabled();
+    });
+
+    it('clicking an eligible weekly bucket cell selects the parent + bucket and auto-opens Work Orders', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('100')); // the 2025-06-30 weekly bucket cell
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+      expect(screen.getByRole('heading', { name: /work orders/i })).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('WO1001')).toBeInTheDocument();
+      });
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/work-orders/bucket') &&
+            url.includes('bucketKind=weekly') &&
+            url.includes('weekLabel=2025-06-30'),
+        ),
+      ).toBe(true);
+    });
+
+    it('clicking Falldown selects the parent + Falldown bucket and auto-opens Work Orders', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('50')); // the Falldown cell
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+      expect(screen.getByRole('heading', { name: /falldown/i })).toBeInTheDocument();
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) => typeof url === 'string' && url.includes('/work-orders/bucket') && url.includes('bucketKind=falldown'),
+        ),
+      ).toBe(true);
+    });
+
+    it('clicking the already-selected parent row toggles everything closed even when a bucket is selected', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('100'));
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+      await waitFor(() => {
+        expect(screen.getByText('WO1001')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('ABC100'));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('tablist', { name: /part detail/i })).not.toBeInTheDocument();
+      });
+      expect(screen.queryByText('WO1001')).not.toBeInTheDocument();
+    });
+
+    it('shows a deliberate empty message (not an error) when the bucket has no eligible work orders', async () => {
+      setupBackend({
+        onGetBucketWorkOrders: () => ({ ok: true, json: async () => makeBucketWorkOrdersResponse({ workOrders: [] }) }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('100'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/no eligible work orders/i)).toBeInTheDocument();
+      });
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('weeks beyond the drill-down horizon do not expose the Work Order action', async () => {
+      const extendedWeekly = [
+        { kind: 'weekly' as const, weekLabel: '2025-06-30', quantity: 100, executionStatus: 'released', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-07-07', quantity: 200, executionStatus: 'allocating', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-07-14', quantity: 300, executionStatus: 'none', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-07-21', quantity: 400, executionStatus: 'none', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-07-28', quantity: 500, executionStatus: 'none', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-08-04', quantity: 600, executionStatus: 'none', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-08-11', quantity: 700, executionStatus: 'none', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+      ];
+      setupBackend({
+        onGetMps: () => ({
+          ok: true,
+          json: async () =>
+            makeDashboard({
+              parts: [{ parentPart: 'ABC100', description: 'Widget Assembly', buckets: [makeDashboard().parts[0].buckets[0], ...extendedWeekly] }],
+            }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('700')).toBeInTheDocument();
+      });
+
+      fetchMock.mockClear();
+      await user.click(screen.getByText('700')); // the 7th forward week (index 6, beyond the 6-week horizon)
+
+      // No dedicated bucket action fires; the click behaves like any other cell in the row and
+      // simply selects the parent (falling through to the row's own click handler), opening Part
+      // Info rather than Work Orders.
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+      expect(screen.getByRole('tab', { name: 'Work Orders' })).toBeDisabled();
+      expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/work-orders/bucket'))).toBe(
+        false,
+      );
+    });
+  });
+
+  describe('Stage 7D.7 work order cards', () => {
+    it('renders card fields, status badge, and a Kitting % progress bar', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      const withinCard = within(card);
+      expect(withinCard.getByText('Released')).toBeInTheDocument();
+      expect(withinCard.getByText('100')).toBeInTheDocument();
+      expect(withinCard.getByText('40')).toBeInTheDocument();
+      expect(withinCard.getByText('60')).toBeInTheDocument();
+      expect(withinCard.getByText('Jun 20')).toBeInTheDocument();
+      expect(withinCard.getByText('Jun 30')).toBeInTheDocument();
+      expect(withinCard.getByText('75%')).toBeInTheDocument();
+
+      const progressBar = withinCard.getByRole('progressbar');
+      expect(progressBar).toHaveAttribute('aria-valuenow', '75');
+    });
+
+    it('shows an SO badge opposite the WOID when the work order has a sales order job', async () => {
+      setupBackend({
+        onGetBucketWorkOrders: () => ({
+          ok: true,
+          json: async () =>
+            makeBucketWorkOrdersResponse({ workOrders: [makeWorkOrderSummary({ salesOrder: 'SO-4521' })] }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      expect(within(card).getByText('SO SO-4521')).toBeInTheDocument();
+    });
+
+    it('renders no SO badge when the work order has no sales order job', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      expect(within(card).queryByText(/^SO /)).not.toBeInTheDocument();
+    });
+
+    it('shows Kitting as N/A (not 0%) and an empty progress bar when there are no applicable material lines', async () => {
+      setupBackend({
+        onGetBucketWorkOrders: () => ({
+          ok: true,
+          json: async () =>
+            makeBucketWorkOrdersResponse({
+              workOrders: [
+                makeWorkOrderSummary({ kitting: { applicableLineCount: 0, fullyIssuedLineCount: 0, kittingPercent: null } }),
+              ],
+            }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      expect(within(card).getByText('N/A')).toBeInTheDocument();
+      expect(within(card).getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
+    });
+
+    it('expanding a card lazily loads material lines, and collapsing hides them again', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+      await screen.findByRole('listitem', { name: /WO1001, Released/i });
+
+      expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/work-orders/'))).toBe(true);
+      fetchMock.mockClear();
+
+      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('COMP1')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Fastener')).toBeInTheDocument();
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' && url.includes('/work-orders/WO1001/material') && url.includes('snapshotId=snap-1'),
+        ),
+      ).toBe(true);
+
+      await user.click(screen.getByRole('button', { name: /hide material lines/i }));
+      await waitFor(() => {
+        expect(screen.queryByText('COMP1')).not.toBeInTheDocument();
+      });
+    });
+
+    it('shows a deliberate empty message (not an error) when a work order has no applicable material lines', async () => {
+      setupBackend({
+        onGetMaterialLines: () => ({ ok: true, json: async () => makeMaterialResponse({ lines: [] }) }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+      await screen.findByRole('listitem', { name: /WO1001, Released/i });
+
+      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/no applicable material lines/i)).toBeInTheDocument();
+      });
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('supports multiple cards for one bucket, independently expandable', async () => {
+      setupBackend({
+        onGetBucketWorkOrders: () => ({
+          ok: true,
+          json: async () =>
+            makeBucketWorkOrdersResponse({
+              workOrders: [
+                makeWorkOrderSummary(),
+                makeWorkOrderSummary({ woid: 'WO1002', status: 'frozen', kitting: { applicableLineCount: 2, fullyIssuedLineCount: 2, kittingPercent: 100 } }),
+              ],
+            }),
+        }),
+        onGetMaterialLines: (url) => {
+          if (url.includes('/WO1002/')) {
+            return { ok: true, json: async () => makeMaterialResponse({ woid: 'WO1002', lines: [makeMaterialLine({ componentPart: 'COMP2' })] }) };
+          }
+          return { ok: true, json: async () => makeMaterialResponse() };
+        },
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+
+      await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      await screen.findByRole('listitem', { name: /WO1002, Frozen/i });
+
+      const card1 = screen.getByRole('listitem', { name: /WO1001, Released/i });
+      const card2 = screen.getByRole('listitem', { name: /WO1002, Frozen/i });
+
+      await user.click(within(card1).getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(card1).getByText('COMP1')).toBeInTheDocument();
+      });
+      expect(within(card2).queryByText('COMP2')).not.toBeInTheDocument();
+
+      await user.click(within(card2).getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(card2).getByText('COMP2')).toBeInTheDocument();
+      });
+      expect(within(card1).getByText('COMP1')).toBeInTheDocument();
+    });
+  });
+
+  describe('Stage 7D.8 kitting material grid', () => {
+    it('sorts exceptions first, styles variance/manufactured rows, and filters by Part Number', async () => {
+      setupBackend({
+        onGetMaterialLines: () => ({
+          ok: true,
+          json: async () =>
+            makeMaterialResponse({
+              lines: [
+                makeMaterialLine({ componentPart: 'NORMAL1', issuedPercent: 98, issueStatus: 'withinExpectedRange' }),
+                makeMaterialLine({
+                  componentPart: 'SUBASSY',
+                  issuedPercent: 160,
+                  issueStatus: 'overIssuedException',
+                  isManufactured: true,
+                }),
+              ],
+            }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+
+      await waitFor(() => {
+        expect(within(card).getByText('SUBASSY')).toBeInTheDocument();
+      });
+
+      const rows = within(within(card).getByRole('table')).getAllByRole('row').slice(1);
+      expect(within(rows[0]).getByText('SUBASSY')).toBeInTheDocument();
+      expect(within(rows[1]).getByText('NORMAL1')).toBeInTheDocument();
+      expect(within(card).getByText('160%')).toHaveClass('work-order-material-grid__issued-pct--exception');
+      expect(within(card).getByText('98%')).not.toHaveClass('work-order-material-grid__issued-pct--exception');
+      expect(within(card).getByText('SUBASSY').closest('tr')).toHaveClass('work-order-material-grid__row--manufactured');
+
+      await user.type(screen.getByLabelText(/filter by part number/i), 'normal');
+      await waitFor(() => {
+        expect(screen.queryByText('SUBASSY')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('NORMAL1')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /clear/i }));
+      await waitFor(() => {
+        expect(screen.getByText('SUBASSY')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Stage 7D.9 manufactured-subassembly candidate drill-down', () => {
+    it('shows truthful "Work Orders for <Part>" candidates with A/F/R status coloring, never implying pegging', async () => {
+      setupBackend({
+        onGetMaterialLines: () => ({
+          ok: true,
+          json: async () =>
+            makeMaterialResponse({ lines: [makeMaterialLine({ componentPart: 'SUBASSY', isManufactured: true })] }),
+        }),
+        onGetWorkOrderCandidates: () => ({
+          ok: true,
+          json: async () => makeCandidateResponse({ candidates: [makeCandidateWorkOrder({ status: 'allocating' })] }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(card).getByText('SUBASSY')).toBeInTheDocument();
+      });
+
+      await user.click(within(card).getByRole('button', { name: 'SUBASSY' }));
+
+      expect(await screen.findByRole('heading', { name: 'Work Orders for SUBASSY' })).toBeInTheDocument();
+      const candidateCard = await screen.findByRole('listitem', { name: /WO2001, Allocating/i });
+      expect(within(candidateCard).getByText('WO2001')).toBeInTheDocument();
+
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/work-orders/candidates') &&
+            url.includes('immediateParentWoid=WO1001') &&
+            url.includes('componentPart=SUBASSY') &&
+            url.includes('targetDepth=2'),
+        ),
+      ).toBe(true);
+      expect(screen.queryByText(/child work orders|linked work orders|related work orders/i)).not.toBeInTheDocument();
+    });
+
+    it('communicates truncation without implying database pegging when candidate results are capped', async () => {
+      setupBackend({
+        onGetMaterialLines: () => ({
+          ok: true,
+          json: async () =>
+            makeMaterialResponse({ lines: [makeMaterialLine({ componentPart: 'SUBASSY', isManufactured: true })] }),
+        }),
+        onGetWorkOrderCandidates: () => ({
+          ok: true,
+          json: async () => makeCandidateResponse({ isTruncated: true }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(card).getByText('SUBASSY')).toBeInTheDocument();
+      });
+
+      await user.click(within(card).getByRole('button', { name: 'SUBASSY' }));
+
+      expect(await screen.findByText(/more may exist/i)).toBeInTheDocument();
+    });
+
+    it('shows a deliberate empty message (not an error) when a manufactured part has no eligible candidate work orders', async () => {
+      setupBackend({
+        onGetMaterialLines: () => ({
+          ok: true,
+          json: async () =>
+            makeMaterialResponse({ lines: [makeMaterialLine({ componentPart: 'SUBASSY', isManufactured: true })] }),
+        }),
+        onGetWorkOrderCandidates: () => ({
+          ok: true,
+          json: async () => makeCandidateResponse({ candidates: [] }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(card).getByText('SUBASSY')).toBeInTheDocument();
+      });
+
+      await user.click(within(card).getByRole('button', { name: 'SUBASSY' }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/no active preceding work orders found for this part/i)).toBeInTheDocument();
+      });
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('lets a selected candidate expand its own Kitting material lines, reusing the same Work Order card', async () => {
+      setupBackend({
+        onGetMaterialLines: (url) => {
+          if (url.includes('/work-orders/WO2001/material')) {
+            return {
+              ok: true,
+              json: async () => makeMaterialResponse({ woid: 'WO2001', lines: [makeMaterialLine({ componentPart: 'LEAF' })] }),
+            };
+          }
+          return {
+            ok: true,
+            json: async () => makeMaterialResponse({ lines: [makeMaterialLine({ componentPart: 'SUBASSY', isManufactured: true })] }),
+          };
+        },
+        onGetWorkOrderCandidates: () => ({
+          ok: true,
+          json: async () => makeCandidateResponse(),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(card).getByText('SUBASSY')).toBeInTheDocument();
+      });
+
+      await user.click(within(card).getByRole('button', { name: 'SUBASSY' }));
+      const candidateCard = await screen.findByRole('listitem', { name: /WO2001, Allocating/i });
+
+      await user.click(within(candidateCard).getByRole('button', { name: /show material lines/i }));
+
+      await waitFor(() => {
+        expect(within(candidateCard).getByText('LEAF')).toBeInTheDocument();
+      });
+    });
+
+    it('prefers one expanded manufactured-component branch per level, collapsing the prior one', async () => {
+      setupBackend({
+        onGetMaterialLines: () => ({
+          ok: true,
+          json: async () =>
+            makeMaterialResponse({
+              lines: [
+                makeMaterialLine({ componentPart: 'SUBASSY-A', isManufactured: true }),
+                makeMaterialLine({ componentPart: 'SUBASSY-B', isManufactured: true }),
+              ],
+            }),
+        }),
+        onGetWorkOrderCandidates: (url) => {
+          if (url.includes('componentPart=SUBASSY-A')) {
+            return {
+              ok: true,
+              json: async () =>
+                makeCandidateResponse({ candidates: [makeCandidateWorkOrder({ woid: 'WOA', partNumber: 'SUBASSY-A' })] }),
+            };
+          }
+          return {
+            ok: true,
+            json: async () =>
+              makeCandidateResponse({ candidates: [makeCandidateWorkOrder({ woid: 'WOB', partNumber: 'SUBASSY-B' })] }),
+          };
+        },
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(card).getByText('SUBASSY-A')).toBeInTheDocument();
+      });
+
+      await user.click(within(card).getByRole('button', { name: 'SUBASSY-A' }));
+      expect(await screen.findByRole('heading', { name: 'Work Orders for SUBASSY-A' })).toBeInTheDocument();
+
+      await user.click(within(card).getByRole('button', { name: 'SUBASSY-B' }));
+      expect(await screen.findByRole('heading', { name: 'Work Orders for SUBASSY-B' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Work Orders for SUBASSY-A' })).not.toBeInTheDocument();
+    });
+
+    it('lets a Level 2 candidate expose one further drill level, disabled at the maximum depth', async () => {
+      setupBackend({
+        onGetMaterialLines: (url) => {
+          if (url.includes('/work-orders/WO2001/material')) {
+            return {
+              ok: true,
+              json: async () =>
+                makeMaterialResponse({ woid: 'WO2001', lines: [makeMaterialLine({ componentPart: 'SUBASSY2', isManufactured: true })] }),
+            };
+          }
+          if (url.includes('/work-orders/WO3001/material')) {
+            return {
+              ok: true,
+              json: async () =>
+                makeMaterialResponse({ woid: 'WO3001', lines: [makeMaterialLine({ componentPart: 'SUBASSY3', isManufactured: true })] }),
+            };
+          }
+          return {
+            ok: true,
+            json: async () =>
+              makeMaterialResponse({ lines: [makeMaterialLine({ componentPart: 'SUBASSY1', isManufactured: true })] }),
+          };
+        },
+        onGetWorkOrderCandidates: (url) => {
+          if (url.includes('componentPart=SUBASSY1') && url.includes('targetDepth=2')) {
+            return {
+              ok: true,
+              json: async () =>
+                makeCandidateResponse({ candidates: [makeCandidateWorkOrder({ woid: 'WO2001', partNumber: 'SUBASSY1' })] }),
+            };
+          }
+          if (url.includes('componentPart=SUBASSY2') && url.includes('targetDepth=3')) {
+            return {
+              ok: true,
+              json: async () =>
+                makeCandidateResponse({ candidates: [makeCandidateWorkOrder({ woid: 'WO3001', partNumber: 'SUBASSY2' })] }),
+            };
+          }
+          return { ok: true, json: async () => makeCandidateResponse({ candidates: [] }) };
+        },
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(card).getByText('SUBASSY1')).toBeInTheDocument();
+      });
+
+      await user.click(within(card).getByRole('button', { name: 'SUBASSY1' }));
+      const candidateCard = await screen.findByRole('listitem', { name: /WO2001, Allocating/i });
+
+      await user.click(within(candidateCard).getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(candidateCard).getByText('SUBASSY2')).toBeInTheDocument();
+      });
+
+      await user.click(within(candidateCard).getByRole('button', { name: 'SUBASSY2' }));
+      const nestedCandidateCard = await screen.findByRole('listitem', { name: /WO3001, Allocating/i });
+
+      await user.click(within(nestedCandidateCard).getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(nestedCandidateCard).getByText('SUBASSY3')).toBeInTheDocument();
+      });
+
+      expect(within(nestedCandidateCard).queryByRole('button', { name: 'SUBASSY3' })).not.toBeInTheDocument();
+      expect(within(nestedCandidateCard).getByText('SUBASSY3').closest('tr')).not.toHaveClass(
+        'work-order-material-grid__row--drillable',
+      );
+      expect(
+        within(nestedCandidateCard).getByText('SUBASSY3').parentElement?.querySelector(
+          '.work-order-material-grid__chevron--disabled',
+        ),
+      ).not.toBeNull();
+    });
+  });
+
+  describe('Stage 7D.10 snapshot refresh and drill-down', () => {
+    it('a successful refresh that replaces the snapshot clears the open Work Orders drill-down', async () => {
+      setupBackend({
+        onRefreshMps: () => ({
+          ok: true,
+          json: async () =>
+            makeDashboard({ snapshot: { ...makeDashboard().snapshot, snapshotId: 'snap-2' } }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('100')); // the 2025-06-30 weekly bucket cell
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+      await waitFor(() => {
+        expect(screen.getByText('WO1001')).toBeInTheDocument();
+      });
+
+      await user.click(within(screen.getByRole('main')).getByRole('button', { name: /^refresh$/i }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+      expect(screen.getByRole('tab', { name: 'Work Orders' })).toBeDisabled();
+      expect(screen.queryByText('WO1001')).not.toBeInTheDocument();
+    });
+
+    it('a failed refresh preserves the retained snapshot and its open Work Orders drill-down', async () => {
+      setupBackend({
+        onRefreshMps: () => ({ ok: false, status: 503, text: async () => JSON.stringify({ detail: 'DB is down.' }) }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('100')); // the 2025-06-30 weekly bucket cell
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+      await waitFor(() => {
+        expect(screen.getByText('WO1001')).toBeInTheDocument();
+      });
+
+      await user.click(within(screen.getByRole('main')).getByRole('button', { name: /^refresh$/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/DB is down\./)).toBeInTheDocument();
+      });
+      expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByText('WO1001')).toBeInTheDocument();
+    });
   });
 });

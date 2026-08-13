@@ -10,6 +10,7 @@ using Kst.Application.Preferences;
 using Kst.Application.Refresh;
 using Kst.Application.SystemStatus;
 using Kst.Application.Workspaces;
+using Kst.Application.WorkOrders;
 using Kst.Domain.Common;
 using Kst.Application.Snapshots;
 using Kst.Infrastructure;
@@ -18,10 +19,12 @@ using Kst.Infrastructure.Identity;
 using Kst.Infrastructure.Mps;
 using Kst.Infrastructure.PartDetail;
 using Kst.Infrastructure.SystemStatus;
+using Kst.Infrastructure.WorkOrders;
 using Kst.Integrations.Qad.Connectivity;
 using Kst.Integrations.Qad.Mps;
 using Kst.Integrations.Qad.Options;
 using Kst.Integrations.Qad.PartDetail;
+using Kst.Integrations.Qad.WorkOrders;
 using Kst.Integrations.Shortages.Connectivity;
 using Kst.Integrations.Shortages.Options;
 
@@ -185,6 +188,34 @@ else
 
 builder.Services.AddSingleton<PartDetailService>();
 
+// -- Work Orders (Stage 7) --------------------------------------------------
+builder.Services.AddSingleton<IWorkOrderSummaryCacheStore, InMemoryWorkOrderSummaryCacheStore>();
+builder.Services.AddSingleton<IWorkOrderMaterialCacheStore, InMemoryWorkOrderMaterialCacheStore>();
+builder.Services.AddSingleton<IWorkOrderCandidateCacheStore, InMemoryWorkOrderCandidateCacheStore>();
+
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadWorkOrderSummaryReader>();
+    builder.Services.AddSingleton<QadWorkOrderMaterialReader>();
+    builder.Services.AddSingleton<IWorkOrderSummaryReader>(sp => new DelegateWorkOrderSummaryReader(
+        (site, woids, ct) => sp.GetRequiredService<QadWorkOrderSummaryReader>().ReadByWoidsAsync(site, woids, ct),
+        (site, component, limit, ct) =>
+            sp.GetRequiredService<QadWorkOrderSummaryReader>().ReadCandidatesAsync(site, component, limit, ct)));
+    builder.Services.AddSingleton<IWorkOrderMaterialReader>(sp => new DelegateWorkOrderMaterialReader(
+        (site, woid, ct) => sp.GetRequiredService<QadWorkOrderMaterialReader>().ReadAsync(site, woid, ct)));
+}
+else
+{
+    const string notConfiguredMessage = "QAD connection is not configured.";
+    builder.Services.AddSingleton<IWorkOrderSummaryReader>(_ => new DelegateWorkOrderSummaryReader(
+        (_, _, _) => throw new InvalidOperationException(notConfiguredMessage),
+        (_, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+    builder.Services.AddSingleton<IWorkOrderMaterialReader>(_ => new DelegateWorkOrderMaterialReader(
+        (_, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+}
+
+builder.Services.AddSingleton<WorkOrderDrilldownService>();
+
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddCors(options =>
@@ -227,6 +258,7 @@ app.MapWorkspaceEndpoints();
 app.MapPreferencesEndpoints();
 app.MapMpsEndpoints();
 app.MapPartDetailEndpoints();
+app.MapWorkOrderEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------
 // Writes a JSON line to stdout once the server is bound so Tauri can read the port.

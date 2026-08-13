@@ -65,6 +65,18 @@ export interface paths {
     /** Returns lazily-loaded Part Info for a workspace's selected MPS parent part. */
     get: operations["GetPartDetail"];
   };
+  "/api/v1/workspaces/{assignmentId}/work-orders/bucket": {
+    /** Returns the eligible (Allocating/Frozen/Released) work orders for one MPS bucket. */
+    get: operations["GetBucketWorkOrders"];
+  };
+  "/api/v1/workspaces/{assignmentId}/work-orders/{woid}/material": {
+    /** Returns lazily-loaded material/kitting lines and Kitting Summary for one work order. */
+    get: operations["GetWorkOrderMaterialLines"];
+  };
+  "/api/v1/workspaces/{assignmentId}/work-orders/candidates": {
+    /** Returns candidate subassembly work orders for a manufactured component, across all eligible A/F/R work orders regardless of Due Date. */
+    get: operations["GetWorkOrderCandidates"];
+  };
 }
 
 export type webhooks = Record<string, never>;
@@ -94,6 +106,14 @@ export interface components {
       instanceId: string;
       /** Format: date-time */
       timestamp: string;
+    };
+    KittingSummaryDto: {
+      /** Format: int32 */
+      applicableLineCount: number | string;
+      /** Format: int32 */
+      fullyIssuedLineCount: number | string;
+      /** Format: double */
+      kittingPercent: null | number | string;
     };
     MpsBucketDto: {
       kind: string;
@@ -221,6 +241,53 @@ export interface components {
       theme: string;
       accentColor: string;
       rowDensity: string;
+    };
+    WorkOrderBucketResponseDto: {
+      snapshotId: string;
+      workOrders: components["schemas"]["WorkOrderSummaryDto"][];
+    };
+    WorkOrderCandidateResponseDto: {
+      snapshotId: string;
+      candidates: components["schemas"]["WorkOrderSummaryDto"][];
+      isTruncated: boolean;
+    };
+    WorkOrderMaterialLineDto: {
+      componentPart: string;
+      componentDescription: null | string;
+      /** Format: double */
+      requiredQuantity: number | string;
+      /** Format: double */
+      issuedQuantity: number | string;
+      /** Format: double */
+      varianceQuantity: number | string;
+      /** Format: double */
+      issuedPercent: null | number | string;
+      issueStatus: null | string;
+      isManufactured: boolean;
+      isFullyIssued: boolean;
+    };
+    WorkOrderMaterialResponseDto: {
+      snapshotId: string;
+      woid: string;
+      kitting: components["schemas"]["KittingSummaryDto"];
+      lines: components["schemas"]["WorkOrderMaterialLineDto"][];
+    };
+    WorkOrderSummaryDto: {
+      partNumber: string;
+      woid: string;
+      status: string;
+      /** Format: double */
+      orderedQuantity: number | string;
+      /** Format: double */
+      completedQuantity: number | string;
+      /** Format: double */
+      openQuantity: number | string;
+      /** Format: date */
+      releaseDate: null | string;
+      /** Format: date */
+      dueDate: null | string;
+      salesOrder: null | string;
+      kitting: components["schemas"]["KittingSummaryDto"];
     };
     WorkspaceAssignmentDto: {
       /** Format: uuid */
@@ -584,6 +651,144 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["PartDetailResponseDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Service Unavailable */
+      503: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Returns the eligible (Allocating/Frozen/Released) work orders for one MPS bucket. */
+  GetBucketWorkOrders: {
+    parameters: {
+      query?: {
+        snapshotId?: string;
+        parentPart?: string;
+        bucketKind?: string;
+        weekLabel?: string;
+        dateBasis?: string;
+        horizonWeeks?: number | string;
+      };
+      path: {
+        assignmentId: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WorkOrderBucketResponseDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Service Unavailable */
+      503: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Returns lazily-loaded material/kitting lines and Kitting Summary for one work order. */
+  GetWorkOrderMaterialLines: {
+    parameters: {
+      query?: {
+        snapshotId?: string;
+      };
+      path: {
+        assignmentId: string;
+        woid: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WorkOrderMaterialResponseDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Service Unavailable */
+      503: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Returns candidate subassembly work orders for a manufactured component, across all eligible A/F/R work orders regardless of Due Date. */
+  GetWorkOrderCandidates: {
+    parameters: {
+      query?: {
+        snapshotId?: string;
+        immediateParentWoid?: string;
+        componentPart?: string;
+        targetDepth?: number | string;
+      };
+      path: {
+        assignmentId: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["WorkOrderCandidateResponseDto"];
         };
       };
       /** @description Bad Request */

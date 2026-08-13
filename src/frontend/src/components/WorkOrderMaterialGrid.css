@@ -1,0 +1,155 @@
+.work-order-material-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.work-order-material-grid__filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.work-order-material-grid__filter label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tx3);
+}
+
+.work-order-material-grid__filter input {
+  height: var(--density-control-height);
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--bd);
+  background: var(--panel2);
+  color: var(--tx);
+  font-family: inherit;
+  font-size: 12px;
+  min-width: 160px;
+}
+
+.work-order-material-grid__filter input:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 1px;
+}
+
+.work-order-material-grid__clear-btn {
+  height: var(--density-control-height);
+  padding: 0 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tx2);
+  background: var(--chip);
+  border: 1px solid var(--bd);
+  cursor: pointer;
+}
+
+.work-order-material-grid__clear-btn:hover {
+  color: var(--tx);
+  border-color: var(--accent-solid);
+}
+
+.work-order-material-grid__empty {
+  font-size: 12px;
+  color: var(--tx2);
+  padding: 6px 0;
+}
+
+.work-order-material-grid__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.work-order-material-grid__table th {
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tx3);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--bd-soft);
+}
+
+.work-order-material-grid__table td {
+  padding: 4px 8px;
+  color: var(--tx);
+  border-bottom: 1px solid var(--bd-soft);
+}
+
+.work-order-material-grid__component {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.work-order-material-grid__drill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.work-order-material-grid__drill-btn:hover {
+  text-decoration: underline;
+}
+
+.work-order-material-grid__drill-btn:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 2px;
+}
+
+/* Manufactured components: distinct row background, kept alongside any variance font styling. */
+.work-order-material-grid__row--manufactured {
+  background: var(--chip);
+}
+
+.work-order-material-grid__row--drillable {
+  cursor: pointer;
+}
+
+.work-order-material-grid__row--drillable:hover {
+  box-shadow: inset 3px 0 0 var(--accent-solid);
+}
+
+/* Non-color drill affordance; a plain right-pointing chevron before the component part. */
+.work-order-material-grid__chevron {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--tx2);
+  flex: none;
+  transition: transform 0.1s ease-in-out;
+}
+
+.work-order-material-grid__chevron--open {
+  transform: rotate(90deg);
+}
+
+.work-order-material-grid__chevron--disabled {
+  border-left-color: var(--tx3);
+  opacity: 0.5;
+}
+
+.work-order-material-grid__candidate-row td {
+  padding: 8px;
+  background: var(--panel);
+}
+
+/* Variance exceptions: font weight + color, never color alone. */
+.work-order-material-grid__issued-pct--exception {
+  font-weight: 700;
+  color: var(--danger-tx);
+}

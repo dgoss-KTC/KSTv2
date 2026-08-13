@@ -1,6 +1,6 @@
 [package]
 name = "kst-tauri"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 description = "KST v2 - Keytronic Scheduler's Toolbox desktop host"
 authors = ["Keytronic"]
 license = "MIT"

@@ -1,4 +1,4 @@
-import type { MpsBucketDto } from '../api/client';
+import type { MpsBucketDto, WorkOrderMaterialLineDto } from '../api/client';
 import type { FiscalDisplayInfo } from '../fiscal/types';
 
 /** Groups consecutive items sharing the same key, returning each group's key and span length. */
@@ -126,4 +126,114 @@ export function formatWeekLabel(iso: string | null): string {
 export function parseIsoDateOnly(iso: string): Date {
   const [year, month, day] = iso.split('-').map(Number);
   return new Date(year, month - 1, day);
+}
+
+/**
+ * Work Order drill-down (Stage 7) is only exposed for Falldown plus this many forward weekly
+ * buckets, regardless of the MPS grid's own display horizon (see the accepted Stage 7 UI
+ * contract §4). Kept as a single named constant so the horizon can change without restructuring
+ * selection/click-handling code.
+ */
+export const WORK_ORDER_DRILLDOWN_HORIZON_WEEKS = 6;
+
+/** Whether the weekly bucket at this zero-based index (within one part's weekly buckets, i.e.
+ * excluding Falldown) exposes the Work Order drill-down action. Falldown is always eligible and
+ * is not covered by this helper. */
+export function isWeeklyBucketWorkOrderEligible(weeklyIndex: number): boolean {
+  return weeklyIndex < WORK_ORDER_DRILLDOWN_HORIZON_WEEKS;
+}
+
+/** A selected schedule bucket (Falldown or one weekly bucket) used to scope the Work Orders tab. */
+export interface BucketSelection {
+  parentPart: string;
+  kind: 'falldown' | 'weekly';
+  weekLabel: string | null;
+}
+
+/** Human-readable label identifying the currently selected schedule context (Falldown or a
+ * specific week), so the selection remains visibly identifiable once the Work Orders tab is open. */
+export function describeBucketSelection(bucket: BucketSelection): string {
+  if (bucket.kind === 'falldown') return 'Falldown';
+  return bucket.weekLabel ? `Week of ${formatWeekLabel(bucket.weekLabel)}` : 'Selected week';
+}
+
+const WORK_ORDER_STATUS_LABELS: Record<string, string> = {
+  allocating: 'Allocating',
+  frozen: 'Frozen',
+  released: 'Released',
+};
+
+/** Accessible semantic label for a Work Order's Stage 7 status (Allocating/Frozen/Released). */
+export function workOrderStatusLabel(status: string): string {
+  return WORK_ORDER_STATUS_LABELS[status] ?? status;
+}
+
+const NO_VALUE = '\u2014';
+
+/** Formats an optional ISO date (Release/Due) for a Work Order card; "\u2014" when absent. */
+export function formatOptionalDate(value: string | null | undefined): string {
+  return value ? formatWeekLabel(value) : NO_VALUE;
+}
+
+/** Formats a Kitting % value for display; "N/A" (never "0%") when there are no applicable lines. */
+export function formatKittingPercent(value: number | string | null | undefined): string {
+  if (value === null || value === undefined) return 'N/A';
+  return `${formatQuantity(value)}%`;
+}
+
+/** Clamped 0-100 numeric Kitting percent for progress-bar width; null when Kitting is N/A. */
+export function kittingPercentValue(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined) return null;
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) return null;
+  return Math.min(100, Math.max(0, numeric));
+}
+
+/** Absolute departure of Issued % from 100; null when Issued % is unknown (defensive — applicable
+ * material lines always carry a value since zero-required lines are excluded upstream). */
+export function materialLineDeparture(issuedPercent: number | string | null | undefined): number | null {
+  if (issuedPercent === null || issuedPercent === undefined) return null;
+  const value = Number(issuedPercent);
+  return Number.isNaN(value) ? null : Math.abs(value - 100);
+}
+
+/** Whether a material line is a variance exception, per the backend's semantic issue-status
+ * classification — never recompute the 95/105 thresholds independently on the frontend. */
+export function isMaterialLineException(issueStatus: WorkOrderMaterialLineDto['issueStatus']): boolean {
+  return issueStatus === 'underIssuedException' || issueStatus === 'overIssuedException';
+}
+
+/**
+ * Default Stage 7D.8 material-grid sort: larger departures from 100% Issued sort first (which,
+ * given the 95/105 exception thresholds, naturally puts every exception ahead of every normal
+ * line), then alphabetically by component part, then by original position for true duplicate rows.
+ */
+export function sortMaterialLines<T extends Pick<WorkOrderMaterialLineDto, 'componentPart' | 'issuedPercent'>>(
+  lines: readonly T[],
+): T[] {
+  return lines
+    .map((line, index) => ({ line, index }))
+    .sort((a, b) => {
+      const departureA = materialLineDeparture(a.line.issuedPercent);
+      const departureB = materialLineDeparture(b.line.issuedPercent);
+      if (departureA === null && departureB === null) {
+        return a.line.componentPart.localeCompare(b.line.componentPart) || a.index - b.index;
+      }
+      if (departureA === null) return 1;
+      if (departureB === null) return -1;
+      if (departureA !== departureB) return departureB - departureA;
+      return a.line.componentPart.localeCompare(b.line.componentPart) || a.index - b.index;
+    })
+    .map((entry) => entry.line);
+}
+
+/** Case-insensitive partial Part Number filter, scoped to an already-loaded material line list —
+ * frontend-local, never re-queries QAD per keystroke. */
+export function filterMaterialLinesByPart<T extends Pick<WorkOrderMaterialLineDto, 'componentPart'>>(
+  lines: readonly T[],
+  query: string,
+): T[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [...lines];
+  return lines.filter((line) => line.componentPart.toLowerCase().includes(needle));
 }

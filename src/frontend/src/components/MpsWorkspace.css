@@ -419,6 +419,61 @@
   background: var(--chip);
 }
 
+/* Bucket cells that expose the Work Order drill-down action (Falldown + the first N forward
+   weekly buckets, see mpsPresentation.WORK_ORDER_DRILLDOWN_HORIZON_WEEKS) get their own pointer
+   affordance, independent of the row-level pointer cursor used for parent selection. */
+.mps-cell--clickable {
+  cursor: pointer;
+}
+
+.mps-cell--selected-bucket {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: -2px;
+}
+
+.mps-detail {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mps-detail__tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 20px 10px;
+}
+
+.mps-detail__tab {
+  height: var(--density-control-height);
+  border-radius: 6px 6px 0 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 14px;
+  cursor: pointer;
+  background: var(--chip);
+  border: 1px solid var(--bd);
+  border-bottom: none;
+  color: var(--tx3);
+  transition: background 0.1s, color 0.1s;
+}
+
+.mps-detail__tab:not(:disabled):hover {
+  background: var(--row-hover);
+  color: var(--tx);
+}
+
+.mps-detail__tab--active {
+  background: var(--grid);
+  color: var(--tx);
+}
+
+.mps-detail__tab:disabled {
+  cursor: not-allowed;
+  color: var(--tx3);
+  opacity: 0.5;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

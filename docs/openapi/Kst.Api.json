@@ -681,6 +681,318 @@
           }
         }
       }
+    },
+    "/api/v1/workspaces/{assignmentId}/work-orders/bucket": {
+      "get": {
+        "tags": [
+          "WorkOrders"
+        ],
+        "summary": "Returns the eligible (Allocating/Frozen/Released) work orders for one MPS bucket.",
+        "operationId": "GetBucketWorkOrders",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "snapshotId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parentPart",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bucketKind",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "weekLabel",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateBasis",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "horizonWeeks",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderBucketResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/work-orders/{woid}/material": {
+      "get": {
+        "tags": [
+          "WorkOrders"
+        ],
+        "summary": "Returns lazily-loaded material/kitting lines and Kitting Summary for one work order.",
+        "operationId": "GetWorkOrderMaterialLines",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "woid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "snapshotId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderMaterialResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/work-orders/candidates": {
+      "get": {
+        "tags": [
+          "WorkOrders"
+        ],
+        "summary": "Returns candidate subassembly work orders for a manufactured component, across all eligible A/F/R work orders regardless of Due Date.",
+        "operationId": "GetWorkOrderCandidates",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "snapshotId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "immediateParentWoid",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "componentPart",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetDepth",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderCandidateResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -791,6 +1103,41 @@
           "timestamp": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "KittingSummaryDto": {
+        "required": [
+          "applicableLineCount",
+          "fullyIssuedLineCount",
+          "kittingPercent"
+        ],
+        "type": "object",
+        "properties": {
+          "applicableLineCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "fullyIssuedLineCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "kittingPercent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },
@@ -1350,6 +1697,215 @@
           }
         }
       },
+      "WorkOrderBucketResponseDto": {
+        "required": [
+          "snapshotId",
+          "workOrders"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "workOrders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkOrderSummaryDto"
+            }
+          }
+        }
+      },
+      "WorkOrderCandidateResponseDto": {
+        "required": [
+          "snapshotId",
+          "candidates",
+          "isTruncated"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkOrderSummaryDto"
+            }
+          },
+          "isTruncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WorkOrderMaterialLineDto": {
+        "required": [
+          "componentPart",
+          "componentDescription",
+          "requiredQuantity",
+          "issuedQuantity",
+          "varianceQuantity",
+          "issuedPercent",
+          "issueStatus",
+          "isManufactured",
+          "isFullyIssued"
+        ],
+        "type": "object",
+        "properties": {
+          "componentPart": {
+            "type": "string"
+          },
+          "componentDescription": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "requiredQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "issuedQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "varianceQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "issuedPercent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "issueStatus": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isManufactured": {
+            "type": "boolean"
+          },
+          "isFullyIssued": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WorkOrderMaterialResponseDto": {
+        "required": [
+          "snapshotId",
+          "woid",
+          "kitting",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "woid": {
+            "type": "string"
+          },
+          "kitting": {
+            "$ref": "#/components/schemas/KittingSummaryDto"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkOrderMaterialLineDto"
+            }
+          }
+        }
+      },
+      "WorkOrderSummaryDto": {
+        "required": [
+          "partNumber",
+          "woid",
+          "status",
+          "orderedQuantity",
+          "completedQuantity",
+          "openQuantity",
+          "releaseDate",
+          "dueDate",
+          "salesOrder",
+          "kitting"
+        ],
+        "type": "object",
+        "properties": {
+          "partNumber": {
+            "type": "string"
+          },
+          "woid": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "orderedQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "completedQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "openQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "releaseDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "dueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "salesOrder": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kitting": {
+            "$ref": "#/components/schemas/KittingSummaryDto"
+          }
+        }
+      },
       "WorkspaceAssignmentDto": {
         "required": [
           "assignmentId",
@@ -1460,6 +2016,9 @@
     },
     {
       "name": "PartDetail"
+    },
+    {
+      "name": "WorkOrders"
     }
   ]
 }

@@ -20,6 +20,12 @@ export type MpsPartScheduleDto = components['schemas']['MpsPartScheduleDto'];
 export type MpsBucketDto = components['schemas']['MpsBucketDto'];
 export type PartDetailResponseDto = components['schemas']['PartDetailResponseDto'];
 export type PartPriceBreakDto = components['schemas']['PartPriceBreakDto'];
+export type WorkOrderBucketResponseDto = components['schemas']['WorkOrderBucketResponseDto'];
+export type WorkOrderSummaryDto = components['schemas']['WorkOrderSummaryDto'];
+export type KittingSummaryDto = components['schemas']['KittingSummaryDto'];
+export type WorkOrderMaterialResponseDto = components['schemas']['WorkOrderMaterialResponseDto'];
+export type WorkOrderMaterialLineDto = components['schemas']['WorkOrderMaterialLineDto'];
+export type WorkOrderCandidateResponseDto = components['schemas']['WorkOrderCandidateResponseDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -119,6 +125,52 @@ export class ApiClient {
   async getPartDetail(assignmentId: string, partNumber: string): Promise<PartDetailResponseDto> {
     const query = `?partNumber=${encodeURIComponent(partNumber)}`;
     return this.get<PartDetailResponseDto>(`/api/v1/workspaces/${assignmentId}/part-detail${query}`);
+  }
+
+  async getBucketWorkOrders(
+    assignmentId: string,
+    snapshotId: string,
+    parentPart: string,
+    bucketKind: 'falldown' | 'weekly',
+    weekLabel: string | null,
+    dateBasis: string,
+    horizonWeeks: number,
+  ): Promise<WorkOrderBucketResponseDto> {
+    const weekLabelParam = weekLabel ? `&weekLabel=${encodeURIComponent(weekLabel)}` : '';
+    const query =
+      `?snapshotId=${encodeURIComponent(snapshotId)}` +
+      `&parentPart=${encodeURIComponent(parentPart)}` +
+      `&bucketKind=${encodeURIComponent(bucketKind)}` +
+      weekLabelParam +
+      `&dateBasis=${encodeURIComponent(dateBasis)}` +
+      `&horizonWeeks=${horizonWeeks}`;
+    return this.get<WorkOrderBucketResponseDto>(`/api/v1/workspaces/${assignmentId}/work-orders/bucket${query}`);
+  }
+
+  async getWorkOrderMaterialLines(
+    assignmentId: string,
+    snapshotId: string,
+    woid: string,
+  ): Promise<WorkOrderMaterialResponseDto> {
+    const query = `?snapshotId=${encodeURIComponent(snapshotId)}`;
+    return this.get<WorkOrderMaterialResponseDto>(
+      `/api/v1/workspaces/${assignmentId}/work-orders/${encodeURIComponent(woid)}/material${query}`,
+    );
+  }
+
+  async getWorkOrderCandidates(
+    assignmentId: string,
+    snapshotId: string,
+    immediateParentWoid: string,
+    componentPart: string,
+    targetDepth: number,
+  ): Promise<WorkOrderCandidateResponseDto> {
+    const query =
+      `?snapshotId=${encodeURIComponent(snapshotId)}` +
+      `&immediateParentWoid=${encodeURIComponent(immediateParentWoid)}` +
+      `&componentPart=${encodeURIComponent(componentPart)}` +
+      `&targetDepth=${targetDepth}`;
+    return this.get<WorkOrderCandidateResponseDto>(`/api/v1/workspaces/${assignmentId}/work-orders/candidates${query}`);
   }
 
   private async get<T>(path: string): Promise<T> {

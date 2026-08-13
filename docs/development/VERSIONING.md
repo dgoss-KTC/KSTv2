@@ -21,7 +21,7 @@ application version.
 ## Current application version
 
 ```
-0.1.0-alpha.1
+0.1.0-alpha.2
 ```
 
 This is a pre-1.0, pre-release build. The version will be incremented deliberately as

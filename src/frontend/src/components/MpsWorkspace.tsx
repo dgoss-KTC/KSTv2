@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { WorkspaceAssignmentDto } from '../api/client';
 import { useFiscalCalendarSettings } from '../hooks/useFiscalCalendarSettings';
 import {
@@ -7,14 +7,19 @@ import {
   useMpsDashboard,
 } from '../hooks/useMpsDashboard';
 import { usePartDetail } from '../hooks/usePartDetail';
+import { useBucketWorkOrders } from '../hooks/useBucketWorkOrders';
 import { PartInfoPanel } from './PartInfoPanel';
+import { WorkOrdersPanel } from './WorkOrdersPanel';
 import { getFiscalDisplayInfo } from '../fiscal/fiscalCalendar';
 import {
+  type BucketSelection,
   bucketCellClassNames,
   describeBucket,
+  describeBucketSelection,
   formatQuantity,
   formatWeekLabel,
   groupConsecutive,
+  isWeeklyBucketWorkOrderEligible,
   parseIsoDateOnly,
   withPeriodColor,
   withQuarterColor,
@@ -56,27 +61,88 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   } = useMpsDashboard(workspace.assignmentId);
   const { settings: fiscalSettings } = useFiscalCalendarSettings();
 
-  // Parent selection is transient UI state, not persisted workspace configuration; it resets
-  // whenever the workspace context changes (see the accepted Stage 6 contract §2).
+  // Parent/bucket selection and the active detail tab are transient UI state, not persisted
+  // workspace configuration; they reset whenever the workspace context changes (see the accepted
+  // Stage 6 contract §2, extended by the accepted Stage 7 contract §4).
   const [selectedParent, setSelectedParent] = useState<string | null>(null);
+  const [selectedBucket, setSelectedBucket] = useState<BucketSelection | null>(null);
+  const [activeTab, setActiveTab] = useState<'partInfo' | 'workOrders'>('partInfo');
   useEffect(() => {
-    const id = setTimeout(() => setSelectedParent(null), 0);
+    const id = setTimeout(() => {
+      setSelectedParent(null);
+      setSelectedBucket(null);
+      setActiveTab('partInfo');
+    }, 0);
     return () => clearTimeout(id);
   }, [workspace.assignmentId]);
+
+  // A successful workspace refresh atomically replaces the MPS snapshot; prior Stage 7 drill-down
+  // context (selected bucket, Work Orders tab, and every nested WO/material/candidate expansion it
+  // holds) becomes invalid and must be cleared so nothing stale appears beneath the new snapshot
+  // generation (accepted Stage 7 contract §19). A failed refresh leaves the retained last-good
+  // snapshot id unchanged, so this effect intentionally does not fire and existing drill-down state
+  // is preserved.
+  const previousSnapshotIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const currentSnapshotId = dashboard?.snapshot.snapshotId ?? null;
+    const previousSnapshotId = previousSnapshotIdRef.current;
+    previousSnapshotIdRef.current = currentSnapshotId;
+
+    if (previousSnapshotId !== null && currentSnapshotId !== null && previousSnapshotId !== currentSnapshotId) {
+      setSelectedBucket(null);
+      setActiveTab('partInfo');
+    }
+  }, [dashboard?.snapshot.snapshotId]);
 
   const { detail: partDetail, isLoading: isPartDetailLoading, error: partDetailError, retry: retryPartDetail } =
     usePartDetail(workspace.assignmentId, selectedParent);
 
-  const clearPartSelection = () => setSelectedParent(null);
+  const {
+    workOrders: bucketWorkOrders,
+    isLoading: isBucketWorkOrdersLoading,
+    error: bucketWorkOrdersError,
+    retry: retryBucketWorkOrders,
+  } = useBucketWorkOrders(
+    workspace.assignmentId,
+    dashboard?.snapshot.snapshotId ?? null,
+    selectedBucket,
+    dateBasis,
+    horizonWeeks,
+  );
 
-  // Parent-row selection is a toggle: selecting the already-selected parent closes Part Info and
-  // returns to the full grid, using the same clear-selection path as the explicit Back button.
+  const clearSelection = () => {
+    setSelectedParent(null);
+    setSelectedBucket(null);
+    setActiveTab('partInfo');
+  };
+
+  // Parent-row selection is a toggle: selecting the already-selected parent closes the detail
+  // panel entirely and returns to the full grid, using the same clear-selection path as the
+  // explicit Back button. Selecting a different (or first) parent focuses it, clears any bucket
+  // context, and opens/retains Part Info — Work Orders (and later contextual tabs) stay disabled
+  // until a schedule bucket is selected.
   function handleParentRowSelect(partNumber: string) {
     if (selectedParent === partNumber) {
-      clearPartSelection();
+      clearSelection();
       return;
     }
     setSelectedParent(partNumber);
+    setSelectedBucket(null);
+    setActiveTab('partInfo');
+  }
+
+  // Bucket selection (Falldown or an eligible weekly cell) selects the parent + bucket together
+  // and automatically opens Work Orders, regardless of what was previously selected.
+  function handleBucketSelect(
+    partNumber: string,
+    kind: BucketSelection['kind'],
+    weekLabel: string | null,
+    e: React.MouseEvent,
+  ) {
+    e.stopPropagation();
+    setSelectedParent(partNumber);
+    setSelectedBucket({ parentPart: partNumber, kind, weekLabel });
+    setActiveTab('workOrders');
   }
 
   const title = workspace.displayName ?? workspace.site;
@@ -236,6 +302,8 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
                   const falldown = part.buckets[0];
                   const weekly = part.buckets.slice(1);
                   const isSelected = part.parentPart === selectedParent;
+                  const isFalldownSelected =
+                    selectedBucket?.parentPart === part.parentPart && selectedBucket.kind === 'falldown';
                   return (
                     <tr
                       key={part.parentPart}
@@ -261,22 +329,43 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
                       <td
                         className={`mps-grid__sticky mps-grid__falldown-col${
                           falldown ? ` ${bucketCellClassNames(falldown)}` : ' mps-cell'
+                        }${falldown ? ' mps-cell--clickable' : ''}${
+                          isFalldownSelected ? ' mps-cell--selected-bucket' : ''
                         }`}
                         title={falldown ? describeBucket(falldown) : undefined}
+                        onClick={
+                          falldown
+                            ? (e) => handleBucketSelect(part.parentPart, 'falldown', null, e)
+                            : undefined
+                        }
                       >
                         {falldown ? formatQuantity(falldown.quantity) : '\u2014'}
                         <span className="visually-hidden">{falldown ? describeBucket(falldown) : ''}</span>
                       </td>
-                      {weekly.map((bucket, idx) => (
-                        <td
-                          key={bucket.weekLabel ?? `week-${idx}`}
-                          className={`mps-grid__week-col ${bucketCellClassNames(bucket)}`}
-                          title={describeBucket(bucket)}
-                        >
-                          {formatQuantity(bucket.quantity)}
-                          <span className="visually-hidden">{describeBucket(bucket)}</span>
-                        </td>
-                      ))}
+                      {weekly.map((bucket, idx) => {
+                        const isEligible = isWeeklyBucketWorkOrderEligible(idx);
+                        const isBucketSelected =
+                          selectedBucket?.parentPart === part.parentPart &&
+                          selectedBucket.kind === 'weekly' &&
+                          selectedBucket.weekLabel === bucket.weekLabel;
+                        return (
+                          <td
+                            key={bucket.weekLabel ?? `week-${idx}`}
+                            className={`mps-grid__week-col ${bucketCellClassNames(bucket)}${
+                              isEligible ? ' mps-cell--clickable' : ''
+                            }${isBucketSelected ? ' mps-cell--selected-bucket' : ''}`}
+                            title={describeBucket(bucket)}
+                            onClick={
+                              isEligible
+                                ? (e) => handleBucketSelect(part.parentPart, 'weekly', bucket.weekLabel, e)
+                                : undefined
+                            }
+                          >
+                            {formatQuantity(bucket.quantity)}
+                            <span className="visually-hidden">{describeBucket(bucket)}</span>
+                          </td>
+                        );
+                      })}
                     </tr>
                   );
                 })}
@@ -287,14 +376,62 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
       )}
 
       {selectedParent && (
-        <PartInfoPanel
-          partNumber={selectedParent}
-          detail={partDetail}
-          isLoading={isPartDetailLoading}
-          error={partDetailError}
-          onRetry={() => void retryPartDetail()}
-          onBack={clearPartSelection}
-        />
+        <div className="mps-detail">
+          <div className="mps-detail__tabs" role="tablist" aria-label="Part detail">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'partInfo'}
+              className={`mps-detail__tab${activeTab === 'partInfo' ? ' mps-detail__tab--active' : ''}`}
+              onClick={() => setActiveTab('partInfo')}
+            >
+              Part Info
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'workOrders'}
+              disabled={!selectedBucket}
+              className={`mps-detail__tab${activeTab === 'workOrders' ? ' mps-detail__tab--active' : ''}`}
+              onClick={() => selectedBucket && setActiveTab('workOrders')}
+            >
+              Work Orders
+            </button>
+            <button type="button" role="tab" aria-selected={false} className="mps-detail__tab" disabled>
+              Shortages
+            </button>
+            <button type="button" role="tab" aria-selected={false} className="mps-detail__tab" disabled>
+              Future Shortages
+            </button>
+            <button type="button" role="tab" aria-selected={false} className="mps-detail__tab" disabled>
+              Components
+            </button>
+          </div>
+
+          {activeTab === 'partInfo' && (
+            <PartInfoPanel
+              partNumber={selectedParent}
+              detail={partDetail}
+              isLoading={isPartDetailLoading}
+              error={partDetailError}
+              onRetry={() => void retryPartDetail()}
+              onBack={clearSelection}
+            />
+          )}
+
+          {activeTab === 'workOrders' && selectedBucket && (
+            <WorkOrdersPanel
+              parentPart={selectedBucket.parentPart}
+              bucketLabel={describeBucketSelection(selectedBucket)}
+              assignmentId={workspace.assignmentId}
+              snapshotId={dashboard?.snapshot.snapshotId ?? null}
+              workOrders={bucketWorkOrders}
+              isLoading={isBucketWorkOrdersLoading}
+              error={bucketWorkOrdersError}
+              onRetry={() => void retryBucketWorkOrders()}
+            />
+          )}
+        </div>
       )}
     </div>
   );

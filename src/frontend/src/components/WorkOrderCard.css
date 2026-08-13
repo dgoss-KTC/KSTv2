@@ -1,0 +1,207 @@
+.work-order-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 320px;
+  flex-shrink: 0;
+}
+
+.work-order-card--expanded {
+  width: 100%;
+  flex-basis: 100%;
+}
+
+.work-order-card__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--bd-soft);
+  border-radius: 8px;
+  background: var(--panel2);
+  align-self: flex-start;
+  width: 100%;
+  max-width: 320px;
+}
+
+.work-order-card__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.work-order-card__id {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--tx);
+}
+
+.work-order-card__status {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.work-order-card__status--allocating {
+  background: var(--a-bg);
+  color: var(--a-tx);
+  border: 1px solid var(--a-bd);
+}
+
+.work-order-card__status--frozen {
+  background: var(--f-bg);
+  color: var(--f-tx);
+  border: 1px solid var(--f-bd);
+}
+
+.work-order-card__status--released {
+  background: var(--r-bg);
+  color: var(--r-tx);
+  border: 1px solid var(--r-bd);
+}
+
+.work-order-card__so {
+  margin-left: auto;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--tx3);
+  white-space: nowrap;
+}
+
+.work-order-card__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+
+.work-order-card__field {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 12px;
+  color: var(--tx);
+  font-variant-numeric: tabular-nums;
+}
+
+.work-order-card__field label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tx3);
+}
+
+.work-order-card__kitting {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.work-order-card__kitting-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--tx3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.work-order-card__kitting-value {
+  font-size: 12px;
+  color: var(--tx);
+  text-transform: none;
+  letter-spacing: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.work-order-card__kitting-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--chip);
+  overflow: hidden;
+}
+
+.work-order-card__kitting-fill {
+  height: 100%;
+  background: var(--accent-solid);
+  border-radius: 999px;
+}
+
+.work-order-card__expand-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--density-control-height);
+  padding: 0 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tx2);
+  background: var(--chip);
+  border: 1px solid var(--bd);
+  cursor: pointer;
+}
+
+.work-order-card__expand-btn:hover {
+  color: var(--tx);
+  border-color: var(--accent-solid);
+}
+
+.work-order-card__chevron {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform 0.15s ease;
+}
+
+.work-order-card__chevron--open {
+  transform: rotate(180deg);
+}
+
+.work-order-card__material {
+  padding: 10px 14px;
+  border: 1px solid var(--bd-soft);
+  border-radius: 8px;
+  background: var(--panel2);
+}
+
+.work-order-card__material-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--tx3);
+  padding: 6px 0;
+}
+
+.work-order-card__material-state--error {
+  color: var(--danger-tx);
+}
+
+.work-order-card__material-state--empty {
+  color: var(--tx2);
+}
+
+.work-order-card__retry-btn {
+  height: var(--density-control-height);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 12px;
+  cursor: pointer;
+  background: var(--accent-solid);
+  border: 1px solid var(--accent-solid);
+  color: #0c1118;
+}
+
+

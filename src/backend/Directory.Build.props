@@ -19,8 +19,8 @@
   -->
   <PropertyGroup>
     <VersionPrefix>0.1.0</VersionPrefix>
-    <VersionSuffix>alpha.1</VersionSuffix>
-    <!-- Keep InformationalVersion exactly "0.1.0-alpha.1" - the SDK otherwise appends
+    <VersionSuffix>alpha.2</VersionSuffix>
+    <!-- Keep InformationalVersion exactly "0.1.0-alpha.2" - the SDK otherwise appends
          "+<git-commit-sha>" automatically, which would drift from the Tauri/frontend
          version files and from the documented version string. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>

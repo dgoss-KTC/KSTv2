@@ -1,6 +1,6 @@
 # KST v2 Master Project Checklist
 
-**Current project position:** Stages 1–6 are complete and accepted. Stage 7 — Work Orders and Kitting is ready for rolling-wave discovery/planning.
+**Current project position:** Stages 1–7 are complete and accepted. Stage 7 — Work Orders and Kitting was explicitly accepted by the project owner on 2026-08-13. See `docs/implementation/KST_v2_STAGE_7_WORK_ORDER_KITTING_CONTRACT.md` and `KST v2 — Stage 7D Work Orders and Kitting Implementation Checklist.md` (repo root) for the authoritative accepted/implemented rules — the field list below reflects those, not the original rolling-wave discovery assumptions.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -821,49 +821,49 @@ not begun.**
 
 ## Stage 7 — Phase 4: Work Orders and Kitting
 
-### 7.1 Field and rule discovery
+### 7.1 Field and rule discovery (accepted/implemented — see `KST_v2_STAGE_7_WORK_ORDER_KITTING_CONTRACT.md`)
 
-- [ ] Map work-order number
-- [ ] Map ordered quantity
-- [ ] Map completed quantity
-- [ ] Map open quantity
-- [ ] Map status
-- [ ] Map start date
-- [ ] Map due date
-- [ ] Map production line
-- [ ] Identify allocation fields
-- [ ] Define kitting percentage
-- [ ] Map component requirements
-- [ ] Map issued quantities
-- [ ] Define variance quantity
-- [ ] Define variance percentage
-- [ ] Confirm severity thresholds
-### 7.2 Backend
+- [x] ~~Map work-order number~~ — deliberately NOT mapped/displayed; WOID (`wo_mstr.wo_lot`) is the scheduler-facing identity instead (Work Order Number is not unique)
+- [x] Map ordered quantity — `wo_mstr.wo_qty_ord`
+- [x] Map completed quantity — `wo_mstr.wo_qty_comp`
+- [x] Map open quantity — derived `Ordered - Completed` (no separate QAD field; confirmed with project owner)
+- [x] Map status — `wo_mstr.wo_status`, restricted to eligible `A`/`F`/`R`
+- [x] ~~Map start date~~ — not part of the accepted card
+- [x] Map due date — `wo_mstr.wo_due_date`
+- [x] ~~Map production line~~ — not part of the accepted card
+- [x] ~~Identify allocation fields~~ — no allocation fields in the accepted card
+- [x] Define kitting percentage — line-based: fully-issued line count / applicable line count × 100, null (not 0%) at zero applicable lines
+- [x] Map component requirements — `wod_det.wod_qty_req`
+- [x] Map issued quantities — `wod_det.wod_qty_iss`
+- [x] Define variance quantity — derived `Issued - Required`
+- [x] Define variance percentage — accepted terminology is **Issued %**, not Variance %: `Issued / Required × 100`
+- [x] Confirm severity thresholds — `<=95%` under-issued exception, `>=105%` over-issued exception, else within expected range
+### 7.2 Backend (implemented — see `KST_v2_STAGE_7_WORK_ORDER_KITTING_DATA_INVENTORY.md`)
 
-- [ ] Create work-order adapter
-- [ ] Create WO-material adapter
-- [ ] Define WorkOrderSummary
-- [ ] Define WorkOrderMaterialLine
-- [ ] Create work-order service
-- [ ] Create kitting service
-- [ ] Create variance service
-- [ ] Join work orders to schedule buckets
-- [ ] Add work-order summaries to cached MPS data or lazy detail
-- [ ] Create work-order endpoints
+- [x] Create work-order adapter — `QadWorkOrderSummaryReader`
+- [x] Create WO-material adapter — `QadWorkOrderMaterialReader`
+- [x] Define WorkOrderSummary — `Kst.Domain.WorkOrders.WorkOrderSummary`
+- [x] Define WorkOrderMaterialLine — `Kst.Domain.WorkOrders.WorkOrderMaterialLine`
+- [x] Create work-order service — `WorkOrderDrilldownService` (single orchestration service for all three use cases; no separate Kitting/Variance services, per accepted contract)
+- [x] ~~Create kitting service~~ — folded into `WorkOrderDrilldownService`/`KittingSummary`, not a separate service
+- [x] ~~Create variance service~~ — folded into `WorkOrderMaterialLine`'s computed properties, not a separate service
+- [x] Join work orders to schedule buckets — reuses `MpsWorkOrderRef` already retained per bucket by `MpsScheduleBuilder`; never re-derived from WO dates
+- [x] Add work-order summaries to cached MPS data or lazy detail — lazy-loaded and cached by workspace + MPS snapshot generation
+- [x] Create work-order endpoints — `WorkOrderEndpoints` (bucket, material, candidates)
 ### 7.3 Frontend and validation
 
-- [ ] Build work-order cards
-- [ ] Build selected-week filtering
-- [ ] Build all-open-WO view
-- [ ] Build kitting expansion
-- [ ] Build variance sorting
-- [ ] Build no-WO state
-- [ ] Compare against WO Variance report
-- [ ] Validate partial issue
-- [ ] Validate over-issue
-- [ ] Validate completed work orders
-- [ ] Owner acceptance
-Phase 4 completion gate: A scheduler can trace an MPS bucket to its work orders and component issue status.
+- [x] Build work-order cards — `WorkOrderCard.tsx`
+- [x] Build selected-week filtering — bucket/Falldown selection drives which WOs load
+- [x] ~~Build all-open-WO view~~ — not part of the accepted contract; no parent-only "all open WO" view exists
+- [x] Build kitting expansion — `WorkOrderMaterialGrid.tsx`
+- [x] Build variance sorting — exceptions first, larger departures from 100% Issued before smaller
+- [x] Build no-WO state — empty A/F/R result renders a deliberate non-error empty state
+- [x] Compare against WO Variance report — see `docs/implementation/STAGE_7_REAL_DATA_VALIDATION.md`
+- [x] Validate partial issue — covered by automated `WorkOrderIssueStatusClassifier` tests + live data
+- [x] Validate over-issue — over-issued lines confirmed to count as fully issued
+- [x] Validate completed work orders — `C` (Closed) WOs confirmed excluded from candidate results against real data
+- [x] Owner acceptance — **ACCEPTED, 2026-08-13**
+Phase 4 completion gate: **PASS. Stage 7 accepted by the project owner, 2026-08-13.** A scheduler can trace an MPS bucket to its work orders and component issue status, and can navigate bounded manufactured-subassembly candidates up to three levels deep.
 
 
 ## Stage 8 — Phase 5: Component and BOM Detail
