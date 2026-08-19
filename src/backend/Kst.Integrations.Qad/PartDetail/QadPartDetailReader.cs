@@ -2,7 +2,9 @@ using System.Diagnostics;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using Kst.Domain.Inventory;
 using Kst.Domain.PartDetail;
+using Kst.Integrations.Qad.Inventory;
 using Kst.Integrations.Qad.Mps;
 using Kst.Integrations.Qad.Options;
 
@@ -10,9 +12,12 @@ namespace Kst.Integrations.Qad.PartDetail;
 
 /// <summary>
 /// Direct, parameterized QAD adapter for Stage 6 PartDetail: one part-master + site-specific
-/// planning-parameter lookup (<c>pt_mstr</c> LEFT JOIN <c>ptp_det</c>), one inventory aggregation, and
-/// one current-price-tier lookup. Owns SQL text/parameters and raw-to-normalized mapping; does not
-/// know about caching, MPS scope, or workspace state (see
+/// planning-parameter lookup (<c>pt_mstr</c> LEFT JOIN <c>ptp_det</c>), one inventory aggregation
+/// (the shared accepted Stage 6 classification, built by
+/// <see cref="Kst.Integrations.Qad.Inventory.QadPartInventoryReader.BuildBatchQuery"/> as a
+/// one-part batch and executed on this reader's single connection), and one current-price-tier
+/// lookup. Owns SQL text/parameters and raw-to-normalized mapping; does not know about caching,
+/// MPS scope, or workspace state (see
 /// <see cref="Kst.Application.PartDetail.PartDetailService"/> for that orchestration).
 /// </summary>
 public sealed class QadPartDetailReader
@@ -59,10 +64,11 @@ public sealed class QadPartDetailReader
             return null;
         }
 
-        var (inventorySql, inventoryParameters) = BuildInventoryQuery(domain, site, partNumber);
+        var (inventorySql, inventoryParameters) = QadPartInventoryReader.BuildBatchQuery(domain, site, [partNumber]);
         var inventoryCommand = new CommandDefinition(
             inventorySql, inventoryParameters, commandTimeout: _options.CommandTimeoutSeconds, cancellationToken: cancellationToken);
         var inventoryRow = await connection.QuerySingleOrDefaultAsync<QadPartInventoryRawRow>(inventoryCommand);
+        var inventorySummary = inventoryRow is null ? null : QadPartInventoryReader.Normalize(inventoryRow);
 
         var (priceSql, priceParameters) = BuildPriceQuery(domain, partNumber, today);
         var priceCommand = new CommandDefinition(
@@ -74,7 +80,7 @@ public sealed class QadPartDetailReader
             "PartDetail read for part {PartNumber} in domain {Domain} completed in {ElapsedMs}ms.",
             partNumber, domain, stopwatch.ElapsedMilliseconds);
 
-        return Normalize(partRow, inventoryRow, priceRows.ToList());
+        return Normalize(partRow, inventorySummary, priceRows.ToList());
     }
 
     /// <summary>
@@ -120,41 +126,6 @@ public sealed class QadPartDetailReader
     }
 
     /// <summary>
-    /// Builds the inventory aggregation query. Only positive rows (<c>ld_qty_oh &gt; 0</c>) qualify;
-    /// zero/negative balances are ignored. RMA lots (<c>ld_lot LIKE 'RA%'</c>) always classify as
-    /// <c>RmaOnHand</c>, overriding nettable/non-nettable classification, and are excluded from both
-    /// <c>QuantityOnHand</c> and <c>QuantityNonNet</c>.
-    /// </summary>
-    public static (string Sql, DynamicParameters Parameters) BuildInventoryQuery(string domain, string site, string partNumber)
-    {
-        var parameters = new DynamicParameters();
-        parameters.Add("Domain", domain);
-        parameters.Add("Site", site);
-        parameters.Add("Part", partNumber);
-
-        const string sql = """
-            SELECT
-                ISNULL(SUM(CASE WHEN ld.ld_lot NOT LIKE 'RA%' AND ism.is_nettable = 1 THEN ld.ld_qty_oh ELSE 0 END), 0) AS QuantityOnHand,
-                ISNULL(SUM(CASE WHEN ld.ld_lot NOT LIKE 'RA%' AND ism.is_nettable = 0 THEN ld.ld_qty_oh ELSE 0 END), 0) AS QuantityNonNet,
-                ISNULL(SUM(CASE WHEN ld.ld_lot LIKE 'RA%' THEN ld.ld_qty_oh ELSE 0 END), 0) AS RmaOnHand
-            FROM qadpro2.dbo.ld_det AS ld
-            INNER JOIN qadpro2.dbo.loc_mstr AS loc
-                ON loc.loc_domain = ld.ld_domain
-                AND loc.loc_site = ld.ld_site
-                AND loc.loc_loc = ld.ld_loc
-            INNER JOIN qadpro2.dbo.is_mstr AS ism
-                ON ism.is_domain = loc.loc_domain
-                AND ism.is_status = loc.loc_status
-            WHERE ld.ld_domain = @Domain
-              AND ld.ld_site = @Site
-              AND ld.ld_part = @Part
-              AND ld.ld_qty_oh > 0;
-            """;
-
-        return (sql, parameters);
-    }
-
-    /// <summary>
     /// Builds the current-price-tier query: latest <c>pi_mstr</c> row with <c>pi_start &lt;= today</c>
     /// wins, joined to its <c>pid_det</c> tiers ordered by MOQ ascending.
     /// </summary>
@@ -190,7 +161,7 @@ public sealed class QadPartDetailReader
 
     public static PartDetailSourceFacts Normalize(
         QadPartMasterRawRow part,
-        QadPartInventoryRawRow? inventory,
+        PartInventorySummary? inventory,
         IReadOnlyList<QadPartPriceRawRow> priceRows) => new(
         PartNumber: part.PartNumber,
         PlannerCode: part.PlannerCode,
@@ -201,9 +172,9 @@ public sealed class QadPartDetailReader
         Description: part.Description,
         IosCode: part.IosCode,
         SafetyStockQuantity: part.SafetyStockQuantity,
-        QuantityOnHand: inventory?.QuantityOnHand ?? 0m,
-        QuantityNonNet: inventory?.QuantityNonNet ?? 0m,
-        QuantityRmaOnHand: inventory?.RmaOnHand ?? 0m,
+        QuantityOnHand: inventory?.NetQuantityOnHand ?? 0m,
+        QuantityNonNet: inventory?.NonNetQuantityOnHand ?? 0m,
+        QuantityRmaOnHand: inventory?.RmaQuantityOnHand ?? 0m,
         PriceBreaks: priceRows
             .Select(r => new PartPriceBreak(r.MinimumOrderQuantity, r.UnitPrice))
             .OrderBy(b => b.MinimumOrderQuantity)
@@ -222,9 +193,6 @@ public sealed record QadPartMasterRawRow(
     string? IosCode,
     decimal? SafetyStockQuantity
 );
-
-/// <summary>QAD-shaped raw inventory aggregation Dapper result row.</summary>
-public sealed record QadPartInventoryRawRow(decimal QuantityOnHand, decimal QuantityNonNet, decimal RmaOnHand);
 
 /// <summary>QAD-shaped raw price-tier Dapper result row.</summary>
 public sealed record QadPartPriceRawRow(decimal MinimumOrderQuantity, decimal UnitPrice);

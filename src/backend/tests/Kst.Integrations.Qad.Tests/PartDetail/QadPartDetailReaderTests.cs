@@ -1,3 +1,4 @@
+using Kst.Domain.Inventory;
 using Kst.Integrations.Qad.PartDetail;
 
 namespace Kst.Integrations.Qad.Tests.PartDetail;
@@ -80,63 +81,8 @@ public sealed class QadPartDetailReaderTests
         Assert.Equal(maliciousPart, parameters.Get<string>("Part"));
     }
 
-    [Fact]
-    public void BuildInventoryQuery_Requires_Positive_Qty()
-    {
-        var (sql, parameters) = QadPartDetailReader.BuildInventoryQuery("KTC", "SW", "ABC100");
-
-        Assert.Equal("KTC", parameters.Get<string>("Domain"));
-        Assert.Equal("SW", parameters.Get<string>("Site"));
-        Assert.Equal("ABC100", parameters.Get<string>("Part"));
-        Assert.Contains("ld.ld_qty_oh > 0", sql);
-    }
-
-    [Fact]
-    public void BuildInventoryQuery_Joins_LocMstr_And_IsMstr_On_Domain_Site_Location()
-    {
-        var (sql, _) = QadPartDetailReader.BuildInventoryQuery("KTC", "SW", "ABC100");
-
-        Assert.Contains("loc.loc_domain = ld.ld_domain", sql);
-        Assert.Contains("loc.loc_site = ld.ld_site", sql);
-        Assert.Contains("loc.loc_loc = ld.ld_loc", sql);
-        Assert.Contains("ism.is_domain = loc.loc_domain", sql);
-        Assert.Contains("ism.is_status = loc.loc_status", sql);
-    }
-
-    [Fact]
-    public void BuildInventoryQuery_Splits_Nettable_NonNettable_And_Rma_Totals()
-    {
-        var (sql, _) = QadPartDetailReader.BuildInventoryQuery("KTC", "SW", "ABC100");
-
-        Assert.Contains("ld.ld_lot NOT LIKE 'RA%' AND ism.is_nettable = 1", sql);
-        Assert.Contains("ld.ld_lot NOT LIKE 'RA%' AND ism.is_nettable = 0", sql);
-        Assert.Contains("WHEN ld.ld_lot LIKE 'RA%' THEN ld.ld_qty_oh", sql);
-        Assert.Contains("QuantityOnHand", sql);
-        Assert.Contains("QuantityNonNet", sql);
-        Assert.Contains("RmaOnHand", sql);
-    }
-
-    [Fact]
-    public void BuildInventoryQuery_Rma_Classification_Happens_In_Select_Not_Where()
-    {
-        // RMA lots must still flow through the WHERE clause (only ld_qty_oh > 0 filters rows);
-        // classification into Rma/OnHand/NonNet happens entirely in the SELECT CASE expressions.
-        var (sql, _) = QadPartDetailReader.BuildInventoryQuery("KTC", "SW", "ABC100");
-
-        var whereClauseIndex = sql.IndexOf("WHERE", StringComparison.Ordinal);
-        var whereClause = sql[whereClauseIndex..];
-        Assert.DoesNotContain("NOT LIKE 'RA%'", whereClause);
-    }
-
-    [Fact]
-    public void BuildInventoryQuery_Never_Concatenates_Raw_Part_Value_Into_Sql_Text()
-    {
-        var maliciousPart = "ABC'; DROP TABLE ld_det; --";
-        var (sql, parameters) = QadPartDetailReader.BuildInventoryQuery("KTC", "SW", maliciousPart);
-
-        Assert.DoesNotContain(maliciousPart, sql);
-        Assert.Equal(maliciousPart, parameters.Get<string>("Part"));
-    }
+    // Stage 6 inventory SQL shape is now covered by QadPartInventoryReaderTests against the shared
+    // QadPartInventoryReader.BuildBatchQuery builder (asserted at single-part scope for equivalence).
 
     [Fact]
     public void BuildPriceQuery_Filters_By_Start_Date_And_Orders_Latest_First()
@@ -181,7 +127,12 @@ public sealed class QadPartDetailReaderTests
             Description: "WIDGET CONTROL ASSEMBLY",
             IosCode: "1234",
             SafetyStockQuantity: 250m);
-        var inventory = new QadPartInventoryRawRow(QuantityOnHand: 1325m, QuantityNonNet: 75m, RmaOnHand: 25m);
+        var inventory = new PartInventorySummary(
+            Site: "SW",
+            PartNumber: "ABC100",
+            NetQuantityOnHand: 1325m,
+            NonNetQuantityOnHand: 75m,
+            RmaQuantityOnHand: 25m);
         var priceRows = new List<QadPartPriceRawRow>
         {
             new(200m, 10.00m),
