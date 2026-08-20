@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 using Serilog;
 using Serilog.Events;
 using Kst.Api.Endpoints;
+using Kst.Application.Bom;
+using Kst.Application.Inventory;
 using Kst.Application.Mps;
 using Kst.Application.PartDetail;
 using Kst.Application.Preferences;
@@ -14,13 +16,16 @@ using Kst.Application.WorkOrders;
 using Kst.Domain.Common;
 using Kst.Application.Snapshots;
 using Kst.Infrastructure;
+using Kst.Infrastructure.Bom;
 using Kst.Infrastructure.Configuration;
 using Kst.Infrastructure.Identity;
 using Kst.Infrastructure.Mps;
 using Kst.Infrastructure.PartDetail;
 using Kst.Infrastructure.SystemStatus;
 using Kst.Infrastructure.WorkOrders;
+using Kst.Integrations.Qad.Bom;
 using Kst.Integrations.Qad.Connectivity;
+using Kst.Integrations.Qad.Inventory;
 using Kst.Integrations.Qad.Mps;
 using Kst.Integrations.Qad.Options;
 using Kst.Integrations.Qad.PartDetail;
@@ -216,6 +221,31 @@ else
 
 builder.Services.AddSingleton<WorkOrderDrilldownService>();
 
+// -- BOM (Stage 8D.3) --------------------------------------------------
+builder.Services.AddSingleton<IBomCacheStore, InMemoryBomCacheStore>();
+
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadBomReader>();
+    builder.Services.AddSingleton<QadPartInventoryReader>();
+    builder.Services.AddSingleton<IBomSourceReader>(sp => new DelegateBomSourceReader(
+        (site, parentPart, effectiveDate, ct) =>
+            sp.GetRequiredService<QadBomReader>().ReadAsync(site, parentPart, effectiveDate, ct)));
+    builder.Services.AddSingleton<IPartInventoryReader>(sp => new DelegatePartInventoryReader(
+        (site, partNumbers, ct) =>
+            sp.GetRequiredService<QadPartInventoryReader>().ReadSummariesAsync(site, partNumbers, ct)));
+}
+else
+{
+    const string notConfiguredMessage = "QAD connection is not configured.";
+    builder.Services.AddSingleton<IBomSourceReader>(_ => new DelegateBomSourceReader(
+        (_, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+    builder.Services.AddSingleton<IPartInventoryReader>(_ => new DelegatePartInventoryReader(
+        (_, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+}
+
+builder.Services.AddSingleton<BomService>();
+
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddCors(options =>
@@ -259,6 +289,7 @@ app.MapPreferencesEndpoints();
 app.MapMpsEndpoints();
 app.MapPartDetailEndpoints();
 app.MapWorkOrderEndpoints();
+app.MapBomEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------
 // Writes a JSON line to stdout once the server is bound so Tauri can read the port.

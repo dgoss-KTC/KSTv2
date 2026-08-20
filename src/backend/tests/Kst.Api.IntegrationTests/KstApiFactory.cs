@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Kst.Application.Bom;
+using Kst.Application.Inventory;
 using Kst.Application.Preferences;
 using Kst.Application.Workspaces;
 using Kst.Domain.Preferences;
@@ -12,9 +14,23 @@ namespace Kst.Api.IntegrationTests;
 /// <summary>
 /// Test factory that configures the API to use a random loopback port,
 /// suppresses external dependencies, and runs without a real database.
+///
+/// Stage 8D.3: optional deterministic overrides for the BOM reader bridges (set the properties
+/// before creating the client). QAD is never configured in tests, so Program.cs registers
+/// throwing delegates for IBomSourceReader / IPartInventoryReader; setting a fake here replaces
+/// them (same descriptor removal/replacement pattern as the workspace/preferences stores) so
+/// endpoint tests can exercise the 200/empty/503/stale paths without a live QAD.
+/// The factory must keep exactly one public (parameterless) constructor because xunit
+/// constructs IClassFixture&lt;KstApiFactory&gt; through it.
 /// </summary>
 public sealed class KstApiFactory : WebApplicationFactory<Program>
 {
+    /// <summary>Optional deterministic <see cref="IBomSourceReader"/> override (Stage 8D.3).</summary>
+    public IBomSourceReader? BomSourceReader { get; set; }
+
+    /// <summary>Optional deterministic <see cref="IPartInventoryReader"/> override (Stage 8D.3).</summary>
+    public IPartInventoryReader? PartInventoryReader { get; set; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -44,6 +60,27 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
                 services.Remove(preferencesDescriptor);
 
             services.AddSingleton<IPreferencesStore, InMemoryPreferencesStore>();
+
+            // Stage 8D.3: optional deterministic BOM reader overrides for endpoint tests.
+            var bomSourceReader = BomSourceReader;
+            if (bomSourceReader is not null)
+            {
+                var bomReaderDescriptor = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(IBomSourceReader));
+                if (bomReaderDescriptor is not null)
+                    services.Remove(bomReaderDescriptor);
+                services.AddSingleton(bomSourceReader);
+            }
+
+            var partInventoryReader = PartInventoryReader;
+            if (partInventoryReader is not null)
+            {
+                var inventoryReaderDescriptor = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(IPartInventoryReader));
+                if (inventoryReaderDescriptor is not null)
+                    services.Remove(inventoryReaderDescriptor);
+                services.AddSingleton(partInventoryReader);
+            }
         });
 
         builder.ConfigureLogging(logging =>

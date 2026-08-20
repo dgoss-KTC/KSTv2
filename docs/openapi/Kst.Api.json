@@ -993,10 +993,213 @@
           }
         }
       }
+    },
+    "/api/v1/workspaces/{assignmentId}/parts/{parentPart}/bom": {
+      "get": {
+        "tags": [
+          "Bom"
+        ],
+        "summary": "Returns the scheduler-visible current-effective BOM for a workspace's selected MPS parent part, enriched with shared Site + Part inventory.",
+        "operationId": "GetBom",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "parentPart",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "BomLineDto": {
+        "required": [
+          "occurrenceKey",
+          "level",
+          "componentPart",
+          "pmCode",
+          "isPhantom",
+          "description",
+          "quantityPer",
+          "scrapPercentage",
+          "netQuantityOnHand",
+          "nonNetQuantityOnHand"
+        ],
+        "type": "object",
+        "properties": {
+          "occurrenceKey": {
+            "type": "string"
+          },
+          "level": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "componentPart": {
+            "type": "string"
+          },
+          "pmCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isPhantom": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "quantityPer": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "scrapPercentage": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "netQuantityOnHand": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "nonNetQuantityOnHand": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "BomResponseDto": {
+        "required": [
+          "site",
+          "parentPart",
+          "effectiveDate",
+          "lines",
+          "loadedAtUtc",
+          "isStale",
+          "warning"
+        ],
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string"
+          },
+          "parentPart": {
+            "type": "string"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BomLineDto"
+            }
+          },
+          "loadedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isStale": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CreateWorkspaceRequestDto": {
         "required": [
           "displayName",
@@ -2019,6 +2222,9 @@
     },
     {
       "name": "WorkOrders"
+    },
+    {
+      "name": "Bom"
     }
   ]
 }

@@ -1,537 +1,499 @@
-# Stage 8D.2 Plan — BOM QAD Adapter / Normalization
+# Stage 8D.3 Plan — BOM Application Service / API Composition
 
-> **STATUS: APPROVED WITH AMENDMENTS — implementing.** Owner approved the plan with four
+> **STATUS: APPROVED WITH AMENDMENTS — implementing.** Owner approved the plan with three
 > amendments (below); all other plan requirements remain in force.
 >
-> Scope: the smallest safe Domain + QAD capability that reads and normalizes the complete
-> current-effective multi-level BOM for a parent — preserving every structural occurrence,
-> actual levels, and proven depth-first traversal order — with no inventory enrichment and no
-> Application/API/frontend work (those belong to 8D.3+).
->
 > **Approved amendments:**
-> 1. **Occurrence identity** — `BomOccurrence.OccurrenceKey` identifies the *expanded
->    structural occurrence*, not the physical relationship OID. Generated deterministically
->    during the C# DFS from the relationship-OID path (root OID / ancestor OID / child OID …).
->    Stable; different for the same physical relationship reached through different paths;
->    never used for ordering; opaque to consumers. Test: shared physical descendant via two
->    paths → both emitted, different keys.
-> 2. **SQL owns sibling collation/order** — after the recursive closure is reduced to unique
->    physical relationships, SQL Server assigns a numeric sibling rank via an *outer*
->    `ROW_NUMBER() OVER (PARTITION BY parent ORDER BY ComponentPart, Reference, OidPsMstr)`.
->    Database collation stays in SQL; C# owns expansion, DFS, Level, path-based OccurrenceKey,
->    cycle guard, normalization, and trusts `SiblingOrder` for sibling order.
-> 3. **DISTINCT approved for the closure only** — collapses duplicate path copies of the same
->    physical `ps_mstr` relationship (identity includes `oid_ps_mstr`); distinct physical
->    relationships stay separate; the C# expansion recreates every legitimate expanded
->    occurrence; no DISTINCT on the final `BomOccurrence` result. Explanatory code comment
->    required.
-> 4. **Recursion failure** — `OPTION (MAXRECURSION 100)` approved; do not couple application
->    behavior or tests to a specific SQL Server numeric error code. Exceeded protection /
->    query failure → propagate failure; never a silently truncated BOM.
+> 1. **Site is explicit cache compatibility** — `BomCacheEntry` explicitly contains `Site`.
+>    Both the fresh-hit and stale-last-good compatibility checks require `cached.Site` to match
+>    the current workspace Site (robust OrdinalIgnoreCase comparison) in addition to the
+>    effective-date match; a cached BOM from another Site is NEVER returned as fresh or stale.
+>    The physical cache key remains `(WorkspaceId, ParentPart)`, mirroring the PartDetail cache.
+> 2. **Inventory result completeness** — the accepted reader contract (exactly one summary per
+>    requested distinct part) is validated in the Application after the single batch read: a
+>    requested part missing from the returned summaries, or a duplicate returned summary, is a
+>    load failure (same-site/same-effective-date stale-last-good or Unavailable) — never an
+>    inferred zero, never a cached partial composition.
+> 3. **API test-host reader overrides** — `KstApiFactory` gains optional deterministic
+>    overrides for `IBomSourceReader` / `IPartInventoryReader` using the existing
+>    descriptor-removal / replacement pattern (properties, because xunit class fixtures require
+>    exactly one public constructor). Endpoint success/stale/503 tests seed the existing
+>    singleton `IMpsSnapshotStore` at runtime after workspace creation; no live QAD is required.
 >
-> **Approved §H decisions:** closure DISTINCT — approved; SQL closure + C# DFS — approved with
-> Amendment 2; MAXRECURSION 100 — approved; unknown-parent deferral to 8D.3 — approved.
+> Stages 8D.1 (`bf89c60`) and 8D.2 (`624e353`) are complete, validated, accepted, committed, and
+> pushed. Backend baseline: **524/524 tests passing** (Domain 118, Qad 144, Application 167,
+> Architecture 9, Api.Integration 86).
 >
-> **Live schema confirmed read-only (2026-07, KNWVM13/QADPRO2, SQL Server 2016 SP2):**
-> `oid_ps_mstr` decimal(28,10) (fractional OIDs, e.g. `201306300024529805.0009000000`);
-> `ps_qty_per`/`ps_scrp_pct` decimal(28,10) nullable; `ps_start`/`ps_end` datetime nullable;
-> `ps_par`/`ps_comp`/`ps_ref` nvarchar(60); `pt_desc1`/`pt_desc2` nvarchar(160);
-> `pt_phantom` bit nullable; `pt_pm_code`/`ptp_pm_code` nvarchar(60) — unset values commonly
-> EMPTY STRING, not NULL. Raw-row types below reflect the confirmed schema.
-
----
-
-## Context
-
-Stage 8D.1 (shared `Site + Part` inventory capability) is complete and accepted
-(commit `bf89c60`). Stage 8D.2 establishes the structural BOM concept on top of it: a QAD
-reader that reproduces the proven `dbo.sp_QAD_ktbmpsrp` traversal semantics (current-effective,
-multi-level, occurrence-preserving, depth-first) as KST-owned read-only SQL behind
-`Kst.Integrations.Qad`, plus a Domain structural model (`BomOccurrence`) that the 8D.3
-Application service will filter to P/M and enrich with the 8D.1 inventory capability.
-
-Authoritative evidence: owner-reviewed legacy SP `dbo.sp_QAD_ktbmpsrp` semantics as distilled
-in the Stage 8D.2 prompt (the SP source is not in the repository). `qadpro2.dbo.ps_mstr` is the
-primary structural source (`ps_par` → `ps_comp`); `oid_ps_mstr` is the relationship identity.
+> Scope: the smallest safe Application + API implementation that composes the accepted
+> 8D.2 structural `BomOccurrence` stream with the accepted 8D.1 shared `Site + Part`
+> inventory into scheduler-visible BOM lines, enforces workspace/MPS scope + effective-date
+> freshness, and exposes the authoritative BOM contract. No BOM frontend (8D.4), no
+> requirement math, no 8D.1/8D.2 redesign.
 
 ---
 
 ## A. Repository Fit
 
-**QAD reader pattern to follow** (all verified in the current tree):
+All pieces below verified in the current tree (clean, `main`).
 
-| Concern | Established pattern | Reference |
+| Concern | Existing pattern (exact reference) | Reused as-is |
 |---|---|---|
-| Reader shape | `sealed class Qad*Reader` in a per-feature folder (`Inventory/`, `PartDetail/`, `Mps/`, `WorkOrders/`); ctor takes `QadConnectionOptions` + `ILogger<T>` | `Kst.Integrations.Qad/Inventory/QadPartInventoryReader.cs` |
-| Public API | `Task<IReadOnlyList<T>> ReadAsync(site, …, CancellationToken)`; `QadSiteDomainMap.Resolve(site)` inside the reader — callers never supply QAD Domain | `QadPartInventoryReader.ReadSummariesAsync`, `QadMpsSourceReader.ReadAsync` |
-| Query construction | `public static (string Sql, DynamicParameters Parameters) Build*Query(…)` — pure, no connection, independently testable | `QadPartInventoryReader.BuildBatchQuery`, `QadPartDetailReader.BuildPartMasterQuery` |
-| Connection/timeout/cancellation | `QadConnectionFactory.OpenAsync` (immediate `READ UNCOMMITTED`), `CommandDefinition(sql, parameters, commandTimeout: _options.CommandTimeoutSeconds, cancellationToken)` | `QadConnectionFactory.cs` |
-| Failure/cancellation semantics | Exceptions propagate truthfully; never converted to empty/zero; `_options.IsConfigured` guard; `Stopwatch` + `LogInformation` row-count/elapsed log line | all existing readers |
-| Raw rows | `Qad*-shaped` record in the same file, QAD column names allowed, "does not travel past this integration boundary" | `QadPartInventoryRawRow`, `QadPartMasterRawRow` |
-| Normalization | `public static Normalize(…)` mapping raw → Domain; code-like fields get defensive switch mapping (`NormalizeSupplyType`, `NormalizeWorkOrderState`); C#-side lookup-key normalization precedent (`NormalizePartNumbers`) | `QadMpsSourceReader`, `QadPartInventoryReader` |
-| Site ptp_det join | `LEFT JOIN qadpro2.dbo.ptp_det` on `ptp_domain` + `ptp_part` + `ptp_site = @Site`, explicitly **NOT** `pt_site`; LEFT JOIN keeps master rows when site row missing | `QadPartDetailReader.BuildPartMasterQuery` (+ its tests assert `pt_site` absent) |
-| Domain model | `sealed record` in a per-feature `Kst.Domain/<Feature>/` folder; XML doc states grain and what it is NOT; no QAD table-shaped names | `Kst.Domain/Inventory/PartInventorySummary.cs` |
-| Tests | xunit + FluentAssertions available; convention is **pure query-builder/normalization tests** — assert SQL text/parameter shape, never a live DB | `Kst.Integrations.Qad.Tests/Inventory/QadPartInventoryReaderTests.cs` |
+| Application service | `Kst.Application/PartDetail/PartDetailService.cs` — lazy-loaded parent-scoped orchestrator: workspace lookup, MPS state read (never triggers MPS load), scope validation, cache, clock, reader, logger. Stage 7's `WorkOrderDrilldownService` is the sibling. | pattern only; new `BomService` |
+| Workspace/MPS parent scope | `IWorkspaceConfigurationService.GetWorkspacesAsync()` → first-match on `AssignmentId`, else `PartDetailWorkspaceNotFoundException` → 404. `IMpsSnapshotStore.GetState(ws)` → `Snapshot is null` → 409 `MpsNotLoaded`. Scope = `Snapshot.ResolvedParts` case-insensitive `ParentPart` match, else 404 `"Part not in workspace scope"` (title+detail identical in Stage 6 and Stage 7). | `IWorkspaceConfigurationService`, `IMpsSnapshotStore`, `MpsSnapshot.ResolvedParts` |
+| Freshness identity | `MpsSnapshot.Id` (`SnapshotId`, new GUID per successful load). `InMemoryMpsSnapshotStore.SetFailed` **retains** the prior good snapshot + id (failed refresh never advances freshness). | unchanged |
+| Clock | `Kst.Domain.Common.IClock` / `SystemClock`; convention `DateOnly.FromDateTime(_clock.LocalNow.Date)` (`PartDetailService`), `LoadedAtUtc = _clock.UtcNow`. | unchanged |
+| Reader/delegate bridge | `IPartDetailSourceReader`/`DelegatePartDetailSourceReader` (`Kst.Application/PartDetail/`), `IMpsSourceReader`/`DelegateMpsSourceReader`, `IWorkOrder*Reader`/`DelegateWorkOrder*Reader` — Application interface + `Func` delegate; concrete QAD reader in `Kst.Integrations.Qad`; wired in `Program.cs` with configured/unconfigured branches. Guarded by `Kst.ArchitectureTests` (Application must not reference SqlClient/Dapper/AspNetCore). | pattern only; two new bridges |
+| Cache | `InMemoryPartDetailCacheStore` — key `(WorkspaceId, ParentPart)` (case-insensitive key), entry tagged `LoadedAgainstMpsSnapshotId`, stale-last-good fallback on load failure. (Stage 7's stores key by snapshot id and never stale-fallback — that is the investigation-data model, not the right model here.) | pattern only; new `InMemoryBomCacheStore` |
+| Endpoint/Problem Details | `PartDetailEndpoints.cs` — route style, `Results.Problem` stable titles, `catch ...WorkspaceNotFoundException → Results.NotFound()`, `Results.ValidationProblem` for blank input. | pattern only; new `BomEndpoints` |
+| OpenAPI | `Kst.Api.csproj` `OpenApiGenerateDocumentsOnBuild` → `docs/openapi/Kst.Api.json`; `npm run generate:types` (openapi-typescript) → `src/frontend/src/generated/api.ts`; never hand-edited; committed together. | unchanged |
+| Upstream capabilities | `QadBomReader.ReadAsync(site, parent, effectiveDate, ct)` → `IReadOnlyList<BomOccurrence>`; `QadPartInventoryReader.ReadSummariesAsync(site, partNumbers, ct)` → one summary per distinct requested part (zeroes when no rows; internal batching via `MpsPartBatcher` + `MaxPartBatchSize`). | unchanged — the bridges delegate straight to these methods |
 
-**Placement confirmed:** no BOM model, query, or reader exists anywhere in the backend yet
-(searched `Bom` across `src/backend` — only doc-comment mentions). New capability lives in:
-- `Kst.Domain/Bom/` (structural record only — no logic),
-- `Kst.Integrations.Qad/Bom/` (reader + raw row).
+No `Bom`/`Inventory` namespace exists yet in `Kst.Application`/`Kst.Api` (checked — no name
+collisions; only doc-comment mentions in `WorkOrderDrilldownService`).
 
-**Architectural tests** (`Kst.ArchitectureTests/DependencyRuleTests.cs`) are satisfied by this
-placement: Domain gains no infrastructure references; no Application/SQL code is added.
+## B. Proposed Application Model
 
-**8D.1 reasoning applied:** no Application interface/delegate bridge and no `Program.cs` DI
-wiring in 8D.2 — the first Application BOM consumer is 8D.3 (same deferral accepted for
-8D.1's `IPartInventoryReader`/`DelegatePartInventoryReader`).
+New feature folder `Kst.Application/Bom/` (mirrors `PartDetail` placement; composed
+records with cache/freshness metadata live in Application, per the accepted `PartDetail`
+precedent). Domain `BomOccurrence` and `PartInventorySummary` remain structurally separate
+and are **not** modified.
 
----
+```csharp
+// Kst.Application/Bom/BomLine.cs — one scheduler-visible BOM presentation line.
+// Grain: structural occurrence + composed Site+Part inventory. Deliberately absent:
+// RMA, Extended Requirement, Incoming Supply, Coverage, Material Status, Short Qty,
+// Projected QOH, PO/MRP quantities — no requirement math in 8D.3.
+public sealed record BomLine(
+    string OccurrenceKey,        // opaque expanded-occurrence identity (from BomOccurrence)
+    int Level,                   // actual structural level (gaps preserved; never renumbered)
+    string ComponentPart,
+    string? PmCode,              // effective P/M code (always P or M after visibility filter)
+    bool IsPhantom,
+    string? Description,
+    decimal? QuantityPer,        // relationship-level, verbatim
+    decimal? ScrapPercentage,    // relationship-level, verbatim
+    decimal NetQuantityOnHand,   // composed from PartInventorySummary (0 = authoritative zero)
+    decimal NonNetQuantityOnHand);
 
-## B. Recommended Traversal Strategy
+// Kst.Application/Bom/Bom.cs — complete successful composition + cache/freshness metadata.
+public sealed record Bom(
+    string Site,
+    string ParentPart,
+    DateOnly EffectiveDate,      // the effective date actually used (reported in the API)
+    IReadOnlyList<BomLine> Lines,// empty list is a valid successful result
+    DateTimeOffset LoadedAtUtc,
+    bool IsStale,
+    string? Warning);
 
-**Recommendation: a KST-owned recursive CTE over `ps_mstr` (SQL) for the effective structural
-closure, plus a deterministic depth-first ordering + level assignment in pure C#** —
-not the legacy SP call, not a temp-table/cursor loop, and no window functions inside the CTE.
+// Kst.Application/Bom/BomResult.cs — outcome wrapper (mirrors PartDetailResult).
+public enum BomOutcomeKind { Loaded, MpsNotLoaded, OutOfScope, Unavailable }
+public sealed record BomResult(BomOutcomeKind Kind, Bom? Bom = null)
+{
+    public static BomResult Loaded(Bom bom) => new(BomOutcomeKind.Loaded, bom);
+    public static BomResult MpsNotLoaded { get; } = new(BomOutcomeKind.MpsNotLoaded);
+    public static BomResult OutOfScope { get; } = new(BomOutcomeKind.OutOfScope);
+    public static BomResult Unavailable { get; } = new(BomOutcomeKind.Unavailable);
+}
+```
 
-### B.1 Why a recursive CTE (and why not the alternatives)
+Deliberately **no** `MissingParent` outcome (unlike PartDetail): a valid in-scope parent with
+no effective structural rows — or with no P/M-visible rows — is `Loaded` with `Lines = []`
+(200). MPS scope already answers the API's parent question; no `pt_mstr` existence query is
+added (this also resolves the 8D.2 "unknown-parent deferred to 8D.3" item).
 
-- **Not the legacy SP call.** Repository precedent rejects calling legacy procedures
-  ("Do not implement `sp_QAD_ktmpswkm` or create a new database procedure" — Stage 5), the
-  8D.2 prompt prefers KST-owned SQL, and KST-owned SQL keeps the query inspectable,
-  parameterized, and inside the integration boundary.
-- **Not temp tables/cursors.** No existing QAD reader uses temp tables; every reader is a
-  single set-based parameterized statement via Dapper `CommandDefinition`. A temp-table
-  iterative loop would be a new, heavier pattern with no evidence it is safer here.
-- **Recursive CTE fits**: single set-based statement, fully parameterized, SQL Server 2016
-  native (recursive CTEs since 2005), composes with the existing `Build*Query`/Dapper
-  convention, and reproduces the legacy semantics directly:
+Service inputs/outputs: `BomService.GetBomAsync(Guid workspaceId, string parentPart,
+CancellationToken) → Task<BomResult>`. The frontend supplies only workspace identity +
+parent part — no site, domain, effective date, or P/M rules.
 
-| Legacy semantic | CTE reproduction |
+## C. Reader Bridges and DI
+
+Deferred from the accepted 8D.1/8D.2 plans; added now at first real Application consumer.
+Names follow the repository's existing `*SourceReader` / `Delegate*SourceReader` pattern and
+the 8D.1 deferral note (`IPartInventoryReader`/`DelegatePartInventoryReader`).
+
+```csharp
+// Kst.Application/Bom/IBomSourceReader.cs  (+ DelegateBomSourceReader, Func-backed,
+// exactly mirroring DelegatePartDetailSourceReader's shape)
+public interface IBomSourceReader
+{
+    Task<IReadOnlyList<BomOccurrence>> ReadAsync(
+        string site, string parentPart, DateOnly effectiveDate,
+        CancellationToken cancellationToken = default);
+}
+
+// Kst.Application/Inventory/IPartInventoryReader.cs  (+ DelegatePartInventoryReader).
+// Feature folder mirrors Kst.Domain.Inventory / Kst.Integrations.Qad.Inventory; the shared
+// capability will also be consumed by 8D.5 Component Info, so it is not placed under Bom.
+public interface IPartInventoryReader
+{
+    Task<IReadOnlyList<PartInventorySummary>> ReadSummariesAsync(
+        string site, IReadOnlyList<string> partNumbers,
+        CancellationToken cancellationToken = default);
+}
+```
+
+`Program.cs` — new `// -- BOM (Stage 8D.3) --` section after the Work Orders section,
+following the exact existing shape (singletons; `sp.GetRequiredService` delegates;
+`throw new InvalidOperationException("QAD connection is not configured.")` in the
+unconfigured branch):
+
+```csharp
+builder.Services.AddSingleton<IBomCacheStore, InMemoryBomCacheStore>();
+
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadBomReader>();
+    builder.Services.AddSingleton<QadPartInventoryReader>();
+    builder.Services.AddSingleton<IBomSourceReader>(sp => new DelegateBomSourceReader(
+        (site, parentPart, effectiveDate, ct) =>
+            sp.GetRequiredService<QadBomReader>().ReadAsync(site, parentPart, effectiveDate, ct)));
+    builder.Services.AddSingleton<IPartInventoryReader>(sp => new DelegatePartInventoryReader(
+        (site, partNumbers, ct) =>
+            sp.GetRequiredService<QadPartInventoryReader>().ReadSummariesAsync(site, partNumbers, ct)));
+}
+else
+{
+    const string notConfiguredMessage = "QAD connection is not configured.";
+    builder.Services.AddSingleton<IBomSourceReader>(_ => new DelegateBomSourceReader(
+        (_, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+    builder.Services.AddSingleton<IPartInventoryReader>(_ => new DelegatePartInventoryReader(
+        (_, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+}
+
+builder.Services.AddSingleton<BomService>();
+```
+
+plus `app.MapBomEndpoints();` after `app.MapWorkOrderEndpoints();`. No new project
+references (Application already references Domain; Architecture tests stay green by
+construction — delegates use only `Func`/Domain types).
+
+## D. Application Service Flow
+
+`BomService` ctor: `(IWorkspaceConfigurationService, IMpsSnapshotStore, IBomSourceReader,
+IPartInventoryReader, IBomCacheStore, IClock, ILogger<BomService>)` — mirrors
+`PartDetailService` exactly.
+
+```
+GetBomAsync(workspaceId, parentPart, ct)
+ 1. ct.ThrowIfCancellationRequested()
+ 2. workspace = GetWorkspacesAsync() → FirstOrDefault(AssignmentId == workspaceId)
+        ?? throw BomWorkspaceNotFoundException            → 404 (Results.NotFound())
+ 3. mpsState = _mpsSnapshotStore.GetState(workspaceId)     (never triggers an MPS load)
+        Snapshot is null → BomResult.MpsNotLoaded          → 409
+ 4. normalizedParent = parentPart.Trim()
+        in scope = Snapshot.ResolvedParts.Any(p => string.Equals(p.ParentPart,
+                     normalizedParent, OrdinalIgnoreCase))
+        else → BomResult.OutOfScope                        → 404 "Part not in workspace scope"
+ 5. effectiveDate = DateOnly.FromDateTime(_clock.LocalNow.Date)
+ 6. currentSnapshotId = Snapshot.Id
+        cached = _cache.Get(workspaceId, normalizedParent)
+        fresh hit iff cached != null
+                   && cached.LoadedAgainstMpsSnapshotId == currentSnapshotId
+                   && cached.EffectiveDate == effectiveDate
+        → BomResult.Loaded(cached.Bom)
+ 7. (miss/stale) occurrences = _bomSourceReader.ReadAsync(workspace.Site, normalizedParent,
+                    effectiveDate, ct)
+        on exception: log; same-date stale fallback (step 10a) or BomResult.Unavailable
+ 8. visible = occurrences.Where(BomSchedulerVisibility.IsSchedulerVisible).ToList()
+        — order-preserving filter of the flat structural list; hidden intermediates are
+          simply omitted; their descendants already carry their own P/M codes and remain
+          independently eligible; Level values are untouched (gaps preserved); no
+          re-sort, no consolidation, no phantom flattening.
+ 9. if visible.Count > 0:
+        keys = visible.Select(v => v.ComponentPart.Trim()).Distinct(OrdinalIgnoreCase)
+        summaries = _inventoryReader.ReadSummariesAsync(workspace.Site, keys, ct)
+            — ONE batch-capable call (reader chunks internally); empty visible skips it.
+            on exception: log; same-date stale fallback or Unavailable (a partial
+            structural-only result is NEVER cached or returned with invented zeros).
+        byPart = Dictionary<string, PartInventorySummary>(OrdinalIgnoreCase)
+            keyed by summary.PartNumber (reader echoes normalized keys; exactly one summary
+            per distinct requested key, zeroes when no qualifying inventory).
+        composition maps BY PART NUMBER — repeated occurrences of the same component repeat
+        the same Site+Part values (same display, one shared pool; NOT independent pools).
+ 10. bom = new Bom(workspace.Site, normalizedParent, effectiveDate, lines,
+                   _clock.UtcNow, IsStale: false, Warning: null)
+ 10a stale fallback (both failure paths): cached != null && cached.EffectiveDate == effectiveDate
+        → Loaded(cached.Bom with { IsStale = true,
+             Warning = "Showing the last known BOM information. A newer refresh could not be completed." })
+        — a different-date cached Bom is NEVER served (see E).
+ 11. _cache.Set(workspaceId, normalizedParent,
+               new BomCacheEntry(workspaceId, normalizedParent, effectiveDate,
+                                 currentSnapshotId, bom))   — only after BOTH reads succeed
+     return BomResult.Loaded(bom)
+```
+
+`BomSchedulerVisibility` (new `Kst.Application/Bom/BomSchedulerVisibility.cs` — small pure
+static so the P/M comparison is unit-testable in isolation):
+
+```csharp
+public static class BomSchedulerVisibility
+{
+    // Robust: trim + case-insensitive; null and every non-P/M code (N, S, 2, 3, 4, C, D, ...)
+    // are not visible. Consistent with the repo's trim/OrdinalIgnoreCase comparison convention.
+    public static bool IsSchedulerVisible(string? pmCode)
+    {
+        var code = pmCode?.Trim();
+        return code is not null
+            && (code.Equals("P", StringComparison.OrdinalIgnoreCase)
+                || code.Equals("M", StringComparison.OrdinalIgnoreCase));
+    }
+}
+```
+
+## E. Cache / Freshness Design
+
+New `Kst.Application/Bom/IBomCacheStore.cs` + `BomCacheEntry.cs`:
+
+```csharp
+public sealed record BomCacheEntry(
+    Guid WorkspaceId,
+    string ParentPart,
+    DateOnly EffectiveDate,                 // business-identity part (cross-date gate)
+    SnapshotId LoadedAgainstMpsSnapshotId,  // freshness tag (MPS successful-refresh generation)
+    Bom Bom);                               // complete successful composition only
+
+public interface IBomCacheStore
+{
+    BomCacheEntry? Get(Guid workspaceId, string parentPart);
+    void Set(Guid workspaceId, string parentPart, BomCacheEntry entry);
+}
+```
+
+`Kst.Infrastructure/Bom/InMemoryBomCacheStore.cs` — thread-safe `ConcurrentDictionary`,
+in-memory only, key `(WorkspaceId, ParentPart)` with `Trim().ToUpperInvariant()` — a verbatim
+structural mirror of `InMemoryPartDetailCacheStore` (no parallel infrastructure).
+
+Mapping of the accepted Stage 8 rules onto the actual repository objects:
+
+| Accepted rule | Mechanism |
 |---|---|
-| Complete traversal (no early stop on non-P/M/phantom/hidden rows) | Recursion condition is **only** domain + effective-date predicates on `ps_mstr`; no P/M, phantom, or operation (`ps_op`) filter anywhere |
-| Effectivity | `(ps_start IS NULL OR ps_start <= @EffectiveDate) AND (ps_end IS NULL OR ps_end >= @EffectiveDate)` — applied in **both** the anchor and the recursive member; `@EffectiveDate` is an explicit parameter (app clock wired later in 8D.3; no `GETDATE()` in the query) |
-| Recursion parent→child | `INNER JOIN` of `ps_mstr` child rows on `frontier.ps_comp = child.ps_par` (single recursive reference, right side of INNER JOIN — the documented SQL Server form) |
-| Occurrence identity | `oid_ps_mstr` carried on every row, never used to deduplicate output |
-| Original levels | Assigned in C# as DFS depth (see B.3) — no cosmetic renumbering |
-| No operation range | The SP's operation-range parameter is deliberately **not** reproduced (Stage 8 has no operation UI) |
+| Business identity Site + Parent + EffectiveDate | Site is fixed by the resolved workspace (same as PartDetail); key `(WorkspaceId, ParentPart)`; `EffectiveDate` stored on the entry and checked in **both** the fresh-hit and stale-eligible tests |
+| Freshness = successful-refresh generation | `MpsSnapshot.Id` (`SnapshotId` — `MpsWorkspaceSnapshotService.LoadAsync` calls `SnapshotId.New()` on every successful load) — the repository's existing refresh identity; no second refresh system |
+| Fresh hit | entry.SnapshotId == current && entry.EffectiveDate == today |
+| Successful MPS refresh | new `SnapshotId` → fresh check fails → a new load is attempted; the prior entry is retained until a successful load replaces it |
+| Failed MPS refresh | `InMemoryMpsSnapshotStore.SetFailed` retains the prior snapshot **and its id** → entry stays a fresh hit; compatible last-good data is never spuriously invalidated |
+| Same-date stale-last-good | on structural **or** inventory read failure: entry with `EffectiveDate == today` (any snapshot id) is served with `IsStale = true` + warning — same signaling convention as Stage 6 PartDetail |
+| **Cross-date fallback forbidden** | any entry with `EffectiveDate != today` is usable for neither a fresh hit nor a stale fallback → load is attempted with today's date; if it fails → `Unavailable` (503), never yesterday's BOM |
+| Failed partial loads | `_cache.Set` runs only after structural + inventory reads both succeed; a failed reload never overwrites the last-good complete entry |
+| Non-invalidating UI state | MPS bucket, Due/Release mode, horizon, tab, and search string appear nowhere in the service signature, the cache key, or the entry — they are structurally unable to affect BOM identity/freshness |
 
-### B.2 Responsibility split — SQL closure + sibling rank, C# traversal (approved, Amendment 2)
+Inherited accepted trait (no action, same as Stage 6): the cache is workspace-scoped by
+`AssignmentId`; a workspace-site edit does not by itself invalidate lazy entries — the next
+successful MPS load advances the snapshot id, which re-qualifies the data.
 
-The CTE returns the **flat set of effective relationship rows reachable from the parent**
-(the structural closure, with per-path copies). The **outer (non-recursive) SELECT** reduces
-that closure to unique physical relationships (the approved closure DISTINCT) and assigns a
-**numeric sibling rank** per parent. A pure C# method then performs the deterministic
-depth-first pre-order walk, assigns levels, and builds path-based OccurrenceKeys.
+## F. API Contract
+
+**Route** (existing `{assignmentId:guid}` workspace convention; parent-contextual path per the
+accepted semantic route; no bucket/due-release/horizon/week encoded):
 
 ```
-SQL:  reachable effective structural relationships,
-      physical relationship identity,
-      Component → Reference → OID sibling rank (database collation),
-      master/site enrichment
-C#:   parent/child expansion, depth-first traversal, structural Level,
-      path-based OccurrenceKey, cycle guard, normalization
+GET /api/v1/workspaces/{assignmentId:guid}/parts/{parentPart}/bom
 ```
 
-Why the sibling rank lives in an *outer* `ROW_NUMBER()` rather than inside the recursion:
+New `Kst.Api/Endpoints/BomEndpoints.cs` (thin handler + `ToResult` switch, mirroring
+`PartDetailEndpoints`): `WithName("GetBom")`, `WithTags("Bom")`,
+`Produces<BomResponseDto>(200)` + `ProducesProblem` 400/404/409/503.
 
-1. **SQL Server recursive-CTE restrictions** block the standard in-recursion "sibling rank
-   path" technique (single recursive reference; no usable per-parent ranking in the
-   recursive member). A window function in the **outer** query over the reduced closure is
-   unrestricted and is exactly the approved Amendment-2 formulation.
-2. **Database collation stays in SQL** (Amendment 2): `ORDER BY ps_comp, ps_ref, oid_ps_mstr`
-   inside the `ROW_NUMBER()` uses the QAD database collation — a C# comparer could not be
-   guaranteed to reproduce it. C# consumes the numeric `SiblingOrder` as-is.
-3. **Testability**: the C# DFS (expansion, level, key, cycle guard) is directly unit-testable
-   with synthetic trees; the SQL shape (DISTINCT identity, ROW_NUMBER partition/order,
-   predicates, joins, MAXRECURSION) is text-assertable per repo convention.
-4. **Faithfulness**: the C# walk reproduces the legacy per-visit semantics — *when a part is
-   visited, its children are all effective `ps_mstr` rows for that part, recursed beneath
-   each child in sibling-rank order*.
-
-**Sibling order (per parent):** SQL `ROW_NUMBER() OVER (PARTITION BY ps_par ORDER BY
-ps_comp, ps_ref, oid_ps_mstr)` — Component → Reference → OID, in database collation. (OID
-alone does **not** define sibling order.)
-
-**Level:** C# DFS depth, 1-based. A descendant beneath a hidden (non-P/M) intermediate keeps
-its actual level (e.g., Level 3 under a hidden Level 2). No renumbering.
-
-### B.3 The one DISTINCT — and why it is not "defensive deduplication"
-
-In a frontier-join recursive CTE, a **shared** physical relationship row (same
-`oid_ps_mstr`) is emitted once per path that reaches its parent (path multiplicity), and
-duplicate component rows multiply that further. The final `SELECT DISTINCT` over the full
-row **including `oid_ps_mstr`** therefore collapses only *identical physical relationship
-rows* — it can never merge two distinct occurrences (distinct rows have distinct OIDs).
-
-The prohibited "defensive DISTINCT on BOM output" does **not** occur: the reader's returned
-occurrence list is built by the C# expansion, which deliberately re-lists a shared
-relationship under every parent-occurrence that reaches it (duplicate components, diamonds,
-same component at multiple levels — all preserved). This is the single place `DISTINCT`
-appears in the query, it is semantically load-bearing (identity-preserving closure), and it
-is flagged for explicit owner confirmation in §H.
-
-**Query shape (approved, per Amendments 2–3):**
-
-```sql
-WITH BomStructure AS
-(
-    -- Anchor: effective level-1 relationships of the parent
-    SELECT ps.oid_ps_mstr, ps.ps_par, ps.ps_comp, ps.ps_ref,
-           ps.ps_qty_per, ps.ps_scrp_pct
-    FROM qadpro2.dbo.ps_mstr AS ps
-    WHERE ps.ps_domain = @Domain
-      AND ps.ps_par = @ParentPart
-      AND (ps.ps_start IS NULL OR ps.ps_start <= @EffectiveDate)
-      AND (ps.ps_end   IS NULL OR ps.ps_end   >= @EffectiveDate)
-
-    UNION ALL
-
-    -- Recursion: effective children of each frontier component.
-    -- No P/M, phantom, or operation filter — complete traversal.
-    SELECT ch.oid_ps_mstr, ch.ps_par, ch.ps_comp, ch.ps_ref,
-           ch.ps_qty_per, ch.ps_scrp_pct
-    FROM qadpro2.dbo.ps_mstr AS ch
-    INNER JOIN BomStructure AS frontier
-        ON frontier.ps_comp = ch.ps_par
-    WHERE ch.ps_domain = @Domain
-      AND (ch.ps_start IS NULL OR ch.ps_start <= @EffectiveDate)
-      AND (ch.ps_end   IS NULL OR ch.ps_end   >= @EffectiveDate)
-)
-SELECT
-    u.oid_ps_mstr    AS OidPsMstr,
-    u.ps_par         AS ParentPart,
-    u.ps_comp        AS ComponentPart,
-    u.ps_ref         AS Reference,
-    u.ps_qty_per     AS QuantityPer,
-    u.ps_scrp_pct    AS ScrapPercentage,
-    pt.pt_desc1      AS Description1,
-    pt.pt_desc2      AS Description2,
-    pt.pt_phantom    AS Phantom,
-    ptp.ptp_pm_code  AS SitePmCode,
-    pt.pt_pm_code    AS GlobalPmCode,
-    ROW_NUMBER() OVER (
-        PARTITION BY u.ps_par
-        ORDER BY u.ps_comp, u.ps_ref, u.oid_ps_mstr
-    ) AS SiblingOrder
-FROM (
-    -- APPROVED 8D.2 CLOSURE DISTINCT (Amendment 3): collapses only duplicate PATH COPIES
-    -- of the same physical ps_mstr relationship (identity includes oid_ps_mstr). NOT
-    -- business-level BOM deduplication — the C# structural expansion recreates every
-    -- legitimate expanded occurrence; the final BomOccurrence result is never DISTINCTed.
-    SELECT DISTINCT
-        b.oid_ps_mstr, b.ps_par, b.ps_comp, b.ps_ref,
-        b.ps_qty_per, b.ps_scrp_pct
-    FROM BomStructure AS b
-) AS u
-LEFT JOIN qadpro2.dbo.pt_mstr AS pt
-    ON pt.pt_domain = @Domain AND pt.pt_part = u.ps_comp
-LEFT JOIN qadpro2.dbo.ptp_det AS ptp
-    ON ptp.ptp_domain = @Domain
-    AND ptp.ptp_part  = u.ps_comp
-    AND ptp.ptp_site  = @Site
-OPTION (MAXRECURSION 100);
-```
-
-Parameters: `@Domain` (from `QadSiteDomainMap`), `@ParentPart`, `@EffectiveDate`
-(`DateOnly` → midnight `DateTime`, same convention as the price query), `@Site`.
-All joins carry `@Domain`; `pt_site` is never used. No final `ORDER BY` — the C# DFS
-consumes `SiblingOrder`.
-
----
-
-## C. Normalized Structural Model
-
-### C.1 Domain — `Kst.Domain/Bom/BomOccurrence.cs` (new)
+New `Kst.Api/Dtos/BomDtos.cs` (feature-specific DTO file convention; camelCase JSON via the
+existing `ConfigureHttpJsonOptions`):
 
 ```csharp
-namespace Kst.Domain.Bom;
+public sealed record BomLineDto(
+    string OccurrenceKey,
+    int Level,
+    string ComponentPart,
+    string? PmCode,
+    bool IsPhantom,
+    string? Description,
+    decimal? QuantityPer,
+    decimal? ScrapPercentage,
+    decimal NetQuantityOnHand,
+    decimal NonNetQuantityOnHand);          // RMA deliberately absent
 
-// sealed record — structural BOM occurrence (relationship grain, NOT inventory grain).
-public sealed record BomOccurrence(
-    string  OccurrenceKey,      // opaque EXPANDED-occurrence identity (Amendment 1): deterministic path of
-                                // relationship OIDs from the root ("oidA/oidB/..."); different per structural path,
-                                // never used for ordering; consumers must not parse it
-    int     Level,              // actual structural level (1-based, preserved through hidden rows)
-    string  ComponentPart,      // ps_comp
-    string? PmCode,             // effective P/M classification (site ptp_det, fallback pt_mstr); any code; unfiltered
-    bool    IsPhantom,          // pt_mstr.pt_phantom
-    string? Description,        // null-safe pt_desc1 + pt_desc2 combination
-    decimal? QuantityPer,       // ps_qty_per — relationship-level; never multiplied through hierarchy
-    decimal? ScrapPercentage);  // ps_scrp_pct — relationship-level; no requirement calculation
+public sealed record BomResponseDto(
+    string Site,                            // existing convention exposes workspace-scope
+    string ParentPart,                      // metadata (PartDetailResponseDto.Site,
+    DateOnly EffectiveDate,                 // MpsSnapshotMetadataDto.Site)
+    IReadOnlyList<BomLineDto> Lines,
+    DateTimeOffset LoadedAtUtc,
+    bool IsStale,
+    string? Warning);                       // existing stale-signaling convention
 ```
 
-Deliberately **absent** (prompt §7): Net/Non-Net/RMA QOH, Extended Requirement, Incoming
-Supply, Coverage, Material Status, Short Quantity, Projected QOH, parent-part, reference,
-sort key, and any QAD table-shaped name. Grain statement (in the XML doc, per
-`PartInventorySummary` convention): one row per structural occurrence in traversal order;
-inventory belongs to `PartInventorySummary` (Site + Part) and is composed later in 8D.3.
-No logic in the record → no `Kst.Domain.Tests` additions needed (same as 8D.1).
+Not exposed: QAD Domain, `oid_ps_mstr`, MPS snapshot id, cache keys, RMA QOH, or any
+requirement math. The caller sends only `{assignmentId}` + `{parentPart}`.
 
-### C.2 QAD raw row — in `QadBomReader.cs` (integration-only, does not cross the boundary)
+**Result mapping** (stable titles reused verbatim where already load-bearing):
 
-```csharp
-public sealed record QadBomStructuralRawRow(
-    decimal  OidPsMstr,       // relationship identity — live-confirmed decimal(28,10)
-    string   ParentPart,      // ps_par — needed by the C# DFS parent linkage
-    string   ComponentPart,   // ps_comp
-    string?  Reference,       // ps_ref — carried for traceability; sibling order comes from SiblingOrder
-    decimal? QuantityPer,     // ps_qty_per decimal(28,10), nullable (live-confirmed)
-    decimal? ScrapPercentage, // ps_scrp_pct decimal(28,10), nullable (live-confirmed)
-    string?  Description1,    // pt_mstr.pt_desc1 (raw segments; combined in C#)
-    string?  Description2,    // pt_mstr.pt_desc2
-    string?  SitePmCode,      // ptp_det.ptp_pm_code for the selected site (raw; fallback in C#)
-    string?  GlobalPmCode,    // pt_mstr.pt_pm_code (raw; commonly empty string when unset)
-    bool?    Phantom,         // pt_mstr.pt_phantom bit, nullable (live-confirmed)
-    long     SiblingOrder);   // SQL ROW_NUMBER per parent: Component → Reference → OID, DB collation;
-                              // long because the driver reports ROW_NUMBER() as Int64 (live-confirmed)
-```
-
-**Live smoke-check finding (2026-07, before first successful read):** Dapper materializes the
-raw record **positionally** — constructor parameter order must mirror the SELECT column order
-exactly (same failure class as the documented Stage 7 positional-deserialization bug). The raw
-row order above matches the query's column order; the smoke check ran the real `ReadAsync` path
-read-only against KNWVM13 and confirmed the query executes on SQL Server 2016 and maps cleanly.
-
-**Live schema confirmed read-only (2026-07)** against KNWVM13/QADPRO2 (SQL Server 2016 SP2):
-`oid_ps_mstr` is `decimal(28,10)` (fractional OIDs), `ps_qty_per`/`ps_scrp_pct`
-`decimal(28,10)` nullable, `ps_par`/`ps_comp`/`ps_ref` `nvarchar(60)`, `ps_start`/`ps_end`
-`datetime` nullable, `pt_desc1`/`pt_desc2` `nvarchar(160)`, `pt_phantom` `bit` nullable,
-`pt_pm_code`/`ptp_pm_code` `nvarchar(60)` (unset = empty string, not NULL).
-
-`QuantityPer`/`ScrapPercentage` are nullable (faithful to possible NULL; no invented
-zero-fill — unlike inventory aggregates, a relationship value has no zero identity).
-`Phantom` nullable for the LEFT-JOIN-missing-master case. `OidPsMstr` is non-nullable
-(physical relationship identity; a NULL OID is a genuine data error that should surface,
-not be normalized).
-
----
-
-## D. P/M and Master Enrichment
-
-SQL performs the two LEFT JOINs (shape in B.3): `pt_mstr` on **domain + component**,
-`ptp_det` on **`ptp_domain` + `ptp_part` + `ptp_site = @Site`** — explicitly **not**
-`pt_mstr.pt_site` (accepted Stage 6 rule; existing test asserts `pt_site` absence).
-LEFT JOIN (not INNER) so a missing master row never drops a structural occurrence; the row
-survives with master-sourced facts null.
-
-All per-row resolution happens in pure, unit-testable C# statics on `QadBomReader`
-(normalization precedent, like `NormalizePartNumbers`):
-
-1. **Effective P/M** — `ResolveEffectivePmCode(string? sitePm, string? globalPm)`:
-   - trim `sitePm`; if non-blank → return it (any code — `P`, `M`, or known non-P/M codes
-     `2/3/4/C/D/N/S` pass through unclassified; P/M *visibility filtering* is 8D.3's job);
-   - else trim `globalPm`; if non-blank → return it;
-   - else `null`.
-   - Whitespace-only `ptp_pm_code` = unavailable (falls back), never an authoritative value.
-   - The fallback applies **only** to P/M — no general `pt_mstr` fallback rule for other
-     planning fields (none are selected in 8D.2 at all).
-2. **Description** — `CombineDescription(string? d1, string? d2)`: trim each segment, drop
-   null/whitespace-only segments, join remaining segments with a single space; none remain
-   → `null` (missing description is null, matching `PartDetailSourceFacts.Description`).
-   One NULL segment never erases the other. Single-space join follows the repo's trim-based
-   normalization convention (no existing desc1+desc2 precedent exists in the repo; single
-   space is the minimal neutral choice).
-3. **Phantom** — `row.Phantom ?? false`: a missing `pt_mstr` row is not evidence of
-   phantom; the structural row is preserved with `IsPhantom = false`. (Live-confirmed:
-   `pt_phantom` is `bit` — direct `bool?` mapping, no code switch needed.)
-4. **Qty Per / Scrap** — passthrough per relationship row; never multiplied, never
-   extended; no Extended Requirement or requirement math of any kind.
-5. **OccurrenceKey (Amendment 1)** — generated during the C# DFS as the deterministic path
-   of relationship OIDs from the root: level-1 key = `FormatOid(oid)`; deeper keys =
-   `parentKey + "/" + FormatOid(oid)`; `FormatOid` = invariant-culture decimal string
-   (OIDs are `decimal(28,10)`; "/" cannot appear in a decimal string, so paths are
-   unambiguous). The key identifies the **expanded structural occurrence**: the same
-   physical relationship (same OID) reached through two different structural paths yields
-   two occurrences with different keys. It is stable/deterministic, never used to determine
-   traversal order (order is SQL `SiblingOrder`), opaque to consumers, and the QAD-specific
-   `oid_ps_mstr` naming stays inside the QAD integration layer. A future 8D.3 API
-   `occurrenceKey` maps straight from it (no API DTOs designed in 8D.2).
-
-**Phantom and non-P/M rows are structural rows**: the traversal has no phantom or P/M logic
-at all — recursion continues beneath both, and the normalized occurrence simply carries
-`IsPhantom`/`PmCode` facts for 8D.3 to consume.
-
----
-
-## E. Recursion / Failure Safety
-
-- **Depth protection — `OPTION (MAXRECURSION 100)`, explicit in the query (Amendment 4).**
-  - This is a *protective* ceiling, not a business level limit: when exceeded, the statement
-    **fails** — a truthful protective failure, never silent truncation (an explicit
-    `WHERE Level < N` cap would silently return an incomplete BOM and is rejected).
-  - Application behavior and tests are **not coupled to any specific SQL Server numeric
-    error code**: the required behavior is simply “exceeded recursion protection / query
-    failure → propagate failure → never return a silently truncated BOM.”
-  - The legacy SP's caller-supplied "maximum level" is not a Stage 8 business concept;
-    normal product BOMs are far shallower than 100.
-  - Cycles in `ps_mstr` are data errors (QAD has no known legitimate cycle behavior — no
-    repository evidence of any); a cycle makes the recursion non-terminating and is caught
-    by `MAXRECURSION` → exception.
-- **C# DFS cycle guard (defense in depth, unit-testable).** Real cycles fail in SQL first,
-  but the pure C# walker is made safe against *any* row set: it tracks the parts on the
-  current ancestor path (case-insensitive); a child part already on the path throws a
-  descriptive `InvalidOperationException`. Legitimate **diamonds** (same part beneath two
-  different parents) are not cycles and are fully preserved — each occurrence is emitted
-  at its own level.
-- **Empty vs error vs unknown parent.**
-  - Parent with no effective relationships → anchor produces no rows → **successful empty
-    `IReadOnlyList<BomOccurrence>`**.
-  - Query/DB failure or cancellation → exception propagates truthfully (existing reader
-    convention); **never** a faked empty BOM.
-  - Unknown/nonexistent parent → also empty from the structural query. The
-    "unknown parent" distinction is **not** resolved in 8D.2 with a second `pt_mstr`
-    existence query: the BOM reader's job is structure, and the established
-    part-existence semantics already live in `QadPartDetailReader` (returns `null` when no
-    `pt_mstr` row). Recommended: 8D.3 orchestration performs the unknown-parent 404
-    semantics (reusing existing PartDetail/part-master behavior) when the API layer
-    actually needs it.
-- **Input validation:** null `parentPart` → `ArgumentNullException`; blank →
-  `ArgumentException` (repo convention, `NormalizePartNumbers`). Unconfigured QAD →
-  `InvalidOperationException`. Unknown site → `QadSiteDomainMap.Resolve` throws
-  (existing behavior).
-
----
-
-## F. Exact Implementation File Plan
-
-Bounded file set — **3 files added, 0 modified**. No Application, API, OpenAPI, generated
-TS, frontend, DI/`Program.cs`, or documentation changes.
-
-| # | File (add) | Contents |
+| Service outcome / exception | HTTP | Problem Details |
 |---|---|---|
-| 1 | `src/backend/Kst.Domain/Bom/BomOccurrence.cs` | §C.1 record + grain/boundary XML doc |
-| 2 | `src/backend/Kst.Integrations.Qad/Bom/QadBomReader.cs` | `sealed class QadBomReader`: `Task<IReadOnlyList<BomOccurrence>> ReadAsync(string site, string parentPart, DateOnly effectiveDate, CancellationToken ct = default)`; `public static (string Sql, DynamicParameters Parameters) BuildQuery(string domain, string site, string parentPart, DateOnly effectiveDate)`; `public static IReadOnlyList<BomOccurrence> TraverseDepthFirst(string rootParent, IReadOnlyList<QadBomStructuralRawRow> rows)` (DFS + levels + SQL-SiblingOrder consumption + path OccurrenceKey + cycle guard); `public static string? ResolveEffectivePmCode(…)`; `public static string? CombineDescription(…)`; `public static BomOccurrence Normalize(QadBomStructuralRawRow raw, int level, string occurrenceKey)`; `sealed record QadBomStructuralRawRow` (§C.2) |
-| 3 | `src/backend/tests/Kst.Integrations.Qad.Tests/Bom/QadBomReaderTests.cs` | xunit; pure query-builder/normalization/traversal tests (no DB) |
+| `Loaded` (fresh) | 200 | `BomResponseDto`, `isStale: false`, `warning: null` |
+| `Loaded` (stale-last-good) | 200 | `isStale: true` + warning |
+| `MpsNotLoaded` | 409 | title `"MPS data not loaded"` (exact existing title); detail `"This workspace's MPS data has not been loaded yet. Load the MPS dashboard before viewing the BOM."` |
+| `OutOfScope` | 404 | title `"Part not in workspace scope"` (exact existing title); detail `"The requested part is not in this workspace's current MPS parent scope."` (exact existing detail) |
+| `Unavailable` | 503 | title `"BOM information unavailable"` (mirrors `"Part information unavailable"` / `"Work order information unavailable"`); shared detail `"Database currently unavailable. Please try again in a few minutes. If the problem continues, please contact IT."` |
+| `BomWorkspaceNotFoundException` | 404 | `Results.NotFound()` (existing unknown-workspace semantics) |
+| blank `parentPart` path value | 400 | `Results.ValidationProblem(["parentPart"] = ["parentPart is required."])` |
 
-`ReadAsync` body follows the existing reader skeleton exactly: `IsConfigured` guard →
-`QadSiteDomainMap.Resolve` → validate parent → `QadConnectionFactory.OpenAsync` →
-`CommandDefinition(BuildQuery(…), CommandTimeoutSeconds, ct)` → `QueryAsync<
-QadBomStructuralRawRow>` → `TraverseDepthFirst(parent, rows)` → stopwatch/log line →
-return.
+Valid parent, no structural rows → **200, `lines: []`**. Valid BOM, no P/M-visible rows →
+**200, `lines: []`**. A QAD failure is never converted to an empty BOM.
 
-### F.1 Test list (maps to prompt §12)
+**Contract workflow** (repository-standard, no hand-written TS):
+1. `cd src/backend && dotnet build Kst.slnx` — spec auto-regenerates to `docs/openapi/Kst.Api.json` (new path + `BomResponseDto`/`BomLineDto` schemas).
+2. `cd src/frontend && npm run generate:types` — regenerates `src/frontend/src/generated/api.ts` (additive only).
+3. `npm run typecheck` — must pass with zero hand-written frontend changes.
+4. Commit `Kst.Api.json` + `api.ts` together at the implementation checkpoint.
 
-**SQL shape (`BuildQuery`)** — text/parameter assertions per repo convention:
-1. Parameters `@Domain`, `@ParentPart`, `@EffectiveDate` (midnight `DateTime`), `@Site`.
-2. Effective-date predicate present in **both** anchor and recursive member (open start /
-   open end / `start <=` / `end >=` forms asserted verbatim).
-3. Recursion joins `frontier.ps_comp = child.ps_par` and `ch.ps_domain = @Domain`.
-4. **No `ps_op`** anywhere (no operation filter).
-5. Closure `SELECT DISTINCT` **includes `oid_ps_mstr`** (identity-preserving path-copy
-   collapse, Amendment 3); no `GROUP BY`; no aggregation; no other DISTINCT in the query.
-6. `LEFT JOIN qadpro2.dbo.pt_mstr` on domain + part; `pt_site` absent from the whole SQL.
-7. `LEFT JOIN qadpro2.dbo.ptp_det` on `ptp_domain` + `ptp_part` + `ptp_site = @Site`.
-8. `OPTION (MAXRECURSION 100)` present.
-9. Sibling rank (Amendment 2): `ROW_NUMBER() OVER` with `PARTITION BY` on the parent and
-   `ORDER BY` Component → Reference → OID; `SiblingOrder` is a selected column.
-10. Injection test: raw parent value never concatenated into SQL text (parameterized).
-11. `READ UNCOMMITTED` is connection-level (factory) — no `SET` in the query (matches
-    existing readers).
+## G. Exact Implementation File Plan
 
-**Normalization (pure C#):**
-12. `ResolveEffectivePmCode`: site wins when non-blank (incl. non-P/M code `C` passthrough);
-    NULL site → global; whitespace-only site → global; both null → null; trims. (Live data
-    confirmed: unset codes are often empty string, not NULL — blank handling is load-bearing.)
-13. `CombineDescription`: both → single-space join; either NULL/blank → the other; both
-    null/blank → null; trims segments.
-14. Phantom: raw `true`/`false`/`null` → `true`/`false`/`false`.
-15. `Normalize`: `OccurrenceKey` passthrough from the DFS path; `QuantityPer`/
-    `ScrapPercentage` passthrough (relationship-level, unmodified); P/M + description +
-    phantom composed per 12–14.
+**Add — Application (10):**
+1. `src/backend/Kst.Application/Bom/BomLine.cs`
+2. `src/backend/Kst.Application/Bom/Bom.cs`
+3. `src/backend/Kst.Application/Bom/BomResult.cs` (enum + record)
+4. `src/backend/Kst.Application/Bom/BomSchedulerVisibility.cs`
+5. `src/backend/Kst.Application/Bom/IBomSourceReader.cs`
+6. `src/backend/Kst.Application/Bom/DelegateBomSourceReader.cs`
+7. `src/backend/Kst.Application/Bom/IBomCacheStore.cs`
+8. `src/backend/Kst.Application/Bom/BomCacheEntry.cs`
+9. `src/backend/Kst.Application/Bom/BomService.cs`
+10. `src/backend/Kst.Application/Bom/BomWorkspaceNotFoundException.cs`
 
-**Traversal (`TraverseDepthFirst`, synthetic raw-row trees with SQL-style `SiblingOrder`):**
-16. Multi-level chain A→B→C→D: full traversal, levels 1–4.
-17. Depth-first pre-order: child subtree completes before next sibling; parent before
-    descendants.
-18. Sibling order follows the SQL-assigned `SiblingOrder` rank exactly — including a
-    fixture where `SiblingOrder` deliberately differs from any C# string comparison, proving
-    C# does not re-derive collation (Amendment 2) and that the key is not used for ordering.
-19. Duplicate component under the same parent: both occurrences preserved; shared
-    relationship re-listed beneath each (descendants duplicated per occurrence).
-20. **Shared physical descendant via two different paths (Amendment 1)**: same relationship
-    OID under two different parents (A→B→D, A→C→D) → both D occurrences emitted, at their
-    own levels, with **different** `OccurrenceKey` values; keys deterministic across calls.
-21. Same component at multiple levels: separate occurrences, correct levels, no collapse,
-    no exception (diamond is not a cycle).
-22. Phantom intermediate: retained (`IsPhantom` true) and descendants traversed.
-23. Non-P/M intermediate (`PmCode = "N"`): retained; P/M descendants found at correct level.
-24. Level preserved through hidden intermediate (descendant remains Level 3; no renumber).
-25. Empty row list → empty result.
-26. Root part matching is case-insensitive (`"abc"` matches `ParentPart "ABC"`).
-27. Cyclic rows (A→B, B→A) → descriptive exception, no infinite loop.
-28. A relationship row whose `ParentPart` is unreachable from the root is not emitted
-    (closure is root-scoped).
+**Add — Application, shared inventory bridge (2):**
+11. `src/backend/Kst.Application/Inventory/IPartInventoryReader.cs`
+12. `src/backend/Kst.Application/Inventory/DelegatePartInventoryReader.cs`
 
----
+**Add — Infrastructure (1):**
+13. `src/backend/Kst.Infrastructure/Bom/InMemoryBomCacheStore.cs`
 
-## G. Verification Plan
+**Add — API (2):**
+14. `src/backend/Kst.Api/Dtos/BomDtos.cs`
+15. `src/backend/Kst.Api/Endpoints/BomEndpoints.cs`
 
-1. **Focused automated tests** — the §F.1 suite (no live QAD required; consistent with
-   existing QAD integration test conventions). Query failure/cancellation truthfulness has
-   no live-DB-free test surface (same as 8D.1): it is guaranteed structurally by the
-   unchanged reader skeleton — `CommandDefinition` propagates cancellation, exceptions are
-   never caught/converted to an empty list anywhere in `ReadAsync`, and the live
-   validation step (G.3) exercises real query execution.
-2. **Backend regression** (repository-documented commands, `docs/development/BUILD_AND_TEST.md`):
-   ```powershell
-   cd src/backend
-   dotnet restore Kst.slnx
-   dotnet format Kst.slnx --verify-no-changes
-   dotnet build Kst.slnx --nologo
-   dotnet test Kst.slnx --nologo
-   ```
-   No frontend/OpenAPI/sidecar/Tauri steps: 8D.2 changes no contracts, no API surface, no
-   host-affecting code (new internal files only).
-3. **Live read-only validation (post-implementation, owner-run, QAD untouched):**
-   - **Live schema confirmation — DONE (2026-07)** before implementation, as owner-directed:
-     read-only catalog + sample queries against KNWVM13/QADPRO2 (SQL Server 2016 SP2).
-     Confirmed: `oid_ps_mstr` decimal(28,10); `ps_qty_per`/`ps_scrp_pct` decimal(28,10)
-     nullable; `ps_start`/`ps_end` datetime nullable; `pt_phantom` bit nullable;
-     `pt_pm_code`/`ptp_pm_code` nvarchar(60), empty string when unset. Raw row finalized
-     accordingly (see header + §C.2). Throwaway harness deleted after use; nothing committed.
-   - Comparison mechanism: a small **throwaway, non-committed** console harness outside the
-     solution that calls `QadBomReader.ReadAsync` (QAD is reachable via existing
-     Windows-integrated-auth config) — since 8D.2 has no API/UI yet, the app itself cannot
-     exercise it. The owner runs `dbo.sp_QAD_ktbmpsrp` (Parent/Domain/effective date/max
-     level/`@sortref = 0`) for the same parents as ground truth.
-   - Case classes to select among known `SW`/`KTC` parents (per prompt §13): simple
-     one-level BOM; known multi-level BOM; duplicate component occurrences; a phantom; a
-     non-P/M structural intermediate with visible P/M descendants; a current effectivity
-     boundary (row with `ps_start`/`ps_end` exactly at the effective date).
-   - Compare: row count, component sequence, Level, Qty Per, Scrap, Phantom, effective P/M,
-     duplicate-occurrence preservation. No QAD data altered to construct cases; absent case
-     classes stay covered by deterministic automated tests (Stage 6/7 precedent).
+**Add — Tests (2):**
+16. `src/backend/tests/Kst.Application.Tests/Bom/BomServiceTests.cs`
+17. `src/backend/tests/Kst.Api.IntegrationTests/BomEndpointTests.cs`
 
----
+**Modify (1):**
+18. `src/backend/Kst.Api/Program.cs` — DI section + `MapBomEndpoints()` + usings (additions only)
 
-## H. Risks / Owner Decisions — ALL RESOLVED (owner-approved with amendments)
+**Regenerated by the contract workflow (2):**
+19. `docs/openapi/Kst.Api.json`
+20. `src/frontend/src/generated/api.ts`
 
-1. **Closure `SELECT DISTINCT` (B.3)** — **APPROVED** (Amendment 3), closure only,
-   identity includes `oid_ps_mstr`, explanatory code comment required, no DISTINCT on the
-   final `BomOccurrence` result.
-2. **Ordering ownership split (SQL closure + sibling rank / C# DFS)** — **APPROVED with
-   Amendment 2**: SQL assigns `SiblingOrder` via outer `ROW_NUMBER()` (database collation
-   stays in SQL); C# owns expansion/DFS/Level/OccurrenceKey/cycle guard/normalization and
-   trusts `SiblingOrder`.
-3. **`MAXRECURSION 100` protective ceiling** — **APPROVED** (Amendment 4); no coupling to
-   any specific SQL Server numeric error code; failure propagates, never silent truncation.
-4. **Unknown-parent semantics deferred to 8D.3** — **APPROVED**.
+**Deliberately untouched:** `QadBomReader`, `QadPartInventoryReader`, `BomOccurrence`,
+`PartInventorySummary`, `QadPartDetailReader`, all existing caches/services/endpoints,
+hand-written frontend code, all documentation (documentation reconciliation is a later
+checkpoint).
 
-Remaining verification item (not a decision): NULL-reference sibling ordering within the
-SQL `ROW_NUMBER()` (nulls-first per standard collation ASC) — to be confirmed by the live
-sequence comparison in G.3.
+## H. Verification Plan
 
-No QAD cycle behavior is known from repository evidence; cycles are handled as protective
-failures (E). No open owner decisions remain.
+**H.1 — Application tests** (`BomServiceTests`, reusing `FakeWorkspaceConfigurationService`
+(`Kst.Application.Tests.Mps`), `FakeClock` (`Kst.Application.Tests.PartDetail`),
+`InMemoryMpsSnapshotStore`, `InMemoryBomCacheStore`, and `Delegate*Reader` fakes — no new
+infrastructure). Maps 1:1 to prompt §18:
 
----
+- *Composition:* (1) full structural input filtered to P/M only; (2) robust P/M comparison
+  (`"p"`, `" M "`, `null`, `"N"`, `"S"`, `"2"` …); (3) hidden intermediate omitted, visible
+  descendant keeps actual Level (1 + 3, gap preserved); (4) structural order preserved after
+  filter/composition; (5) repeated component occurrences remain repeated; (6) repeated
+  components receive identical Net/Non-Net values; (7) inventory requested exactly once with
+  the distinct visible part keys (fake captures call count + key set, incl. dedup); (8)
+  association by PartNumber (fake returns summaries in shuffled order); (9) Net QOH maps;
+  (10) Non-Net QOH maps; (11) RMA values in summaries never reach `BomLine`; (12) no
+  P/M-visible rows → `Loaded`, `Lines == []`, inventory reader never called; (13) structural
+  reader returns empty → `Loaded`, `Lines == []`; (14) structural reader throws → truthful
+  (`Unavailable` with no cache; same-date stale with cache — never an empty BOM); (15)
+  inventory reader throws → truthful (same stale/Unavailable semantics; no zero-invention);
+  (16) zero summaries → numeric 0/0 on the line.
+- *Scope:* (17) unknown workspace → `BomWorkspaceNotFoundException`; (18) parent not in
+  `ResolvedParts` → `OutOfScope`; (19) in-scope parent proceeds to load; (20) scope matching
+  reuses the case-insensitive `ResolvedParts` convention (`"abc100"` matches `"ABC100"`).
+- *Effective date:* (21) date from injected `FakeClock`; (22) exact date passed to the
+  structural reader; (23) `Bom.EffectiveDate` reported in the result.
+- *Cache/freshness:* (24) same identity + same generation → 1 reader call for 3 requests;
+  (25) new `MpsSnapshot` (successful refresh) → fresh load attempt; (26) `SetFailed`
+  (failed refresh, id retained) → still a fresh hit, no spurious reload; (27) same-date
+  stale-last-good on load failure (`IsStale` + warning, old payload intact); (28) different
+  effective date (clock advanced) + load failure → `Unavailable`, yesterday's entry never
+  served (fresh or stale); (29) failed reload never overwrites last-good (store entry
+  unchanged after a failed attempt); (30) service signature/key/entry contain no
+  bucket/date-basis/horizon/tab/search inputs (structurally absent; documented by the test
+  fixture).
 
-## I. Stop Confirmation
+**H.2 — API integration tests** (`BomEndpointTests`, `KstApiFactory`; QAD never configured in
+tests — same reachable-path pattern as `PartDetailEndpointTests`):
+- (33) unknown workspace → 404;
+- (34-ish) MPS not loaded → 409 with title `"MPS data not loaded"`;
+- blank `parentPart` → 400;
+- (503 mapping and 200 shape are not reachable without a live QAD — identical to the Stage 6
+  precedent; covered by H.1 service tests + H.5 live verification).
 
-- **No production files changed** in this planning pass.
+**H.3 — Contract checks:** after `dotnet build`, confirm `docs/openapi/Kst.Api.json` contains
+the new path `/api/v1/workspaces/{assignmentId}/parts/{parentPart}/bom` (operation `GetBom`)
+and both new schemas; `npm run generate:types` → `api.ts` diff is **additive only** (no
+handwritten edits); `npm run typecheck` clean. (No repo precedent exists for spec-content
+unit tests — verified by inspection; the documented build-regenerate-typecheck workflow is
+the established check, so no parallel test infrastructure is added.)
+
+**H.4 — Full regression** (repository-documented commands):
+```powershell
+cd src/backend
+dotnet restore Kst.slnx
+dotnet format Kst.slnx --verify-no-changes
+dotnet build Kst.slnx --nologo
+dotnet test Kst.slnx --nologo        # baseline 524 + new ≈ 45–55
+cd ../frontend
+npm run typecheck ; npm run lint ; npm test ; npm run build   # additive types only; no UI changes
+```
+No Tauri/sidecar rebuild is required for this checkpoint's own verification (no UI work in
+8D.3; live checks below go through the API directly). Note for the owner: any later full-app
+session still follows `.\scripts\build-sidecar.ps1` after backend changes.
+
+**H.5 — Small live read-only API verification** (owner-run, QAD untouched, after
+implementation): run the backend with real QAD config; use a workspace containing parent
+`00-00013761-00` (site SW — the already-validated 8D.2 parent, 101 structural occurrences,
+max level 4); load MPS, then `GET /api/v1/workspaces/{id}/parts/00-00013761-00/bom`. Verify:
+effective date = current local business date and reported in the response; visible lines are
+only P/M; actual Level gaps preserved; line order = P/M-filtered order of the accepted
+structural sequence (compare against the 8D.2-validated result); duplicate occurrences remain
+separate; Net/Non-Net QOH match Stage 6/shared-inventory values for selected components
+(cross-check via part-detail and/or direct read-only SQL); repeated component occurrences
+show identical inventory; no RMA property in the DTO; no hidden (N/S/…) rows present; a
+forced QAD failure (e.g., temporarily invalid QAD server in dev config) returns the 503
+Problem Details — never an empty 200 BOM.
+
+## I. Risks / Owner Decisions
+
+No genuine unresolved issues were found: every accepted rule in the 8D.3 prompt maps 1:1 onto
+an established, accepted repository pattern. Notes for awareness (not decisions):
+
+1. **MPS-not-loaded → 409** — the prompt's failure list omits it, but scope validation
+   requires a loaded MPS snapshot, and both Stage 6 (`PartDetail`) and Stage 7 (Work Orders)
+   return 409 `"MPS data not loaded"` for exactly this state. Adopted per §5's
+   "inspect the existing Stage 6 PartDetail and Stage 7 … patterns and recommend reuse."
+2. **`site` in the response** — included because the existing convention already exposes
+   workspace-scope metadata (`PartDetailResponseDto.Site`, `MpsSnapshotMetadataDto.Site`),
+   which is the prompt §10's stated exception. It also disambiguates which site's inventory
+   the QOH values belong to.
+3. **Stale warning wording** — `"Showing the last known BOM information. A newer refresh
+   could not be completed."` follows the load-bearing PartDetail wording pattern.
+4. **No `pt_mstr` existence query** — per prompt §5 and the approved 8D.2 deferral: MPS scope
+   answers the API question; in-scope parent with no BOM → 200 `[]`.
+5. Inherited accepted trait: lazy cache is keyed by workspace `AssignmentId` (a workspace-site
+   edit does not directly invalidate; the next successful MPS load re-qualifies) — identical
+   to the accepted Stage 6 behavior; no new mechanism introduced.
+
+**If no owner decision is required: confirmed — none is.** Approval of this plan is the only
+gate before implementation.
+
+## J. Stop Confirmation
+
+- **No production files changed** (this planning pass wrote only this plan file, `PLAN.md`,
+  per the 8D.1/8D.2 planning-pass convention; no source files touched).
 - **No tests changed or added.**
-- **No API/OpenAPI/generated TypeScript, frontend, or documentation changes.**
-- **No commits created or pushed** (working tree: only the untracked 8D.2 prompt file
-  pre-exists).
-- **Ready for human review/approval before implementation.** Implementation starts only
-  after explicit owner approval of this plan (including §H items 1–3).
+- **No generated files changed** — a baseline `dotnet test` run regenerated
+  `docs/openapi/Kst.Api.json` at build time; `git status` confirms the working tree is
+  **clean** (byte-identical output).
+- **No commits created or pushed.**
+- **Ready for human review/approval.** Implementation starts only after explicit owner
+  approval of this plan.

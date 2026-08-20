@@ -77,12 +77,44 @@ export interface paths {
     /** Returns candidate subassembly work orders for a manufactured component, across all eligible A/F/R work orders regardless of Due Date. */
     get: operations["GetWorkOrderCandidates"];
   };
+  "/api/v1/workspaces/{assignmentId}/parts/{parentPart}/bom": {
+    /** Returns the scheduler-visible current-effective BOM for a workspace's selected MPS parent part, enriched with shared Site + Part inventory. */
+    get: operations["GetBom"];
+  };
 }
 
 export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
+    BomLineDto: {
+      occurrenceKey: string;
+      /** Format: int32 */
+      level: number | string;
+      componentPart: string;
+      pmCode: null | string;
+      isPhantom: boolean;
+      description: null | string;
+      /** Format: double */
+      quantityPer: null | number | string;
+      /** Format: double */
+      scrapPercentage: null | number | string;
+      /** Format: double */
+      netQuantityOnHand: number | string;
+      /** Format: double */
+      nonNetQuantityOnHand: number | string;
+    };
+    BomResponseDto: {
+      site: string;
+      parentPart: string;
+      /** Format: date */
+      effectiveDate: string;
+      lines: components["schemas"]["BomLineDto"][];
+      /** Format: date-time */
+      loadedAtUtc: string;
+      isStale: boolean;
+      warning: null | string;
+    };
     CreateWorkspaceRequestDto: {
       displayName: null | string;
       site: null | string;
@@ -789,6 +821,47 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["WorkOrderCandidateResponseDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Service Unavailable */
+      503: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Returns the scheduler-visible current-effective BOM for a workspace's selected MPS parent part, enriched with shared Site + Part inventory. */
+  GetBom: {
+    parameters: {
+      path: {
+        assignmentId: string;
+        parentPart: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["BomResponseDto"];
         };
       };
       /** @description Bad Request */
