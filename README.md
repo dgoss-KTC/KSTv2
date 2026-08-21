@@ -7,6 +7,7 @@ A modern Windows 11 desktop application for production scheduling.
 | Question | Start here | Purpose |
 |---|---|---|
 | What must I obey? | [AGENTS.md](AGENTS.md) | Repository rules and agent operating constraints |
+| What security rules apply? | [SECURITY.md](SECURITY.md) | Security entry point; detailed policy under `docs/security/` |
 | Where are we now? | [docs/status/CURRENT_PROJECT_STATUS.md](docs/status/CURRENT_PROJECT_STATUS.md) | Short canonical current-project state |
 | What is the roadmap? | [KST-v2-Master-Project-Checklist.md](KST-v2-Master-Project-Checklist.md) | Canonical project roadmap/checklist |
 | What is the current architecture? | [docs/architecture/](docs/architecture/) — start with [Technical Foundation](docs/architecture/TECHNICAL_FOUNDATION.md) and [Backend Project Boundaries](docs/architecture/BACKEND_PROJECT_BOUNDARIES.md) | Current accepted architecture |
@@ -98,6 +99,7 @@ See [docs/development/BUILD_AND_TEST.md](docs/development/BUILD_AND_TEST.md) for
 
 ## Documentation Index
 
+- [Security](SECURITY.md) — entry point; policy area under [docs/security/](docs/security/)
 - [Current Project Status](docs/status/CURRENT_PROJECT_STATUS.md)
 - [Master Project Checklist](KST-v2-Master-Project-Checklist.md)
 - [QAD Data Map](docs/data/qadpro2-data-map.md)

@@ -203,7 +203,41 @@ QAD remains the authoritative operational system of record.
 
 Never expose credentials, passwords, complete connection strings, or other secrets in source code, logs, tests, documentation, agent memory, or responses.
 
-## 8. SQL and Source-Data Rules
+## 8. Security Requirements
+
+Security constraints are architectural requirements, not optional guidance.
+
+Before security-relevant implementation, retrieve and follow the applicable repository security
+policy: start with `SECURITY.md` and `docs/security/SECURITY_ASSURANCE_POLICY.md`, plus
+`docs/security/DEVELOPMENT_ENVIRONMENT_SECURITY.md`, `docs/security/DEPENDENCY_ADMISSION.md`,
+`docs/security/AI_SECURITY_REVIEW.md`, and `docs/security/APPLICATION_SECURITY_PROFILE.md` as
+relevant to the change.
+
+Do not silently:
+
+* introduce a third-party executable dependency;
+* install or activate new agent tooling (extensions, packages, plugins, skills, MCP servers);
+* weaken an established security boundary;
+* expose credentials or production data;
+* suppress a material security finding.
+
+New dependencies follow the dependency-admission process in
+`docs/security/DEPENDENCY_ADMISSION.md`.
+
+Networking, credentials, database access, subprocess execution, filesystem access, external
+services, security-sensitive input handling, deployment behavior, and development-agent tooling are
+security-relevant changes.
+
+When implementation conflicts with an established security requirement, preserve the security
+boundary and surface the conflict rather than silently weakening it.
+
+Material security findings require evidence where practical. AI agents cannot accept material
+security risk.
+
+`SECURITY.md` and the policy documents under `docs/security/` are enacted, owner-accepted Tier 1
+authority (S0.1 — COMPLETE / ACCEPTED — 2026-08-21).
+
+## 9. SQL and Source-Data Rules
 
 Use source-system facts deliberately.
 
@@ -218,7 +252,7 @@ Use source-system facts deliberately.
 
 When source data contradicts an existing assumption, stop and surface the evidence rather than silently changing the business rule.
 
-## 9. Stage and Scope Discipline
+## 10. Stage and Scope Discipline
 
 KST v2 uses rolling-wave implementation organized by UI capability and stage.
 
@@ -236,7 +270,7 @@ If implementation evidence reveals a genuine problem with an accepted decision, 
 
 Stage-specific implementation checklists and accepted decision documents take precedence over older general checklist assumptions.
 
-## 10. Change Discipline
+## 11. Change Discipline
 
 Prefer the smallest coherent change that satisfies the accepted requirement.
 
@@ -261,7 +295,7 @@ Do not rewrite working code solely to make it stylistically preferable.
 
 Do not delete apparently unused code until its purpose and references have been investigated.
 
-## 11. Tests Are Required Evidence, Not Proof of Business Correctness
+## 12. Tests Are Required Evidence, Not Proof of Business Correctness
 
 Add or update automated tests when behavior changes.
 
@@ -285,7 +319,7 @@ Passing automated tests demonstrates that tested behavior works. It does not pro
 
 Never invent expected business values merely to make a test pass.
 
-## 12. Verification Before Completion
+## 13. Verification Before Completion
 
 Run verification appropriate to the layers changed.
 
@@ -299,7 +333,7 @@ For UI behavior requiring visual or interaction confirmation, provide concise ma
 
 Report failed verification truthfully.
 
-## 13. Human Review and Acceptance
+## 14. Human Review and Acceptance
 
 Agent completion is not project-owner acceptance.
 
@@ -317,7 +351,7 @@ Do not interpret "proceed" on implementation work as retroactive acceptance unle
 
 When requested to prepare a commit for review, do not commit or push until explicitly authorized.
 
-## 14. Git Safety
+## 15. Git Safety
 
 Before substantial work, inspect:
 
@@ -336,7 +370,7 @@ Keep commits aligned with accepted project checkpoints where practical.
 
 Before proposing a commit, inspect the actual diff and summarize what will be included.
 
-## 15. Documentation
+## 16. Documentation
 
 Update durable repository documentation when implementation establishes or changes:
 
@@ -353,7 +387,7 @@ Do not use agent memory as a substitute for repository documentation.
 
 Temporary implementation thoughts, session state, and exploratory hypotheses do not automatically belong in durable project documentation.
 
-## 16. Agent Memory Policy
+## 17. Agent Memory Policy
 
 Agent memory is secondary, non-authoritative working assistance.
 
@@ -377,7 +411,7 @@ When recalling memory:
 
 Do not store credentials or sensitive configuration in agent memory.
 
-## 17. Uncertainty Policy
+## 18. Uncertainty Policy
 
 Distinguish among:
 
@@ -391,7 +425,7 @@ If an unknown materially affects implementation correctness, ask before proceedi
 
 Minor implementation choices that do not affect business behavior, architecture, public contracts, data correctness, or user workflow may be resolved using established repository conventions.
 
-## 18. Definition of Agent Completion
+## 19. Definition of Agent Completion
 
 A task is complete only when:
 

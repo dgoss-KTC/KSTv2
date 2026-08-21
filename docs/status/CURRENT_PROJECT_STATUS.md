@@ -7,7 +7,11 @@ UI Navigation & Keyboard Ergonomics A: **COMPLETE / ACCEPTED — 2026-08-21**
 Active cross-cutting effort: **R0 — Repository / Documentation Reconciliation — COMPLETE /
 ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation Status` below and
 `docs/status/R0_REPOSITORY_RECONCILIATION_CLOSEOUT.md`)
-Next: **S0 — Security Foundation Integration** (not yet started), then **Stage 9** (not yet started)
+Current cross-cutting effort: **S0 — Security Foundation Integration — CURRENT** (S0.1 — Security
+Policy Injection — **COMPLETE / ACCEPTED — 2026-08-21**; see `SECURITY.md` and
+`docs/security/`)
+Next: **S0.2 — Security Baseline Discovery** (not yet started), then
+**Stage 9** (not yet started)
 Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
 Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versioning-foundation) below)
@@ -15,9 +19,41 @@ Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versionin
 ## Current Position
 
 Stages 1 through 8 are complete and accepted, and UI Navigation & Keyboard Ergonomics A is complete
-and accepted. The project is not yet working on Stage 9. The current cross-cutting effort is
-**R0 — Repository / Documentation Reconciliation**, followed by **S0 — Security Foundation
-Integration**; Stage 9 begins only after both are accepted.
+and accepted. The project is not yet working on Stage 9. R0 — Repository / Documentation
+Reconciliation is complete and accepted. The current cross-cutting effort is **S0 — Security
+Foundation Integration**; its first checkpoint, S0.1 — Security Policy Injection, is complete and
+owner-accepted (see `SECURITY.md`, `docs/security/`, and the S0 section of
+`KST-v2-Master-Project-Checklist.md`). Stage 9 begins only after S0 is accepted.
+
+## S0 — Security Foundation Integration
+
+**Status:** CURRENT
+
+### S0.1 — Security Policy Injection
+
+**Status:** COMPLETE / ACCEPTED — 2026-08-21
+
+This checkpoint converted the Security Foundation working draft
+(`docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md`,
+retained as historical design provenance) into a durable, repository-integrated, enacted security
+policy framework:
+
+- `SECURITY.md` — repository security entry point.
+- `docs/security/SECURITY_ASSURANCE_POLICY.md` — primary normative platform-neutral policy.
+- `docs/security/DEVELOPMENT_ENVIRONMENT_SECURITY.md` — coding-environment/agent expectations.
+- `docs/security/DEPENDENCY_ADMISSION.md` — dependency and development-tool admission rules.
+- `docs/security/AI_SECURITY_REVIEW.md` — independent AI security-review model.
+- `docs/security/APPLICATION_SECURITY_PROFILE.md` — KST-specific declared security properties.
+- `AGENTS.md` §8 — concise mandatory agent security behavior, pointing to the policy above.
+
+This checkpoint was documentation/policy work only: no security baseline discovery (S0.2), no
+existing-tool security checks (S0.3), and no security remediation were performed. No application
+code, tests, or dependency manifests changed. `docs/security/SECURITY_BASELINE.md` does not exist
+yet — it is produced by S0.2.
+
+The policy documents above are enacted, owner-accepted Tier 1 authority as of 2026-08-21.
+
+**Next:** S0.2 — Security Baseline Discovery (not started).
 
 ## Stage 8 — Component and BOM Detail
 

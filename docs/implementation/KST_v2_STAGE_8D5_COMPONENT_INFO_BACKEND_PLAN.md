@@ -457,7 +457,7 @@ every `CommandDefinition` (master/planning, cost, QCTC) and into `QadConnectionF
 `PartDetailEndpoints`' query-string style, because Component Info's identity (like BOM's parent
 part) is a single required path resource, and the frontend's existing "Components" BOM tab already
 establishes `components` as the natural collection noun for this drill-down. (Minor,
-non-business-behavior naming choice per AGENTS.md §17 — resolved via repository convention, not
+non-business-behavior naming choice per AGENTS.md §18 (renumbered from §17 by S0.1) — resolved via repository convention, not
 listed as an owner decision.)
 
 **Request:** only `assignmentId` (route) + `componentPart` (route). No Site/Domain/date — resolved

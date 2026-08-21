@@ -1,5 +1,9 @@
 # Build and Test
 
+Security-relevant changes must also satisfy the repository security policy (`SECURITY.md`,
+`docs/security/`). Automated security baseline/release gates are introduced by later S0 work and
+must not be assumed to exist yet.
+
 ## Stage 3 Required Verification Sequence
 
 Run this exact sequence after lifecycle or packaging changes.

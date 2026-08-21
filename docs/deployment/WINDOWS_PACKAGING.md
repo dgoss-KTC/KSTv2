@@ -95,6 +95,10 @@ At runtime, the backend is extracted to a temp directory and spawned.
 The troubleshooting and connectivity fixes recorded in this repository were verified in Tauri development mode.
 Packaged installer build and packaged runtime behavior should be tracked as separate verification items.
 
+Security-relevant packaging/deployment changes must also satisfy the repository security policy
+(`SECURITY.md`, `docs/security/APPLICATION_SECURITY_PROFILE.md`). Automated security release gates
+are introduced by later S0 work and must not be assumed to exist yet.
+
 ## Troubleshooting
 
 | Problem | Solution |

@@ -20,3 +20,7 @@ When preparing implementation work for the coding agent:
 The local-agent transition does not change KST v2 architecture, business requirements, safety boundaries, stage structure, or acceptance standards.
 
 Installed package invocation: Do not assume the coding agent can autonomously invoke installed Pi packages or modes. When a task benefits from a specific installed package, identify the package explicitly and instruct the project owner to activate it before submitting the agent prompt. Treat package activation as part of the human-controlled workflow.
+
+Security: this workflow's human-controlled package/mode activation is a specific case of the
+repository's general security requirement that new development-agent tooling is not autonomously
+installed or activated — see `SECURITY.md` and `docs/security/DEVELOPMENT_ENVIRONMENT_SECURITY.md`.

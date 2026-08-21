@@ -1,6 +1,6 @@
 # KST v2 Master Project Checklist
 
-**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. The active cross-cutting effort is R0 — Repository / Documentation Reconciliation, followed by S0 — Security Foundation Integration, then Stage 9.
+**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection is complete and owner-accepted. Stage 9 begins only after S0 is accepted.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -1037,22 +1037,27 @@ Durable closeout evidence: `docs/status/R0_REPOSITORY_RECONCILIATION_CLOSEOUT.md
 
 ## S0 — Security Foundation Integration
 
-**Status:** PLANNED — begins only after R0 acceptance
+**Status:** CURRENT
 
 Do not mix large documentation reconciliation with security remediation.
 
 ### S0.1 — Security Policy Injection
 
-- [ ] Finalize repository security entry point and platform-neutral security policy locations after
+**Status:** COMPLETE / ACCEPTED — 2026-08-21
+
+- [x] Finalize repository security entry point and platform-neutral security policy locations after
       R0 determines the authoritative documentation structure.
-- [ ] Enact Security Assurance Policy.
-- [ ] Enact Development Environment Security policy.
-- [ ] Enact Dependency Admission policy.
-- [ ] Enact AI Security Review policy.
-- [ ] Enact KST Application Security Profile.
-- [ ] Update `AGENTS.md` with concise mandatory agent behavior and links to authoritative policy.
-- [ ] Add only thin platform-specific security adapters after verifying supported mechanisms.
-- [ ] Do not add a new scanner merely because security work has started.
+- [x] Enact Security Assurance Policy.
+- [x] Enact Development Environment Security policy.
+- [x] Enact Dependency Admission policy.
+- [x] Enact AI Security Review policy.
+- [x] Enact KST Application Security Profile.
+- [x] Update `AGENTS.md` with concise mandatory agent behavior and links to authoritative policy.
+- [ ] Add only thin platform-specific security adapters after verifying supported mechanisms
+      (not performed in S0.1 — no supported mechanism was confirmed to exist).
+- [x] Do not add a new scanner merely because security work has started.
+
+The policy documents above are enacted, owner-accepted Tier 1 authority as of 2026-08-21.
 
 ### S0.2 — Security Baseline Discovery
 
@@ -1780,9 +1785,13 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 
 ### Current focus
 
-- [ ] R0 — Repository / Documentation Reconciliation.
-- [ ] S0 — Security Foundation Integration (begins only after R0 acceptance).
-- [ ] Stage 9 — Immediate Shortages (begins only after R0 + S0 foundation work is accepted).
+- [x] R0 — Repository / Documentation Reconciliation.
+- [ ] S0 — Security Foundation Integration (CURRENT).
+  - [x] S0.1 — Security Policy Injection (COMPLETE / ACCEPTED — 2026-08-21 — see `SECURITY.md`,
+        `docs/security/`).
+  - [ ] S0.2 — Security Baseline Discovery (NEXT / NOT STARTED).
+  - [ ] S0.3 — Existing-Tool Security Checks (NOT STARTED).
+- [ ] Stage 9 — Immediate Shortages (NOT STARTED; begins only after S0 is accepted).
 
 ### Planning rule going forward
 
