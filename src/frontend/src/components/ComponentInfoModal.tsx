@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ComponentDetailApiError } from '../api/componentDetailApi';
-import type { ComponentDetailResponseDto } from '../api/client';
+import type { ApprovedVendorsApiError } from '../api/approvedVendorsApi';
+import type { ComponentDetailResponseDto, ApprovedVendorDto } from '../api/client';
 import { formatQuantity } from '../mps/mpsPresentation';
 import './ComponentInfoModal.css';
 
@@ -11,6 +12,11 @@ interface ComponentInfoModalProps {
   error: ComponentDetailApiError | null;
   onRetry: () => void;
   onClose: () => void;
+  approvedVendors: ApprovedVendorDto[] | null;
+  isApprovedVendorsLoading: boolean;
+  approvedVendorsError: ApprovedVendorsApiError | null;
+  onExpandApprovedVendors: () => void;
+  onRetryApprovedVendors: () => void;
 }
 
 const NO_VALUE = '\u2014';
@@ -58,9 +64,18 @@ export function ComponentInfoModal({
   error,
   onRetry,
   onClose,
+  approvedVendors,
+  isApprovedVendorsLoading,
+  approvedVendorsError,
+  onExpandApprovedVendors,
+  onRetryApprovedVendors,
 }: ComponentInfoModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  // Local disclosure state: always starts collapsed for a newly opened component. This component
+  // never survives a component-to-component switch without a full unmount (the modal is blocking
+  // — see MpsWorkspace), so remounting alone resets it; no effect/identity plumbing needed here.
+  const [isAvlExpanded, setIsAvlExpanded] = useState(false);
 
   useEffect(() => {
     closeButtonRef.current?.focus();
@@ -105,6 +120,14 @@ export function ComponentInfoModal({
     },
     [],
   );
+
+  const handleToggleApprovedVendors = useCallback(() => {
+    setIsAvlExpanded((prev) => {
+      const next = !prev;
+      if (next) onExpandApprovedVendors();
+      return next;
+    });
+  }, [onExpandApprovedVendors]);
 
   return (
     <div className="component-info-modal-backdrop">
@@ -280,10 +303,66 @@ export function ComponentInfoModal({
 
               <div className="component-info-modal__lower">
                 <section className="component-info-modal__section">
-                  <h3>Approved Vendors</h3>
-                  <p className="component-info-modal__placeholder">
-                    Approved vendor detail will be added in a later stage.
-                  </p>
+                  <button
+                    type="button"
+                    className="component-info-modal__avl-toggle"
+                    aria-expanded={isAvlExpanded}
+                    aria-controls="component-info-modal-avl-content"
+                    onClick={handleToggleApprovedVendors}
+                  >
+                    <span className="component-info-modal__avl-disclosure" aria-hidden="true">
+                      {isAvlExpanded ? '\u25BE' : '\u25B8'}
+                    </span>
+                    Approved Alternates
+                  </button>
+
+                  {isAvlExpanded && (
+                    <div id="component-info-modal-avl-content" className="component-info-modal__avl-content">
+                      {isApprovedVendorsLoading && (
+                        <p className="component-info-modal__placeholder">Loading approved alternates&hellip;</p>
+                      )}
+
+                      {!isApprovedVendorsLoading && approvedVendorsError && (
+                        <div className="component-info-modal__avl-error">
+                          <p>Approved alternates could not be loaded.</p>
+                          <button
+                            type="button"
+                            className="component-info-modal__retry-btn"
+                            onClick={onRetryApprovedVendors}
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      )}
+
+                      {!isApprovedVendorsLoading && !approvedVendorsError && approvedVendors && (
+                        approvedVendors.length === 0 ? (
+                          <p className="component-info-modal__placeholder">No approved alternates found.</p>
+                        ) : (
+                          <table className="component-info-modal__avl-table">
+                            <thead>
+                              <tr>
+                                <th>Supplier</th>
+                                <th>Vendor Name</th>
+                                <th>Supplier Item</th>
+                                <th>MFG Part</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {approvedVendors.map((vendor, index) => (
+                                <tr key={`${vendor.supplier}-${index}`}>
+                                  <td>{vendor.supplier}</td>
+                                  <td>{vendor.vendorName ?? NO_VALUE}</td>
+                                  <td>{vendor.supplierItem ?? NO_VALUE}</td>
+                                  <td>{vendor.manufacturerPart ?? NO_VALUE}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )
+                      )}
+                    </div>
+                  )}
                 </section>
               </div>
             </>

@@ -10,6 +10,7 @@ import { usePartDetail } from '../hooks/usePartDetail';
 import { useBucketWorkOrders } from '../hooks/useBucketWorkOrders';
 import { useBom } from '../hooks/useBom';
 import { useComponentDetail } from '../hooks/useComponentDetail';
+import { useApprovedVendors } from '../hooks/useApprovedVendors';
 import { PartInfoPanel } from './PartInfoPanel';
 import { BomPanel } from './BomPanel';
 import { ComponentInfoModal } from './ComponentInfoModal';
@@ -145,6 +146,17 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     error: componentDetailError,
     retry: retryComponentDetail,
   } = useComponentDetail(workspace.assignmentId, inspectedComponent?.componentPart ?? null);
+
+  // Approved Vendors (Stage 8D.7) is independently lazy: no request until the modal's AVL section
+  // is explicitly expanded. Owned at this level (mirroring Component Detail) so the modal itself
+  // stays a pure render/props component.
+  const {
+    rows: approvedVendors,
+    isLoading: isApprovedVendorsLoading,
+    error: approvedVendorsError,
+    activate: activateApprovedVendors,
+    retry: retryApprovedVendors,
+  } = useApprovedVendors(workspace.assignmentId, inspectedComponent?.componentPart ?? null);
 
   function handleSelectComponent(componentPart: string, rowElement: HTMLElement) {
     setInspectedComponent({ componentPart, returnFocusEl: rowElement });
@@ -511,6 +523,11 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
           error={componentDetailError}
           onRetry={() => void retryComponentDetail()}
           onClose={handleCloseComponentInfo}
+          approvedVendors={approvedVendors}
+          isApprovedVendorsLoading={isApprovedVendorsLoading}
+          approvedVendorsError={approvedVendorsError}
+          onExpandApprovedVendors={activateApprovedVendors}
+          onRetryApprovedVendors={() => void retryApprovedVendors()}
         />
       )}
     </div>

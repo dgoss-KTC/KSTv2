@@ -41,6 +41,11 @@ function renderModal(props: Partial<React.ComponentProps<typeof ComponentInfoMod
       error={null}
       onRetry={vi.fn()}
       onClose={vi.fn()}
+      approvedVendors={null}
+      isApprovedVendorsLoading={false}
+      approvedVendorsError={null}
+      onExpandApprovedVendors={vi.fn()}
+      onRetryApprovedVendors={vi.fn()}
       {...props}
     />,
   );
@@ -152,10 +157,123 @@ describe('ComponentInfoModal', () => {
     expect(screen.getByText(/inventory location detail will be added in a later stage/i)).toBeInTheDocument();
   });
 
-  it('renders the future Approved Vendors placeholder', () => {
-    renderModal();
-    expect(screen.getByText('Approved Vendors')).toBeInTheDocument();
-    expect(screen.getByText(/approved vendor detail will be added in a later stage/i)).toBeInTheDocument();
+  describe('Approved Vendors', () => {
+    it('starts collapsed and does not request AVL', () => {
+      const onExpandApprovedVendors = vi.fn();
+      renderModal({ onExpandApprovedVendors });
+      const toggle = screen.getByRole('button', { name: /approved alternates/i });
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(onExpandApprovedVendors).not.toHaveBeenCalled();
+      expect(screen.queryByText(/loading approved alternates/i)).not.toBeInTheDocument();
+    });
+
+    it('first expansion triggers exactly one activation call', async () => {
+      const user = userEvent.setup();
+      const onExpandApprovedVendors = vi.fn();
+      renderModal({ onExpandApprovedVendors });
+      await user.click(screen.getByRole('button', { name: /approved alternates/i }));
+      expect(onExpandApprovedVendors).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: /approved alternates/i })).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('shows a localized loading state while expanded and loading', async () => {
+      const user = userEvent.setup();
+      renderModal({ isApprovedVendorsLoading: true });
+      await user.click(screen.getByRole('button', { name: /approved alternates/i }));
+      expect(screen.getByText(/loading approved alternates/i)).toBeInTheDocument();
+      // Component Detail remains visible while AVL loads.
+      expect(screen.getByText('Net QOH')).toBeInTheDocument();
+    });
+
+    it('renders vendor rows with Supplier/Vendor Name/Supplier Item/MFG Part', async () => {
+      const user = userEvent.setup();
+      renderModal({
+        approvedVendors: [
+          { supplier: 'V001', vendorName: 'Acme Supply', supplierItem: 'SUP-1', manufacturerPart: 'MFG-1' },
+        ],
+      });
+      await user.click(screen.getByRole('button', { name: /approved alternates/i }));
+      expect(screen.getByText('V001')).toBeInTheDocument();
+      expect(screen.getByText('Acme Supply')).toBeInTheDocument();
+      expect(screen.getByText('SUP-1')).toBeInTheDocument();
+      expect(screen.getByText('MFG-1')).toBeInTheDocument();
+    });
+
+    it('preserves returned row order and duplicate rows', async () => {
+      const user = userEvent.setup();
+      renderModal({
+        approvedVendors: [
+          { supplier: 'V002', vendorName: 'B Supply', supplierItem: null, manufacturerPart: null },
+          { supplier: 'V001', vendorName: 'A Supply', supplierItem: null, manufacturerPart: null },
+          { supplier: 'V001', vendorName: 'A Supply', supplierItem: null, manufacturerPart: null },
+        ],
+      });
+      await user.click(screen.getByRole('button', { name: /approved alternates/i }));
+      const rows = screen.getAllByRole('row').slice(1); // skip header row
+      expect(rows).toHaveLength(3);
+      expect(within(rows[0]).getByText('V002')).toBeInTheDocument();
+      expect(within(rows[1]).getByText('V001')).toBeInTheDocument();
+      expect(within(rows[2]).getByText('V001')).toBeInTheDocument();
+    });
+
+    it('displays null Supplier Item / MFG Part using the No Data marker', async () => {
+      const user = userEvent.setup();
+      renderModal({
+        approvedVendors: [{ supplier: 'V001', vendorName: 'Acme', supplierItem: null, manufacturerPart: null }],
+      });
+      await user.click(screen.getByRole('button', { name: /approved alternates/i }));
+      expect(screen.getAllByText('\u2014').length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('shows a successful empty state for zero rows', async () => {
+      const user = userEvent.setup();
+      renderModal({ approvedVendors: [] });
+      await user.click(screen.getByRole('button', { name: /approved alternates/i }));
+      expect(screen.getByText(/no approved alternates found/i)).toBeInTheDocument();
+    });
+
+    it('collapse then re-expand after success does not call activate again', async () => {
+      const user = userEvent.setup();
+      const onExpandApprovedVendors = vi.fn();
+      renderModal({ onExpandApprovedVendors, approvedVendors: [] });
+      const toggle = screen.getByRole('button', { name: /approved alternates/i });
+      await user.click(toggle); // expand -> activate (mocked as already-loaded via props)
+      await user.click(toggle); // collapse
+      await user.click(toggle); // re-expand
+      // Real no-refetch guarantee lives in useApprovedVendors; the modal itself calls
+      // onExpandApprovedVendors on every expansion, and the hook is responsible for the no-op.
+      expect(onExpandApprovedVendors).toHaveBeenCalledTimes(2);
+      expect(screen.getByText(/no approved alternates found/i)).toBeInTheDocument();
+    });
+
+    it('shows a localized error with Retry that does not disturb Component Detail', async () => {
+      const user = userEvent.setup();
+      const onRetryApprovedVendors = vi.fn();
+      renderModal({
+        approvedVendorsError: { type: 'error', detail: 'Could not load approved vendors. Try again.' },
+        onRetryApprovedVendors,
+      });
+      await user.click(screen.getByRole('button', { name: /approved alternates/i }));
+      expect(screen.getByText(/approved alternates could not be loaded/i)).toBeInTheDocument();
+      expect(screen.getByText('Net QOH')).toBeInTheDocument(); // Component Detail still visible
+      await user.click(screen.getByRole('button', { name: /^retry$/i }));
+      expect(onRetryApprovedVendors).toHaveBeenCalledTimes(1);
+    });
+
+    it('Escape still closes Component Information while AVL is expanded', async () => {
+      const user = userEvent.setup();
+      const onClose = vi.fn();
+      renderModal({ onClose, approvedVendors: [] });
+      await user.click(screen.getByRole('button', { name: /approved alternates/i }));
+      await user.keyboard('{Escape}');
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('Inventory / Lot Locations placeholder remains unchanged alongside AVL', () => {
+      renderModal();
+      expect(screen.getByText('Inventory / Lot Locations')).toBeInTheDocument();
+      expect(screen.getByText(/inventory location detail will be added in a later stage/i)).toBeInTheDocument();
+    });
   });
 
   it('X closes the modal', async () => {

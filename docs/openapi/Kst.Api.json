@@ -1153,10 +1153,115 @@
           }
         }
       }
+    },
+    "/api/v1/workspaces/{assignmentId}/components/{componentPart}/approved-vendors": {
+      "get": {
+        "tags": [
+          "ApprovedVendors"
+        ],
+        "summary": "Returns the lazily-loaded Approved Vendor List (AVL) for a workspace-selected component part.",
+        "operationId": "GetApprovedVendors",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "componentPart",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApprovedVendorDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "ApprovedVendorDto": {
+        "required": [
+          "supplier",
+          "vendorName",
+          "supplierItem",
+          "manufacturerPart"
+        ],
+        "type": "object",
+        "properties": {
+          "supplier": {
+            "type": "string"
+          },
+          "vendorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "supplierItem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "manufacturerPart": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "BomLineDto": {
         "required": [
           "occurrenceKey",
@@ -2492,6 +2597,9 @@
     },
     {
       "name": "ComponentDetail"
+    },
+    {
+      "name": "ApprovedVendors"
     }
   ]
 }

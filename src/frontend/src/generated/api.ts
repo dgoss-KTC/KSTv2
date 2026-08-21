@@ -85,12 +85,22 @@ export interface paths {
     /** Returns lazily-loaded Component Detail (master, selected-site planning, Standard Cost, QCTC, shared Site + Part inventory) for a workspace-selected component part. */
     get: operations["GetComponentDetail"];
   };
+  "/api/v1/workspaces/{assignmentId}/components/{componentPart}/approved-vendors": {
+    /** Returns the lazily-loaded Approved Vendor List (AVL) for a workspace-selected component part. */
+    get: operations["GetApprovedVendors"];
+  };
 }
 
 export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
+    ApprovedVendorDto: {
+      supplier: string;
+      vendorName: null | string;
+      supplierItem: null | string;
+      manufacturerPart: null | string;
+    };
     BomLineDto: {
       occurrenceKey: string;
       /** Format: int32 */
@@ -960,6 +970,41 @@ export interface operations {
       };
       /** @description Conflict */
       409: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Service Unavailable */
+      503: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Returns the lazily-loaded Approved Vendor List (AVL) for a workspace-selected component part. */
+  GetApprovedVendors: {
+    parameters: {
+      path: {
+        assignmentId: string;
+        componentPart: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ApprovedVendorDto"][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
         content: {
           "application/problem+json": components["schemas"]["ProblemDetails"];
         };

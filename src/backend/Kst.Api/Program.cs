@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Serilog;
 using Serilog.Events;
 using Kst.Api.Endpoints;
+using Kst.Application.ApprovedVendors;
 using Kst.Application.Bom;
 using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
@@ -25,6 +26,7 @@ using Kst.Infrastructure.Mps;
 using Kst.Infrastructure.PartDetail;
 using Kst.Infrastructure.SystemStatus;
 using Kst.Infrastructure.WorkOrders;
+using Kst.Integrations.Qad.ApprovedVendors;
 using Kst.Integrations.Qad.Bom;
 using Kst.Integrations.Qad.ComponentDetail;
 using Kst.Integrations.Qad.Connectivity;
@@ -268,6 +270,23 @@ else
 
 builder.Services.AddSingleton<ComponentDetailService>();
 
+// -- Approved Vendors (Stage 8D.7) ---------------------------------------------------
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadApprovedVendorReader>();
+    builder.Services.AddSingleton<IApprovedVendorSourceReader>(sp => new DelegateApprovedVendorSourceReader(
+        (site, componentPart, ct) =>
+            sp.GetRequiredService<QadApprovedVendorReader>().ReadAsync(site, componentPart, ct)));
+}
+else
+{
+    const string notConfiguredMessage = "QAD connection is not configured.";
+    builder.Services.AddSingleton<IApprovedVendorSourceReader>(_ => new DelegateApprovedVendorSourceReader(
+        (_, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+}
+
+builder.Services.AddSingleton<ApprovedVendorService>();
+
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddCors(options =>
@@ -313,6 +332,7 @@ app.MapPartDetailEndpoints();
 app.MapWorkOrderEndpoints();
 app.MapBomEndpoints();
 app.MapComponentDetailEndpoints();
+app.MapApprovedVendorEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------
 // Writes a JSON line to stdout once the server is bound so Tauri can read the port.

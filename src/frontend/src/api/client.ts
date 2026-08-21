@@ -29,6 +29,7 @@ export type WorkOrderCandidateResponseDto = components['schemas']['WorkOrderCand
 export type BomLineDto = components['schemas']['BomLineDto'];
 export type BomResponseDto = components['schemas']['BomResponseDto'];
 export type ComponentDetailResponseDto = components['schemas']['ComponentDetailResponseDto'];
+export type ApprovedVendorDto = components['schemas']['ApprovedVendorDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -139,6 +140,12 @@ export class ApiClient {
   async getComponentDetail(assignmentId: string, componentPart: string): Promise<ComponentDetailResponseDto> {
     return this.get<ComponentDetailResponseDto>(
       `/api/v1/workspaces/${assignmentId}/components/${encodeURIComponent(componentPart)}`,
+    );
+  }
+
+  async getApprovedVendors(assignmentId: string, componentPart: string): Promise<ApprovedVendorDto[]> {
+    return this.get<ApprovedVendorDto[]>(
+      `/api/v1/workspaces/${assignmentId}/components/${encodeURIComponent(componentPart)}/approved-vendors`,
     );
   }
 
