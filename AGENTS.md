@@ -23,6 +23,41 @@ If agent memory or prior-session recall conflicts with current repository docume
 
 Do not silently reconcile conflicting authoritative sources. Identify the conflict and ask the project owner when it affects correctness.
 
+### Documentation Authority Tiers
+
+The rules above are formalized as six tiers of documentation authority, used to resolve "which
+document wins" when repository material appears to disagree:
+
+1. **Enacted repository rules** — this file (`AGENTS.md`) and any future enacted security policy.
+   Normative; future work must obey these.
+2. **Accepted current project state** — `docs/status/CURRENT_PROJECT_STATUS.md`,
+   `KST-v2-Master-Project-Checklist.md`, current architecture documentation, and current
+   QAD/source documentation. Describes what is true now and what comes next.
+3. **Accepted implementation evidence** — accepted stage closeouts, contracts, validation reports,
+   and implementation/checkpoint records (tests or code only where documentation itself needs
+   evidentiary clarification). Proves how the accepted current state was implemented, and resolves
+   a stale descriptive claim in Tier 2/4 material when the two conflict.
+4. **Active planning artifacts** — plans describe intended work. A plan is never evidence that the
+   work has been completed.
+5. **Reference / Historical / Superseded Evidence** — original charter material, superseded
+   checklists/plans/prompts, prototype/design references, review packets, legacy-system evidence,
+   and earlier decisions retained for provenance. Remains legitimate project evidence but cannot
+   silently override accepted current state.
+6. **Ephemeral working material** — session/agent memory and chat-only investigation not promoted
+   into repository documentation. Retrieval assistance only, never durable project authority.
+
+Additional rules:
+
+* Accepted implementation evidence (Tier 3) resolves stale descriptive planning claims (Tier 2/4),
+  but implemented behavior never silently overrides an explicit normative requirement in Tier 1.
+* Newer file dates, filenames, or directory locations do not by themselves establish higher
+  authority. In particular, `docs/reference/` is a mixed reference/provenance area — most material
+  there is Tier 5, but at least one accepted implementation artifact also resides there. File
+  location is a navigation aid, not an authority guarantee; determine authority from the document's
+  stated role, the accepted current project state, and this tier model.
+* When authority remains genuinely ambiguous after applying this model, surface the ambiguity to
+  the project owner rather than guessing.
+
 ## 2. Inspect Before Editing
 
 Do not begin implementation from the task description alone.

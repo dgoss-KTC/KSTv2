@@ -1,5 +1,14 @@
 # KST v2 Master Project Checklist
 
+> **Historical Reference**
+>
+> This file is a frozen historical snapshot of the KST v2 master project checklist, taken before
+> the Stage 4B/Stage 5 documentation consolidation. It is retained for project provenance and is
+> **not** the current roadmap. Its stage statuses below are intentionally left as they were at
+> that time.
+>
+> Current canonical roadmap: [`../../KST-v2-Master-Project-Checklist.md`](../../KST-v2-Master-Project-Checklist.md)
+
 **Current project position:** Stage 3 — Technical Foundation is complete. Stage 4 — Phase 1: Application Shell and Workspace Configuration is implementation-complete pending owner acceptance.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`

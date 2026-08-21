@@ -19,8 +19,9 @@
   `Kst.Application.Tests` 210, `Kst.ArchitectureTests` 9, `Kst.Api.IntegrationTests` 98. Build
   regenerated `docs/openapi/Kst.Api.json` byte-identical to the committed copy (confirmed via
   `git status`/`git diff --stat` — no diff).
-- Frontend baseline per `PLAN.md` (8D.4 closeout note): 196/196 tests, typecheck/lint/build clean.
-  Not re-run — no frontend work occurs in 8D.5 and no frontend files are touched.
+- Frontend baseline per `KST_v2_STAGE_8D4_BOM_FRONTEND_PLAN.md` (8D.4 closeout note): 196/196 tests,
+  typecheck/lint/build clean. Not re-run — no frontend work occurs in 8D.5 and no frontend files
+  are touched.
 - Existing component/inventory/cache/API patterns inspected: `Kst.Application.Bom.BomService`,
   `Kst.Application.PartDetail.PartDetailService`, `Kst.Application.Inventory.IPartInventoryReader`,
   `Kst.Integrations.Qad.Bom.QadBomReader`, `Kst.Integrations.Qad.PartDetail.QadPartDetailReader`,
@@ -518,8 +519,8 @@ of whether it appears in the workspace's currently-loaded BOM/MPS resolved-paren
 
 **No changes in this pass to:** `docs/data/qadpro2-data-map.*` (deferred — see §O; adding `sct_det`
 and updating `in_price` there should happen once the owner confirms the `sct_sim`/`inp_source`
-filters, so the documented mapping matches the implemented one), any frontend file, `PLAN.md`,
-`KST-v2-Master-Project-Checklist.md`.
+filters, so the documented mapping matches the implemented one), any frontend file,
+`KST_v2_STAGE_8D4_BOM_FRONTEND_PLAN.md`, `KST-v2-Master-Project-Checklist.md`.
 
 ## N. Verification Plan
 

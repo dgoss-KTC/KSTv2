@@ -2,14 +2,15 @@
   "metadata": {
     "source_file": "DataMap.xlsx",
     "generated_utc": "2026-08-06T23:23:17+00:00",
-    "table_count": 26,
-    "field_count": 561,
-    "validated_field_count": 558,
+    "table_count": 27,
+    "field_count": 566,
+    "validated_field_count": 563,
     "notes": [
       "Generated from the KST v2 DataMap workbook.",
       "Validated is true when the source workbook contained x/yes/y/true/1.",
       "This file is documentation metadata only. It does not include live data.",
-      "Stage 8D.5 (Component Info Backend) added the sct_det table (6 fields) directly from live QADPRO2 schema/data -- it was not present in the original DataMap.xlsx workbook."
+      "Stage 8D.5 (Component Info Backend) added the sct_det table (6 fields) directly from live QADPRO2 schema/data -- it was not present in the original DataMap.xlsx workbook.",
+      "R0.6 (Data / QAD Reconciliation) added the loc_mstr table (4 fields) and the in_price.inp_source field, both confirmed directly against implemented QAD adapter queries rather than the original workbook."
     ]
   },
   "databases": {
@@ -498,6 +499,28 @@
           },
           "ld_supp_consign_qty": {
             "description": "Supplier Consigned Quantity",
+            "validated": true
+          }
+        }
+      },
+      "loc_mstr": {
+        "business_name": "Location Master",
+        "source_sheet": "not in DataMap.xlsx -- added R0.6 (Data / QAD Reconciliation), confirmed directly against the implemented QadPartInventoryReader query; accepted Stage 6/Stage 8 shared inventory join target between ld_det and is_mstr",
+        "fields": {
+          "loc_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "loc_site": {
+            "description": "Site",
+            "validated": true
+          },
+          "loc_loc": {
+            "description": "Location",
+            "validated": true
+          },
+          "loc_status": {
+            "description": "Inventory Status (joins to is_mstr.is_status for nettable/non-nettable classification)",
             "validated": true
           }
         }
@@ -2404,6 +2427,10 @@
           },
           "inp_custprice": {
             "description": "Customer's Price",
+            "validated": true
+          },
+          "inp_source": {
+            "description": "Price Source -- added R0.6 (omitted from the original DataMap.xlsx workbook although required by the accepted filter below); accepted Stage 8D.5 Component Detail QCTC filter value: qtbom_det, confirmed directly against the implemented QadComponentSourceReader query",
             "validated": true
           },
           "inp_qctc": {

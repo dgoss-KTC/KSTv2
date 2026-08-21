@@ -2,7 +2,7 @@
 
 **Status:** COMPLETE — 7D.0 through 7D.12 implemented and verified; 7D.13 (this document) in progress; 7D.14 owner acceptance pending
 **Stage:** 7 — Phase 4: Work Orders and Kitting
-**Authority:** `KST v2 — Stage 7D Work Orders and Kitting Implementation Checklist.md` (repo root); `docs/implementation/KST v2 — Stage 7 Work Orders and Kitting — VS Code-Copilot Implementation Prompt.md` (original business-rule prompt, sections 1–21)
+**Authority:** `docs/reference/KST v2 — Stage 7D Work Orders and Kitting Implementation Checklist.md`; `docs/implementation/KST v2 — Stage 7 Work Orders and Kitting — VS Code-Copilot Implementation Prompt.md` (original business-rule prompt, sections 1–21)
 
 This document is a retrospective record of what was actually implemented, checkpoint by checkpoint, superseding the original prospective plan now that implementation is complete. See `KST_v2_STAGE_7_WORK_ORDER_KITTING_CONTRACT.md` for the accepted rules as currently implemented (including the 7D.11 candidate-rule revision) and `STAGE_7_REAL_DATA_VALIDATION.md` for live-QAD findings.
 

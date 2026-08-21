@@ -1,5 +1,13 @@
 # KST v2 Master Project Checklist — Stage 5 Revision
 
+> **Historical Reference**
+>
+> This file is a frozen historical snapshot of the Stage 5 checklist, taken before the Stage 5
+> documentation consolidation. It is retained for project provenance and is **not** the current
+> Stage 5 implementation record. Its content below is intentionally left unchanged.
+>
+> Current accepted Stage 5 checklist: [`docs/implementation/KST_v2_Master_Project_Checklist_STAGE_5_REVISION.md`](../implementation/KST_v2_Master_Project_Checklist_STAGE_5_REVISION.md)
+
 ## Stage 5 — MPS Data Foundation and Dashboard Implementation
 
 Stage 5 is divided into two controlled sub-stages:

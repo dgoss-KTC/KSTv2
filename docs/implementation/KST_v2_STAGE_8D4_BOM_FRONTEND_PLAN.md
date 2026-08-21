@@ -1,5 +1,12 @@
 # Stage 8D.4 Plan — BOM Frontend (Scheduler Console BOM Tab)
 
+> **Historical Implementation Artifact**
+>
+> Completed Stage 8D.4 BOM frontend implementation plan. Retained for implementation history.
+> Formerly located at repository root as `PLAN.md`; moved here for discoverability.
+>
+> Current Stage 8 accepted behavior: [`KST_v2_STAGE_8_CLOSEOUT.md`](KST_v2_STAGE_8_CLOSEOUT.md)
+
 > **STATUS: IMPLEMENTED — awaiting owner review.** Owner approved the plan with three
 > amendments (below); all other plan requirements remain in force. Implementation is complete
 > and all frontend checks are green (196/196 tests, typecheck/lint/build clean); no backend or

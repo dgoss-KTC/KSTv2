@@ -53,7 +53,16 @@ npm run typecheck
 4. Run `npm run generate:types` from `src/frontend/`.
 5. The new types appear in `src/generated/api.ts` and are ready to use.
 
-## Stage 4 Workspace Endpoints (Current)
+## Stage-Specific Endpoint Notes
+
+The sections below record notable contract milestones/examples from when each stage's endpoints
+were added. They are **not** an authoritative, exhaustive current API inventory — later stages
+(for example Stage 5B, Stage 7, and Stage 8) added further endpoint groups that are not repeated
+here. The generated OpenAPI document (`docs/openapi/Kst.Api.json`) and `src/frontend/src/generated/api.ts`
+are the current, authoritative contract surface; `docs/architecture/BACKEND_PROJECT_BOUNDARIES.md`
+documents current endpoint-group ownership at the architecture level.
+
+## Stage 4 Workspace Endpoints (Example)
 
 - `GET /api/v1/workspaces`
     - Returns saved workspace assignments and an optional nonfatal configuration warning.
@@ -75,7 +84,7 @@ npm run typecheck
 - `DELETE /api/v1/workspaces`
     - Permanently removes all workspace assignments. Idempotent — returns `204` even when already empty.
 
-## Stage 6 Part Detail Endpoint
+## Stage 6 Part Detail Endpoint (Example)
 
 - `GET /api/v1/workspaces/{assignmentId}/part-detail?partNumber={partNumber}`
     - Returns QAD-sourced Part Info (planner, lead/safety time, status code+description, revision, description, IOS code, safety stock, on-hand/non-net quantity, MOQ/price tiers) for a single parent part already resolved into the workspace's currently-loaded MPS scope.

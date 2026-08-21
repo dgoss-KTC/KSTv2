@@ -65,14 +65,14 @@ The prototype field list was intentionally refined during Stage 6 discovery. The
 |---|---|---|---|---|
 | `partNumber` | `pt_mstr.pt_part` / selected MPS parent | Domain + Part | Parent-part identity | Missing `pt_mstr` row = missing-part state |
 | `plannerCode` | `pt_mstr.pt_buyer` | Domain + Part | For manufactured parent parts, `pt_buyer` is the planner code | Blank/null allowed |
-| `manufacturingLeadTimeDays` | `pt_mstr.pt_mfg_lead` | Domain + Part | Manufacturing lead time in days | Blank/null allowed; zero has no special missing semantics |
-| `safetyTimeDays` | `pt_mstr.pt_sfty_time` | Domain + Part | Safety time in days | Blank/null allowed; zero has no special missing semantics |
+| `manufacturingLeadTimeDays` | selected-site `ptp_det.ptp_mfg_lead` (join: `ptp_domain = pt_domain`, `ptp_part = pt_part`, `ptp_site = ` selected site — **not** `pt_mstr.pt_site`) | Domain + Part + Selected Site | Manufacturing lead time in days | `LEFT JOIN`: no `ptp_det` row for the selected site = null; never falls back to a `pt_mstr` value |
+| `safetyTimeDays` | selected-site `ptp_det.ptp_sfty_tme` (same join as above) | Domain + Part + Selected Site | Safety time in days | Same `LEFT JOIN`/no-fallback rule as above |
 | `partStatusCode` | `pt_mstr.pt_status` | Domain + Part | Preserve raw QAD part-status code | Blank/null allowed |
 | `partStatusDescription` | Backend status mapping | Domain + Part | Human-readable meaning of `pt_status` | Unknown code keeps raw code and may have blank/unknown description |
 | `currentRevision` | `pt_mstr.pt_rev` | Domain + Part | Current revision string | Blank/null allowed |
 | `description` | `pt_mstr.pt_desc1` | Domain + Part | Current part description; same accepted description source as Stage 5 MPS | Blank/null allowed |
 | `iosCode` | `pt_mstr.pt_warr_cd` | Domain + Part | IOS code, displayed raw | Blank/null allowed |
-| `safetyStockQuantity` | `pt_mstr.pt_sfty_stk` | Domain + Part | Safety stock in part units | Blank/null allowed; zero is valid informational data |
+| `safetyStockQuantity` | selected-site `ptp_det.ptp_sfty_stk` (same join as above) | Domain + Part + Selected Site | Safety stock in part units | Same `LEFT JOIN`/no-fallback rule as above; zero is valid informational data |
 | `quantityOnHand` | `ld_det` + `loc_mstr` + `is_mstr` | Domain + Site + Part | Positive, non-RMA, nettable inventory | No qualifying rows = `0` |
 | `quantityNonNet` | `ld_det` + `loc_mstr` + `is_mstr` | Domain + Site + Part | Positive, non-RMA, non-nettable inventory | No qualifying rows = `0` |
 | `priceBreaks[]` | `pi_mstr` + `pid_det` | Domain + Part + Price Tier | Current effective MOQ/price tier(s) | No current pricing = empty collection / UI `No Data Found` |
@@ -86,9 +86,10 @@ The following prototype/checklist concepts are **not** part of the accepted Stag
 - Component Count
 - WIP
 - Part-level MPS schedule status
-- `ptp_det` planning-parameter lookup
-- planner fallback
-- lead-time fallback
+- planner fallback (no `ptp_det.ptp_buyer` substitute is used — `plannerCode` is sourced from `pt_mstr.pt_buyer` only)
+- lead-time/safety-stock fallback (a missing selected-site `ptp_det` row is **not** silently backfilled from `pt_mstr`; the three site-specific fields are simply null)
+
+**Correction (this pass):** an earlier version of this contract incorrectly listed "`ptp_det` planning-parameter lookup" here as removed from Stage 6. The accepted, implemented Stage 6 query (`QadPartDetailReader.BuildPartMasterQuery`) uses a `pt_mstr` `LEFT JOIN` `ptp_det` (keyed by `ptp_domain = pt_domain`, `ptp_part = pt_part`, `ptp_site = ` selected site) to source `manufacturingLeadTimeDays`, `safetyTimeDays`, and `safetyStockQuantity` from the selected-site `ptp_det` row — see §4 above. `pt_mstr.pt_site` is never used as the selected-site join key.
 
 Later stages may introduce related concepts when their workflows require them.
 

@@ -6,9 +6,9 @@ Generated from `DataMap.xlsx`.
 
 - Source file: `DataMap.xlsx`
 - Generated UTC: `2026-08-06T23:23:17+00:00`
-- Tables: `26` (25 from `DataMap.xlsx` + `sct_det`, added Stage 8D.5 — see that table's entry)
-- Fields: `561` (555 from `DataMap.xlsx` + 6 `sct_det` fields)
-- Validated fields: `558`
+- Tables: `27` (25 from `DataMap.xlsx` + `sct_det` [added Stage 8D.5] + `loc_mstr` [added R0.6 — see that table's entry])
+- Fields: `566` (555 from `DataMap.xlsx` + 6 `sct_det` fields + 1 `in_price.inp_source` field [added R0.6] + 4 `loc_mstr` fields [added R0.6])
+- Validated fields: `563`
 
 ## Agent Usage Rules
 
@@ -201,6 +201,23 @@ Generated from `DataMap.xlsx`.
 | `ld_site` | Site | Yes |
 | `ld_status` | Inventory Status | Yes |
 | `ld_supp_consign_qty` | Supplier Consigned Quantity | Yes |
+
+### Table: `loc_mstr`
+
+- **Business name:** Location Master
+- **Source sheet:** _not in `DataMap.xlsx`_ — added R0.6 (Data / QAD Reconciliation), confirmed directly
+  against the implemented `QadPartInventoryReader` query rather than the original workbook. This is the
+  accepted Stage 6/Stage 8 shared inventory join target between `ld_det` and `is_mstr`
+  (`ld_det.ld_domain`/`ld_site`/`ld_loc` → `loc_mstr.loc_domain`/`loc_site`/`loc_loc` →
+  `is_mstr.is_domain`/`is_status` via `loc_mstr.loc_domain`/`loc_status`).
+- **Fields:** 4
+
+| Field | Description | Validated |
+|---|---|---:|
+| `loc_domain` | Domain | Yes |
+| `loc_site` | Site | Yes |
+| `loc_loc` | Location | Yes |
+| `loc_status` | Inventory Status (joins to `is_mstr.is_status` for nettable/non-nettable classification) | Yes |
 
 ### Table: `lot_mstr`
 
@@ -806,7 +823,7 @@ Generated from `DataMap.xlsx`.
 
 - **Business name:** in_price
 - **Source sheet:** `Analysis`
-- **Fields:** 7
+- **Fields:** 8
 
 | Field | Description | Validated |
 |---|---|---:|
@@ -815,5 +832,6 @@ Generated from `DataMap.xlsx`.
 | `inp_part` | Part Number | Yes |
 | `inp_domain` | Domain | Yes |
 | `inp_custprice` | Customer's Price | Yes |
+| `inp_source` | Price Source — added R0.6 (omitted from the original `DataMap.xlsx` workbook although required by the accepted filter below); accepted Stage 8D.5 Component Detail QCTC filter value: `qtbom_det`, confirmed directly against the implemented `QadComponentSourceReader` query | Yes |
 | `inp_qctc` | Quoted Cost — accepted Stage 8D.5 Component Detail QCTC source, filtered to `inp_source = 'qtbom_det'` (other sources such as `idh_hist`/`pid_det` were observed to always carry `inp_qctc = 0` and can share the same latest `inp_start_date` as a real `qtbom_det` row) | Yes |
 | `inp_site` | Site | Yes |

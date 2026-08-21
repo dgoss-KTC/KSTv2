@@ -1,6 +1,6 @@
 # KST v2 Master Project Checklist
 
-**Current project position:** Stages 1–7 are complete and accepted. Stage 7 — Work Orders and Kitting was explicitly accepted by the project owner on 2026-08-13. See `docs/implementation/KST_v2_STAGE_7_WORK_ORDER_KITTING_CONTRACT.md` and `KST v2 — Stage 7D Work Orders and Kitting Implementation Checklist.md` (repo root) for the authoritative accepted/implemented rules — the field list below reflects those, not the original rolling-wave discovery assumptions.
+**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. The active cross-cutting effort is R0 — Repository / Documentation Reconciliation, followed by S0 — Security Foundation Integration, then Stage 9.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -82,11 +82,11 @@ Phase 1 completion gate: **PASS** — application shell and workspace configurat
 
 ## Stage 5 — MPS Data Foundation and Dashboard Implementation
 
-The authoritative detailed Stage 5 checklist is also maintained as `KST_v2_Master_Project_Checklist_STAGE_5_REVISION.md`.
+The detailed Stage 5 planning/checklist history is also maintained as `KST_v2_Master_Project_Checklist_STAGE_5_REVISION.md`; its current authority and final location will be reviewed during R0.
 
 # Stage 5A — KST v2 Data Inventory and Data Strategy
 
-**Status:** COMPLETE / ACCEPTED — Stage 5A owner acceptance received 2026-08-07; Stage 5B is ready to begin
+**Status:** COMPLETE / ACCEPTED — Stage 5A owner acceptance received 2026-08-07; Stage 5B subsequently completed and was accepted
 
 ## Purpose
 
@@ -385,7 +385,7 @@ Stage 5A is complete only when:
 - [x] Stage 5B implementation scope/prompt can be written without remaining infrastructure guesses.
 - [x] Project owner accepts final Stage 5A closeout.
 
-**Stage 5A completion gate: PASS. Stage 5B may begin.**
+**Stage 5A completion gate: PASS.** Stage 5B subsequently completed and was accepted.
 
 ---
 
@@ -641,16 +641,16 @@ Part Info is parent-part scoped, not week scoped. Clicking the selected parent a
 
 - [x] Part Number → `pt_mstr.pt_part` / selected parent identity.
 - [x] Planner → `pt_mstr.pt_buyer`; for manufactured parent parts this is the planner code.
-- [x] Mfg Lead Time → `pt_mstr.pt_mfg_lead`, days.
-- [x] Safety Time → `pt_mstr.pt_sfty_time`, days.
+- [x] Mfg Lead Time → selected-site `ptp_det.ptp_mfg_lead` (join: `ptp_domain = pt_domain`, `ptp_part = pt_part`, `ptp_site = ` selected site — **not** `pt_mstr.pt_site`), days.
+- [x] Safety Time → selected-site `ptp_det.ptp_sfty_tme` (same join), days.
 - [x] Part Status → `pt_mstr.pt_status` with backend-owned description mapping.
 - [x] Current Revision → `pt_mstr.pt_rev`.
 - [x] Description → `pt_mstr.pt_desc1`.
 - [x] IOS Code → `pt_mstr.pt_warr_cd`.
-- [x] Safety Stock → `pt_mstr.pt_sfty_stk`, part units.
+- [x] Safety Stock → selected-site `ptp_det.ptp_sfty_stk` (same join), part units.
 - [x] Zero has no special missing/not-configured semantics for informational part-master values.
 - [x] Blank/null informational fields may display blank or `No Data Found`.
-- [x] `ptp_det`, planner fallback, and lead-time fallback are not part of Stage 6.
+- [x] `ptp_det` is used (via `LEFT JOIN`, no fallback to `pt_mstr` when the selected-site row is missing) for Mfg Lead Time, Safety Time, and Safety Stock only; planner fallback and a pt_mstr-substitution lead-time/safety-stock fallback are not part of Stage 6 (**correction, this pass:** an earlier version of this checklist incorrectly stated `ptp_det` is not part of Stage 6 at all — see `KST_v2_STAGE_6_PART_INFO_CONTRACT.md` §4 for the accepted, implemented mapping, confirmed against `QadPartDetailReader.BuildPartMasterQuery`).
 
 #### Part Status descriptions
 
@@ -796,8 +796,9 @@ Part Info is parent-part scoped, not week scoped. Clicking the selected parent a
 ## Versioning Foundation (inter-stage housekeeping)
 
 This is administrative housekeeping performed between Stage 6 and Stage 7 — it is **not**
-part of Stage 7 and does **not** renumber or otherwise affect any stage below. **Stage 7 has
-not begun.**
+part of Stage 7 and does **not** renumber or otherwise affect any stage below. Stage 7 had
+not yet begun at the time this housekeeping was performed (Stage 7 is now complete and
+accepted — see below).
 
 - [x] Product identity `KST v2` established as distinct from the semantic application version.
 - [x] Single authoritative version source: `src/backend/Directory.Build.props`
@@ -819,7 +820,9 @@ not begun.**
 - [x] No configuration-schema migrations introduced (configuration schema versioning
   remains a distinct, not-yet-existing concept — see `docs/development/VERSIONING.md`).
 
-## Stage 7 — Phase 4: Work Orders and Kitting
+## Stage 7 — Phase 4: Work Orders and Kitting ✅
+
+**Status:** COMPLETE / ACCEPTED — owner acceptance recorded 2026-08-13
 
 ### 7.1 Field and rule discovery (accepted/implemented — see `KST_v2_STAGE_7_WORK_ORDER_KITTING_CONTRACT.md`)
 
@@ -865,45 +868,229 @@ not begun.**
 - [x] Owner acceptance — **ACCEPTED, 2026-08-13**
 Phase 4 completion gate: **PASS. Stage 7 accepted by the project owner, 2026-08-13.** A scheduler can trace an MPS bucket to its work orders and component issue status, and can navigate bounded manufactured-subassembly candidates up to three levels deep.
 
+---
 
-## Stage 8 — Phase 5: Component and BOM Detail
+## Stage 8 — Phase 5: Component and BOM Detail ✅
 
-### 8.1 Field and rule discovery
+**Status:** COMPLETE / ACCEPTED — owner acceptance recorded 2026-08-21
 
-- [ ] Map component part
-- [ ] Map component description
-- [ ] Map quantity per
-- [ ] Define extended requirement
-- [ ] Map component on hand
-- [ ] Map incoming supply
-- [ ] Define coverage percentage
-- [ ] Define material status
-- [ ] Confirm BOM revision and effective-date behavior
-- [ ] Confirm multi-level BOM expectations
-- [ ] Confirm phantom and substitute behavior
-### 8.2 Backend
+Stage 8 is an **informational Component/BOM investigation capability**. It does not implement
+material-requirement netting, shortage classification, or PO coverage.
 
-- [ ] Create BOM adapter
-- [ ] Create BOM-explosion service
-- [ ] Define ComponentRequirement
-- [ ] Define required quantity grain
-- [ ] Add inventory availability service
-- [ ] Add component supply summary
-- [ ] Create component endpoint
-- [ ] Decide when pre-exploded BOM storage is justified
-- [ ] Add BOM tests
-### 8.3 Frontend and validation
+### Accepted BOM behavior
 
-- [ ] Build Components tab
-- [ ] Build component selection
-- [ ] Build coverage display
-- [ ] Build no-components state
-- [ ] Compare against Component MRP
-- [ ] Validate multi-level quantities
-- [ ] Validate duplicate components
-- [ ] Owner acceptance
-Phase 5 completion gate: A scheduler can inspect the material structure and coverage behind a scheduled parent part.
+- [x] Current effective multi-level BOM from `ps_mstr`.
+- [x] Structural hierarchy/order and actual levels preserved.
+- [x] Repeated component occurrences remain distinct; no flattening/deduplication of structural rows.
+- [x] Phantoms are shown and exploded through.
+- [x] BOM search plus local P/M and Phantom filters implemented with combined AND semantics.
+- [x] Effective P/M uses selected-site `ptp_det.ptp_pm_code`, otherwise `pt_mstr.pt_pm_code`
+      fallback for P/M only.
+- [x] Net QOH / Non-Net QOH reuse the shared Stage 6 inventory semantics.
 
+### Accepted Component Information behavior
+
+- [x] Selecting a BOM row opens a blocking Component Information modal without leaving BOM context.
+- [x] Modal closes by explicit close or Escape, not backdrop click, and restores focus to the
+      originating BOM row.
+- [x] Selected-site planning fields and accepted component attributes are displayed with null/zero
+      distinction preserved.
+- [x] Standard Cost uses `sct_sim = 'Standard'` and the latest `sct_cst_date`.
+- [x] QCTC uses `inp_source = 'qtbom_det'` and the latest `inp_start_date`.
+- [x] Approved Alternates is the user-facing term; technical `ApprovedVendor` / `vp_mstr` naming may remain.
+- [x] Approved Alternates lazy-load independently, preserve source ordering/multiplicity, and retain
+      localized empty/error behavior.
+- [x] Integrated automated verification, live read-only validation, sidecar rebuild, and owner-guided
+      desktop validation completed.
+
+### Intentionally deferred — not unfinished Stage 8 work
+
+- [~] Show MRP.
+- [~] Inventory / Lot Locations.
+- [~] Extended Requirement.
+- [~] Incoming Supply.
+- [~] Coverage / Material Status.
+- [~] Component MRP / component supply netting.
+- [~] Future Shortages / PO coverage.
+
+**Stage 8 completion gate: PASS / ACCEPTED.**
+
+---
+
+## Cross-Cutting Checkpoint — UI Navigation & Keyboard Ergonomics A ✅
+
+**Status:** COMPLETE / ACCEPTED
+
+The accepted interaction convention is **hierarchical Escape unwind**, not browser-history navigation
+and not modal-only dismissal:
+
+1. Topmost blocking modal/dialog → close/cancel only that surface.
+2. Nested detail in the current investigation → collapse exactly one level.
+3. Main MPS detail/drill-down → return to the Part Matrix.
+4. Part Matrix/root → do nothing.
+
+Accepted examples:
+
+- [x] Component Information → BOM.
+- [x] BOM → Part Matrix.
+- [x] Nested material/candidate detail → prior material level.
+- [x] Show Material Lines → Work Order view.
+- [x] Work Order view → Part Matrix.
+- [x] Part Info → Part Matrix.
+- [x] Keyboard activation parity for the accepted interactive MPS bucket behavior.
+
+Ergonomics B items such as arrow-key tab navigation, shared focus-trap extraction, menu roving focus,
+and additional shortcut hints remain deferred unless explicitly revisited.
+
+---
+
+## R0 — Repository / Documentation Reconciliation
+
+**Status:** COMPLETE / ACCEPTED — 2026-08-21
+
+R0 establishes the clean accepted repository baseline before Security Foundation enactment. It also
+satisfies the Security Foundation draft's S0.0 Repository Reconciliation prerequisite.
+
+### R0.1 — Read-only repository documentation inventory
+
+**Status:** COMPLETE / ACCEPTED
+
+- [x] Inventory repository-controlled documentation and instruction files.
+- [x] Inventory relevant documentation/source/test/script directory structure.
+- [x] Record tracked/untracked state and useful provenance for ambiguous documents.
+- [x] Identify links/references to documents that may later move or be superseded.
+- [x] Search deliberately for known stale assumptions and obsolete stage language.
+- [x] Produce evidence-backed candidate classifications without moving/deleting/rewriting files.
+- [x] Owner review of inventory before disposition work.
+
+### R0.2 — Authority and contradiction map
+
+**Status:** COMPLETE / ACCEPTED
+
+- [x] Classify documents as Canonical, Current Stage/Implementation Artifact, Historical Stage Artifact,
+      Superseded, Duplicate, Mislocated, Needs Update, or Candidate for Archive/Removal.
+- [x] Identify competing current-status / roadmap / architecture / source-map claims.
+- [x] Record what supersedes each stale artifact and whether unique evidence must be retained.
+- [x] Establish proposed dispositions before any large moves/deletes.
+- [x] Owner review of disposition map.
+
+### R0.3 — Core project-state reconciliation
+
+**Status:** COMPLETE / ACCEPTED
+
+- [x] Reconcile authoritative current project status through Stage 8 + Ergonomics A.
+- [x] Reconcile this Master Project Checklist.
+- [x] Reconcile phased implementation strategy without casually redesigning Stage 9+.
+- [x] Record R0 → S0 → Stage 9 sequencing durably.
+
+### R0.4 — Stage-history reconciliation
+
+**Status:** COMPLETE / ACCEPTED
+
+- [x] Reconcile Stage 5 artifacts.
+- [x] Reconcile Stage 6 artifacts.
+- [x] Reconcile Stage 7 artifacts.
+- [x] Reconcile Stage 8 artifacts.
+- [x] Reconcile UI Navigation & Keyboard Ergonomics artifacts.
+- [x] Preserve historical evidence while making superseded planning unmistakable.
+
+### R0.5 — Architecture and development documentation reconciliation
+
+**Status:** COMPLETE / ACCEPTED
+
+- [x] Reconcile technical foundation and project boundaries against implementation.
+- [x] Reconcile setup/build/test/package/sidecar/OpenAPI workflows.
+- [x] Reconcile troubleshooting and local coding-agent workflow.
+- [x] Reconcile `AGENTS.md` and platform-specific instruction precedence.
+- [x] Avoid churn where documentation is already accurate.
+
+### R0.6 — Data/source documentation reconciliation
+
+**Status:** COMPLETE / ACCEPTED
+
+- [x] Reconcile QAD/source maps against accepted Stage 5–8 implementation evidence.
+- [x] Preserve source grain, selected-site behavior, null/zero semantics, and accepted query rules.
+- [x] Ensure obsolete Stage 8 netting/coverage assumptions cannot masquerade as unfinished work.
+
+### R0.7 — Documentation navigation and authority
+
+**Status:** COMPLETE / ACCEPTED
+
+- [x] Establish an explicit documentation authority/index model.
+- [x] Make canonical current status, roadmap, architecture, source maps, stage evidence, historical
+      artifacts, and instruction precedence easy to locate.
+- [x] Preserve repository documentation as durable project memory; agent memory remains retrieval assistance only.
+
+### R0.8 — Reconciliation verification / closeout
+
+**Status:** COMPLETE / ACCEPTED
+
+- [x] Run a final stale-assumption / contradiction / broken-reference search.
+- [x] Verify no accepted Stage 5–8 or Ergonomics A behavior was regressed in documentation.
+- [x] Verify no Stage 9 implementation has begun.
+- [x] Establish and record the accepted reconciled baseline commit.
+- [x] Owner acceptance of R0.
+
+Durable closeout evidence: `docs/status/R0_REPOSITORY_RECONCILIATION_CLOSEOUT.md`.
+
+---
+
+## S0 — Security Foundation Integration
+
+**Status:** PLANNED — begins only after R0 acceptance
+
+Do not mix large documentation reconciliation with security remediation.
+
+### S0.1 — Security Policy Injection
+
+- [ ] Finalize repository security entry point and platform-neutral security policy locations after
+      R0 determines the authoritative documentation structure.
+- [ ] Enact Security Assurance Policy.
+- [ ] Enact Development Environment Security policy.
+- [ ] Enact Dependency Admission policy.
+- [ ] Enact AI Security Review policy.
+- [ ] Enact KST Application Security Profile.
+- [ ] Update `AGENTS.md` with concise mandatory agent behavior and links to authoritative policy.
+- [ ] Add only thin platform-specific security adapters after verifying supported mechanisms.
+- [ ] Do not add a new scanner merely because security work has started.
+
+### S0.2 — Security Baseline Discovery
+
+- [ ] Inventory application dependencies: NuGet, npm, Cargo.
+- [ ] Inventory development dependencies: SDKs, generators, build/Tauri tooling.
+- [ ] Inventory active agent platforms, extensions/packages/skills/MCP servers/instruction files as applicable.
+- [ ] Inventory network listeners, CORS, CSP, Tauri capabilities, subprocesses, filesystem use,
+      credential paths, and database access.
+- [ ] Produce the observed Security Baseline.
+- [ ] Do not automatically remediate every discovered issue.
+
+### S0.3 — Existing-Tool Security Checks
+
+- [ ] Determine what .NET/NuGet, npm, Cargo, compiler/analyzer, repository tests, OS inspection, and
+      repository search already provide.
+- [ ] Record useful signal, gaps, false positives, and execution cost before admitting new tooling.
+
+### Later S0 work
+
+- [ ] Evaluate additional security tooling only through the enacted dependency-admission process.
+- [ ] Automate dependency-change admission where evidence justifies it.
+- [ ] Convert critical attack-surface assumptions into executable verification.
+- [ ] Pilot independent AI security review.
+- [ ] Define a release security gate based on measured evidence.
+
+### Security decisions intentionally unresolved
+
+- [~] Final severity thresholds.
+- [~] Organizational risk-acceptance authority.
+- [~] Approved external AI provider list.
+- [~] Exact SBOM format.
+- [~] Exact vulnerability scanner / SAST product.
+- [~] CI/CD platform.
+- [~] Final development-environment risk tiers / isolation technology.
+- [~] Mandatory frontier-model review triggers.
+- [~] Portfolio-wide policy.
+
+---
 
 ## Stage 9 — Phase 6: Immediate Shortages
 
@@ -1579,29 +1766,34 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 
 ## Current Project Position
 
-### Completed
+### Completed / accepted
 
 - [x] Stage 1 — Project Charter.
 - [x] Stage 2 — Broad legacy, UI, and dataset inventory.
 - [x] Stage 3 — Technical Foundation.
 - [x] Stage 4 / 4B — Application Shell, Workspace Configuration, and Workspace Scope Extension.
-- [x] Stage 5A technical/data artifacts, documentation reconciliation, and Stage 5B implementation plan.
+- [x] Stage 5 — MPS Data Foundation and Dashboard Implementation.
+- [x] Stage 6 — Part Information Drill-Down.
+- [x] Stage 7 — Work Orders and Kitting.
+- [x] Stage 8 — Component and BOM Detail.
+- [x] UI Navigation & Keyboard Ergonomics A.
 
 ### Current focus
 
-- [x] Final project-owner acceptance of Stage 5A.
-- [x] After acceptance, generate the Stage 5B VS Code/Copilot implementation prompt.
-- [ ] Implement Stage 5B — MPS Dashboard in controlled checkpoints.
+- [ ] R0 — Repository / Documentation Reconciliation.
+- [ ] S0 — Security Foundation Integration (begins only after R0 acceptance).
+- [ ] Stage 9 — Immediate Shortages (begins only after R0 + S0 foundation work is accepted).
 
 ### Planning rule going forward
 
-Before beginning each later phase:
+Before beginning each later feature phase:
 
-- [ ] Review that section of the prototype.
-- [ ] Filter the field inventory to that phase.
-- [ ] Map the fields currently known.
+- [ ] Review that section of the prototype as design evidence, not automatic requirements.
+- [ ] Filter/reconcile the field inventory to the phase.
+- [ ] Map fields currently known from authoritative source evidence.
 - [ ] Add missing fields discovered during review.
-- [ ] Confirm business rules.
+- [ ] Confirm business rules with the project owner when evidence is ambiguous.
 - [ ] Define the smallest sufficient backend contract.
-- [ ] Implement and validate the complete vertical slice.
-- [ ] Update the shared models only when the implemented phase proves that an extension is needed.
+- [ ] Implement and validate the complete vertical slice in bounded checkpoints.
+- [ ] Update shared models only when implemented requirements justify extension.
+- [ ] Preserve enacted architecture, security, source, and agent-instruction boundaries.

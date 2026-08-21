@@ -2,6 +2,20 @@
 
 A modern Windows 11 desktop application for production scheduling.
 
+## Documentation Map
+
+| Question | Start here | Purpose |
+|---|---|---|
+| What must I obey? | [AGENTS.md](AGENTS.md) | Repository rules and agent operating constraints |
+| Where are we now? | [docs/status/CURRENT_PROJECT_STATUS.md](docs/status/CURRENT_PROJECT_STATUS.md) | Short canonical current-project state |
+| What is the roadmap? | [KST-v2-Master-Project-Checklist.md](KST-v2-Master-Project-Checklist.md) | Canonical project roadmap/checklist |
+| What is the current architecture? | [docs/architecture/](docs/architecture/) — start with [Technical Foundation](docs/architecture/TECHNICAL_FOUNDATION.md) and [Backend Project Boundaries](docs/architecture/BACKEND_PROJECT_BOUNDARIES.md) | Current accepted architecture |
+| Where are the QAD/source mappings? | [docs/data/qadpro2-data-map.md](docs/data/qadpro2-data-map.md) | Canonical QAD schema/source map (the `.yaml`/`.json` representations are kept in sync alongside it) |
+| What proves a stage was actually implemented? | Accepted closeouts, contracts, and validation reports under `docs/implementation/` (for example `KST_v2_STAGE_8_CLOSEOUT.md`) | Accepted implementation evidence for completed stages |
+| What is historical/reference material? | [docs/reference/](docs/reference/) | Reference/provenance material (original charter, superseded checklists, prototypes). Authority is determined by a document's stated role, not by being in this folder — see `AGENTS.md` §1. |
+
+For the full documentation authority model (which document wins when material appears to disagree), see `AGENTS.md` §1.
+
 ## Architecture
 
 KST v2 is a desktop application with three layers:
@@ -84,6 +98,9 @@ See [docs/development/BUILD_AND_TEST.md](docs/development/BUILD_AND_TEST.md) for
 
 ## Documentation Index
 
+- [Current Project Status](docs/status/CURRENT_PROJECT_STATUS.md)
+- [Master Project Checklist](KST-v2-Master-Project-Checklist.md)
+- [QAD Data Map](docs/data/qadpro2-data-map.md)
 - [Technical Foundation](docs/architecture/TECHNICAL_FOUNDATION.md)
 - [Backend Project Boundaries](docs/architecture/BACKEND_PROJECT_BOUNDARIES.md)
 - [Sidecar Lifecycle](docs/architecture/SIDECAR_LIFECYCLE.md)
