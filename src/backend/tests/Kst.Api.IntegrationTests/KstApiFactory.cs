@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Kst.Application.Bom;
+using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
 using Kst.Application.Preferences;
 using Kst.Application.Workspaces;
@@ -30,6 +31,9 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
     /// <summary>Optional deterministic <see cref="IPartInventoryReader"/> override (Stage 8D.3).</summary>
     public IPartInventoryReader? PartInventoryReader { get; set; }
+
+    /// <summary>Optional deterministic <see cref="IComponentSourceReader"/> override (Stage 8D.5).</summary>
+    public IComponentSourceReader? ComponentSourceReader { get; set; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -80,6 +84,17 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
                 if (inventoryReaderDescriptor is not null)
                     services.Remove(inventoryReaderDescriptor);
                 services.AddSingleton(partInventoryReader);
+            }
+
+            // Stage 8D.5: optional deterministic Component Detail source reader override for endpoint tests.
+            var componentSourceReader = ComponentSourceReader;
+            if (componentSourceReader is not null)
+            {
+                var componentSourceDescriptor = services.SingleOrDefault(
+                    d => d.ServiceType == typeof(IComponentSourceReader));
+                if (componentSourceDescriptor is not null)
+                    services.Remove(componentSourceDescriptor);
+                services.AddSingleton(componentSourceReader);
             }
         });
 

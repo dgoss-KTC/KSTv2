@@ -1,13 +1,14 @@
 metadata:
   source_file: DataMap.xlsx
   generated_utc: '2026-08-06T23:23:17+00:00'
-  table_count: 25
-  field_count: 555
-  validated_field_count: 552
+  table_count: 26
+  field_count: 561
+  validated_field_count: 558
   notes:
   - Generated from the KST v2 DataMap workbook.
   - Validated is true when the source workbook contained x/yes/y/true/1.
   - This file is documentation metadata only. It does not include live data.
+  - Stage 8D.5 (Component Info Backend) added the sct_det table (6 fields) directly from live QADPRO2 schema/data -- it was not present in the original DataMap.xlsx workbook.
 databases:
   QADPRO2:
     ad_mstr:
@@ -1067,6 +1068,28 @@ databases:
         ptp_yld_pct:
           description: Yield Percentage
           validated: true
+    sct_det:
+      business_name: Standard Cost Detail
+      source_sheet: not in DataMap.xlsx -- added Stage 8D.5 (Component Info Backend), confirmed directly against live QADPRO2 schema/data rather than the original workbook
+      fields:
+        sct_domain:
+          description: Domain
+          validated: true
+        sct_site:
+          description: Site
+          validated: true
+        sct_part:
+          description: Part Number
+          validated: true
+        sct_sim:
+          description: "Simulation Name (accepted Stage 8D.5 filter: 'Standard', case-insensitive match, for the Component Detail Standard Cost field -- other simulations such as Current/KPI/PurCst exist and must not be selected)"
+          validated: true
+        sct_cst_date:
+          description: Cost Effective Date (selection tie-break, latest date wins)
+          validated: true
+        sct_cst_tot:
+          description: Total Standard Cost
+          validated: true
     so_mstr:
       business_name: Sales Order Master
       source_sheet: QADPRO2
@@ -1772,7 +1795,7 @@ databases:
           description: Customer's Price
           validated: true
         inp_qctc:
-          description: Quoted Cost
+          description: "Quoted Cost -- accepted Stage 8D.5 Component Detail QCTC source, filtered to inp_source = 'qtbom_det' (other sources such as idh_hist/pid_det were observed to always carry inp_qctc = 0 and can share the same latest inp_start_date as a real qtbom_det row)"
           validated: true
         inp_site:
           description: Site

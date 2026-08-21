@@ -6,9 +6,9 @@ Generated from `DataMap.xlsx`.
 
 - Source file: `DataMap.xlsx`
 - Generated UTC: `2026-08-06T23:23:17+00:00`
-- Tables: `25`
-- Fields: `555`
-- Validated fields: `552`
+- Tables: `26` (25 from `DataMap.xlsx` + `sct_det`, added Stage 8D.5 — see that table's entry)
+- Fields: `561` (555 from `DataMap.xlsx` + 6 `sct_det` fields)
+- Validated fields: `558`
 
 ## Agent Usage Rules
 
@@ -510,6 +510,22 @@ Generated from `DataMap.xlsx`.
 | `ptp_vend` | Supplier | Yes |
 | `ptp_yld_pct` | Yield Percentage | Yes |
 
+### Table: `sct_det`
+
+- **Business name:** Standard Cost Detail
+- **Source sheet:** _not in `DataMap.xlsx`_ — added Stage 8D.5 (Component Info Backend), confirmed
+  directly against live QADPRO2 schema/data rather than the original workbook.
+- **Fields:** 6
+
+| Field | Description | Validated |
+|---|---|---:|
+| `sct_domain` | Domain | Yes |
+| `sct_site` | Site | Yes |
+| `sct_part` | Part Number | Yes |
+| `sct_sim` | Simulation Name (accepted Stage 8D.5 filter: `'Standard'`, case-insensitive match, for the Component Detail Standard Cost field — other simulations such as Current/KPI/PurCst exist and must not be selected) | Yes |
+| `sct_cst_date` | Cost Effective Date (selection tie-break: latest date wins) | Yes |
+| `sct_cst_tot` | Total Standard Cost | Yes |
+
 ### Table: `so_mstr`
 
 - **Business name:** Sales Order Master
@@ -799,5 +815,5 @@ Generated from `DataMap.xlsx`.
 | `inp_part` | Part Number | Yes |
 | `inp_domain` | Domain | Yes |
 | `inp_custprice` | Customer's Price | Yes |
-| `inp_qctc` | Quoted Cost | Yes |
+| `inp_qctc` | Quoted Cost — accepted Stage 8D.5 Component Detail QCTC source, filtered to `inp_source = 'qtbom_det'` (other sources such as `idh_hist`/`pid_det` were observed to always carry `inp_qctc = 0` and can share the same latest `inp_start_date` as a real `qtbom_det` row) | Yes |
 | `inp_site` | Site | Yes |

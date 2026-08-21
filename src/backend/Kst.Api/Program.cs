@@ -5,6 +5,7 @@ using Serilog;
 using Serilog.Events;
 using Kst.Api.Endpoints;
 using Kst.Application.Bom;
+using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
 using Kst.Application.Mps;
 using Kst.Application.PartDetail;
@@ -17,6 +18,7 @@ using Kst.Domain.Common;
 using Kst.Application.Snapshots;
 using Kst.Infrastructure;
 using Kst.Infrastructure.Bom;
+using Kst.Infrastructure.ComponentDetail;
 using Kst.Infrastructure.Configuration;
 using Kst.Infrastructure.Identity;
 using Kst.Infrastructure.Mps;
@@ -24,6 +26,7 @@ using Kst.Infrastructure.PartDetail;
 using Kst.Infrastructure.SystemStatus;
 using Kst.Infrastructure.WorkOrders;
 using Kst.Integrations.Qad.Bom;
+using Kst.Integrations.Qad.ComponentDetail;
 using Kst.Integrations.Qad.Connectivity;
 using Kst.Integrations.Qad.Inventory;
 using Kst.Integrations.Qad.Mps;
@@ -246,6 +249,25 @@ else
 
 builder.Services.AddSingleton<BomService>();
 
+// -- Component Detail (Stage 8D.5) --------------------------------------------------
+builder.Services.AddSingleton<IComponentDetailCacheStore, InMemoryComponentDetailCacheStore>();
+
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadComponentSourceReader>();
+    builder.Services.AddSingleton<IComponentSourceReader>(sp => new DelegateComponentSourceReader(
+        (site, componentPart, ct) =>
+            sp.GetRequiredService<QadComponentSourceReader>().ReadAsync(site, componentPart, ct)));
+}
+else
+{
+    const string notConfiguredMessage = "QAD connection is not configured.";
+    builder.Services.AddSingleton<IComponentSourceReader>(_ => new DelegateComponentSourceReader(
+        (_, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+}
+
+builder.Services.AddSingleton<ComponentDetailService>();
+
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddCors(options =>
@@ -290,6 +312,7 @@ app.MapMpsEndpoints();
 app.MapPartDetailEndpoints();
 app.MapWorkOrderEndpoints();
 app.MapBomEndpoints();
+app.MapComponentDetailEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------
 // Writes a JSON line to stdout once the server is bound so Tauri can read the port.

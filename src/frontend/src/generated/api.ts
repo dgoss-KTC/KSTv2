@@ -81,6 +81,10 @@ export interface paths {
     /** Returns the scheduler-visible current-effective BOM for a workspace's selected MPS parent part, enriched with shared Site + Part inventory. */
     get: operations["GetBom"];
   };
+  "/api/v1/workspaces/{assignmentId}/components/{componentPart}": {
+    /** Returns lazily-loaded Component Detail (master, selected-site planning, Standard Cost, QCTC, shared Site + Part inventory) for a workspace-selected component part. */
+    get: operations["GetComponentDetail"];
+  };
 }
 
 export type webhooks = Record<string, never>;
@@ -110,6 +114,43 @@ export interface components {
       /** Format: date */
       effectiveDate: string;
       lines: components["schemas"]["BomLineDto"][];
+      /** Format: date-time */
+      loadedAtUtc: string;
+      isStale: boolean;
+      warning: null | string;
+    };
+    ComponentDetailResponseDto: {
+      site: string;
+      componentPart: string;
+      description: null | string;
+      partStatusCode: null | string;
+      partStatusDescription: null | string;
+      iosCode: null | string;
+      /** Format: double */
+      netQuantityOnHand: number | string;
+      /** Format: double */
+      nonNetQuantityOnHand: number | string;
+      /** Format: double */
+      standardCost: null | number | string;
+      /** Format: double */
+      qctc: null | number | string;
+      /** Format: int32 */
+      timeFence: null | number | string;
+      /** Format: double */
+      safetyTime: null | number | string;
+      /** Format: double */
+      safetyStock: null | number | string;
+      buyerPlanner: null | string;
+      /** Format: int32 */
+      purchaseLeadTimeDays: null | number | string;
+      /** Format: int32 */
+      inspectionLeadTimeDays: null | number | string;
+      /** Format: int32 */
+      cumulativeLeadTimeDays: null | number | string;
+      /** Format: double */
+      minimumOrderQuantity: null | number | string;
+      /** Format: double */
+      orderMultiple: null | number | string;
       /** Format: date-time */
       loadedAtUtc: string;
       isStale: boolean;
@@ -862,6 +903,47 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["BomResponseDto"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+      /** @description Service Unavailable */
+      503: {
+        content: {
+          "application/problem+json": components["schemas"]["ProblemDetails"];
+        };
+      };
+    };
+  };
+  /** Returns lazily-loaded Component Detail (master, selected-site planning, Standard Cost, QCTC, shared Site + Part inventory) for a workspace-selected component part. */
+  GetComponentDetail: {
+    parameters: {
+      path: {
+        assignmentId: string;
+        componentPart: string;
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ComponentDetailResponseDto"];
         };
       };
       /** @description Bad Request */
