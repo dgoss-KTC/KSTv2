@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import type { WorkOrderSummaryDto } from '../api/client';
 import { useWorkOrderMaterialLines } from '../hooks/useWorkOrderMaterialLines';
+import { useEscapeLevel } from '../mps/escapeStack';
 import {
   formatKittingPercent,
   formatOptionalDate,
@@ -29,6 +30,9 @@ interface WorkOrderCardProps {
  */
 export function WorkOrderCard({ workOrder, assignmentId, snapshotId, depth = 1 }: WorkOrderCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  // Escape collapses material lines exactly like clicking "Hide material lines" — one drill-down
+  // level up, not all the way back to the grid.
+  useEscapeLevel(isExpanded, () => setIsExpanded(false));
   const materialSectionId = useId();
   const { lines, isLoading, error, retry } = useWorkOrderMaterialLines(
     assignmentId,

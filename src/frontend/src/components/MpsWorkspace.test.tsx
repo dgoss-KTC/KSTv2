@@ -898,6 +898,116 @@ describe('MpsWorkspace', () => {
       ).toBe(true);
     });
 
+    it('Enter on an eligible weekly bucket cell selects the parent + bucket exactly as a click does', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      const cell = screen.getByText('100').closest('td');
+      if (!cell) throw new Error('cell not found');
+      expect(cell).toHaveAttribute('tabindex', '0');
+      fireEvent.keyDown(cell, { key: 'Enter' });
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/work-orders/bucket') &&
+            url.includes('bucketKind=weekly') &&
+            url.includes('weekLabel=2025-06-30'),
+        ),
+      ).toBe(true);
+    });
+
+    it('Space on an eligible weekly bucket cell selects the parent + bucket and prevents page scroll', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      const cell = screen.getByText('100').closest('td');
+      if (!cell) throw new Error('cell not found');
+      const event = fireEvent.keyDown(cell, { key: ' ' });
+      // `fireEvent` returns `false` from dispatchEvent when a handler called `preventDefault()`.
+      expect(event).toBe(false);
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+    });
+
+    it('Enter and Space on the Falldown cell select the Falldown bucket exactly as a click does', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      const falldownCell = screen.getByText('50').closest('td');
+      if (!falldownCell) throw new Error('falldown cell not found');
+      expect(falldownCell).toHaveAttribute('tabindex', '0');
+      fireEvent.keyDown(falldownCell, { key: ' ' });
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+      expect(screen.getByRole('heading', { name: /falldown/i })).toBeInTheDocument();
+    });
+
+    it('a bucket cell beyond the drill-down horizon is not keyboard-focusable and Enter falls through to parent-row selection', async () => {
+      const extendedWeekly = [
+        { kind: 'weekly' as const, weekLabel: '2025-06-30', quantity: 100, executionStatus: 'released', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-07-07', quantity: 200, executionStatus: 'allocating', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-07-14', quantity: 300, executionStatus: 'none', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-07-21', quantity: 400, executionStatus: 'none', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-07-28', quantity: 500, executionStatus: 'none', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-08-04', quantity: 600, executionStatus: 'none', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+        { kind: 'weekly' as const, weekLabel: '2025-08-11', quantity: 700, executionStatus: 'none', containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+      ];
+      setupBackend({
+        onGetMps: () => ({
+          ok: true,
+          json: async () =>
+            makeDashboard({
+              parts: [{ parentPart: 'ABC100', description: 'Widget Assembly', buckets: [makeDashboard().parts[0].buckets[0], ...extendedWeekly] }],
+            }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('700')).toBeInTheDocument();
+      });
+
+      const ineligibleCell = screen.getByText('700').closest('td');
+      if (!ineligibleCell) throw new Error('cell not found');
+      expect(ineligibleCell).not.toHaveAttribute('tabindex');
+
+      fetchMock.mockClear();
+      fireEvent.keyDown(ineligibleCell, { key: 'Enter' });
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+      expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
+      expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/work-orders/bucket'))).toBe(
+        false,
+      );
+    });
+
     it('clicking the already-selected parent row toggles everything closed even when a bucket is selected', async () => {
       setupBackend();
       render(<App />);
@@ -981,6 +1091,168 @@ describe('MpsWorkspace', () => {
       expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/work-orders/bucket'))).toBe(
         false,
       );
+    });
+  });
+
+  describe('Escape closes the drill-down and returns to the full grid', () => {
+    it('Escape from Part Info closes the detail panel and restores focus to the grid row, exactly like clicking the selected part number again', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      const row = (await screen.findByText('ABC100')).closest('tr');
+      if (!row) throw new Error('row not found');
+      await user.click(screen.getByText('ABC100'));
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => {
+        expect(screen.queryByRole('heading', { name: /part info/i })).not.toBeInTheDocument();
+      });
+      expect(screen.queryByRole('tab', { name: 'Part Info' })).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(document.activeElement).toBe(row);
+      });
+    });
+
+    it('Escape from the Work Orders view (bucket selected) returns to the full grid in one press', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100')); // weekly bucket cell → auto-opens Work Orders
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => {
+        expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
+      });
+      expect(screen.queryByRole('tab', { name: 'Part Info' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /part info/i })).not.toBeInTheDocument();
+    });
+
+    it('Escape while the Component Information modal is open closes only the modal (BOM drill-down), leaving the underlying Part/BOM selection open', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole('tab', { name: 'BOM' }));
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('COMP-A'));
+      await screen.findByRole('dialog');
+
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+      // The underlying BOM selection (one level below the modal) must still be open — a single
+      // Escape press must never close two stacked drill-down levels at once.
+      expect(screen.getByRole('tab', { name: 'BOM' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('Escape at the top-level grid (nothing selected) does nothing', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await user.keyboard('{Escape}');
+
+      expect(screen.queryByRole('heading', { name: /part info/i })).not.toBeInTheDocument();
+      expect(screen.getByText('ABC100')).toBeInTheDocument();
+    });
+
+    it('Escape collapses an expanded Work Order card\u2019s material lines one level (like clicking "Hide material lines"), staying in the Work Orders view; a second Escape then returns to the grid', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      await user.click(within(card).getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(card).getByRole('button', { name: /hide material lines/i })).toBeInTheDocument();
+      });
+
+      await user.keyboard('{Escape}');
+
+      // First Escape: only the material lines collapse; Work Orders view stays open.
+      await waitFor(() => {
+        expect(within(card).getByRole('button', { name: /show material lines/i })).toBeInTheDocument();
+      });
+      expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+
+      await user.keyboard('{Escape}');
+
+      // Second Escape: nothing left registered on the drill-down stack, so it pops up to the grid.
+      await waitFor(() => {
+        expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
+      });
+    });
+
+    it('Escape collapses an open candidate branch one level, leaving the parent Work Order\u2019s material lines still shown', async () => {
+      setupBackend({
+        onGetMaterialLines: () => ({
+          ok: true,
+          json: async () =>
+            makeMaterialResponse({ lines: [makeMaterialLine({ componentPart: 'SUBASSY', isManufactured: true })] }),
+        }),
+        onGetWorkOrderCandidates: () => ({
+          ok: true,
+          json: async () => makeCandidateResponse({ candidates: [makeCandidateWorkOrder({ status: 'allocating' })] }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('100'));
+      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
+      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+      await waitFor(() => {
+        expect(within(card).getByText('SUBASSY')).toBeInTheDocument();
+      });
+      await user.click(within(card).getByRole('button', { name: 'SUBASSY' }));
+      await screen.findByRole('heading', { name: 'Work Orders for SUBASSY' });
+
+      await user.keyboard('{Escape}');
+
+      // First Escape: only the candidate branch collapses; the material lines (one level below
+      // it) stay open.
+      await waitFor(() => {
+        expect(screen.queryByRole('heading', { name: 'Work Orders for SUBASSY' })).not.toBeInTheDocument();
+      });
+      expect(within(card).getByText('SUBASSY')).toBeInTheDocument();
+      expect(within(card).getByRole('button', { name: /hide material lines/i })).toBeInTheDocument();
     });
   });
 

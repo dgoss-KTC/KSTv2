@@ -7,6 +7,10 @@ interface AddWorkspaceDialogProps {
   workspace?: WorkspaceAssignmentDto;
   onSave: (fields: CreateWorkspaceFields) => Promise<void>;
   onClose: () => void;
+  // Reports saving transitions to the caller (ApplicationShell), which owns the single Escape
+  // listener that arbitrates across all stacked workspace dialogs and needs to know synchronously
+  // whether closing is currently allowed here.
+  onSavingChange?: (saving: boolean) => void;
 }
 
 interface FormState {
@@ -49,7 +53,7 @@ function hasMinimumScope(form: FormState): boolean {
   return hasParentPart || form.productLineFrom.trim().length > 0;
 }
 
-export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceDialogProps) {
+export function AddWorkspaceDialog({ workspace, onSave, onClose, onSavingChange }: AddWorkspaceDialogProps) {
   const isEditMode = workspace != null;
   const [form, setForm] = useState<FormState>(() => formFromWorkspace(workspace));
   const [saving, setSaving] = useState(false);
@@ -58,34 +62,32 @@ export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceD
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
+  const setSavingState = (value: boolean) => {
+    setSaving(value);
+    onSavingChange?.(value);
+  };
+
   useEffect(() => {
     firstInputRef.current?.focus();
   }, []);
 
   // Trap focus inside dialog
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === 'Escape' && !saving) {
-        onClose();
-        return;
-      }
-      if (e.key !== 'Tab') return;
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
-      if (!focusable || focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    },
-    [saving, onClose],
-  );
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab') return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusable || focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }, []);
 
   const setField = (name: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -137,7 +139,7 @@ export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceD
     e.preventDefault();
     if (!hasMinimumScope(form) || saving) return;
 
-    setSaving(true);
+    setSavingState(true);
     setFieldErrors({});
 
     try {
@@ -152,7 +154,7 @@ export function AddWorkspaceDialog({ workspace, onSave, onClose }: AddWorkspaceD
         coverageEndsOn: form.isTemporary && form.coverageEndsOn ? form.coverageEndsOn : null,
       });
     } catch (err) {
-      setSaving(false);
+      setSavingState(false);
       if (isWorkspaceApiError(err)) {
         setFieldErrors(err.errors);
       }

@@ -10,7 +10,7 @@ interface GeneralWorkspaceProps {
   onSetTheme: (theme: UserPreferencesDto['theme']) => void;
   onSetAccentColor: (accentColor: UserPreferencesDto['accentColor']) => void;
   onSetRowDensity: (rowDensity: UserPreferencesDto['rowDensity']) => void;
-  onOpenManageWorkspaces: () => void;
+  onOpenManageWorkspaces: (triggerEl: HTMLElement) => void;
   connectionState: ConnectionState;
   status: SystemStatusResponse | null;
   onRefresh: () => void;
@@ -154,7 +154,7 @@ export function GeneralWorkspace({
         <button
           type="button"
           className="general-workspace__btn"
-          onClick={onOpenManageWorkspaces}
+          onClick={(e) => onOpenManageWorkspaces(e.currentTarget)}
         >
           Manage Workspaces&hellip;
         </button>

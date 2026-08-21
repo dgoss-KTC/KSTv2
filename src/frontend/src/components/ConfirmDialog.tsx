@@ -9,6 +9,10 @@ interface ConfirmDialogProps {
   destructive?: boolean;
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
+  // Reports busy transitions to the caller (ApplicationShell), which owns the single Escape
+  // listener that arbitrates across all stacked workspace dialogs and needs to know synchronously
+  // whether Cancel is currently allowed here.
+  onBusyChange?: (busy: boolean) => void;
 }
 
 export function ConfirmDialog({
@@ -19,6 +23,7 @@ export function ConfirmDialog({
   destructive = false,
   onConfirm,
   onCancel,
+  onBusyChange,
 }: ConfirmDialogProps) {
   const [busy, setBusy] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -30,34 +35,32 @@ export function ConfirmDialog({
     (destructive ? cancelRef.current : confirmRef.current)?.focus();
   }, [destructive]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === 'Escape' && !busy) {
-        onCancel();
-        return;
-      }
-      if (e.key !== 'Tab') return;
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled])');
-      if (!focusable || focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    },
-    [busy, onCancel],
-  );
+  const setBusyState = (value: boolean) => {
+    setBusy(value);
+    onBusyChange?.(value);
+  };
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab') return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled])');
+    if (!focusable || focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }, []);
 
   const handleConfirm = async () => {
-    setBusy(true);
+    setBusyState(true);
     try {
       await onConfirm();
     } finally {
-      setBusy(false);
+      setBusyState(false);
     }
   };
 

@@ -356,4 +356,239 @@ describe('Workspace lifecycle (edit / archive / restore / delete / reset)', () =
     });
     expect(screen.getByRole('tab', { name: /customer 11111111/i })).toBeInTheDocument();
   });
+
+  describe('Ergonomics A — topmost Escape and focus restoration', () => {
+    it('Escape with no dialog open has no effect', async () => {
+      const list: WorkspaceListResponseDto = {
+        workspaces: [makeWorkspace()],
+        configurationWarning: null,
+      };
+      setupBackend(list);
+      render(<App />);
+      await waitForConnected();
+
+      await user.keyboard('{Escape}');
+
+      expect(screen.getByRole('tab', { name: /customer 11111111/i })).toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+
+    it('Escape closes Edit Workspace and restores focus to the workspace kebab trigger', async () => {
+      const list: WorkspaceListResponseDto = {
+        workspaces: [makeWorkspace()],
+        configurationWarning: null,
+      };
+      setupBackend(list, { onPut: (id) => makeWorkspace({ assignmentId: id }) });
+      render(<App />);
+      await waitForConnected();
+
+      const kebab = await screen.findByRole('button', { name: /workspace actions for customer 11111111/i });
+      await openTabMenu(/customer 11111111/);
+      await user.click(screen.getByRole('menuitem', { name: /edit workspace/i }));
+      await screen.findByRole('dialog');
+
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+      expect(document.activeElement).toBe(kebab);
+    });
+
+    it('Escape cancels the Archive confirmation and restores focus to the workspace kebab trigger', async () => {
+      const list: WorkspaceListResponseDto = {
+        workspaces: [makeWorkspace()],
+        configurationWarning: null,
+      };
+      setupBackend(list, {
+        onArchive: (id) => makeWorkspace({ assignmentId: id, isEnabled: false }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      const kebab = await screen.findByRole('button', { name: /workspace actions for customer 11111111/i });
+      await openTabMenu(/customer 11111111/);
+      await user.click(screen.getByRole('menuitem', { name: /archive workspace/i }));
+      await screen.findByRole('alertdialog');
+
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(document.activeElement).toBe(kebab);
+      });
+      expect(screen.getByRole('tab', { name: /customer 11111111/i })).toBeInTheDocument();
+    });
+
+    it('a single Escape over a ConfirmDialog stacked on Manage Workspaces closes only the confirmation, and a second Escape then closes Manage Workspaces', async () => {
+      const archived = makeWorkspace({ isEnabled: false });
+      const list: WorkspaceListResponseDto = {
+        workspaces: [archived],
+        configurationWarning: null,
+      };
+      setupBackend(list, { onDelete: () => {} });
+      render(<App />);
+      await waitForConnected();
+
+      const manageTrigger = screen.getByRole('button', { name: /manage workspaces/i });
+      await user.click(manageTrigger);
+      const manageDialog = await screen.findByRole('dialog', { name: /manage workspaces/i });
+
+      const deleteBtn = within(manageDialog).getByRole('button', { name: /delete permanently/i });
+      await user.click(deleteBtn);
+      await screen.findByRole('alertdialog');
+
+      // First Escape: only the stacked confirmation closes; Manage Workspaces remains open and
+      // regains focus (the exact triggering button, still connected since nothing was deleted).
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('dialog', { name: /manage workspaces/i })).toBeInTheDocument();
+      await waitFor(() => {
+        expect(document.activeElement).toBe(deleteBtn);
+      });
+
+      // Second Escape: Manage Workspaces is now topmost and closes, restoring focus to its trigger.
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog', { name: /manage workspaces/i })).not.toBeInTheDocument();
+      });
+      expect(document.activeElement).toBe(manageTrigger);
+    });
+
+    it('confirming Delete Permanently from inside Manage Workspaces removes the row without throwing and keeps focus inside the still-open dialog', async () => {
+      const archived = makeWorkspace({ isEnabled: false });
+      const list: WorkspaceListResponseDto = {
+        workspaces: [archived],
+        configurationWarning: null,
+      };
+      setupBackend(list, { onDelete: () => {} });
+      render(<App />);
+      await waitForConnected();
+
+      await user.click(screen.getByRole('button', { name: /manage workspaces/i }));
+      const manageDialog = await screen.findByRole('dialog', { name: /manage workspaces/i });
+      await user.click(within(manageDialog).getByRole('button', { name: /delete permanently/i }));
+      const confirmDialog = await screen.findByRole('alertdialog');
+      await user.click(within(confirmDialog).getByRole('button', { name: /delete permanently/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      });
+      // The dialog stays open; the deleted row's own trigger is gone, so this must not throw and
+      // must not leave focus on a disconnected element.
+      expect(screen.getByRole('dialog', { name: /manage workspaces/i })).toBeInTheDocument();
+      expect(within(manageDialog).queryByRole('button', { name: /delete permanently/i })).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(manageDialog.contains(document.activeElement)).toBe(true);
+      });
+    });
+
+    it('Escape cancels the Archive confirmation even when focus is on the destructive/confirm button rather than Cancel', async () => {
+      const list: WorkspaceListResponseDto = {
+        workspaces: [makeWorkspace()],
+        configurationWarning: null,
+      };
+      setupBackend(list, {
+        onArchive: (id) => makeWorkspace({ assignmentId: id, isEnabled: false }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await openTabMenu(/customer 11111111/);
+      await user.click(screen.getByRole('menuitem', { name: /archive workspace/i }));
+      const confirmDialog = await screen.findByRole('alertdialog');
+
+      // Explicitly move focus to the Archive (confirm) button, not Cancel, before pressing Escape.
+      const archiveBtn = within(confirmDialog).getByRole('button', { name: /^archive$/i });
+      archiveBtn.focus();
+      expect(document.activeElement).toBe(archiveBtn);
+
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('tab', { name: /customer 11111111/i })).toBeInTheDocument();
+    });
+
+    it('Escape does nothing while the Archive confirmation is busy (mid-confirm)', async () => {
+      const list: WorkspaceListResponseDto = {
+        workspaces: [makeWorkspace()],
+        configurationWarning: null,
+      };
+      let resolveArchive: (() => void) | undefined;
+      fetchMock.mockImplementation((url: string, opts?: RequestInit) => {
+        const method = opts?.method ?? 'GET';
+        if (method === 'GET' && url.includes('/api/v1/workspaces')) {
+          return Promise.resolve({ ok: true, json: async () => list });
+        }
+        if (method === 'GET') {
+          return Promise.resolve({ ok: true, json: async () => mockStatus });
+        }
+        if (method === 'POST' && url.includes('/archive')) {
+          return new Promise((resolve) => {
+            resolveArchive = () =>
+              resolve({ ok: true, json: async () => makeWorkspace({ isEnabled: false }) });
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => mockStatus });
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await openTabMenu(/customer 11111111/);
+      await user.click(screen.getByRole('menuitem', { name: /archive workspace/i }));
+      const confirmDialog = await screen.findByRole('alertdialog');
+      const archiveBtn = within(confirmDialog).getByRole('button', { name: /^archive$/i });
+      await user.click(archiveBtn);
+
+      // Busy: the pending archive request has not resolved yet (button text becomes an ellipsis
+      // while busy, so re-querying by its original name would no longer find it).
+      await waitFor(() => {
+        expect(archiveBtn).toBeDisabled();
+      });
+
+      await user.keyboard('{Escape}');
+
+      // Escape must be a no-op while busy — the dialog stays open.
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+
+      resolveArchive?.();
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      });
+    });
+
+    it('Escape closes Manage Workspaces when focus is on its own Close button', async () => {
+      const list: WorkspaceListResponseDto = {
+        workspaces: [makeWorkspace()],
+        configurationWarning: null,
+      };
+      setupBackend(list);
+      render(<App />);
+      await waitForConnected();
+
+      const manageTrigger = screen.getByRole('button', { name: /manage workspaces/i });
+      await user.click(manageTrigger);
+      const manageDialog = await screen.findByRole('dialog', { name: /manage workspaces/i });
+
+      const closeBtn = within(manageDialog).getByRole('button', { name: /^close$/i });
+      closeBtn.focus();
+      expect(document.activeElement).toBe(closeBtn);
+
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog', { name: /manage workspaces/i })).not.toBeInTheDocument();
+      });
+      expect(document.activeElement).toBe(manageTrigger);
+    });
+  });
 });

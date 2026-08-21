@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useBackendStatus } from '../hooks/useBackendStatus';
 import { useWorkspaces } from '../hooks/useWorkspaces';
 import { usePreferences } from '../hooks/usePreferences';
@@ -24,6 +24,22 @@ interface ConfirmState {
   onConfirm: () => Promise<void>;
 }
 
+// Focuses `el` if it still exists in the document, returning whether it did. Used for dialog
+// focus restoration so a disconnected (e.g. deleted/unmounted) trigger is never focused.
+function focusIfConnected(el: HTMLElement | null): boolean {
+  if (el && el.isConnected) {
+    el.focus();
+    return true;
+  }
+  return false;
+}
+
+// Identifies which of the three stacked-capable workspace dialogs is currently topmost, so each
+// dialog's Escape handler can be gated to act only when it owns the keyboard — ConfirmDialog can
+// be opened on top of ManageWorkspacesDialog (Delete/Reset), and only one Escape press should ever
+// close one dialog.
+type TopmostDialog = 'add' | 'manage' | 'confirm' | null;
+
 export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   const [isGeneralActive, setIsGeneralActive] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -31,6 +47,27 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   const [showManageDialog, setShowManageDialog] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Focus-restoration targets are DOM elements, not application state — stored in refs per the
+  // repository focus-management convention (see Stage 8D.6 Component Information).
+  const addDialogReturnFocusRef = useRef<HTMLElement | null>(null);
+  const manageDialogReturnFocusRef = useRef<HTMLElement | null>(null);
+  const confirmReturnFocusRef = useRef<HTMLElement | null>(null);
+  const manageDialogContainerRef = useRef<HTMLDivElement>(null);
+
+  // Mirrors of each dialog's own local busy/saving state, updated synchronously via callback props
+  // (not React state) so the single central Escape listener below can read the current value
+  // without waiting for a render. See the workspace-dialog Escape correction note in section 2.
+  const confirmBusyRef = useRef(false);
+  const addDialogSavingRef = useRef(false);
+
+  const topmostDialog: TopmostDialog = confirmState
+    ? 'confirm'
+    : showManageDialog
+      ? 'manage'
+      : showAddDialog || editingWorkspace
+        ? 'add'
+        : null;
 
   const { connectionState, status, triggerRefresh } = useBackendStatus();
   const { preferences, resolvedTheme, updatePreferences } = usePreferences();
@@ -63,19 +100,112 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
 
   const handleSelectGeneral = () => setIsGeneralActive(true);
 
+  const handleOpenAddDialog = (triggerEl: HTMLElement) => {
+    addDialogSavingRef.current = false;
+    addDialogReturnFocusRef.current = triggerEl;
+    setShowAddDialog(true);
+  };
+
+  const handleOpenEditDialog = (ws: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => {
+    addDialogSavingRef.current = false;
+    addDialogReturnFocusRef.current = triggerEl;
+    setEditingWorkspace(ws);
+  };
+
+  // Shared by Escape, backdrop-cancel, and successful save — every path that closes the Add/Edit
+  // Workspace dialog restores focus to whatever opened it (the "+" button, or the stable workspace
+  // kebab trigger for edit mode).
+  const closeAddDialog = () => {
+    setShowAddDialog(false);
+    setEditingWorkspace(null);
+    const el = addDialogReturnFocusRef.current;
+    addDialogReturnFocusRef.current = null;
+    focusIfConnected(el);
+  };
+
   const handleAddWorkspace = async (fields: Parameters<typeof addWorkspace>[0]) => {
     await addWorkspace(fields);
-    setShowAddDialog(false);
+    closeAddDialog();
   };
 
   const handleEditSave = async (fields: Parameters<typeof addWorkspace>[0]) => {
     if (!editingWorkspace) return;
     await editWorkspace(editingWorkspace.assignmentId, fields);
-    setEditingWorkspace(null);
+    closeAddDialog();
     showToast('success', 'Workspace updated');
   };
 
-  const handleArchiveRequest = (ws: WorkspaceAssignmentDto) => {
+  const handleOpenManageDialog = (triggerEl: HTMLElement) => {
+    manageDialogReturnFocusRef.current = triggerEl;
+    setShowManageDialog(true);
+  };
+
+  const handleCloseManageDialog = () => {
+    setShowManageDialog(false);
+    const el = manageDialogReturnFocusRef.current;
+    manageDialogReturnFocusRef.current = null;
+    focusIfConnected(el);
+  };
+
+  // Shared by ConfirmDialog Escape/Cancel/backdrop and by every destructive action's completion.
+  // Prefers the exact triggering control; if it no longer exists (e.g. the row it belonged to was
+  // just deleted), falls back to focus remaining inside Manage Workspaces when that dialog is still
+  // open beneath it, rather than focusing a disconnected element or the application shell.
+  //
+  // Deferred one macrotask: a successful destructive action (delete/reset) triggers a workspace-
+  // list state update in the same tick, which can remove the triggering element from the DOM only
+  // after this function starts running. Checking connectivity synchronously would then focus an
+  // element that is about to be unmounted, and its removal drops focus back to <body>. Waiting for
+  // that pending re-render to commit first makes the connectivity check reflect the final DOM.
+  const restoreFocusAfterConfirmClose = () => {
+    const el = confirmReturnFocusRef.current;
+    confirmReturnFocusRef.current = null;
+    const wasManageDialogOpen = showManageDialog;
+    setTimeout(() => {
+      if (focusIfConnected(el)) return;
+      if (wasManageDialogOpen) {
+        manageDialogContainerRef.current?.focus();
+      }
+    }, 0);
+  };
+
+  const handleCancelConfirm = () => {
+    setConfirmState(null);
+    restoreFocusAfterConfirmClose();
+  };
+
+  // Single document-level, capture-phase Escape listener that arbitrates across every stacked
+  // workspace dialog (Add/Edit, Manage, Confirm). Centralized here rather than as independent
+  // per-dialog listeners so a single Escape press can never be ambiguous about which dialog it
+  // closes and does not depend on listener registration order, DOM bubbling, or which control
+  // currently has focus. ComponentInfoModal is unrelated (BOM-only, not a workspace dialog) and
+  // keeps its own independent Escape handling.
+  useEffect(() => {
+    function handleDocumentEscape(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return;
+      if (topmostDialog === 'confirm') {
+        if (confirmBusyRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
+        handleCancelConfirm();
+      } else if (topmostDialog === 'add') {
+        if (addDialogSavingRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
+        closeAddDialog();
+      } else if (topmostDialog === 'manage') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCloseManageDialog();
+      }
+    }
+    document.addEventListener('keydown', handleDocumentEscape, true);
+    return () => document.removeEventListener('keydown', handleDocumentEscape, true);
+  });
+
+  const handleArchiveRequest = (ws: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => {
+    confirmBusyRef.current = false;
+    confirmReturnFocusRef.current = triggerEl;
     setConfirmState({
       title: 'Archive workspace?',
       body: 'This workspace will be removed from the tab bar but can be restored later.',
@@ -89,12 +219,15 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
           showToast('error', 'Could not archive the workspace. Try again.');
         } finally {
           setConfirmState(null);
+          restoreFocusAfterConfirmClose();
         }
       },
     });
   };
 
-  const handleDeleteRequest = (ws: WorkspaceAssignmentDto) => {
+  const handleDeleteRequest = (ws: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => {
+    confirmBusyRef.current = false;
+    confirmReturnFocusRef.current = triggerEl;
     setConfirmState({
       title: 'Delete workspace permanently?',
       body: 'This removes the saved workspace configuration and cannot be undone.',
@@ -108,6 +241,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
           showToast('error', 'Could not delete the workspace. Try again.');
         } finally {
           setConfirmState(null);
+          restoreFocusAfterConfirmClose();
         }
       },
     });
@@ -122,7 +256,9 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
     }
   };
 
-  const handleResetRequest = () => {
+  const handleResetRequest = (triggerEl: HTMLElement) => {
+    confirmBusyRef.current = false;
+    confirmReturnFocusRef.current = triggerEl;
     setConfirmState({
       title: 'Reset all workspaces?',
       body: 'This will remove all locally configured workspaces and return KST to the empty startup screen.',
@@ -137,6 +273,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
           showToast('error', 'Could not reset workspace configuration. Try again.');
         } finally {
           setConfirmState(null);
+          restoreFocusAfterConfirmClose();
         }
       },
     });
@@ -191,9 +328,9 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
         workspaces={activeWorkspaces}
         activeId={isGeneralActive ? null : workspacesState.activeId}
         onSelect={handleSelectWorkspace}
-        onAdd={() => setShowAddDialog(true)}
-        onManage={() => setShowManageDialog(true)}
-        onEdit={(ws) => setEditingWorkspace(ws)}
+        onAdd={handleOpenAddDialog}
+        onManage={handleOpenManageDialog}
+        onEdit={handleOpenEditDialog}
         onArchive={handleArchiveRequest}
         onDelete={handleDeleteRequest}
         onReorder={handleReorder}
@@ -208,7 +345,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
             onSetTheme={(theme) => handleUpdatePreference({ theme })}
             onSetAccentColor={(accentColor) => handleUpdatePreference({ accentColor })}
             onSetRowDensity={(rowDensity) => handleUpdatePreference({ rowDensity })}
-            onOpenManageWorkspaces={() => setShowManageDialog(true)}
+            onOpenManageWorkspaces={handleOpenManageDialog}
             connectionState={connectionState}
             status={status}
             onRefresh={handleRefresh}
@@ -232,9 +369,9 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
         <AddWorkspaceDialog
           workspace={editingWorkspace ?? undefined}
           onSave={editingWorkspace ? handleEditSave : handleAddWorkspace}
-          onClose={() => {
-            setShowAddDialog(false);
-            setEditingWorkspace(null);
+          onClose={closeAddDialog}
+          onSavingChange={(saving) => {
+            addDialogSavingRef.current = saving;
           }}
         />
       )}
@@ -246,7 +383,8 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
           onRestore={handleRestore}
           onDelete={handleDeleteRequest}
           onResetRequest={handleResetRequest}
-          onClose={() => setShowManageDialog(false)}
+          onClose={handleCloseManageDialog}
+          containerRef={manageDialogContainerRef}
         />
       )}
 
@@ -257,7 +395,10 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
           confirmLabel={confirmState.confirmLabel}
           destructive={confirmState.destructive}
           onConfirm={confirmState.onConfirm}
-          onCancel={() => setConfirmState(null)}
+          onCancel={handleCancelConfirm}
+          onBusyChange={(busy) => {
+            confirmBusyRef.current = busy;
+          }}
         />
       )}
 

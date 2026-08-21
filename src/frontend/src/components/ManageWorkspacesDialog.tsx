@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import type { WorkspaceAssignmentDto } from '../api/client';
 import './ManageWorkspacesDialog.css';
 
@@ -6,9 +6,13 @@ interface ManageWorkspacesDialogProps {
   activeWorkspaces: WorkspaceAssignmentDto[];
   archivedWorkspaces: WorkspaceAssignmentDto[];
   onRestore: (workspace: WorkspaceAssignmentDto) => void;
-  onDelete: (workspace: WorkspaceAssignmentDto) => void;
-  onResetRequest: () => void;
+  onDelete: (workspace: WorkspaceAssignmentDto, triggerEl: HTMLElement) => void;
+  onResetRequest: (triggerEl: HTMLElement) => void;
   onClose: () => void;
+  // Lifted so a caller can restore focus into this dialog (e.g. after a stacked ConfirmDialog
+  // closes and its original trigger is no longer connected) without this component exposing an
+  // imperative handle.
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 function describeScope(w: WorkspaceAssignmentDto): string {
@@ -33,34 +37,28 @@ export function ManageWorkspacesDialog({
   onDelete,
   onResetRequest,
   onClose,
+  containerRef,
 }: ManageWorkspacesDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = containerRef;
 
   useEffect(() => {
     dialogRef.current?.focus();
-  }, []);
+  }, [dialogRef]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === 'Escape') {
-        onClose();
-        return;
-      }
-      if (e.key !== 'Tab') return;
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled])');
-      if (!focusable || focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    },
-    [onClose],
-  );
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab') return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled])');
+    if (!focusable || focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }, [dialogRef]);
 
   return (
     <div className="manage-dialog-backdrop" onClick={onClose}>
@@ -123,7 +121,7 @@ export function ManageWorkspacesDialog({
                     <button
                       type="button"
                       className="manage-dialog__btn manage-dialog__btn--destructive"
-                      onClick={() => onDelete(w)}
+                      onClick={(e) => onDelete(w, e.currentTarget)}
                     >
                       Delete Permanently
                     </button>
@@ -138,7 +136,7 @@ export function ManageWorkspacesDialog({
           <button
             type="button"
             className="manage-dialog__btn manage-dialog__btn--destructive-outline"
-            onClick={onResetRequest}
+            onClick={(e) => onResetRequest(e.currentTarget)}
           >
             Reset Workspace Configuration
           </button>

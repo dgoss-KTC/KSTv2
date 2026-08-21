@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { WorkspaceAssignmentDto } from '../api/client';
 import { useFiscalCalendarSettings } from '../hooks/useFiscalCalendarSettings';
 import {
@@ -16,6 +16,7 @@ import { BomPanel } from './BomPanel';
 import { ComponentInfoModal } from './ComponentInfoModal';
 import { WorkOrdersPanel } from './WorkOrdersPanel';
 import { getFiscalDisplayInfo } from '../fiscal/fiscalCalendar';
+import { EscapeStackContext, type EscapeStackEntry } from '../mps/escapeStack';
 import {
   type BucketSelection,
   bucketCellClassNames,
@@ -79,6 +80,28 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     componentPart: string;
     returnFocusEl: HTMLElement | null;
   } | null>(null);
+  // Keyed by parentPart so Escape can restore focus to the exact grid row that was drilled into,
+  // even though the row stays mounted (never removed) while its detail view is open.
+  const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+  // LIFO stack of nested Work Orders drill-down expansions (material lines, candidate branches)
+  // registered by descendants via `useEscapeLevel`; the api object is memoized once (stable
+  // identity) so descendants' effects don't re-run on every MpsWorkspace render.
+  const escapeStackRef = useRef<EscapeStackEntry[]>([]);
+  const escapeStackApi = useMemo(
+    () => ({
+      push: (entry: EscapeStackEntry) => escapeStackRef.current.push(entry),
+      remove: (id: string) => {
+        escapeStackRef.current = escapeStackRef.current.filter((e) => e.id !== id);
+      },
+      popTop: () => {
+        const top = escapeStackRef.current.pop();
+        if (!top) return false;
+        top.collapse();
+        return true;
+      },
+    }),
+    [],
+  );
   useEffect(() => {
     const id = setTimeout(() => {
       setSelectedParent(null);
@@ -171,11 +194,45 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   }
 
   function clearSelection() {
+    const partToRefocus = selectedParent;
     setSelectedParent(null);
     setSelectedBucket(null);
     setActiveTab('partInfo');
     setInspectedComponent(null);
+    // Deferred: the detail panel unmounting and the grid reverting to its full (unfiltered) row
+    // set both commit in this same update: check connectivity only after that commit lands.
+    if (partToRefocus) {
+      setTimeout(() => {
+        const row = rowRefs.current.get(partToRefocus);
+        if (row?.isConnected) row.focus();
+      }, 0);
+    }
   }
+
+  // Single document-level, capture-phase Escape that pops one level of the MPS drill-down per
+  // press: first any registered nested Work Orders expansion (material lines, candidate branch —
+  // most-recently-opened first), then the whole detail panel (Part Info/BOM/Work Orders are all
+  // one "detail" level below the grid) back to the full grid — the same action as clicking the
+  // already-selected parent row again. Component Information (a BOM row drill-down) owns its own
+  // independent Escape handling and stays open here; this handler is a no-op while it is open so a
+  // single Escape press cannot close both at once.
+  useEffect(() => {
+    function handleDocumentEscape(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return;
+      if (inspectedComponent) return;
+      if (escapeStackApi.popTop()) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (!selectedParent) return;
+      e.preventDefault();
+      e.stopPropagation();
+      clearSelection();
+    }
+    document.addEventListener('keydown', handleDocumentEscape, true);
+    return () => document.removeEventListener('keydown', handleDocumentEscape, true);
+  });
 
   // Parent-row selection is a toggle: selecting the already-selected parent closes the detail
   // panel entirely and returns to the full grid, using the same clear-selection path as the
@@ -193,12 +250,13 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   }
 
   // Bucket selection (Falldown or an eligible weekly cell) selects the parent + bucket together
-  // and automatically opens Work Orders, regardless of what was previously selected.
+  // and automatically opens Work Orders, regardless of what was previously selected. Accepts either
+  // a mouse or keyboard event (Enter/Space) so activation is identical for both input methods.
   function handleBucketSelect(
     partNumber: string,
     kind: BucketSelection['kind'],
     weekLabel: string | null,
-    e: React.MouseEvent,
+    e: React.SyntheticEvent,
   ) {
     e.stopPropagation();
     setSelectedParent(partNumber);
@@ -368,6 +426,10 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
                   return (
                     <tr
                       key={part.parentPart}
+                      ref={(el) => {
+                        if (el) rowRefs.current.set(part.parentPart, el);
+                        else rowRefs.current.delete(part.parentPart);
+                      }}
                       className={isSelected ? 'mps-grid__row--selected' : undefined}
                       onClick={() => handleParentRowSelect(part.parentPart)}
                       aria-selected={isSelected}
@@ -394,9 +456,20 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
                           isFalldownSelected ? ' mps-cell--selected-bucket' : ''
                         }`}
                         title={falldown ? describeBucket(falldown) : undefined}
+                        tabIndex={falldown ? 0 : undefined}
                         onClick={
                           falldown
                             ? (e) => handleBucketSelect(part.parentPart, 'falldown', null, e)
+                            : undefined
+                        }
+                        onKeyDown={
+                          falldown
+                            ? (e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  handleBucketSelect(part.parentPart, 'falldown', null, e);
+                                }
+                              }
                             : undefined
                         }
                       >
@@ -416,9 +489,20 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
                               isEligible ? ' mps-cell--clickable' : ''
                             }${isBucketSelected ? ' mps-cell--selected-bucket' : ''}`}
                             title={describeBucket(bucket)}
+                            tabIndex={isEligible ? 0 : undefined}
                             onClick={
                               isEligible
                                 ? (e) => handleBucketSelect(part.parentPart, 'weekly', bucket.weekLabel, e)
+                                : undefined
+                            }
+                            onKeyDown={
+                              isEligible
+                                ? (e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      handleBucketSelect(part.parentPart, 'weekly', bucket.weekLabel, e);
+                                    }
+                                  }
                                 : undefined
                             }
                           >
@@ -501,16 +585,18 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
           )}
 
           {activeTab === 'workOrders' && selectedBucket && (
-            <WorkOrdersPanel
-              parentPart={selectedBucket.parentPart}
-              bucketLabel={describeBucketSelection(selectedBucket)}
-              assignmentId={workspace.assignmentId}
-              snapshotId={dashboard?.snapshot.snapshotId ?? null}
-              workOrders={bucketWorkOrders}
-              isLoading={isBucketWorkOrdersLoading}
-              error={bucketWorkOrdersError}
-              onRetry={() => void retryBucketWorkOrders()}
-            />
+            <EscapeStackContext.Provider value={escapeStackApi}>
+              <WorkOrdersPanel
+                parentPart={selectedBucket.parentPart}
+                bucketLabel={describeBucketSelection(selectedBucket)}
+                assignmentId={workspace.assignmentId}
+                snapshotId={dashboard?.snapshot.snapshotId ?? null}
+                workOrders={bucketWorkOrders}
+                isLoading={isBucketWorkOrdersLoading}
+                error={bucketWorkOrdersError}
+                onRetry={() => void retryBucketWorkOrders()}
+              />
+            </EscapeStackContext.Provider>
           )}
         </div>
       )}

@@ -1,13 +1,15 @@
 # KST v2 — UI Navigation & Keyboard Ergonomics Plan
 
-**Status:** PLANNING ONLY — awaiting owner review
+**Status:** Ergonomics A COMPLETE / ACCEPTED (owner manual validation PASS, 2026-08-21) — see §R.
+Ergonomics B remains PLANNING ONLY — awaiting owner review.
 **Date:** 2026-08-21
 **Preceding stage:** Stage 8 — Component/BOM Detail (COMPLETE / ACCEPTED, `87bc6b1`)
 **Sequence position:** Post-Stage-8 checkpoint 1 of 3 (UI Navigation & Keyboard Ergonomics → Documentation
 Reconciliation → Stage 9)
 
 No production code, tests, or documentation other than this artifact were modified while producing
-this plan. Nothing in this document has been implemented.
+the original plan below (§A–§Q). Ergonomics A (§K MUST list) has since been implemented and accepted
+— see §R for the accepted outcome. Ergonomics B remains unimplemented planning only.
 
 ---
 
@@ -345,3 +347,60 @@ currently justified (§F).
 - No commits were made and nothing was pushed.
 - Ready for owner review of §K (MUST/SHOULD/DEFER scope) and §O (owner decisions) before any
   implementation checkpoint begins.
+
+---
+
+## R. Accepted Implementation Outcome (Ergonomics A)
+
+**Status: COMPLETE / ACCEPTED — owner manual validation PASS (2026-08-21).**
+
+This plan's §D/§F conclusion that "no genuine back-navigation need was found" is **superseded** by
+owner manual validation. Live use of the MPS Work Orders drill-down (Show Material Lines, nested
+manufactured-candidate branches, the Work Order view itself) demonstrated a real, multi-level
+back-navigation need that the original inventory did not surface, because it only covered
+dialog/modal dismissal and had not yet exercised the deeper Work Orders drill-down interactively.
+
+The authoritative Escape/navigation convention, as implemented and owner-validated, is:
+
+1. **Topmost blocking modal/dialog** → Escape closes/cancels that modal only.
+2. **Nested detail within the current investigation** → Escape collapses the deepest open detail
+   exactly one level.
+3. **Main MPS detail/drill-down** → Escape returns to the Part Matrix.
+4. **Part Matrix/root level** → Escape does nothing.
+
+Examples exercised and confirmed:
+
+- Component Information → BOM → Part Matrix
+- Show Material Lines → Work Order view; deeper material/candidate detail → previous material
+  level; Work Order view → Part Matrix
+- Part Info → Part Matrix
+
+Implementation:
+
+- `ApplicationShell.tsx` centralizes Escape arbitration for the three workspace dialogs
+  (Confirm/Add/Manage) with busy/saving-gated precedence; `ComponentInfoModal.tsx` keeps its
+  existing independent document-level Escape (unchanged).
+- `MpsWorkspace.tsx` owns a single document-level, capture-phase Escape handler for the MPS
+  drill-down: it defers to `ComponentInfoModal` when open, then pops one level of a LIFO "escape
+  stack" (`src/frontend/src/mps/escapeStack.ts` — `EscapeStackContext` + `useEscapeLevel` hook) if
+  any nested Work Orders expansion is registered, and otherwise closes the whole detail panel back
+  to the Part Matrix.
+- `WorkOrderCard.tsx` (material lines) and `WorkOrderMaterialGrid.tsx` (candidate branch) each
+  register their local expansion state on the escape stack via `useEscapeLevel`, so Escape collapses
+  exactly the most-recently-opened nested level first — including when multiple sibling Work Order
+  cards are independently expanded at once.
+
+Verification:
+
+- Frontend final test suite: **281/281 passing**.
+- `npm run typecheck`, `npm run lint --max-warnings 0`, and `npm run build`: clean.
+- `git diff --check` / `git status --short`: clean at time of commit.
+- Owner manual validation of the live desktop app: **PASS**.
+
+Deferred:
+
+- Ergonomics B (arrow-key tab/menu navigation, shared focus-trap extraction, discoverability hints —
+  §P) remains deferred, unchanged from this plan's original recommendation.
+- No global shortcut layer was added, consistent with §F.
+
+Next: Documentation Reconciliation / Repository Memory Cleanup (per the Stage 8 closeout handoff).

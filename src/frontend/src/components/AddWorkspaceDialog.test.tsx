@@ -127,6 +127,84 @@ describe('AddWorkspaceDialog', () => {
     expect(screen.getByRole('heading', { name: /add workspace/i })).toBeInTheDocument();
   });
 
+  it('Escape closes the Add Workspace modal and restores focus to the + trigger', async () => {
+    setupConnected();
+    render(<App />);
+    const addTrigger = await screen.findByRole('button', { name: /add workspace/i });
+    await user.click(addTrigger);
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(document.activeElement).toBe(addTrigger);
+  });
+
+  it('Escape closes the Add Workspace modal with focus on an unrelated form control (not just the initially-focused field)', async () => {
+    setupConnected();
+    render(<App />);
+    const addTrigger = await screen.findByRole('button', { name: /add workspace/i });
+    await user.click(addTrigger);
+    const dialog = await screen.findByRole('dialog');
+
+    const productLineFrom = within(dialog).getByLabelText(/product line from/i);
+    await user.click(productLineFrom);
+    expect(document.activeElement).toBe(productLineFrom);
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(document.activeElement).toBe(addTrigger);
+  });
+
+  it('Escape is suppressed while a save is in flight, then closes the dialog once the save completes', async () => {
+    setupConnected();
+    let resolveSave: (() => void) | undefined;
+    render(<App />);
+    await openDialog();
+
+    fetchMock.mockImplementation((url: string, opts?: RequestInit) => {
+      if (opts?.method === 'POST' && url.includes('/api/v1/workspaces')) {
+        return new Promise((resolve) => {
+          resolveSave = () => resolve({ ok: true, json: async () => makeWorkspace() });
+        });
+      }
+      if (url.includes('/api/v1/workspaces')) {
+        return Promise.resolve({ ok: true, json: async () => emptyWorkspaceList });
+      }
+      return Promise.resolve({ ok: true, json: async () => mockStatus });
+    });
+
+    const dialog = screen.getByRole('dialog');
+    await user.type(within(dialog).getByLabelText(/site/i), 'NW');
+    await user.click(within(dialog).getByRole('button', { name: /limit to specific parent parts/i }));
+    await user.type(within(dialog).getByLabelText(/^parent part 1$/i), 'ABC100');
+    const saveBtn = within(dialog).getByRole('button', { name: /add workspace/i });
+    await user.click(saveBtn);
+
+    // Saving: the request has not resolved yet (button label may change while busy, so assert on
+    // the captured element reference rather than re-querying by its original name).
+    await waitFor(() => {
+      expect(saveBtn).toBeDisabled();
+    });
+
+    await user.keyboard('{Escape}');
+
+    // Escape must be a no-op while saving — the dialog stays open.
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    resolveSave?.();
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
   it('site-only input cannot be submitted (button disabled)', async () => {
     setupConnected();
     render(<App />);

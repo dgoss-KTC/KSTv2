@@ -1,6 +1,7 @@
 import { Fragment, useId, useMemo, useState } from 'react';
 import type { WorkOrderMaterialLineDto } from '../api/client';
 import { filterMaterialLinesByPart, formatQuantity, isMaterialLineException, sortMaterialLines } from '../mps/mpsPresentation';
+import { useEscapeLevel } from '../mps/escapeStack';
 import { WorkOrderCandidatePanel } from './WorkOrderCandidatePanel';
 import './WorkOrderMaterialGrid.css';
 
@@ -34,6 +35,8 @@ interface WorkOrderMaterialGridProps {
 export function WorkOrderMaterialGrid({ lines, depth, woid, assignmentId, snapshotId }: WorkOrderMaterialGridProps) {
   const [filterText, setFilterText] = useState('');
   const [expandedRowKey, setExpandedRowKey] = useState<string | null>(null);
+  // Escape collapses the open candidate branch one level up, same as clicking its drill button again.
+  useEscapeLevel(expandedRowKey !== null, () => setExpandedRowKey(null));
   const filterInputId = useId();
   const baseId = useId();
   const canDrill = depth < 3;

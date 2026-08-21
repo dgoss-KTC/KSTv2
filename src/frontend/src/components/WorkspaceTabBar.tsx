@@ -6,11 +6,11 @@ interface WorkspaceTabBarProps {
   workspaces: WorkspaceAssignmentDto[];
   activeId: string | null;
   onSelect: (id: string) => void;
-  onAdd: () => void;
-  onManage: () => void;
-  onEdit: (workspace: WorkspaceAssignmentDto) => void;
-  onArchive: (workspace: WorkspaceAssignmentDto) => void;
-  onDelete: (workspace: WorkspaceAssignmentDto) => void;
+  onAdd: (triggerEl: HTMLElement) => void;
+  onManage: (triggerEl: HTMLElement) => void;
+  onEdit: (workspace: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => void;
+  onArchive: (workspace: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => void;
+  onDelete: (workspace: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => void;
   onReorder: (orderedIds: string[]) => void;
   isGeneralActive: boolean;
   onSelectGeneral: () => void;
@@ -33,6 +33,10 @@ export function WorkspaceTabBar({
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Kebab (workspace-actions) trigger buttons are stable across a menu open/close cycle, so they
+  // are the correct focus-restoration target for dialogs opened from a menu item (which unmounts
+  // as soon as it's clicked).
+  const kebabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -117,6 +121,10 @@ export function WorkspaceTabBar({
           <button
             type="button"
             className="tab-bar__menu-btn"
+            ref={(el) => {
+              if (el) kebabRefs.current.set(w.assignmentId, el);
+              else kebabRefs.current.delete(w.assignmentId);
+            }}
             aria-label={`Workspace actions for ${w.displayName ?? w.site}`}
             aria-haspopup="menu"
             aria-expanded={openMenuId === w.assignmentId}
@@ -135,7 +143,7 @@ export function WorkspaceTabBar({
                 className="tab-bar__menu-item"
                 onClick={() => {
                   setOpenMenuId(null);
-                  onEdit(w);
+                  onEdit(w, kebabRefs.current.get(w.assignmentId) ?? null);
                 }}
               >
                 Edit Workspace
@@ -170,7 +178,7 @@ export function WorkspaceTabBar({
                 className="tab-bar__menu-item"
                 onClick={() => {
                   setOpenMenuId(null);
-                  onArchive(w);
+                  onArchive(w, kebabRefs.current.get(w.assignmentId) ?? null);
                 }}
               >
                 Archive Workspace
@@ -181,7 +189,7 @@ export function WorkspaceTabBar({
                 className="tab-bar__menu-item tab-bar__menu-item--destructive"
                 onClick={() => {
                   setOpenMenuId(null);
-                  onDelete(w);
+                  onDelete(w, kebabRefs.current.get(w.assignmentId) ?? null);
                 }}
               >
                 Delete Permanently
@@ -193,7 +201,7 @@ export function WorkspaceTabBar({
 
       <button
         className="tab-bar__add"
-        onClick={onAdd}
+        onClick={(e) => onAdd(e.currentTarget)}
         title="Add workspace"
         aria-label="Add workspace"
       >
@@ -202,7 +210,7 @@ export function WorkspaceTabBar({
 
       <button
         className="tab-bar__manage"
-        onClick={onManage}
+        onClick={(e) => onManage(e.currentTarget)}
         title="Manage workspaces"
         aria-label="Manage workspaces"
       >
