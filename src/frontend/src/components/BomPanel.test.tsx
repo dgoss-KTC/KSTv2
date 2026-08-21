@@ -41,6 +41,7 @@ function renderPanel(props: Partial<React.ComponentProps<typeof BomPanel>> = {})
       isLoading={false}
       error={null}
       onRetry={vi.fn()}
+      onSelectComponent={vi.fn()}
       {...props}
     />,
   );
@@ -348,5 +349,66 @@ describe('BomPanel', () => {
     });
     expect(screen.getByRole('alert')).toHaveTextContent('A newer refresh could not be completed.');
     expect(screen.getByRole('table')).toBeInTheDocument();
+  });
+
+  describe('Stage 8D.6 Component Information row selection', () => {
+    it('clicking a row invokes onSelectComponent with the component part and the row element', async () => {
+      const user = userEvent.setup();
+      const onSelectComponent = vi.fn();
+      renderPanel({
+        bom: makeBom({ lines: [makeBomLine({ componentPart: 'ABC-100' })] }),
+        onSelectComponent,
+      });
+      const row = screen.getAllByRole('row')[1];
+      await user.click(row);
+      expect(onSelectComponent).toHaveBeenCalledTimes(1);
+      expect(onSelectComponent).toHaveBeenCalledWith('ABC-100', row);
+    });
+
+    it('pressing Enter on a focused row invokes onSelectComponent', async () => {
+      const user = userEvent.setup();
+      const onSelectComponent = vi.fn();
+      renderPanel({
+        bom: makeBom({ lines: [makeBomLine({ componentPart: 'ABC-100' })] }),
+        onSelectComponent,
+      });
+      const row = screen.getAllByRole('row')[1];
+      row.focus();
+      await user.keyboard('{Enter}');
+      expect(onSelectComponent).toHaveBeenCalledWith('ABC-100', row);
+    });
+
+    it('phantom and M rows are selectable the same as P rows', async () => {
+      const user = userEvent.setup();
+      const onSelectComponent = vi.fn();
+      renderPanel({
+        bom: makeBom({
+          lines: [makeBomLine({ occurrenceKey: 'ok-1', componentPart: 'PHANTOM-1', pmCode: 'M', isPhantom: true })],
+        }),
+        onSelectComponent,
+      });
+      const row = screen.getAllByRole('row')[1];
+      await user.click(row);
+      expect(onSelectComponent).toHaveBeenCalledWith('PHANTOM-1', row);
+    });
+
+    it('repeated component occurrences each report their own row element', async () => {
+      const user = userEvent.setup();
+      const onSelectComponent = vi.fn();
+      renderPanel({
+        bom: makeBom({
+          lines: [
+            makeBomLine({ occurrenceKey: 'ok-1', componentPart: 'DUP-1' }),
+            makeBomLine({ occurrenceKey: 'ok-2', componentPart: 'DUP-1', level: 2 }),
+          ],
+        }),
+        onSelectComponent,
+      });
+      const rows = screen.getAllByRole('row').slice(1);
+      await user.click(rows[0]);
+      await user.click(rows[1]);
+      expect(onSelectComponent).toHaveBeenNthCalledWith(1, 'DUP-1', rows[0]);
+      expect(onSelectComponent).toHaveBeenNthCalledWith(2, 'DUP-1', rows[1]);
+    });
   });
 });

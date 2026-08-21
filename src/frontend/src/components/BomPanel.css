@@ -159,6 +159,20 @@
   border-bottom: 1px solid var(--bd-soft);
 }
 
+/* Stage 8D.6: any row opens the blocking Component Information modal. */
+.bom-panel__row {
+  cursor: pointer;
+}
+
+.bom-panel__row:hover {
+  background: var(--row-hover);
+}
+
+.bom-panel__row:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: -2px;
+}
+
 .bom-panel__component {
   font-family: 'IBM Plex Mono', monospace;
 }

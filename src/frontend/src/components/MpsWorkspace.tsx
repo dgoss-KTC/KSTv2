@@ -9,8 +9,10 @@ import {
 import { usePartDetail } from '../hooks/usePartDetail';
 import { useBucketWorkOrders } from '../hooks/useBucketWorkOrders';
 import { useBom } from '../hooks/useBom';
+import { useComponentDetail } from '../hooks/useComponentDetail';
 import { PartInfoPanel } from './PartInfoPanel';
 import { BomPanel } from './BomPanel';
+import { ComponentInfoModal } from './ComponentInfoModal';
 import { WorkOrdersPanel } from './WorkOrdersPanel';
 import { getFiscalDisplayInfo } from '../fiscal/fiscalCalendar';
 import {
@@ -69,11 +71,19 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   const [selectedParent, setSelectedParent] = useState<string | null>(null);
   const [selectedBucket, setSelectedBucket] = useState<BucketSelection | null>(null);
   const [activeTab, setActiveTab] = useState<'partInfo' | 'bom' | 'workOrders'>('partInfo');
+  // Stage 8D.6: the component currently inspected in the blocking Component Information modal,
+  // plus the originating BOM row so focus can be restored to it on close. Modal state is owned
+  // here (not by BomPanel) so it survives independently of BOM filter/search state.
+  const [inspectedComponent, setInspectedComponent] = useState<{
+    componentPart: string;
+    returnFocusEl: HTMLElement | null;
+  } | null>(null);
   useEffect(() => {
     const id = setTimeout(() => {
       setSelectedParent(null);
       setSelectedBucket(null);
       setActiveTab('partInfo');
+      setInspectedComponent(null);
     }, 0);
     return () => clearTimeout(id);
   }, [workspace.assignmentId]);
@@ -93,6 +103,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     if (previousSnapshotId !== null && currentSnapshotId !== null && previousSnapshotId !== currentSnapshotId) {
       setSelectedBucket(null);
       setActiveTab('partInfo');
+      setInspectedComponent(null);
     }
   }, [dashboard?.snapshot.snapshotId]);
 
@@ -124,11 +135,35 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     dashboard?.snapshot.snapshotId ?? null,
   );
 
-  const clearSelection = () => {
+  // Component Detail is lazy per Stage 8D.6: it loads only while a component is being inspected
+  // (a BOM row was clicked) and never preloads for the whole BOM. Closing the modal
+  // (`inspectedComponent = null`) immediately invalidates the identity so a late response for a
+  // just-closed or just-replaced component can never populate the modal (see useComponentDetail).
+  const {
+    detail: componentDetail,
+    isLoading: isComponentDetailLoading,
+    error: componentDetailError,
+    retry: retryComponentDetail,
+  } = useComponentDetail(workspace.assignmentId, inspectedComponent?.componentPart ?? null);
+
+  function handleSelectComponent(componentPart: string, rowElement: HTMLElement) {
+    setInspectedComponent({ componentPart, returnFocusEl: rowElement });
+  }
+
+  function handleCloseComponentInfo() {
+    const returnFocusEl = inspectedComponent?.returnFocusEl ?? null;
+    setInspectedComponent(null);
+    if (returnFocusEl && returnFocusEl.isConnected) {
+      returnFocusEl.focus();
+    }
+  }
+
+  function clearSelection() {
     setSelectedParent(null);
     setSelectedBucket(null);
     setActiveTab('partInfo');
-  };
+    setInspectedComponent(null);
+  }
 
   // Parent-row selection is a toggle: selecting the already-selected parent closes the detail
   // panel entirely and returns to the full grid, using the same clear-selection path as the
@@ -449,6 +484,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
               isLoading={isBomLoading}
               error={bomError}
               onRetry={() => void retryBom()}
+              onSelectComponent={handleSelectComponent}
             />
           )}
 
@@ -465,6 +501,17 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
             />
           )}
         </div>
+      )}
+
+      {inspectedComponent && (
+        <ComponentInfoModal
+          componentPart={inspectedComponent.componentPart}
+          detail={componentDetail}
+          isLoading={isComponentDetailLoading}
+          error={componentDetailError}
+          onRetry={() => void retryComponentDetail()}
+          onClose={handleCloseComponentInfo}
+        />
       )}
     </div>
   );

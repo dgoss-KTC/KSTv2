@@ -28,6 +28,7 @@ export type WorkOrderMaterialLineDto = components['schemas']['WorkOrderMaterialL
 export type WorkOrderCandidateResponseDto = components['schemas']['WorkOrderCandidateResponseDto'];
 export type BomLineDto = components['schemas']['BomLineDto'];
 export type BomResponseDto = components['schemas']['BomResponseDto'];
+export type ComponentDetailResponseDto = components['schemas']['ComponentDetailResponseDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -132,6 +133,12 @@ export class ApiClient {
   async getBom(assignmentId: string, parentPart: string): Promise<BomResponseDto> {
     return this.get<BomResponseDto>(
       `/api/v1/workspaces/${assignmentId}/parts/${encodeURIComponent(parentPart)}/bom`,
+    );
+  }
+
+  async getComponentDetail(assignmentId: string, componentPart: string): Promise<ComponentDetailResponseDto> {
+    return this.get<ComponentDetailResponseDto>(
+      `/api/v1/workspaces/${assignmentId}/components/${encodeURIComponent(componentPart)}`,
     );
   }
 

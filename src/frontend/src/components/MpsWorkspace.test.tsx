@@ -17,6 +17,7 @@ import type {
   WorkOrderCandidateResponseDto,
   BomLineDto,
   BomResponseDto,
+  ComponentDetailResponseDto,
 } from '../api/client';
 
 vi.mock('@tauri-apps/api/event', () => ({
@@ -272,6 +273,40 @@ function bomRequestCalls(fetchMock: ReturnType<typeof vi.fn>): string[] {
     .filter((url): url is string => typeof url === 'string' && url.includes('/bom'));
 }
 
+function makeComponentDetail(overrides: Partial<ComponentDetailResponseDto> = {}): ComponentDetailResponseDto {
+  return {
+    site: 'NW',
+    componentPart: 'COMP-A',
+    description: 'Component A',
+    partStatusCode: 'A',
+    partStatusDescription: 'Active',
+    iosCode: 'I',
+    netQuantityOnHand: 12,
+    nonNetQuantityOnHand: 4,
+    standardCost: 3.5,
+    qctc: 4.25,
+    timeFence: 5,
+    safetyTime: 1,
+    safetyStock: 10,
+    buyerPlanner: 'JDOE',
+    purchaseLeadTimeDays: 7,
+    inspectionLeadTimeDays: 1,
+    cumulativeLeadTimeDays: 8,
+    minimumOrderQuantity: 50,
+    orderMultiple: 10,
+    loadedAtUtc: '2026-08-13T12:00:00Z',
+    isStale: false,
+    warning: null,
+    ...overrides,
+  };
+}
+
+function componentDetailRequestCalls(fetchMock: ReturnType<typeof vi.fn>): string[] {
+  return fetchMock.mock.calls
+    .map(([url]) => url)
+    .filter((url): url is string => typeof url === 'string' && url.includes('/components/'));
+}
+
 describe('MpsWorkspace', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
   const user = userEvent.setup();
@@ -301,6 +336,7 @@ describe('MpsWorkspace', () => {
     onGetMaterialLines?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onGetWorkOrderCandidates?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onGetBom?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
+    onGetComponentDetail?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
   } = {},
   initialList: WorkspaceListResponseDto = workspaceList,
 ) {
@@ -312,6 +348,10 @@ describe('MpsWorkspace', () => {
       }
       if (method === 'GET' && url.includes('/parts/') && url.endsWith('/bom')) {
         const result = handlers.onGetBom?.(url) ?? { ok: true, json: async () => makeBomResponse() };
+        return Promise.resolve(result);
+      }
+      if (method === 'GET' && url.includes('/components/')) {
+        const result = handlers.onGetComponentDetail?.(url) ?? { ok: true, json: async () => makeComponentDetail() };
         return Promise.resolve(result);
       }
       if (method === 'GET' && url.includes('/work-orders/candidates')) {
@@ -2046,6 +2086,268 @@ describe('MpsWorkspace', () => {
         expect(screen.getByText('COMP-D')).toBeInTheDocument();
       });
       expect(screen.queryByText(/database currently unavailable/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Stage 8D.6 Component Information modal', () => {
+    function deferredValue<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+      let resolveFn: (value: T) => void = () => {
+        throw new Error('deferred value resolved before being captured');
+      };
+      const promise = new Promise<T>((resolve) => {
+        resolveFn = resolve;
+      });
+      return { promise, resolve: (value: T) => resolveFn(value) };
+    }
+
+    const flushPromises = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    async function selectParentAndActivateBom() {
+      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole('tab', { name: 'BOM' }));
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+    }
+
+    it('clicking a BOM row opens the modal immediately, before the component-detail request resolves', async () => {
+      const pending = deferredValue<ComponentDetailResponseDto>();
+      setupBackend({ onGetComponentDetail: () => ({ ok: true, json: () => pending.promise }) });
+      render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      fetchMock.mockClear();
+      await user.click(screen.getByText('COMP-A'));
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText('COMP-A')).toBeInTheDocument();
+      expect(within(dialog).getByText(/loading component information/i)).toBeInTheDocument();
+      expect(componentDetailRequestCalls(fetchMock)).toHaveLength(1);
+
+      pending.resolve(makeComponentDetail());
+      await waitFor(() => {
+        expect(within(dialog).getByText('Component A')).toBeInTheDocument();
+      });
+    });
+
+    it('opening the modal does not alter BOM filters, order, or context', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      await user.type(screen.getByLabelText('Filter by Component Item'), 'COMP');
+      await user.click(screen.getByText('COMP-A'));
+      await screen.findByRole('dialog');
+
+      await user.click(screen.getByRole('button', { name: /close/i }));
+      expect(screen.getByLabelText('Filter by Component Item')).toHaveValue('COMP');
+      expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'BOM' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('closing with X returns focus to the originating BOM row and preserves the BOM', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      const row = screen.getByText('COMP-A').closest('tr') as HTMLElement;
+      await user.click(row);
+      await screen.findByRole('dialog');
+
+      await user.click(screen.getByRole('button', { name: /close/i }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(row).toHaveFocus();
+    });
+
+    it('Escape closes the modal, restores focus to the originating row, and preserves the BOM', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      const row = screen.getByText('COMP-A').closest('tr') as HTMLElement;
+      await user.click(row);
+      await screen.findByRole('dialog');
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      expect(row).toHaveFocus();
+    });
+
+    it('Escape closes the modal even when focus is on a control inside the modal other than Close', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      await user.click(screen.getByText('COMP-A'));
+      const dialog = await screen.findByRole('dialog');
+      // Show MRP is the only other focusable-by-tab-order control besides Close; disabled
+      // buttons are excluded from the Tab order, so focus the dialog container directly.
+      dialog.focus();
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('clicking the backdrop does not close the modal', async () => {
+      setupBackend();
+      const { container } = render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      await user.click(screen.getByText('COMP-A'));
+      await screen.findByRole('dialog');
+
+      const backdrop = container.querySelector('.component-info-modal-backdrop');
+      expect(backdrop).not.toBeNull();
+      if (backdrop) await user.click(backdrop);
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('a late response for a component closed before it resolved does not reopen the modal', async () => {
+      const pending = deferredValue<ComponentDetailResponseDto>();
+      setupBackend({ onGetComponentDetail: () => ({ ok: true, json: () => pending.promise }) });
+      render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      await user.click(screen.getByText('COMP-A'));
+      await screen.findByRole('dialog');
+      await user.click(screen.getByRole('button', { name: /close/i }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+      pending.resolve(makeComponentDetail());
+      await flushPromises();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('a late response from a previously inspected component cannot populate a newly opened component', async () => {
+      const pendingA = deferredValue<ComponentDetailResponseDto>();
+      setupBackend({
+        onGetBom: () => ({
+          ok: true,
+          json: async () =>
+            makeBomResponse({
+              lines: [makeBomLine({ occurrenceKey: 'k-1', componentPart: 'COMP-A' }), makeBomLine({ occurrenceKey: 'k-2', componentPart: 'COMP-B' })],
+            }),
+        }),
+        onGetComponentDetail: (url) =>
+          url.includes('/components/COMP-A')
+            ? { ok: true, json: () => pendingA.promise }
+            : { ok: true, json: async () => makeComponentDetail({ componentPart: 'COMP-B', description: 'Component B' }) },
+      });
+      render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      await user.click(screen.getByText('COMP-A'));
+      await screen.findByRole('dialog');
+      await user.click(screen.getByRole('button', { name: /close/i }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+      await user.click(screen.getByText('COMP-B'));
+      const dialog = await screen.findByRole('dialog');
+      await waitFor(() => expect(within(dialog).getByText('Component B')).toBeInTheDocument());
+
+      // COMP-A's stale response arrives after COMP-B's modal is already showing.
+      pendingA.resolve(makeComponentDetail({ componentPart: 'COMP-A', description: 'Component A' }));
+      await flushPromises();
+      expect(within(dialog).getByText('COMP-B')).toBeInTheDocument();
+      expect(within(dialog).getByText('Component B')).toBeInTheDocument();
+      expect(within(dialog).queryByText('Component A')).not.toBeInTheDocument();
+    });
+
+    it('a successful MPS refresh (new snapshot) closes the modal', async () => {
+      setupBackend({
+        onRefreshMps: () => ({
+          ok: true,
+          json: async () => makeDashboard({ snapshot: { ...makeDashboard().snapshot, snapshotId: 'snap-2' } }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      await user.click(screen.getByText('COMP-A'));
+      await screen.findByRole('dialog');
+
+      await user.click(within(screen.getByRole('main')).getByRole('button', { name: /^refresh$/i }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('a workspace change closes the modal', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      await user.click(screen.getByText('COMP-A'));
+      await screen.findByRole('dialog');
+
+      const closeSelectionButton = screen.getByRole('tab', { name: 'BOM' });
+      expect(closeSelectionButton).toBeInTheDocument();
+      // Toggling the current parent off (the accepted workspace-context-clear path) must close
+      // the modal along with the rest of the selection state.
+      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('a component-detail failure keeps the modal open with Retry and Close', async () => {
+      setupBackend({
+        onGetComponentDetail: () => ({ ok: false, status: 503, text: async () => JSON.stringify({ detail: 'DB is down.' }) }),
+      });
+      render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      await user.click(screen.getByText('COMP-A'));
+      const dialog = await screen.findByRole('dialog');
+      await waitFor(() => expect(within(dialog).getByText('DB is down.')).toBeInTheDocument());
+      expect(within(dialog).getByRole('button', { name: /retry/i })).toBeInTheDocument();
+      expect(within(dialog).getByRole('button', { name: /^close$/i })).toBeInTheDocument();
+    });
+
+    it('Retry re-requests the same component', async () => {
+      let callCount = 0;
+      setupBackend({
+        onGetComponentDetail: () => {
+          callCount += 1;
+          return callCount === 1
+            ? { ok: false, status: 503, text: async () => JSON.stringify({ detail: 'DB is down.' }) }
+            : { ok: true, json: async () => makeComponentDetail() };
+        },
+      });
+      render(<App />);
+      await waitForConnected();
+      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await selectParentAndActivateBom();
+
+      await user.click(screen.getByText('COMP-A'));
+      const dialog = await screen.findByRole('dialog');
+      await waitFor(() => expect(within(dialog).getByText('DB is down.')).toBeInTheDocument());
+
+      await user.click(within(dialog).getByRole('button', { name: /retry/i }));
+      await waitFor(() => expect(within(dialog).getByText('Component A')).toBeInTheDocument());
+      expect(componentDetailRequestCalls(fetchMock)).toHaveLength(2);
     });
   });
 });

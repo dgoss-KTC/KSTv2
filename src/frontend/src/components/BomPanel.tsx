@@ -10,6 +10,12 @@ interface BomPanelProps {
   isLoading: boolean;
   error: BomApiError | null;
   onRetry: () => void;
+  /**
+   * Opens the Stage 8D.6 Component Information modal for a row's component part. Component
+   * Detail's business grain is Site + Component Part only, so `occurrenceKey`/Level are not
+   * passed — the originating row element is passed so focus can be restored on close.
+   */
+  onSelectComponent: (componentPart: string, rowElement: HTMLElement) => void;
 }
 
 const NO_VALUE = '\u2014';
@@ -37,10 +43,11 @@ function formatScrap(value: number | string | null | undefined): string {
  * returned by the accepted 8D.3 endpoint. Rows preserve backend structural order (no sort, no
  * regroup, no dedup), show actual Level values (gaps included), and are keyed by the opaque
  * OccurrenceKey. Search is a client-side Component Part substring filter (the accepted Stage 7
- * kitting search interaction); it never re-queries. Row selection / Component Info belong to
- * Stage 8D.6 and are intentionally absent here.
+ * kitting search interaction); it never re-queries. Any row (Stage 8D.6) opens the blocking
+ * Component Information modal for its component part via `onSelectComponent`; this panel owns no
+ * modal state itself.
  */
-export function BomPanel({ parentPart, bom, isLoading, error, onRetry }: BomPanelProps) {
+export function BomPanel({ parentPart, bom, isLoading, error, onRetry, onSelectComponent }: BomPanelProps) {
   const [searchText, setSearchText] = useState('');
   const [pmFilter, setPmFilter] = useState<PmFilter>('all');
   const [phantomFilter, setPhantomFilter] = useState<PhantomFilter>('all');
@@ -161,7 +168,18 @@ export function BomPanel({ parentPart, bom, isLoading, error, onRetry }: BomPane
                   </thead>
                   <tbody>
                     {visibleLines.map((line) => (
-                      <tr key={line.occurrenceKey}>
+                      <tr
+                        key={line.occurrenceKey}
+                        className="bom-panel__row"
+                        tabIndex={0}
+                        onClick={(e) => onSelectComponent(line.componentPart, e.currentTarget)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onSelectComponent(line.componentPart, e.currentTarget);
+                          }
+                        }}
+                      >
                         <td>{formatQuantity(line.level)}</td>
                         <td className="bom-panel__component">{line.componentPart}</td>
                         <td>{line.pmCode ?? NO_VALUE}</td>
