@@ -1,0 +1,164 @@
+.bom-panel {
+  flex-shrink: 0;
+  margin: 0 20px 14px;
+  padding: 14px 18px;
+  background: var(--grid);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+}
+
+.bom-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.bom-panel__title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--tx);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.bom-panel__state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 4px;
+  color: var(--tx3);
+  font-size: 12.5px;
+}
+
+.bom-panel__state--error {
+  color: var(--danger-tx);
+}
+
+.bom-panel__state--empty {
+  color: var(--tx2);
+}
+
+.bom-panel__retry-btn {
+  height: var(--density-control-height);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 0 14px;
+  cursor: pointer;
+  background: var(--accent-solid);
+  border: 1px solid var(--accent-solid);
+  color: #0c1118;
+}
+
+/* Stale-last-good banner: same treatment as the Part Info panel. */
+.bom-panel__banner {
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  background: var(--danger-bg);
+  color: var(--danger-tx);
+  border: 1px solid var(--danger-bd);
+  font-size: 12px;
+}
+
+.bom-panel__filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bom-panel__filter label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tx3);
+}
+
+.bom-panel__filter input {
+  height: var(--density-control-height);
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--bd);
+  background: var(--panel2);
+  color: var(--tx);
+  font-family: inherit;
+  font-size: 12px;
+  min-width: 160px;
+}
+
+.bom-panel__filter input:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 1px;
+}
+
+.bom-panel__select {
+  height: var(--density-control-height);
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--bd);
+  background: var(--panel2);
+  color: var(--tx);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.bom-panel__select:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 1px;
+}
+
+.bom-panel__clear-btn {
+  height: var(--density-control-height);
+  padding: 0 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tx2);
+  background: var(--chip);
+  border: 1px solid var(--bd);
+  cursor: pointer;
+}
+
+.bom-panel__clear-btn:hover {
+  color: var(--tx);
+  border-color: var(--accent-solid);
+}
+
+.bom-panel__empty {
+  font-size: 12px;
+  color: var(--tx2);
+  padding: 6px 0;
+}
+
+.bom-panel__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bom-panel__table th {
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tx3);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--bd-soft);
+}
+
+.bom-panel__table td {
+  padding: 4px 8px;
+  color: var(--tx);
+  border-bottom: 1px solid var(--bd-soft);
+}
+
+.bom-panel__component {
+  font-family: 'IBM Plex Mono', monospace;
+}

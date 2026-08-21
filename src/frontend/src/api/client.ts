@@ -26,6 +26,8 @@ export type KittingSummaryDto = components['schemas']['KittingSummaryDto'];
 export type WorkOrderMaterialResponseDto = components['schemas']['WorkOrderMaterialResponseDto'];
 export type WorkOrderMaterialLineDto = components['schemas']['WorkOrderMaterialLineDto'];
 export type WorkOrderCandidateResponseDto = components['schemas']['WorkOrderCandidateResponseDto'];
+export type BomLineDto = components['schemas']['BomLineDto'];
+export type BomResponseDto = components['schemas']['BomResponseDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -125,6 +127,12 @@ export class ApiClient {
   async getPartDetail(assignmentId: string, partNumber: string): Promise<PartDetailResponseDto> {
     const query = `?partNumber=${encodeURIComponent(partNumber)}`;
     return this.get<PartDetailResponseDto>(`/api/v1/workspaces/${assignmentId}/part-detail${query}`);
+  }
+
+  async getBom(assignmentId: string, parentPart: string): Promise<BomResponseDto> {
+    return this.get<BomResponseDto>(
+      `/api/v1/workspaces/${assignmentId}/parts/${encodeURIComponent(parentPart)}/bom`,
+    );
   }
 
   async getBucketWorkOrders(

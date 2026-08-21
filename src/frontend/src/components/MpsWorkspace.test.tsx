@@ -15,6 +15,8 @@ import type {
   WorkOrderMaterialResponseDto,
   WorkOrderMaterialLineDto,
   WorkOrderCandidateResponseDto,
+  BomLineDto,
+  BomResponseDto,
 } from '../api/client';
 
 vi.mock('@tauri-apps/api/event', () => ({
@@ -221,6 +223,55 @@ function makeCandidateResponse(
   };
 }
 
+function makePartSchedule(parentPart: string, description: string) {
+  return {
+    parentPart,
+    description,
+    buckets: [
+      { kind: 'falldown' as const, weekLabel: null, quantity: 50, executionStatus: 'none' as const, containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+      { kind: 'weekly' as const, weekLabel: '2025-06-30', quantity: 100, executionStatus: 'released' as const, containsPlannedWork: false, containsExplicitlyScheduledWork: true },
+      { kind: 'weekly' as const, weekLabel: '2025-07-07', quantity: 200, executionStatus: 'allocating' as const, containsPlannedWork: true, containsExplicitlyScheduledWork: false },
+      { kind: 'weekly' as const, weekLabel: '2025-07-14', quantity: 0, executionStatus: 'none' as const, containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+      { kind: 'weekly' as const, weekLabel: '2025-07-21', quantity: 300, executionStatus: 'frozen' as const, containsPlannedWork: false, containsExplicitlyScheduledWork: false },
+    ],
+  };
+}
+
+function makeBomLine(overrides: Partial<BomLineDto> = {}): BomLineDto {
+  return {
+    occurrenceKey: 'k-1',
+    level: 1,
+    componentPart: 'COMP-A',
+    pmCode: 'P',
+    isPhantom: false,
+    description: 'Component A',
+    quantityPer: 2,
+    scrapPercentage: 1,
+    netQuantityOnHand: 12,
+    nonNetQuantityOnHand: 4,
+    ...overrides,
+  };
+}
+
+function makeBomResponse(overrides: Partial<BomResponseDto> = {}): BomResponseDto {
+  return {
+    site: 'NW',
+    parentPart: 'ABC100',
+    effectiveDate: '2026-08-13',
+    lines: [makeBomLine()],
+    loadedAtUtc: '2026-08-13T12:00:00Z',
+    isStale: false,
+    warning: null,
+    ...overrides,
+  };
+}
+
+function bomRequestCalls(fetchMock: ReturnType<typeof vi.fn>): string[] {
+  return fetchMock.mock.calls
+    .map(([url]) => url)
+    .filter((url): url is string => typeof url === 'string' && url.includes('/bom'));
+}
+
 describe('MpsWorkspace', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
   const user = userEvent.setup();
@@ -249,11 +300,18 @@ describe('MpsWorkspace', () => {
     onGetBucketWorkOrders?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onGetMaterialLines?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onGetWorkOrderCandidates?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
-  } = {}) {
+    onGetBom?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
+  } = {},
+  initialList: WorkspaceListResponseDto = workspaceList,
+) {
     fetchMock.mockImplementation((url: string, opts?: RequestInit) => {
       const method = opts?.method ?? 'GET';
       if (method === 'GET' && url.includes('/part-detail')) {
         const result = handlers.onGetPartDetail?.(url) ?? { ok: true, json: async () => makePartDetail() };
+        return Promise.resolve(result);
+      }
+      if (method === 'GET' && url.includes('/parts/') && url.endsWith('/bom')) {
+        const result = handlers.onGetBom?.(url) ?? { ok: true, json: async () => makeBomResponse() };
         return Promise.resolve(result);
       }
       if (method === 'GET' && url.includes('/work-orders/candidates')) {
@@ -279,7 +337,7 @@ describe('MpsWorkspace', () => {
         return Promise.resolve(result);
       }
       if (method === 'GET' && url.includes('/api/v1/workspaces')) {
-        return Promise.resolve({ ok: true, json: async () => workspaceList });
+        return Promise.resolve({ ok: true, json: async () => initialList });
       }
       return Promise.resolve({ ok: true, json: async () => mockStatus });
     });
@@ -739,10 +797,14 @@ describe('MpsWorkspace', () => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
       expect(screen.getByRole('tab', { name: 'Part Info' })).toHaveAttribute('aria-selected', 'true');
-      expect(screen.getByRole('tab', { name: 'Work Orders' })).toBeDisabled();
-      expect(screen.getByRole('tab', { name: 'Shortages' })).toBeDisabled();
-      expect(screen.getByRole('tab', { name: 'Future Shortages' })).toBeDisabled();
-      expect(screen.getByRole('tab', { name: 'Components' })).toBeDisabled();
+      // Stage 8 accepted tab structure: parent-only selection shows Part Info + BOM only. Work
+      // Orders/Shortages are bucket-context tabs (rendered only with a selected bucket), and
+      // Future Shortages is removed from the workflow.
+      expect(screen.getByRole('tab', { name: 'BOM' })).toBeEnabled();
+      expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: 'Shortages' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: 'Future Shortages' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: 'Components' })).not.toBeInTheDocument();
     });
 
     it('clicking an eligible weekly bucket cell selects the parent + bucket and auto-opens Work Orders', async () => {
@@ -875,7 +937,7 @@ describe('MpsWorkspace', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
-      expect(screen.getByRole('tab', { name: 'Work Orders' })).toBeDisabled();
+      expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
       expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/work-orders/bucket'))).toBe(
         false,
       );
@@ -1429,7 +1491,7 @@ describe('MpsWorkspace', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
-      expect(screen.getByRole('tab', { name: 'Work Orders' })).toBeDisabled();
+      expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
       expect(screen.queryByText('WO1001')).not.toBeInTheDocument();
     });
 
@@ -1459,6 +1521,531 @@ describe('MpsWorkspace', () => {
       });
       expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
       expect(screen.getByText('WO1001')).toBeInTheDocument();
+    });
+  });
+
+  describe('Stage 8D.4 BOM tab', () => {
+    function deferredValue<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+      let resolveFn: (value: T) => void = () => {
+        throw new Error('deferred value resolved before being captured');
+      };
+      const promise = new Promise<T>((resolve) => {
+        resolveFn = resolve;
+      });
+      return { promise, resolve: (value: T) => resolveFn(value) };
+    }
+
+    // Flushes pending microtasks (in-flight mock responses) without advancing timers.
+    const flushPromises = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    async function selectParentAndActivateBom() {
+      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole('tab', { name: 'BOM' }));
+    }
+
+    it('bucket selection renders the Work Orders and disabled Shortages tabs alongside BOM', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('100')); // the 2025-06-30 weekly bucket cell
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+      expect(screen.getByRole('tab', { name: 'BOM' })).toBeEnabled();
+      expect(screen.getByRole('tab', { name: 'Shortages' })).toBeDisabled();
+      expect(screen.queryByRole('tab', { name: 'Future Shortages' })).not.toBeInTheDocument();
+    });
+
+    it('parent selection alone does not request BOM', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+
+      expect(bomRequestCalls(fetchMock)).toHaveLength(0);
+    });
+
+    it('first BOM activation requests the BOM once with only workspace and parent', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+
+      expect(bomRequestCalls(fetchMock)).toHaveLength(1);
+      const url = bomRequestCalls(fetchMock)[0];
+      expect(url).toContain('/parts/ABC100/bom');
+      expect(url).not.toContain('?');
+    });
+
+    it('tab revisit for the same unchanged parent does not request again', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+
+      fetchMock.mockClear();
+      await user.click(screen.getByRole('tab', { name: 'Part Info' }));
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Part Info' })).toHaveAttribute('aria-selected', 'true');
+      });
+      await user.click(screen.getByRole('tab', { name: 'BOM' }));
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+      expect(bomRequestCalls(fetchMock)).toHaveLength(0);
+    });
+
+    it('changing parent clears the BOM and loads the new parent lazily on activation', async () => {
+      setupBackend({
+        onGetMps: () => ({
+          ok: true,
+          json: async () =>
+            makeDashboard({ parts: [makePartSchedule('ABC100', 'Widget Assembly'), makePartSchedule('DEF200', 'Delta Assembly')] }),
+        }),
+        onGetBom: (url) =>
+          url.includes('/parts/DEF200/bom')
+            ? { ok: true, json: async () => makeBomResponse({ parentPart: 'DEF200', lines: [makeBomLine({ occurrenceKey: 'k-d', componentPart: 'COMP-D' })] }) }
+            : { ok: true, json: async () => makeBomResponse() },
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+
+      fetchMock.mockClear();
+      // Focused mode shows only the selected row: switch parents by toggling the current one
+      // closed, then selecting the new parent.
+      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => {
+        expect(screen.queryByRole('tablist', { name: /part detail/i })).not.toBeInTheDocument();
+      });
+      await user.click(screen.getByText('DEF200'));
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+
+      // The previous parent's rows are gone, and no request fired for the new parent yet.
+      expect(screen.queryByText('COMP-A')).not.toBeInTheDocument();
+      expect(bomRequestCalls(fetchMock)).toHaveLength(0);
+
+      await user.click(screen.getByRole('tab', { name: 'BOM' }));
+      await waitFor(() => {
+        expect(screen.getByText('COMP-D')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('COMP-A')).not.toBeInTheDocument();
+    });
+
+    it('a successful refresh invalidates the BOM with no transient request; next activation re-requests', async () => {
+      setupBackend({
+        onRefreshMps: () => ({
+          ok: true,
+          json: async () => makeDashboard({ snapshot: { ...makeDashboard().snapshot, snapshotId: 'snap-2' } }),
+        }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+
+      fetchMock.mockClear();
+      await user.click(within(screen.getByRole('main')).getByRole('button', { name: /^refresh$/i }));
+
+      // Existing shell convention: a successful refresh returns to Part Info — and no transient
+      // BOM request may be issued during the refresh transition (edge-triggered activation).
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Part Info' })).toHaveAttribute('aria-selected', 'true');
+      });
+      expect(bomRequestCalls(fetchMock)).toHaveLength(0);
+
+      // The next explicit BOM activation reaches the backend again — exactly once.
+      await user.click(screen.getByRole('tab', { name: 'BOM' }));
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+      expect(bomRequestCalls(fetchMock)).toHaveLength(1);
+    });
+
+    it('a failed refresh retains the displayed BOM without refetching', async () => {
+      setupBackend({
+        onRefreshMps: () => ({ ok: false, status: 503, text: async () => JSON.stringify({ detail: 'DB is down.' }) }),
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+
+      fetchMock.mockClear();
+      await user.click(within(screen.getByRole('main')).getByRole('button', { name: /^refresh$/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/DB is down\./)).toBeInTheDocument();
+      });
+      // A failed refresh does not advance the snapshot: the displayed BOM is preserved.
+      expect(screen.getByRole('tab', { name: 'BOM' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      expect(bomRequestCalls(fetchMock)).toHaveLength(0);
+    });
+
+    it('Due/Release toggle does not refetch the loaded BOM', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+
+      fetchMock.mockClear();
+      await user.click(within(screen.getByRole('main')).getByRole('button', { name: /release date/i }));
+      await waitFor(() => {
+        expect(
+          fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('dateBasis=releaseDate')),
+        ).toBe(true);
+      });
+      expect(bomRequestCalls(fetchMock)).toHaveLength(0);
+      expect(screen.getByText('COMP-A')).toBeInTheDocument();
+    });
+
+    it('horizon change does not refetch the loaded BOM', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+
+      fetchMock.mockClear();
+      fireEvent.change(screen.getByLabelText(/horizon in weeks/i), { target: { value: '24' } });
+      await waitFor(() => {
+        expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('horizonWeeks=24'))).toBe(
+          true,
+        );
+      });
+      expect(bomRequestCalls(fetchMock)).toHaveLength(0);
+      expect(screen.getByText('COMP-A')).toBeInTheDocument();
+    });
+
+    it('bucket selection does not refetch the loaded BOM and BOM is retained on return', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+
+      fetchMock.mockClear();
+      await user.click(screen.getByText('100')); // weekly bucket cell → auto-opens Work Orders
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+      expect(bomRequestCalls(fetchMock)).toHaveLength(0);
+
+      await user.click(screen.getByRole('tab', { name: 'BOM' }));
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+      expect(bomRequestCalls(fetchMock)).toHaveLength(0);
+    });
+
+    it('searching the loaded BOM makes no new API request', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+
+      fetchMock.mockClear();
+      await user.type(screen.getByLabelText('Filter by Component Item'), 'COMP');
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+      expect(bomRequestCalls(fetchMock)).toHaveLength(0);
+    });
+
+    it('P/M and Phantom filter changes make no new API request', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+
+      fetchMock.mockClear();
+      await user.selectOptions(screen.getByLabelText('P/M'), 'P');
+      await user.selectOptions(screen.getByLabelText('Phantom'), 'no');
+      await user.type(screen.getByLabelText('Filter by Component Item'), 'COMP');
+      await waitFor(() => {
+        expect(screen.getByText('COMP-A')).toBeInTheDocument();
+      });
+      expect(bomRequestCalls(fetchMock)).toHaveLength(0);
+    });
+
+    it('a late response for a previous parent cannot populate the new parent', async () => {
+      const pendingA = deferredValue<BomResponseDto>();
+      const pendingD = deferredValue<BomResponseDto>();
+      setupBackend({
+        onGetMps: () => ({
+          ok: true,
+          json: async () =>
+            makeDashboard({ parts: [makePartSchedule('ABC100', 'Widget Assembly'), makePartSchedule('DEF200', 'Delta Assembly')] }),
+        }),
+        onGetBom: (url) =>
+          url.includes('/parts/ABC100/bom')
+            ? { ok: true, json: () => pendingA.promise }
+            : { ok: true, json: () => pendingD.promise },
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText(/loading bom/i)).toBeInTheDocument();
+      });
+
+      // Switch parents while A's request is still in flight.
+      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => {
+        expect(screen.queryByRole('tablist', { name: /part detail/i })).not.toBeInTheDocument();
+      });
+      await user.click(screen.getByText('DEF200'));
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+
+      // Activate the new parent's BOM (its request is still pending) and let A's late response land.
+      await user.click(screen.getByRole('tab', { name: 'BOM' }));
+      await waitFor(() => {
+        expect(screen.getByText(/loading bom/i)).toBeInTheDocument();
+      });
+      pendingA.resolve(makeBomResponse({ lines: [makeBomLine({ componentPart: 'COMP-A' })] }));
+      await flushPromises();
+      // A's obsolete response must be ignored: the panel is still loading D, not showing A.
+      expect(screen.getByText(/loading bom/i)).toBeInTheDocument();
+      expect(screen.queryByText('COMP-A')).not.toBeInTheDocument();
+
+      pendingD.resolve(
+        makeBomResponse({ parentPart: 'DEF200', lines: [makeBomLine({ occurrenceKey: 'k-d', componentPart: 'COMP-D' })] }),
+      );
+      await waitFor(() => {
+        expect(screen.getByText('COMP-D')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('COMP-A')).not.toBeInTheDocument();
+    });
+
+    it('a late response from a previous workspace cannot populate the new workspace', async () => {
+      const pendingA = deferredValue<BomResponseDto>();
+      const pendingZ = deferredValue<BomResponseDto>();
+      const twoWorkspaces: WorkspaceListResponseDto = {
+        workspaces: [
+          makeWorkspace(),
+          makeWorkspace({ assignmentId: 'ws-2', displayName: 'Line 2', site: 'SW', parentParts: ['ZZZ999'] }),
+        ],
+        configurationWarning: null,
+      };
+      setupBackend(
+        {
+          onGetMps: (url) =>
+            url.includes('/ws-2/')
+              ? {
+                  ok: true,
+                  json: async () =>
+                    makeDashboard({
+                      snapshot: { ...makeDashboard().snapshot, workspaceId: 'ws-2', site: 'SW' },
+                      parts: [makePartSchedule('ZZZ999', 'Zeta Assembly')],
+                    }),
+                }
+              : { ok: true, json: async () => makeDashboard() },
+          onGetBom: (url) =>
+            url.includes('/parts/ABC100/bom')
+              ? { ok: true, json: () => pendingA.promise }
+              : { ok: true, json: () => pendingZ.promise },
+        },
+        twoWorkspaces,
+      );
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText(/loading bom/i)).toBeInTheDocument();
+      });
+
+      // Switch workspace while A's request is still in flight.
+      await user.click(screen.getByRole('tab', { name: 'Line 2' }));
+      await waitFor(() => {
+        expect(screen.getByText('ZZZ999')).toBeInTheDocument();
+      });
+      await user.click(screen.getByText('ZZZ999'));
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole('tab', { name: 'BOM' }));
+      await waitFor(() => {
+        expect(screen.getByText(/loading bom/i)).toBeInTheDocument();
+      });
+
+      // The previous workspace's late response must be ignored by the new context.
+      pendingA.resolve(makeBomResponse({ lines: [makeBomLine({ componentPart: 'COMP-A' })] }));
+      await flushPromises();
+      expect(screen.queryByText('COMP-A')).not.toBeInTheDocument();
+
+      pendingZ.resolve(
+        makeBomResponse({ parentPart: 'ZZZ999', lines: [makeBomLine({ occurrenceKey: 'k-z', componentPart: 'COMP-Z' })] }),
+      );
+      await waitFor(() => {
+        expect(screen.getByText('COMP-Z')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('COMP-A')).not.toBeInTheDocument();
+    });
+
+    it('an obsolete request error cannot corrupt the new context state', async () => {
+      let resolveText: (value: string) => void = () => {};
+      const pendingText = new Promise<string>((resolve) => {
+        resolveText = resolve;
+      });
+      const pendingD = deferredValue<BomResponseDto>();
+      setupBackend({
+        onGetMps: () => ({
+          ok: true,
+          json: async () =>
+            makeDashboard({ parts: [makePartSchedule('ABC100', 'Widget Assembly'), makePartSchedule('DEF200', 'Delta Assembly')] }),
+        }),
+        onGetBom: (url) =>
+          url.includes('/parts/ABC100/bom')
+            ? { ok: false, status: 503, text: () => pendingText }
+            : { ok: true, json: () => pendingD.promise },
+      });
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await selectParentAndActivateBom();
+      await waitFor(() => {
+        expect(screen.getByText(/loading bom/i)).toBeInTheDocument();
+      });
+
+      // Switch parents while A's (failing) request is still in flight.
+      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => {
+        expect(screen.queryByRole('tablist', { name: /part detail/i })).not.toBeInTheDocument();
+      });
+      await user.click(screen.getByText('DEF200'));
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole('tab', { name: 'BOM' }));
+      await waitFor(() => {
+        expect(screen.getByText(/loading bom/i)).toBeInTheDocument();
+      });
+
+      // A's error lands after the identity change — it must not replace D's in-flight state.
+      resolveText(JSON.stringify({ detail: 'Database currently unavailable.' }));
+      await flushPromises();
+      expect(screen.queryByText(/database currently unavailable/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/loading bom/i)).toBeInTheDocument();
+
+      pendingD.resolve(
+        makeBomResponse({ parentPart: 'DEF200', lines: [makeBomLine({ occurrenceKey: 'k-d', componentPart: 'COMP-D' })] }),
+      );
+      await waitFor(() => {
+        expect(screen.getByText('COMP-D')).toBeInTheDocument();
+      });
+      expect(screen.queryByText(/database currently unavailable/i)).not.toBeInTheDocument();
     });
   });
 });

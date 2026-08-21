@@ -8,7 +8,9 @@ import {
 } from '../hooks/useMpsDashboard';
 import { usePartDetail } from '../hooks/usePartDetail';
 import { useBucketWorkOrders } from '../hooks/useBucketWorkOrders';
+import { useBom } from '../hooks/useBom';
 import { PartInfoPanel } from './PartInfoPanel';
+import { BomPanel } from './BomPanel';
 import { WorkOrdersPanel } from './WorkOrdersPanel';
 import { getFiscalDisplayInfo } from '../fiscal/fiscalCalendar';
 import {
@@ -66,7 +68,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   // Stage 6 contract §2, extended by the accepted Stage 7 contract §4).
   const [selectedParent, setSelectedParent] = useState<string | null>(null);
   const [selectedBucket, setSelectedBucket] = useState<BucketSelection | null>(null);
-  const [activeTab, setActiveTab] = useState<'partInfo' | 'workOrders'>('partInfo');
+  const [activeTab, setActiveTab] = useState<'partInfo' | 'bom' | 'workOrders'>('partInfo');
   useEffect(() => {
     const id = setTimeout(() => {
       setSelectedParent(null);
@@ -108,6 +110,18 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     selectedBucket,
     dateBasis,
     horizonWeeks,
+  );
+
+  // BOM is parent-contextual (never bucket/basis/horizon-contextual) and lazy: the request fires
+  // only on the first explicit BOM-tab activation for the current (workspace, parent, snapshot)
+  // identity — the tab click is the only path that starts a request, so a successful MPS refresh
+  // (new snapshot id) invalidates the loaded BOM with no transient request and the next explicit
+  // activation re-requests; a failed refresh leaves the snapshot id — and the displayed BOM —
+  // untouched. Obsolete in-flight responses never commit to state (useBom).
+  const { bom, isLoading: isBomLoading, error: bomError, activate: activateBom, retry: retryBom } = useBom(
+    workspace.assignmentId,
+    selectedParent,
+    dashboard?.snapshot.snapshotId ?? null,
   );
 
   const clearSelection = () => {
@@ -390,22 +404,31 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
             <button
               type="button"
               role="tab"
-              aria-selected={activeTab === 'workOrders'}
-              disabled={!selectedBucket}
-              className={`mps-detail__tab${activeTab === 'workOrders' ? ' mps-detail__tab--active' : ''}`}
-              onClick={() => selectedBucket && setActiveTab('workOrders')}
+              aria-selected={activeTab === 'bom'}
+              className={`mps-detail__tab${activeTab === 'bom' ? ' mps-detail__tab--active' : ''}`}
+              onClick={() => {
+                setActiveTab('bom');
+                activateBom();
+              }}
             >
-              Work Orders
+              BOM
             </button>
-            <button type="button" role="tab" aria-selected={false} className="mps-detail__tab" disabled>
-              Shortages
-            </button>
-            <button type="button" role="tab" aria-selected={false} className="mps-detail__tab" disabled>
-              Future Shortages
-            </button>
-            <button type="button" role="tab" aria-selected={false} className="mps-detail__tab" disabled>
-              Components
-            </button>
+            {selectedBucket && (
+              <>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'workOrders'}
+                  className={`mps-detail__tab${activeTab === 'workOrders' ? ' mps-detail__tab--active' : ''}`}
+                  onClick={() => setActiveTab('workOrders')}
+                >
+                  Work Orders
+                </button>
+                <button type="button" role="tab" aria-selected={false} className="mps-detail__tab" disabled>
+                  Shortages
+                </button>
+              </>
+            )}
           </div>
 
           {activeTab === 'partInfo' && (
@@ -416,6 +439,16 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
               error={partDetailError}
               onRetry={() => void retryPartDetail()}
               onBack={clearSelection}
+            />
+          )}
+
+          {activeTab === 'bom' && (
+            <BomPanel
+              parentPart={selectedParent}
+              bom={bom}
+              isLoading={isBomLoading}
+              error={bomError}
+              onRetry={() => void retryBom()}
             />
           )}
 
