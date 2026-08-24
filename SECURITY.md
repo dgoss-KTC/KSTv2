@@ -21,9 +21,10 @@ AI coding agent is used. The authoritative platform-neutral rules are:
 - [docs/security/APPLICATION_SECURITY_PROFILE.md](docs/security/APPLICATION_SECURITY_PROFILE.md) —
   KST-specific declared security properties.
 
-`docs/security/SECURITY_BASELINE.md` does not exist yet. It is produced by **S0.2 — Baseline
-Discovery**, a later checkpoint that inventories actual dependencies, development tooling, and
-attack surface. Do not treat its absence as a gap in this checkpoint.
+`docs/security/SECURITY_BASELINE.md` is the **observational** S0.2 security baseline (accepted —
+see "Current security-policy status" below). It records what was observed in the repository and
+development environment; it is not itself normative policy. Required properties remain defined by
+the documents above, especially `APPLICATION_SECURITY_PROFILE.md`.
 
 ## What must a developer/agent do before security-relevant work?
 
@@ -55,7 +56,10 @@ At minimum, do not silently:
 
 - **S0.1 — Security Policy Injection:** COMPLETE / ACCEPTED — 2026-08-21. The documents linked
   above are the enacted, owner-accepted security policy.
-- **S0.2 — Baseline Discovery:** NEXT / NOT STARTED. Will produce `docs/security/SECURITY_BASELINE.md`.
+- **S0.2 — Baseline Discovery:** COMPLETE / ACCEPTED — 2026-08-24. See
+  [docs/security/SECURITY_BASELINE.md](docs/security/SECURITY_BASELINE.md) (accepted observational
+  baseline; still not normative policy — required properties remain defined by the policy documents
+  above).
 - **S0.3 — Existing-Tool Security Checks:** NOT STARTED.
 
 The original design source for this policy set is retained for provenance at

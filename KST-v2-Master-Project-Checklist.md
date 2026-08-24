@@ -1,6 +1,6 @@
 # KST v2 Master Project Checklist
 
-**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection is complete and owner-accepted. Stage 9 begins only after S0 is accepted.
+**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection and S0.2 — Security Baseline Discovery are both complete and owner-accepted. Stage 9 begins only after S0 is accepted.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -1061,13 +1061,24 @@ The policy documents above are enacted, owner-accepted Tier 1 authority as of 20
 
 ### S0.2 — Security Baseline Discovery
 
-- [ ] Inventory application dependencies: NuGet, npm, Cargo.
-- [ ] Inventory development dependencies: SDKs, generators, build/Tauri tooling.
-- [ ] Inventory active agent platforms, extensions/packages/skills/MCP servers/instruction files as applicable.
-- [ ] Inventory network listeners, CORS, CSP, Tauri capabilities, subprocesses, filesystem use,
+**Status:** COMPLETE / ACCEPTED — 2026-08-24
+
+- [x] Inventory application dependencies: NuGet, npm, Cargo.
+- [x] Inventory development dependencies: SDKs, generators, build/Tauri tooling.
+- [x] Inventory active agent platforms, extensions/packages/skills/MCP servers/instruction files as applicable.
+- [x] Inventory network listeners, CORS, CSP, Tauri capabilities, subprocesses, filesystem use,
       credential paths, and database access.
-- [ ] Produce the observed Security Baseline.
-- [ ] Do not automatically remediate every discovered issue.
+- [x] Produce the observed Security Baseline (`docs/security/SECURITY_BASELINE.md`).
+- [x] Do not automatically remediate every discovered issue.
+
+Observed against commit `4b4ba3f6089321d5fd1c105c8f5762aed68c303d`. Three observations were
+initially recorded (`S0.2-F001`, `S0.2-F002`, `S0.2-F003`); following a 2026-08-24 correction using
+project-owner/IT-provided operational authority on QAD authentication/transport/authorization,
+`S0.2-F002` is retired and `S0.2-F003` is reclassified to `Confirmed` (configuration does not
+accurately express the IT-confirmed required `Encrypt=false` transport; the underlying
+unencrypted-transport constraint is not marked `Accepted Risk` — formal IT/security risk
+acceptance remains unresolved). `S0.2-F001` remains `Potential / Investigation Required`. The
+baseline is observational, not normative policy, and is owner-accepted.
 
 ### S0.3 — Existing-Tool Security Checks
 
@@ -1789,8 +1800,9 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] S0 — Security Foundation Integration (CURRENT).
   - [x] S0.1 — Security Policy Injection (COMPLETE / ACCEPTED — 2026-08-21 — see `SECURITY.md`,
         `docs/security/`).
-  - [ ] S0.2 — Security Baseline Discovery (NEXT / NOT STARTED).
-  - [ ] S0.3 — Existing-Tool Security Checks (NOT STARTED).
+  - [x] S0.2 — Security Baseline Discovery (COMPLETE / ACCEPTED — 2026-08-24 — see
+        `docs/security/SECURITY_BASELINE.md`).
+  - [ ] S0.3 — Existing-Tool Security Checks (NEXT / NOT STARTED).
 - [ ] Stage 9 — Immediate Shortages (NOT STARTED; begins only after S0 is accepted).
 
 ### Planning rule going forward

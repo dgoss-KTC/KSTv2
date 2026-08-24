@@ -8,10 +8,10 @@ Active cross-cutting effort: **R0 — Repository / Documentation Reconciliation 
 ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation Status` below and
 `docs/status/R0_REPOSITORY_RECONCILIATION_CLOSEOUT.md`)
 Current cross-cutting effort: **S0 — Security Foundation Integration — CURRENT** (S0.1 — Security
-Policy Injection — **COMPLETE / ACCEPTED — 2026-08-21**; see `SECURITY.md` and
-`docs/security/`)
-Next: **S0.2 — Security Baseline Discovery** (not yet started), then
-**Stage 9** (not yet started)
+Policy Injection — **COMPLETE / ACCEPTED — 2026-08-21**; S0.2 — Security Baseline Discovery —
+**COMPLETE / ACCEPTED — 2026-08-24**; see `SECURITY.md` and `docs/security/`)
+Next: **S0.3 — Existing-Tool Security Checks** (not yet started), then **Stage 9** (not yet
+started)
 Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
 Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versioning-foundation) below)
@@ -21,8 +21,8 @@ Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versionin
 Stages 1 through 8 are complete and accepted, and UI Navigation & Keyboard Ergonomics A is complete
 and accepted. The project is not yet working on Stage 9. R0 — Repository / Documentation
 Reconciliation is complete and accepted. The current cross-cutting effort is **S0 — Security
-Foundation Integration**; its first checkpoint, S0.1 — Security Policy Injection, is complete and
-owner-accepted (see `SECURITY.md`, `docs/security/`, and the S0 section of
+Foundation Integration**; S0.1 — Security Policy Injection and S0.2 — Security Baseline Discovery
+are both complete and owner-accepted (see `SECURITY.md`, `docs/security/`, and the S0 section of
 `KST-v2-Master-Project-Checklist.md`). Stage 9 begins only after S0 is accepted.
 
 ## S0 — Security Foundation Integration
@@ -48,12 +48,46 @@ policy framework:
 
 This checkpoint was documentation/policy work only: no security baseline discovery (S0.2), no
 existing-tool security checks (S0.3), and no security remediation were performed. No application
-code, tests, or dependency manifests changed. `docs/security/SECURITY_BASELINE.md` does not exist
-yet — it is produced by S0.2.
+code, tests, or dependency manifests changed. `docs/security/SECURITY_BASELINE.md` did not exist as
+of this checkpoint — it was produced by the subsequent S0.2 checkpoint (see below).
 
 The policy documents above are enacted, owner-accepted Tier 1 authority as of 2026-08-21.
 
-**Next:** S0.2 — Security Baseline Discovery (not started).
+### S0.2 — Security Baseline Discovery
+
+**Status:** COMPLETE / ACCEPTED — 2026-08-24
+
+This checkpoint produced an observational (not normative) security baseline:
+`docs/security/SECURITY_BASELINE.md`, covering repository dependencies (NuGet/npm/Cargo), SDK/build
+tooling, the development/AI-agent environment, and the application's networking, CORS/CSP/Tauri
+capability, subprocess, filesystem, credential, database, external-destination, logging, and
+packaging surfaces, observed against commit `4b4ba3f`.
+
+Three observations were initially recorded (`S0.2-F001` Tauri shell-capability scope,
+`S0.2-F002` database-level read-only enforcement, `S0.2-F003` QAD `TrustServerCertificate` default).
+Following a 2026-08-24 correction incorporating project-owner/IT-provided operational authority on
+QAD authentication, transport, and authorization:
+
+- `S0.2-F001` (Tauri shell-capability scope) remains `Potential / Investigation Required`.
+- `S0.2-F002` (database-level read-only enforcement) is **retired** — QAD's Windows Integrated
+  Authentication plus a prohibition on SQL-authenticated access corroborates read-only/least-
+  privilege access at the authentication-policy level.
+- `S0.2-F003` (QAD transport configuration) is **reclassified to `Confirmed`** — the
+  repository-observed `TrustServerCertificate=true` configuration does not accurately express the
+  IT-confirmed required transport configuration (`Encrypt=false`, because the current QAD SQL
+  infrastructure does not support encrypted client connections). No severity is assigned and the
+  underlying unencrypted-transport constraint is explicitly **not** marked `Accepted Risk` —
+  formal IT/security risk acceptance remains unresolved. Recommended remediation
+  (`Encrypt=false`, remove `TrustServerCertificate=true`) is deferred to an explicitly authorized
+  future remediation checkpoint.
+
+No remediation, tool installation, vulnerability scanning, or SBOM generation was performed.
+`SECURITY.md` was updated to link the accepted baseline.
+
+This checkpoint was documentation/observation work only: no application code, tests, dependency
+manifests, or security controls changed.
+
+**Next:** S0.3 — Existing-Tool Security Checks (not started).
 
 ## Stage 8 — Component and BOM Detail
 
