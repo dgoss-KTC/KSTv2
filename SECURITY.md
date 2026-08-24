@@ -63,6 +63,11 @@ At minimum, do not silently:
 - **S0.3 — Existing-Tool Security Checks:** COMPLETE / ACCEPTED — 2026-08-24. See
   [docs/security/S0_3_EXISTING_TOOL_SECURITY_CHECKS.md](docs/security/S0_3_EXISTING_TOOL_SECURITY_CHECKS.md)
   (accepted S0.3 verification/check evidence; evidence, not normative policy).
+- **Remaining S0 work (S0.4–S0.8):** Approved Planning Baseline — 2026-08-24. See
+  [docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md](docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md)
+  (approved active planning; **not normative policy**). S0.4 — Security Finding Disposition &
+  Bounded Remediation is the next checkpoint (not started); Stage 9 is blocked pending S0
+  closeout.
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is

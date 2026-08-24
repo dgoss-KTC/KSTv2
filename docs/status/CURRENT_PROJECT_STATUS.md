@@ -11,7 +11,10 @@ Current cross-cutting effort: **S0 — Security Foundation Integration — CURRE
 Policy Injection — **COMPLETE / ACCEPTED — 2026-08-21**; S0.2 — Security Baseline Discovery —
 **COMPLETE / ACCEPTED — 2026-08-24**; S0.3 — Existing-Tool Security Checks — **COMPLETE /
 ACCEPTED — 2026-08-24**; see `SECURITY.md` and `docs/security/`)
-Next: **Stage 9** (not yet started; begins only after S0 is accepted)
+Next: **S0.4 — Security Finding Disposition & Bounded Remediation** (NOT STARTED; approved
+remaining-S0 roadmap S0.4–S0.8 — see "Remaining S0 Work" below and
+docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md)
+Stage 9: **NOT STARTED** — blocked until S0 closeout
 Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
 Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versioning-foundation) below)
@@ -24,7 +27,10 @@ Reconciliation is complete and accepted. The current cross-cutting effort is **S
 Foundation Integration**; S0.1 — Security Policy Injection and S0.2 — Security Baseline Discovery
 are complete and owner-accepted, and S0.3 — Existing-Tool Security Checks is complete and
 owner-accepted (see `SECURITY.md`, `docs/security/`, and the S0 section of
-`KST-v2-Master-Project-Checklist.md`). Stage 9 begins only after S0 is accepted.
+`KST-v2-Master-Project-Checklist.md`). The remaining S0 work is approved as checkpoints
+S0.4–S0.8 (see "Remaining S0 Work" below and
+docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md); S0.4 is the next checkpoint
+and has not started. Stage 9 begins only after S0 is formally closed and accepted.
 
 ## S0 — Security Foundation Integration
 
@@ -135,8 +141,30 @@ Key results:
 
 `SECURITY_BASELINE.md` was **not modified**; the accepted S0.2 baseline remains the snapshot.
 
-**Remaining S0 work:** not yet numbered or planned; it will be planned from the accepted
-S0.2/S0.3 evidence (see `KST-v2-Master-Project-Checklist.md`).
+**Remaining S0 work:** approved as checkpoints S0.4–S0.8 in the remaining-S0 work plan (see
+"Remaining S0 Work" below).
+
+### Remaining S0 Work — Approved Roadmap (S0.4–S0.8)
+
+**Status:** Approved Planning Baseline — 2026-08-24 (active planning / Tier 4; not normative
+policy)
+
+The project owner approved the following structure for the remaining S0 work, derived from the
+accepted S0.2/S0.3 evidence:
+
+| Checkpoint | Name | Status |
+|---|---|---|
+| S0.4 | Security Finding Disposition & Bounded Remediation | **NEXT / NOT STARTED** |
+| S0.5 | Security Regression & Architecture Checks | PLANNED / NOT STARTED |
+| S0.6 | Security Tool Admission | PLANNED / NOT STARTED |
+| S0.7 | Runtime & Infrastructure Verification | PLANNED / NOT STARTED |
+| S0.8 | Independent Assurance & S0 Closeout | PLANNED / NOT STARTED |
+
+Full scope, boundaries, and the finding/gap-to-checkpoint mapping are in
+docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md (approved active planning; not
+normative policy). Approval of the roadmap does not complete any checkpoint; no remediation
+has been performed. Stage 9 — Immediate Shortages is NOT STARTED and blocked until S0 is
+formally closed and accepted.
 
 ## Stage 8 — Component and BOM Detail
 
@@ -289,6 +317,9 @@ R0 overall: **COMPLETE / ACCEPTED — 2026-08-21.** Full detail:
 ## Next Action
 
 Stage 8, UI Navigation & Keyboard Ergonomics A, and R0 — Repository / Documentation
-Reconciliation are complete and accepted. The next authorized phase is **S0 — Security
-Foundation Integration**, which has not yet started. Stage 9 — Immediate Shortages begins only
-after the appropriate S0 foundation work is accepted.
+Reconciliation are complete and accepted. The current effort is **S0 — Security Foundation
+Integration**: S0.1–S0.3 are complete and owner-accepted, and the remaining work is approved
+as checkpoints S0.4–S0.8. The next authorized checkpoint is **S0.4 — Security Finding
+Disposition & Bounded Remediation** (NOT STARTED — see "Remaining S0 Work" above and
+docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). Stage 9 — Immediate Shortages
+begins only after S0 is formally closed and accepted.

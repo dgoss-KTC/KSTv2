@@ -1,6 +1,6 @@
 # KST v2 Master Project Checklist
 
-**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection and S0.2 — Security Baseline Discovery are both complete and owner-accepted; S0.3 — Existing-Tool Security Checks is complete and owner-accepted (2026-08-24). Stage 9 begins only after S0 is accepted.
+**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection, S0.2 — Security Baseline Discovery, and S0.3 — Existing-Tool Security Checks are complete and owner-accepted (2026-08-24). The remaining S0 work is approved as checkpoints S0.4–S0.8 (Approved Planning Baseline — 2026-08-24 — see `docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md`); S0.4 — Security Finding Disposition & Bounded Remediation is next and not started. Stage 9 begins only after S0 is closed and accepted.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -1104,13 +1104,20 @@ dependency advisory scanner (gap). `S0.2-F001` remains `Potential / Investigatio
 (S0.3-G001–G010) and candidate later capability categories recorded — no product/format/
 platform selection made. `SECURITY_BASELINE.md` unchanged.
 
-### Later S0 work
+### S0.4–S0.8 — Remaining S0 Work (approved roadmap)
 
-- [ ] Evaluate additional security tooling only through the enacted dependency-admission process.
-- [ ] Automate dependency-change admission where evidence justifies it.
-- [ ] Convert critical attack-surface assumptions into executable verification.
-- [ ] Pilot independent AI security review.
-- [ ] Define a release security gate based on measured evidence.
+**Approved Planning Baseline — 2026-08-24.** Scope, boundaries, and the finding/gap-to-
+checkpoint mapping live in `docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md`
+(approved active planning; not normative policy). Roadmap approval does not complete any
+checkpoint. No finding has been remediated, no product has been selected, and no tool has
+been installed. Existing finding/gap IDs (S0.2-F001/F002/F003, S0.3-F001, S0.3-G001–G010)
+are not renumbered.
+
+- [ ] S0.4 — Security Finding Disposition & Bounded Remediation (NEXT / NOT STARTED).
+- [ ] S0.5 — Security Regression & Architecture Checks (PLANNED / NOT STARTED).
+- [ ] S0.6 — Security Tool Admission (PLANNED / NOT STARTED).
+- [ ] S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT STARTED).
+- [ ] S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED).
 
 ### Security decisions intentionally unresolved
 
@@ -1822,7 +1829,13 @@ Some export work occurs inside feature phases, but this stage verifies the expor
         `docs/security/SECURITY_BASELINE.md`).
   - [x] S0.3 — Existing-Tool Security Checks (COMPLETE / ACCEPTED — 2026-08-24 — see
         `docs/security/S0_3_EXISTING_TOOL_SECURITY_CHECKS.md`).
-- [ ] Stage 9 — Immediate Shortages (NOT STARTED; begins only after S0 is accepted).
+  - [ ] S0.4 — Security Finding Disposition & Bounded Remediation (NEXT / NOT STARTED — see
+        `docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md`).
+  - [ ] S0.5 — Security Regression & Architecture Checks (PLANNED / NOT STARTED).
+  - [ ] S0.6 — Security Tool Admission (PLANNED / NOT STARTED).
+  - [ ] S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT STARTED).
+  - [ ] S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED).
+- [ ] Stage 9 — Immediate Shortages (NOT STARTED / BLOCKED PENDING S0 CLOSEOUT).
 
 ### Planning rule going forward
 
