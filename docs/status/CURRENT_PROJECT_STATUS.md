@@ -9,9 +9,9 @@ ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation
 `docs/status/R0_REPOSITORY_RECONCILIATION_CLOSEOUT.md`)
 Current cross-cutting effort: **S0 — Security Foundation Integration — CURRENT** (S0.1 — Security
 Policy Injection — **COMPLETE / ACCEPTED — 2026-08-21**; S0.2 — Security Baseline Discovery —
-**COMPLETE / ACCEPTED — 2026-08-24**; see `SECURITY.md` and `docs/security/`)
-Next: **S0.3 — Existing-Tool Security Checks** (not yet started), then **Stage 9** (not yet
-started)
+**COMPLETE / ACCEPTED — 2026-08-24**; S0.3 — Existing-Tool Security Checks — **COMPLETE /
+ACCEPTED — 2026-08-24**; see `SECURITY.md` and `docs/security/`)
+Next: **Stage 9** (not yet started; begins only after S0 is accepted)
 Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
 Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versioning-foundation) below)
@@ -22,7 +22,8 @@ Stages 1 through 8 are complete and accepted, and UI Navigation & Keyboard Ergon
 and accepted. The project is not yet working on Stage 9. R0 — Repository / Documentation
 Reconciliation is complete and accepted. The current cross-cutting effort is **S0 — Security
 Foundation Integration**; S0.1 — Security Policy Injection and S0.2 — Security Baseline Discovery
-are both complete and owner-accepted (see `SECURITY.md`, `docs/security/`, and the S0 section of
+are complete and owner-accepted, and S0.3 — Existing-Tool Security Checks is complete and
+owner-accepted (see `SECURITY.md`, `docs/security/`, and the S0 section of
 `KST-v2-Master-Project-Checklist.md`). Stage 9 begins only after S0 is accepted.
 
 ## S0 — Security Foundation Integration
@@ -87,7 +88,55 @@ No remediation, tool installation, vulnerability scanning, or SBOM generation wa
 This checkpoint was documentation/observation work only: no application code, tests, dependency
 manifests, or security controls changed.
 
-**Next:** S0.3 — Existing-Tool Security Checks (not started).
+**Next:** S0.3 — Existing-Tool Security Checks (see below).
+
+### S0.3 — Existing-Tool Security Checks
+
+**Status:** COMPLETE / ACCEPTED — 2026-08-24
+
+This checkpoint executed security-relevant checks using only the repository's existing
+toolchain: existing tests, project compilers/analyzers/linters, ecosystem-native
+package-manager advisory functionality of the already-installed toolchain (the only authorized
+external advisory queries), and read-only Git/native checks. No tool was installed or
+activated, no remediation was performed, no dependency manifest or lockfile changed, no
+configuration or security control changed, no database connection was made, no SQL was
+executed, and no application/sidecar was launched. Evidence:
+`docs/security/S0_3_EXISTING_TOOL_SECURITY_CHECKS.md` (accepted verification/check
+evidence; not normative policy).
+
+Key results:
+
+- Backend: analyzer-enabled build 0 warnings/0 errors; **656/656 tests passing**, including
+  `DependencyRuleTests` (6/6), `VersionConsistencyTests` (3/3), and `CorsPolicyTests` (2/2 —
+  partial origin coverage; 3 of 5 configured origins and the no-`AllowAnyOrigin`/
+  no-credentials properties are not test-verified).
+- Frontend: lint clean, typecheck clean, **281/281 tests passing** (general quality; no
+  security-relevant assertions identified).
+- Rust: `cargo clippy --locked --offline` — 2 style-only warnings (`needless_return`), no
+  security diagnostics; **0 tests exist** in the Tauri crate.
+- NuGet advisory check (native, transitive included, no restore): **no known advisories**
+  reported for the evaluated (last-restored) dependency graph.
+- npm advisory check (native): **3 advisories**, all in development-only packages
+  (`openapi-typescript`, transitive `undici`, transitive `nanoid`) — recorded as
+  **S0.3-F001 (Confirmed)**; unremediated by design of this checkpoint; disposition
+  (reachability analysis + dependency-admission decision) remains for a later explicitly
+  authorized checkpoint. npm-reported severities are not KST risk severities.
+- Cargo advisory: **no authorized/available Rust dependency advisory scanner exists**
+  (`cargo-audit`/`cargo-deny` absent) — recorded as a gap.
+- S0.2 finding re-verification: **S0.2-F001** remains `Potential / Investigation Required`
+  (no existing least-privilege verification identified); **S0.2-F002** remains retired;
+  **S0.2-F003** re-verified **still present** at the check-execution commit (read-only
+  configuration check only; not remediated; not `Accepted Risk`).
+- Ten existing-tool coverage gaps recorded (**S0.3-G001** through **S0.3-G010**), including
+  Rust advisories, dedicated secret scanning, SAST, SBOM, runtime listener verification, CSP
+  verification, Tauri least-privilege verification, and database-grant verification. Candidate
+  later needs are listed as capability categories only — no scanner/SAST/SBOM/CI selection is
+  made.
+
+`SECURITY_BASELINE.md` was **not modified**; the accepted S0.2 baseline remains the snapshot.
+
+**Remaining S0 work:** not yet numbered or planned; it will be planned from the accepted
+S0.2/S0.3 evidence (see `KST-v2-Master-Project-Checklist.md`).
 
 ## Stage 8 — Component and BOM Detail
 

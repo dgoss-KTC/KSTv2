@@ -60,7 +60,9 @@ At minimum, do not silently:
   [docs/security/SECURITY_BASELINE.md](docs/security/SECURITY_BASELINE.md) (accepted observational
   baseline; still not normative policy — required properties remain defined by the policy documents
   above).
-- **S0.3 — Existing-Tool Security Checks:** NOT STARTED.
+- **S0.3 — Existing-Tool Security Checks:** COMPLETE / ACCEPTED — 2026-08-24. See
+  [docs/security/S0_3_EXISTING_TOOL_SECURITY_CHECKS.md](docs/security/S0_3_EXISTING_TOOL_SECURITY_CHECKS.md)
+  (accepted S0.3 verification/check evidence; evidence, not normative policy).
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is

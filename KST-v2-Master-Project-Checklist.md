@@ -1,6 +1,6 @@
 # KST v2 Master Project Checklist
 
-**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection and S0.2 — Security Baseline Discovery are both complete and owner-accepted. Stage 9 begins only after S0 is accepted.
+**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection and S0.2 — Security Baseline Discovery are both complete and owner-accepted; S0.3 — Existing-Tool Security Checks is complete and owner-accepted (2026-08-24). Stage 9 begins only after S0 is accepted.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -1082,9 +1082,27 @@ baseline is observational, not normative policy, and is owner-accepted.
 
 ### S0.3 — Existing-Tool Security Checks
 
-- [ ] Determine what .NET/NuGet, npm, Cargo, compiler/analyzer, repository tests, OS inspection, and
+**Status:** COMPLETE / ACCEPTED — 2026-08-24
+
+- [x] Determine what .NET/NuGet, npm, Cargo, compiler/analyzer, repository tests, OS inspection, and
       repository search already provide.
-- [ ] Record useful signal, gaps, false positives, and execution cost before admitting new tooling.
+- [x] Record useful signal, gaps, false positives, and execution cost before admitting new tooling.
+
+Executed with the repository's existing toolchain only: no tool installation/activation, no
+remediation, no dependency manifest/lockfile change, no configuration or security-control
+change, no database connection or SQL, and no application/sidecar launch. Evidence:
+`docs/security/S0_3_EXISTING_TOOL_SECURITY_CHECKS.md` (accepted S0.3 verification/check
+evidence; not normative policy). Results: backend analyzer build clean and
+656/656 tests passing (incl. `DependencyRuleTests` 6/6, `VersionConsistencyTests` 3/3,
+`CorsPolicyTests` 2/2); frontend lint/typecheck clean and 281/281 tests passing; Rust
+`cargo clippy --locked --offline` 2 style-only warnings, 0 tests exist; NuGet native advisory
+check (incl. transitive, no restore) reported no known advisories for the evaluated graph;
+npm native advisory check reported 3 advisories, all development-only — recorded as
+**S0.3-F001 (Confirmed)**, not remediated in this checkpoint; no authorized/available Rust
+dependency advisory scanner (gap). `S0.2-F001` remains `Potential / Investigation Required`;
+`S0.2-F002` remains retired; `S0.2-F003` re-verified still present. Ten coverage gaps
+(S0.3-G001–G010) and candidate later capability categories recorded — no product/format/
+platform selection made. `SECURITY_BASELINE.md` unchanged.
 
 ### Later S0 work
 
@@ -1802,7 +1820,8 @@ Some export work occurs inside feature phases, but this stage verifies the expor
         `docs/security/`).
   - [x] S0.2 — Security Baseline Discovery (COMPLETE / ACCEPTED — 2026-08-24 — see
         `docs/security/SECURITY_BASELINE.md`).
-  - [ ] S0.3 — Existing-Tool Security Checks (NEXT / NOT STARTED).
+  - [x] S0.3 — Existing-Tool Security Checks (COMPLETE / ACCEPTED — 2026-08-24 — see
+        `docs/security/S0_3_EXISTING_TOOL_SECURITY_CHECKS.md`).
 - [ ] Stage 9 — Immediate Shortages (NOT STARTED; begins only after S0 is accepted).
 
 ### Planning rule going forward
