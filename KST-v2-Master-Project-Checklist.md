@@ -1,6 +1,6 @@
 # KST v2 Master Project Checklist
 
-**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection, S0.2 — Security Baseline Discovery, and S0.3 — Existing-Tool Security Checks are complete and owner-accepted (2026-08-24). The remaining S0 work is approved as checkpoints S0.4–S0.8 (Approved Planning Baseline — 2026-08-24 — see `docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md`); the active checkpoint is S0.4 — Security Finding Disposition & Bounded Remediation (CURRENT / IN PROGRESS): S0.4A — QAD SQL Transport Correction is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F003` at the application-configuration level — `docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`); S0.4B — Tauri Shell Capability is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F001` — `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`); S0.4C — npm Development-Tooling Advisories is NEXT / NOT STARTED. Stage 9 begins only after S0 is closed and accepted.
+**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection, S0.2 — Security Baseline Discovery, and S0.3 — Existing-Tool Security Checks are complete and owner-accepted (2026-08-24). The remaining S0 work is approved as checkpoints S0.4–S0.8 (Approved Planning Baseline — 2026-08-24 — see `docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md`); S0.4 — Security Finding Disposition & Bounded Remediation is COMPLETE / ACCEPTED — 2026-08-25: S0.4A — QAD SQL Transport Correction is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F003` at the application-configuration level — `docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`); S0.4B — Tauri Shell Capability is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F001` — `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`); S0.4C — npm Development-Tooling Advisories is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.3-F001` — `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`). The next checkpoint is S0.5 — Security Regression & Architecture Checks (NEXT / NOT STARTED). Stage 9 begins only after S0 is closed and accepted.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -1113,14 +1113,15 @@ checkpoint. No finding has been remediated, no product has been selected, and no
 been installed. Existing finding/gap IDs (S0.2-F001/F002/F003, S0.3-F001, S0.3-G001–G010)
 are not renumbered.
 
-- [ ] S0.4 — Security Finding Disposition & Bounded Remediation (CURRENT / IN PROGRESS).
+- [x] S0.4 — Security Finding Disposition & Bounded Remediation (COMPLETE / ACCEPTED — 2026-08-25).
   - [x] S0.4A — QAD SQL Transport Correction (COMPLETE / ACCEPTED — 2026-08-25 — resolves
         `S0.2-F003` at the application-configuration level — see
         `docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`).
   - [x] S0.4B — Tauri Shell Capability (COMPLETE / ACCEPTED — 2026-08-25 — resolves
         `S0.2-F001` — see `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`).
-  - [ ] S0.4C — npm Development-Tooling Advisories (NEXT / NOT STARTED).
-- [ ] S0.5 — Security Regression & Architecture Checks (PLANNED / NOT STARTED).
+  - [x] S0.4C — npm Development-Tooling Advisories (COMPLETE / ACCEPTED — 2026-08-25 — resolves
+        `S0.3-F001` — see `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`, accepted).
+- [ ] S0.5 — Security Regression & Architecture Checks (NEXT / NOT STARTED).
 - [ ] S0.6 — Security Tool Admission (PLANNED / NOT STARTED).
 - [ ] S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT STARTED).
 - [ ] S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED).
@@ -1835,14 +1836,15 @@ Some export work occurs inside feature phases, but this stage verifies the expor
         `docs/security/SECURITY_BASELINE.md`).
   - [x] S0.3 — Existing-Tool Security Checks (COMPLETE / ACCEPTED — 2026-08-24 — see
         `docs/security/S0_3_EXISTING_TOOL_SECURITY_CHECKS.md`).
-  - [ ] S0.4 — Security Finding Disposition & Bounded Remediation (CURRENT / IN PROGRESS).
+  - [x] S0.4 — Security Finding Disposition & Bounded Remediation (COMPLETE / ACCEPTED — 2026-08-25).
     - [x] S0.4A — QAD SQL Transport Correction (COMPLETE / ACCEPTED — 2026-08-25 — resolves
           `S0.2-F003` at the application-configuration level — see
           `docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`).
     - [x] S0.4B — Tauri Shell Capability (COMPLETE / ACCEPTED — 2026-08-25 — resolves
           `S0.2-F001` — see `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`).
-    - [ ] S0.4C — npm Development-Tooling Advisories (NEXT / NOT STARTED).
-  - [ ] S0.5 — Security Regression & Architecture Checks (PLANNED / NOT STARTED).
+    - [x] S0.4C — npm Development-Tooling Advisories (COMPLETE / ACCEPTED — 2026-08-25 — resolves
+          `S0.3-F001` — see `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`, accepted).
+  - [ ] S0.5 — Security Regression & Architecture Checks (NEXT / NOT STARTED).
   - [ ] S0.6 — Security Tool Admission (PLANNED / NOT STARTED).
   - [ ] S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT STARTED).
   - [ ] S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED).

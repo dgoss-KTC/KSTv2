@@ -66,14 +66,18 @@ At minimum, do not silently:
 - **Remaining S0 work (S0.4–S0.8):** Approved Planning Baseline — 2026-08-24. See
   [docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md](docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md)
   (approved active planning; **not normative policy**). S0.4 — Security Finding Disposition &
-  Bounded Remediation is **in progress**: S0.4A — QAD SQL Transport Correction is **COMPLETE /
+  Bounded Remediation is **COMPLETE / ACCEPTED — 2026-08-25**: S0.4A — QAD SQL Transport Correction is **COMPLETE /
   ACCEPTED — 2026-08-25** (resolves `S0.2-F003` at the KST application-configuration level) — see
   [docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md](docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md)
   (**accepted remediation evidence**, not normative policy). S0.4B — Tauri Shell Capability
   Remediation is **COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.2-F001`) — see
   [docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md](docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md)
   (S0.4B remediation evidence, not normative policy). S0.4C — npm Development-Tooling Advisories
-  is NEXT / NOT STARTED. Stage 9 is blocked pending S0 closeout.
+  is **COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.3-F001`) — see
+  [docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md](docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md)
+  (accepted S0.4C remediation evidence, not normative policy). The next sub-checkpoint is S0.5 —
+  Security Regression & Architecture Checks (NEXT / NOT STARTED). Stage 9 is blocked pending S0
+  closeout.
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is

@@ -3,1018 +3,1534 @@
  * Do not make direct changes to the file.
  */
 
-
 export interface paths {
-  "/health": {
-    /** Returns liveness status of the backend process. */
-    get: operations["GetHealth"];
-  };
-  "/ready": {
-    /** Returns readiness status once initialization is complete. */
-    get: operations["GetReady"];
-  };
-  "/api/v1/system/status": {
-    /** Returns typed system status for the frontend walking skeleton. */
-    get: operations["GetSystemStatus"];
-  };
-  "/api/v1/system/refresh": {
-    /** Triggers a refresh cycle across all registered data sources and returns the resulting status. */
-    post: operations["PostSystemRefresh"];
-  };
-  "/api/v1/workspaces": {
-    /** Returns the saved workspace list and any nonfatal configuration warning. */
-    get: operations["ListWorkspaces"];
-    /** Creates and persists a new workspace configuration. */
-    post: operations["CreateWorkspace"];
-    /** Removes all workspace configuration and returns to the empty startup state. */
-    delete: operations["ResetWorkspaces"];
-  };
-  "/api/v1/workspaces/{assignmentId}": {
-    /** Updates and persists an existing workspace configuration. */
-    put: operations["UpdateWorkspace"];
-    /** Permanently deletes a workspace assignment from configuration. */
-    delete: operations["DeleteWorkspace"];
-  };
-  "/api/v1/workspaces/{assignmentId}/archive": {
-    /** Archives a workspace so it no longer appears as an active tab (isEnabled = false). */
-    post: operations["ArchiveWorkspace"];
-  };
-  "/api/v1/workspaces/{assignmentId}/restore": {
-    /** Restores a previously archived workspace (isEnabled = true). */
-    post: operations["RestoreWorkspace"];
-  };
-  "/api/v1/workspaces/order": {
-    /** Persists a new tab order for the currently active (enabled) workspaces. */
-    put: operations["ReorderWorkspaces"];
-  };
-  "/api/v1/preferences": {
-    /** Returns the current user preferences and any nonfatal configuration warning. */
-    get: operations["GetPreferences"];
-    /** Validates and persists updated user preferences. */
-    put: operations["UpdatePreferences"];
-  };
-  "/api/v1/workspaces/{assignmentId}/mps": {
-    /** Returns the projected MPS dashboard for a workspace, auto-loading from QAD on first access. */
-    get: operations["GetMpsDashboard"];
-  };
-  "/api/v1/workspaces/{assignmentId}/mps/refresh": {
-    /** Forces one reload of MPS source facts from QAD for the workspace and returns the projected dashboard. */
-    post: operations["RefreshMpsDashboard"];
-  };
-  "/api/v1/workspaces/{assignmentId}/part-detail": {
-    /** Returns lazily-loaded Part Info for a workspace's selected MPS parent part. */
-    get: operations["GetPartDetail"];
-  };
-  "/api/v1/workspaces/{assignmentId}/work-orders/bucket": {
-    /** Returns the eligible (Allocating/Frozen/Released) work orders for one MPS bucket. */
-    get: operations["GetBucketWorkOrders"];
-  };
-  "/api/v1/workspaces/{assignmentId}/work-orders/{woid}/material": {
-    /** Returns lazily-loaded material/kitting lines and Kitting Summary for one work order. */
-    get: operations["GetWorkOrderMaterialLines"];
-  };
-  "/api/v1/workspaces/{assignmentId}/work-orders/candidates": {
-    /** Returns candidate subassembly work orders for a manufactured component, across all eligible A/F/R work orders regardless of Due Date. */
-    get: operations["GetWorkOrderCandidates"];
-  };
-  "/api/v1/workspaces/{assignmentId}/parts/{parentPart}/bom": {
-    /** Returns the scheduler-visible current-effective BOM for a workspace's selected MPS parent part, enriched with shared Site + Part inventory. */
-    get: operations["GetBom"];
-  };
-  "/api/v1/workspaces/{assignmentId}/components/{componentPart}": {
-    /** Returns lazily-loaded Component Detail (master, selected-site planning, Standard Cost, QCTC, shared Site + Part inventory) for a workspace-selected component part. */
-    get: operations["GetComponentDetail"];
-  };
-  "/api/v1/workspaces/{assignmentId}/components/{componentPart}/approved-vendors": {
-    /** Returns the lazily-loaded Approved Vendor List (AVL) for a workspace-selected component part. */
-    get: operations["GetApprovedVendors"];
-  };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns liveness status of the backend process. */
+        get: operations["GetHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns readiness status once initialization is complete. */
+        get: operations["GetReady"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns typed system status for the frontend walking skeleton. */
+        get: operations["GetSystemStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Triggers a refresh cycle across all registered data sources and returns the resulting status. */
+        post: operations["PostSystemRefresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the saved workspace list and any nonfatal configuration warning. */
+        get: operations["ListWorkspaces"];
+        put?: never;
+        /** Creates and persists a new workspace configuration. */
+        post: operations["CreateWorkspace"];
+        /** Removes all workspace configuration and returns to the empty startup state. */
+        delete: operations["ResetWorkspaces"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Updates and persists an existing workspace configuration. */
+        put: operations["UpdateWorkspace"];
+        post?: never;
+        /** Permanently deletes a workspace assignment from configuration. */
+        delete: operations["DeleteWorkspace"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archives a workspace so it no longer appears as an active tab (isEnabled = false). */
+        post: operations["ArchiveWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restores a previously archived workspace (isEnabled = true). */
+        post: operations["RestoreWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Persists a new tab order for the currently active (enabled) workspaces. */
+        put: operations["ReorderWorkspaces"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the current user preferences and any nonfatal configuration warning. */
+        get: operations["GetPreferences"];
+        /** Validates and persists updated user preferences. */
+        put: operations["UpdatePreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/mps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the projected MPS dashboard for a workspace, auto-loading from QAD on first access. */
+        get: operations["GetMpsDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/mps/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Forces one reload of MPS source facts from QAD for the workspace and returns the projected dashboard. */
+        post: operations["RefreshMpsDashboard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/part-detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns lazily-loaded Part Info for a workspace's selected MPS parent part. */
+        get: operations["GetPartDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/work-orders/bucket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the eligible (Allocating/Frozen/Released) work orders for one MPS bucket. */
+        get: operations["GetBucketWorkOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/work-orders/{woid}/material": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns lazily-loaded material/kitting lines and Kitting Summary for one work order. */
+        get: operations["GetWorkOrderMaterialLines"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/work-orders/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns candidate subassembly work orders for a manufactured component, across all eligible A/F/R work orders regardless of Due Date. */
+        get: operations["GetWorkOrderCandidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/parts/{parentPart}/bom": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the scheduler-visible current-effective BOM for a workspace's selected MPS parent part, enriched with shared Site + Part inventory. */
+        get: operations["GetBom"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/components/{componentPart}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns lazily-loaded Component Detail (master, selected-site planning, Standard Cost, QCTC, shared Site + Part inventory) for a workspace-selected component part. */
+        get: operations["GetComponentDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/components/{componentPart}/approved-vendors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the lazily-loaded Approved Vendor List (AVL) for a workspace-selected component part. */
+        get: operations["GetApprovedVendors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
-
 export type webhooks = Record<string, never>;
-
 export interface components {
-  schemas: {
-    ApprovedVendorDto: {
-      supplier: string;
-      vendorName: null | string;
-      supplierItem: null | string;
-      manufacturerPart: null | string;
+    schemas: {
+        ApprovedVendorDto: {
+            supplier: string;
+            vendorName: null | string;
+            supplierItem: null | string;
+            manufacturerPart: null | string;
+        };
+        BomLineDto: {
+            occurrenceKey: string;
+            /** Format: int32 */
+            level: number | string;
+            componentPart: string;
+            pmCode: null | string;
+            isPhantom: boolean;
+            description: null | string;
+            /** Format: double */
+            quantityPer: null | number | string;
+            /** Format: double */
+            scrapPercentage: null | number | string;
+            /** Format: double */
+            netQuantityOnHand: number | string;
+            /** Format: double */
+            nonNetQuantityOnHand: number | string;
+        };
+        BomResponseDto: {
+            site: string;
+            parentPart: string;
+            /** Format: date */
+            effectiveDate: string;
+            lines: components["schemas"]["BomLineDto"][];
+            /** Format: date-time */
+            loadedAtUtc: string;
+            isStale: boolean;
+            warning: null | string;
+        };
+        ComponentDetailResponseDto: {
+            site: string;
+            componentPart: string;
+            description: null | string;
+            partStatusCode: null | string;
+            partStatusDescription: null | string;
+            iosCode: null | string;
+            /** Format: double */
+            netQuantityOnHand: number | string;
+            /** Format: double */
+            nonNetQuantityOnHand: number | string;
+            /** Format: double */
+            standardCost: null | number | string;
+            /** Format: double */
+            qctc: null | number | string;
+            /** Format: int32 */
+            timeFence: null | number | string;
+            /** Format: double */
+            safetyTime: null | number | string;
+            /** Format: double */
+            safetyStock: null | number | string;
+            buyerPlanner: null | string;
+            /** Format: int32 */
+            purchaseLeadTimeDays: null | number | string;
+            /** Format: int32 */
+            inspectionLeadTimeDays: null | number | string;
+            /** Format: int32 */
+            cumulativeLeadTimeDays: null | number | string;
+            /** Format: double */
+            minimumOrderQuantity: null | number | string;
+            /** Format: double */
+            orderMultiple: null | number | string;
+            /** Format: date-time */
+            loadedAtUtc: string;
+            isStale: boolean;
+            warning: null | string;
+        };
+        CreateWorkspaceRequestDto: {
+            displayName: null | string;
+            site: null | string;
+            productLineFrom: null | string;
+            productLineTo: null | string;
+            parentParts: null | string[];
+            isTemporary: boolean;
+            /** Format: date */
+            coverageEndsOn: null | string;
+        };
+        DataSourceDto: {
+            name: string;
+            status: string;
+        };
+        HealthResponse: {
+            status: string;
+            application: string;
+            backendVersion: string;
+            /** Format: int32 */
+            processId: number | string;
+            instanceId: string;
+            /** Format: date-time */
+            timestamp: string;
+        };
+        KittingSummaryDto: {
+            /** Format: int32 */
+            applicableLineCount: number | string;
+            /** Format: int32 */
+            fullyIssuedLineCount: number | string;
+            /** Format: double */
+            kittingPercent: null | number | string;
+        };
+        MpsBucketDto: {
+            kind: string;
+            /** Format: date */
+            weekLabel: null | string;
+            /** Format: double */
+            quantity: number | string;
+            executionStatus: string;
+            containsPlannedWork: boolean;
+            containsExplicitlyScheduledWork: boolean;
+        };
+        MpsDashboardResponseDto: {
+            snapshot: components["schemas"]["MpsSnapshotMetadataDto"];
+            dateBasis: string;
+            /** Format: int32 */
+            horizonWeeks: number | string;
+            parts: components["schemas"]["MpsPartScheduleDto"][];
+        };
+        MpsPartScheduleDto: {
+            parentPart: string;
+            description: null | string;
+            buckets: components["schemas"]["MpsBucketDto"][];
+        };
+        MpsSnapshotMetadataDto: {
+            snapshotId: null | string;
+            /** Format: date-time */
+            createdAtUtc: null | string;
+            /** Format: date-time */
+            lastSuccessfulRefreshAtUtc: null | string;
+            status: string;
+            /** Format: uuid */
+            workspaceId: string;
+            site: null | string;
+            /** Format: int32 */
+            resolvedParentPartCount: number | string;
+            /** Format: int32 */
+            sourceRowCount: number | string;
+            isRefreshInProgress: boolean;
+            lastRefreshError: null | string;
+        };
+        PartDetailResponseDto: {
+            site: string;
+            partNumber: string;
+            plannerCode: null | string;
+            /** Format: double */
+            manufacturingLeadTimeDays: null | number | string;
+            /** Format: double */
+            safetyTimeDays: null | number | string;
+            partStatusCode: null | string;
+            partStatusDescription: null | string;
+            currentRevision: null | string;
+            description: null | string;
+            iosCode: null | string;
+            /** Format: double */
+            safetyStockQuantity: null | number | string;
+            /** Format: double */
+            quantityOnHand: number | string;
+            /** Format: double */
+            quantityNonNet: number | string;
+            /** Format: double */
+            quantityRmaOnHand: number | string;
+            priceBreaks: components["schemas"]["PartPriceBreakDto"][];
+            /** Format: date-time */
+            loadedAtUtc: string;
+            isStale: boolean;
+            warning: null | string;
+        };
+        PartPriceBreakDto: {
+            /** Format: double */
+            minimumOrderQuantity: number | string;
+            /** Format: double */
+            unitPrice: number | string;
+        };
+        PreferencesResponseDto: {
+            preferences: components["schemas"]["UserPreferencesDto"];
+            configurationWarning: null | string;
+        };
+        ProblemDetails: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number | string;
+            detail?: null | string;
+            instance?: null | string;
+        };
+        ReadyResponse: {
+            status: string;
+            initialized: boolean;
+            snapshotAvailable: boolean;
+            /** Format: date-time */
+            timestamp: string;
+        };
+        ReorderWorkspacesRequestDto: {
+            assignmentIds: string[];
+        };
+        SnapshotStatusDto: {
+            available: boolean;
+            snapshotId: null | string;
+            /** Format: date-time */
+            createdAt: null | string;
+            status: string;
+        };
+        SystemStatusResponse: {
+            applicationName: string;
+            applicationVersion: string;
+            backendFramework: string;
+            backendInstanceId: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            currentTime: string;
+            snapshot: components["schemas"]["SnapshotStatusDto"];
+            dataSources: components["schemas"]["DataSourceDto"][];
+            /** Format: date-time */
+            lastRefreshAttemptAt: null | string;
+            /** Format: date-time */
+            lastSuccessfulRefreshAt: null | string;
+        };
+        UpdatePreferencesRequestDto: {
+            theme: string;
+            accentColor: string;
+            rowDensity: string;
+        };
+        UserPreferencesDto: {
+            theme: string;
+            accentColor: string;
+            rowDensity: string;
+        };
+        WorkOrderBucketResponseDto: {
+            snapshotId: string;
+            workOrders: components["schemas"]["WorkOrderSummaryDto"][];
+        };
+        WorkOrderCandidateResponseDto: {
+            snapshotId: string;
+            candidates: components["schemas"]["WorkOrderSummaryDto"][];
+            isTruncated: boolean;
+        };
+        WorkOrderMaterialLineDto: {
+            componentPart: string;
+            componentDescription: null | string;
+            /** Format: double */
+            requiredQuantity: number | string;
+            /** Format: double */
+            issuedQuantity: number | string;
+            /** Format: double */
+            varianceQuantity: number | string;
+            /** Format: double */
+            issuedPercent: null | number | string;
+            issueStatus: null | string;
+            isManufactured: boolean;
+            isFullyIssued: boolean;
+        };
+        WorkOrderMaterialResponseDto: {
+            snapshotId: string;
+            woid: string;
+            kitting: components["schemas"]["KittingSummaryDto"];
+            lines: components["schemas"]["WorkOrderMaterialLineDto"][];
+        };
+        WorkOrderSummaryDto: {
+            partNumber: string;
+            woid: string;
+            status: string;
+            /** Format: double */
+            orderedQuantity: number | string;
+            /** Format: double */
+            completedQuantity: number | string;
+            /** Format: double */
+            openQuantity: number | string;
+            /** Format: date */
+            releaseDate: null | string;
+            /** Format: date */
+            dueDate: null | string;
+            salesOrder: null | string;
+            kitting: components["schemas"]["KittingSummaryDto"];
+        };
+        WorkspaceAssignmentDto: {
+            /** Format: uuid */
+            assignmentId: string;
+            displayName: null | string;
+            site: string;
+            productLineFrom: null | string;
+            productLineTo: null | string;
+            parentParts: string[];
+            isTemporary: boolean;
+            /** Format: date */
+            coverageEndsOn: null | string;
+            isEnabled: boolean;
+            /** Format: int32 */
+            sortOrder: number | string;
+        };
+        WorkspaceListResponseDto: {
+            workspaces: components["schemas"]["WorkspaceAssignmentDto"][];
+            configurationWarning: null | string;
+        };
     };
-    BomLineDto: {
-      occurrenceKey: string;
-      /** Format: int32 */
-      level: number | string;
-      componentPart: string;
-      pmCode: null | string;
-      isPhantom: boolean;
-      description: null | string;
-      /** Format: double */
-      quantityPer: null | number | string;
-      /** Format: double */
-      scrapPercentage: null | number | string;
-      /** Format: double */
-      netQuantityOnHand: number | string;
-      /** Format: double */
-      nonNetQuantityOnHand: number | string;
-    };
-    BomResponseDto: {
-      site: string;
-      parentPart: string;
-      /** Format: date */
-      effectiveDate: string;
-      lines: components["schemas"]["BomLineDto"][];
-      /** Format: date-time */
-      loadedAtUtc: string;
-      isStale: boolean;
-      warning: null | string;
-    };
-    ComponentDetailResponseDto: {
-      site: string;
-      componentPart: string;
-      description: null | string;
-      partStatusCode: null | string;
-      partStatusDescription: null | string;
-      iosCode: null | string;
-      /** Format: double */
-      netQuantityOnHand: number | string;
-      /** Format: double */
-      nonNetQuantityOnHand: number | string;
-      /** Format: double */
-      standardCost: null | number | string;
-      /** Format: double */
-      qctc: null | number | string;
-      /** Format: int32 */
-      timeFence: null | number | string;
-      /** Format: double */
-      safetyTime: null | number | string;
-      /** Format: double */
-      safetyStock: null | number | string;
-      buyerPlanner: null | string;
-      /** Format: int32 */
-      purchaseLeadTimeDays: null | number | string;
-      /** Format: int32 */
-      inspectionLeadTimeDays: null | number | string;
-      /** Format: int32 */
-      cumulativeLeadTimeDays: null | number | string;
-      /** Format: double */
-      minimumOrderQuantity: null | number | string;
-      /** Format: double */
-      orderMultiple: null | number | string;
-      /** Format: date-time */
-      loadedAtUtc: string;
-      isStale: boolean;
-      warning: null | string;
-    };
-    CreateWorkspaceRequestDto: {
-      displayName: null | string;
-      site: null | string;
-      productLineFrom: null | string;
-      productLineTo: null | string;
-      parentParts: null | string[];
-      isTemporary: boolean;
-      /** Format: date */
-      coverageEndsOn: null | string;
-    };
-    DataSourceDto: {
-      name: string;
-      status: string;
-    };
-    HealthResponse: {
-      status: string;
-      application: string;
-      backendVersion: string;
-      /** Format: int32 */
-      processId: number | string;
-      instanceId: string;
-      /** Format: date-time */
-      timestamp: string;
-    };
-    KittingSummaryDto: {
-      /** Format: int32 */
-      applicableLineCount: number | string;
-      /** Format: int32 */
-      fullyIssuedLineCount: number | string;
-      /** Format: double */
-      kittingPercent: null | number | string;
-    };
-    MpsBucketDto: {
-      kind: string;
-      /** Format: date */
-      weekLabel: null | string;
-      /** Format: double */
-      quantity: number | string;
-      executionStatus: string;
-      containsPlannedWork: boolean;
-      containsExplicitlyScheduledWork: boolean;
-    };
-    MpsDashboardResponseDto: {
-      snapshot: components["schemas"]["MpsSnapshotMetadataDto"];
-      dateBasis: string;
-      /** Format: int32 */
-      horizonWeeks: number | string;
-      parts: components["schemas"]["MpsPartScheduleDto"][];
-    };
-    MpsPartScheduleDto: {
-      parentPart: string;
-      description: null | string;
-      buckets: components["schemas"]["MpsBucketDto"][];
-    };
-    MpsSnapshotMetadataDto: {
-      snapshotId: null | string;
-      /** Format: date-time */
-      createdAtUtc: null | string;
-      /** Format: date-time */
-      lastSuccessfulRefreshAtUtc: null | string;
-      status: string;
-      /** Format: uuid */
-      workspaceId: string;
-      site: null | string;
-      /** Format: int32 */
-      resolvedParentPartCount: number | string;
-      /** Format: int32 */
-      sourceRowCount: number | string;
-      isRefreshInProgress: boolean;
-      lastRefreshError: null | string;
-    };
-    PartDetailResponseDto: {
-      site: string;
-      partNumber: string;
-      plannerCode: null | string;
-      /** Format: double */
-      manufacturingLeadTimeDays: null | number | string;
-      /** Format: double */
-      safetyTimeDays: null | number | string;
-      partStatusCode: null | string;
-      partStatusDescription: null | string;
-      currentRevision: null | string;
-      description: null | string;
-      iosCode: null | string;
-      /** Format: double */
-      safetyStockQuantity: null | number | string;
-      /** Format: double */
-      quantityOnHand: number | string;
-      /** Format: double */
-      quantityNonNet: number | string;
-      /** Format: double */
-      quantityRmaOnHand: number | string;
-      priceBreaks: components["schemas"]["PartPriceBreakDto"][];
-      /** Format: date-time */
-      loadedAtUtc: string;
-      isStale: boolean;
-      warning: null | string;
-    };
-    PartPriceBreakDto: {
-      /** Format: double */
-      minimumOrderQuantity: number | string;
-      /** Format: double */
-      unitPrice: number | string;
-    };
-    PreferencesResponseDto: {
-      preferences: components["schemas"]["UserPreferencesDto"];
-      configurationWarning: null | string;
-    };
-    ProblemDetails: {
-      type?: null | string;
-      title?: null | string;
-      /** Format: int32 */
-      status?: null | number | string;
-      detail?: null | string;
-      instance?: null | string;
-    };
-    ReadyResponse: {
-      status: string;
-      initialized: boolean;
-      snapshotAvailable: boolean;
-      /** Format: date-time */
-      timestamp: string;
-    };
-    ReorderWorkspacesRequestDto: {
-      assignmentIds: string[];
-    };
-    SnapshotStatusDto: {
-      available: boolean;
-      snapshotId: null | string;
-      /** Format: date-time */
-      createdAt: null | string;
-      status: string;
-    };
-    SystemStatusResponse: {
-      applicationName: string;
-      applicationVersion: string;
-      backendFramework: string;
-      backendInstanceId: string;
-      /** Format: date-time */
-      startedAt: string;
-      /** Format: date-time */
-      currentTime: string;
-      snapshot: components["schemas"]["SnapshotStatusDto"];
-      dataSources: components["schemas"]["DataSourceDto"][];
-      /** Format: date-time */
-      lastRefreshAttemptAt: null | string;
-      /** Format: date-time */
-      lastSuccessfulRefreshAt: null | string;
-    };
-    UpdatePreferencesRequestDto: {
-      theme: string;
-      accentColor: string;
-      rowDensity: string;
-    };
-    UserPreferencesDto: {
-      theme: string;
-      accentColor: string;
-      rowDensity: string;
-    };
-    WorkOrderBucketResponseDto: {
-      snapshotId: string;
-      workOrders: components["schemas"]["WorkOrderSummaryDto"][];
-    };
-    WorkOrderCandidateResponseDto: {
-      snapshotId: string;
-      candidates: components["schemas"]["WorkOrderSummaryDto"][];
-      isTruncated: boolean;
-    };
-    WorkOrderMaterialLineDto: {
-      componentPart: string;
-      componentDescription: null | string;
-      /** Format: double */
-      requiredQuantity: number | string;
-      /** Format: double */
-      issuedQuantity: number | string;
-      /** Format: double */
-      varianceQuantity: number | string;
-      /** Format: double */
-      issuedPercent: null | number | string;
-      issueStatus: null | string;
-      isManufactured: boolean;
-      isFullyIssued: boolean;
-    };
-    WorkOrderMaterialResponseDto: {
-      snapshotId: string;
-      woid: string;
-      kitting: components["schemas"]["KittingSummaryDto"];
-      lines: components["schemas"]["WorkOrderMaterialLineDto"][];
-    };
-    WorkOrderSummaryDto: {
-      partNumber: string;
-      woid: string;
-      status: string;
-      /** Format: double */
-      orderedQuantity: number | string;
-      /** Format: double */
-      completedQuantity: number | string;
-      /** Format: double */
-      openQuantity: number | string;
-      /** Format: date */
-      releaseDate: null | string;
-      /** Format: date */
-      dueDate: null | string;
-      salesOrder: null | string;
-      kitting: components["schemas"]["KittingSummaryDto"];
-    };
-    WorkspaceAssignmentDto: {
-      /** Format: uuid */
-      assignmentId: string;
-      displayName: null | string;
-      site: string;
-      productLineFrom: null | string;
-      productLineTo: null | string;
-      parentParts: string[];
-      isTemporary: boolean;
-      /** Format: date */
-      coverageEndsOn: null | string;
-      isEnabled: boolean;
-      /** Format: int32 */
-      sortOrder: number | string;
-    };
-    WorkspaceListResponseDto: {
-      workspaces: components["schemas"]["WorkspaceAssignmentDto"][];
-      configurationWarning: null | string;
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
-
 export type $defs = Record<string, never>;
-
-export type external = Record<string, never>;
-
 export interface operations {
-
-  /** Returns liveness status of the backend process. */
-  GetHealth: {
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["HealthResponse"];
+    GetHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-      };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
     };
-  };
-  /** Returns readiness status once initialization is complete. */
-  GetReady: {
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ReadyResponse"];
+    GetReady: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-      };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadyResponse"];
+                };
+            };
+        };
     };
-  };
-  /** Returns typed system status for the frontend walking skeleton. */
-  GetSystemStatus: {
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SystemStatusResponse"];
+    GetSystemStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-      };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemStatusResponse"];
+                };
+            };
+        };
     };
-  };
-  /** Triggers a refresh cycle across all registered data sources and returns the resulting status. */
-  PostSystemRefresh: {
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SystemStatusResponse"];
+    PostSystemRefresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-      };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemStatusResponse"];
+                };
+            };
+        };
     };
-  };
-  /** Returns the saved workspace list and any nonfatal configuration warning. */
-  ListWorkspaces: {
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["WorkspaceListResponseDto"];
+    ListWorkspaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-      };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceListResponseDto"];
+                };
+            };
+        };
     };
-  };
-  /** Creates and persists a new workspace configuration. */
-  CreateWorkspace: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateWorkspaceRequestDto"];
-      };
+    CreateWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkspaceRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description Created */
-      201: {
-        content: {
-          "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+    ResetWorkspaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
-      };
     };
-  };
-  /** Removes all workspace configuration and returns to the empty startup state. */
-  ResetWorkspaces: {
-    responses: {
-      /** @description No Content */
-      204: {
-        content: never;
-      };
+    UpdateWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkspaceRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
     };
-  };
-  /** Updates and persists an existing workspace configuration. */
-  UpdateWorkspace: {
-    parameters: {
-      path: {
-        assignmentId: string;
-      };
+    DeleteWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
     };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateWorkspaceRequestDto"];
-      };
+    ArchiveWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+    RestoreWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
         };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
     };
-  };
-  /** Permanently deletes a workspace assignment from configuration. */
-  DeleteWorkspace: {
-    parameters: {
-      path: {
-        assignmentId: string;
-      };
+    ReorderWorkspaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderWorkspacesRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceListResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description No Content */
-      204: {
-        content: never;
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
+    GetPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-      };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferencesResponseDto"];
+                };
+            };
+        };
     };
-  };
-  /** Archives a workspace so it no longer appears as an active tab (isEnabled = false). */
-  ArchiveWorkspace: {
-    parameters: {
-      path: {
-        assignmentId: string;
-      };
+    UpdatePreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePreferencesRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferencesResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+    GetMpsDashboard: {
+        parameters: {
+            query?: {
+                dateBasis?: string;
+                horizonWeeks?: number | string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
         };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MpsDashboardResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
-      };
     };
-  };
-  /** Restores a previously archived workspace (isEnabled = true). */
-  RestoreWorkspace: {
-    parameters: {
-      path: {
-        assignmentId: string;
-      };
+    RefreshMpsDashboard: {
+        parameters: {
+            query?: {
+                dateBasis?: string;
+                horizonWeeks?: number | string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MpsDashboardResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["WorkspaceAssignmentDto"];
+    GetPartDetail: {
+        parameters: {
+            query?: {
+                partNumber?: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
         };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartDetailResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
-      };
     };
-  };
-  /** Persists a new tab order for the currently active (enabled) workspaces. */
-  ReorderWorkspaces: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ReorderWorkspacesRequestDto"];
-      };
+    GetBucketWorkOrders: {
+        parameters: {
+            query?: {
+                snapshotId?: string;
+                parentPart?: string;
+                bucketKind?: string;
+                weekLabel?: string;
+                dateBasis?: string;
+                horizonWeeks?: number | string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderBucketResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["WorkspaceListResponseDto"];
+    GetWorkOrderMaterialLines: {
+        parameters: {
+            query?: {
+                snapshotId?: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+                woid: string;
+            };
+            cookie?: never;
         };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderMaterialResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
-      };
     };
-  };
-  /** Returns the current user preferences and any nonfatal configuration warning. */
-  GetPreferences: {
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PreferencesResponseDto"];
+    GetWorkOrderCandidates: {
+        parameters: {
+            query?: {
+                snapshotId?: string;
+                immediateParentWoid?: string;
+                componentPart?: string;
+                targetDepth?: number | string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
         };
-      };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderCandidateResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
     };
-  };
-  /** Validates and persists updated user preferences. */
-  UpdatePreferences: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdatePreferencesRequestDto"];
-      };
+    GetBom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+                parentPart: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BomResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PreferencesResponseDto"];
+    GetComponentDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+                componentPart: string;
+            };
+            cookie?: never;
         };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComponentDetailResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
-      };
     };
-  };
-  /** Returns the projected MPS dashboard for a workspace, auto-loading from QAD on first access. */
-  GetMpsDashboard: {
-    parameters: {
-      query?: {
-        dateBasis?: string;
-        horizonWeeks?: number | string;
-      };
-      path: {
-        assignmentId: string;
-      };
+    GetApprovedVendors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+                componentPart: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovedVendorDto"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MpsDashboardResponseDto"];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Service Unavailable */
-      503: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-    };
-  };
-  /** Forces one reload of MPS source facts from QAD for the workspace and returns the projected dashboard. */
-  RefreshMpsDashboard: {
-    parameters: {
-      query?: {
-        dateBasis?: string;
-        horizonWeeks?: number | string;
-      };
-      path: {
-        assignmentId: string;
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["MpsDashboardResponseDto"];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Service Unavailable */
-      503: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-    };
-  };
-  /** Returns lazily-loaded Part Info for a workspace's selected MPS parent part. */
-  GetPartDetail: {
-    parameters: {
-      query?: {
-        partNumber?: string;
-      };
-      path: {
-        assignmentId: string;
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PartDetailResponseDto"];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Service Unavailable */
-      503: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-    };
-  };
-  /** Returns the eligible (Allocating/Frozen/Released) work orders for one MPS bucket. */
-  GetBucketWorkOrders: {
-    parameters: {
-      query?: {
-        snapshotId?: string;
-        parentPart?: string;
-        bucketKind?: string;
-        weekLabel?: string;
-        dateBasis?: string;
-        horizonWeeks?: number | string;
-      };
-      path: {
-        assignmentId: string;
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["WorkOrderBucketResponseDto"];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Service Unavailable */
-      503: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-    };
-  };
-  /** Returns lazily-loaded material/kitting lines and Kitting Summary for one work order. */
-  GetWorkOrderMaterialLines: {
-    parameters: {
-      query?: {
-        snapshotId?: string;
-      };
-      path: {
-        assignmentId: string;
-        woid: string;
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["WorkOrderMaterialResponseDto"];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Service Unavailable */
-      503: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-    };
-  };
-  /** Returns candidate subassembly work orders for a manufactured component, across all eligible A/F/R work orders regardless of Due Date. */
-  GetWorkOrderCandidates: {
-    parameters: {
-      query?: {
-        snapshotId?: string;
-        immediateParentWoid?: string;
-        componentPart?: string;
-        targetDepth?: number | string;
-      };
-      path: {
-        assignmentId: string;
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["WorkOrderCandidateResponseDto"];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Service Unavailable */
-      503: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-    };
-  };
-  /** Returns the scheduler-visible current-effective BOM for a workspace's selected MPS parent part, enriched with shared Site + Part inventory. */
-  GetBom: {
-    parameters: {
-      path: {
-        assignmentId: string;
-        parentPart: string;
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["BomResponseDto"];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Service Unavailable */
-      503: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-    };
-  };
-  /** Returns lazily-loaded Component Detail (master, selected-site planning, Standard Cost, QCTC, shared Site + Part inventory) for a workspace-selected component part. */
-  GetComponentDetail: {
-    parameters: {
-      path: {
-        assignmentId: string;
-        componentPart: string;
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ComponentDetailResponseDto"];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Service Unavailable */
-      503: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-    };
-  };
-  /** Returns the lazily-loaded Approved Vendor List (AVL) for a workspace-selected component part. */
-  GetApprovedVendors: {
-    parameters: {
-      path: {
-        assignmentId: string;
-        componentPart: string;
-      };
-    };
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ApprovedVendorDto"][];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-      /** @description Service Unavailable */
-      503: {
-        content: {
-          "application/problem+json": components["schemas"]["ProblemDetails"];
-        };
-      };
-    };
-  };
 }
