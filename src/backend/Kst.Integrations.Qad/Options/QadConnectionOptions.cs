@@ -30,16 +30,21 @@ public sealed record QadConnectionOptions
     public int CommandTimeoutSeconds { get; init; } = 60;
 
     /// <summary>
-    /// Encrypts the connection. Defaults to true; combined with <see cref="TrustServerCertificate"/>
-    /// so on-prem SQL Server 2016 instances without a CA-signed certificate remain reachable.
+    /// Encrypts the connection. Defaults to false because the verified legacy QAD SQL endpoint does
+    /// not support encrypted client connections from existing supported clients. This is a legacy
+    /// infrastructure constraint, not the desired future state: when the QAD SQL infrastructure
+    /// later supports TLS, the target is Encrypt=true / TrustServerCertificate=false. See
+    /// docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md.
     /// </summary>
-    public bool Encrypt { get; init; } = true;
+    public bool Encrypt { get; init; } = false;
 
     /// <summary>
-    /// Trusts the server certificate without validating it against a CA. Only meaningful when
-    /// <see cref="Encrypt"/> is true; required for typical on-prem SQL Server 2016 deployments.
+    /// Trusts the server certificate without validating it against a CA. Defaults to false. With
+    /// the current Encrypt=false legacy transport, certificate trust is not applicable and must not
+    /// be used as a substitute for disabling encryption; it also stays false for the future
+    /// Encrypt=true target state.
     /// </summary>
-    public bool TrustServerCertificate { get; init; } = true;
+    public bool TrustServerCertificate { get; init; } = false;
 
     /// <summary>
     /// Maximum resolved parent-part parameters per MPS query batch. Not an end-user setting.

@@ -11,10 +11,12 @@ Current cross-cutting effort: **S0 — Security Foundation Integration — CURRE
 Policy Injection — **COMPLETE / ACCEPTED — 2026-08-21**; S0.2 — Security Baseline Discovery —
 **COMPLETE / ACCEPTED — 2026-08-24**; S0.3 — Existing-Tool Security Checks — **COMPLETE /
 ACCEPTED — 2026-08-24**; see `SECURITY.md` and `docs/security/`)
-Next: **S0.4 — Security Finding Disposition & Bounded Remediation** (NOT STARTED; approved
-remaining-S0 roadmap S0.4–S0.8 — see "Remaining S0 Work" below and
-docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md)
-Stage 9: **NOT STARTED** — blocked until S0 closeout
+Current: **S0.4 — Security Finding Disposition & Bounded Remediation — IN PROGRESS** (S0.4A — QAD
+SQL Transport Correction — **COMPLETE / ACCEPTED — 2026-08-25**; S0.4B — Tauri Shell Capability —
+**NEXT / NOT STARTED**; S0.4C — npm Development-Tooling Advisories — NOT STARTED; see
+docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md and "Remaining S0 Work" below)
+Next: S0.4B — Tauri Shell Capability (NEXT / NOT STARTED); S0.5–S0.8 — PLANNED / NOT STARTED
+Stage 9: **NOT STARTED** — blocked pending S0 closeout
 Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
 Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versioning-foundation) below)
@@ -29,8 +31,13 @@ are complete and owner-accepted, and S0.3 — Existing-Tool Security Checks is c
 owner-accepted (see `SECURITY.md`, `docs/security/`, and the S0 section of
 `KST-v2-Master-Project-Checklist.md`). The remaining S0 work is approved as checkpoints
 S0.4–S0.8 (see "Remaining S0 Work" below and
-docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md); S0.4 is the next checkpoint
-and has not started. Stage 9 begins only after S0 is formally closed and accepted.
+docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). The active checkpoint is
+**S0.4 — Security Finding Disposition & Bounded Remediation — IN PROGRESS**: S0.4A — QAD SQL
+Transport Correction is **COMPLETE / ACCEPTED — 2026-08-25** (accepted remediation evidence:
+`docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`; resolves `S0.2-F003` at the
+application-configuration level); S0.4B — Tauri Shell Capability is NEXT / NOT STARTED and S0.4C —
+npm Development-Tooling Advisories is NOT STARTED. S0.4 is not complete until all three
+sub-checkpoints are owner-accepted. Stage 9 begins only after S0 is formally closed and accepted.
 
 ## S0 — Security Foundation Integration
 
@@ -144,6 +151,30 @@ Key results:
 **Remaining S0 work:** approved as checkpoints S0.4–S0.8 in the remaining-S0 work plan (see
 "Remaining S0 Work" below).
 
+### S0.4 — Security Finding Disposition & Bounded Remediation
+
+**Status:** CURRENT / IN PROGRESS
+
+S0.4 addresses the open findings established by accepted S0.2/S0.3 evidence, organized as three
+bounded sub-checkpoints (full scope/boundaries in
+docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). It is **not complete**; it becomes
+complete only after all three sub-checkpoints are owner-accepted.
+
+- **S0.4A — QAD SQL Transport Correction: COMPLETE / ACCEPTED — 2026-08-25** (implemented and
+  verified 2026-08-24; owner-accepted 2026-08-25). Corrects the confirmed `S0.2-F003`
+  configuration mismatch — the effective QAD connection now establishes `Encrypt=false` (explicit)
+  with `TrustServerCertificate` not set to `true`, preserving Windows Integrated Authentication,
+  read-only / least-privilege access, and the internal-network restriction. **Resolves
+  `S0.2-F003` at the KST application-configuration level.** No `keytronicshortage`, Tauri-capability,
+  or npm-dependency change. Accepted remediation evidence (**not normative policy**):
+  `docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`. Regression coverage:
+  `QadConnectionStringFactoryTests`; full backend suite 660/660 passing at implementation. The
+  underlying unencrypted-transport constraint remains a **separate residual infrastructure issue —
+  not** `Accepted Risk`; formal IT/security risk acceptance and runtime/infrastructure
+  verification remain unresolved (S0.7/S0.8).
+- **S0.4B — Tauri Shell Capability: NEXT / NOT STARTED.**
+- **S0.4C — npm Development-Tooling Advisories: NOT STARTED.**
+
 ### Remaining S0 Work — Approved Roadmap (S0.4–S0.8)
 
 **Status:** Approved Planning Baseline — 2026-08-24 (active planning / Tier 4; not normative
@@ -154,7 +185,7 @@ accepted S0.2/S0.3 evidence:
 
 | Checkpoint | Name | Status |
 |---|---|---|
-| S0.4 | Security Finding Disposition & Bounded Remediation | **NEXT / NOT STARTED** |
+| S0.4 | Security Finding Disposition & Bounded Remediation | **CURRENT / IN PROGRESS** (S0.4A COMPLETE / ACCEPTED — 2026-08-25; S0.4B NEXT / NOT STARTED; S0.4C NOT STARTED) |
 | S0.5 | Security Regression & Architecture Checks | PLANNED / NOT STARTED |
 | S0.6 | Security Tool Admission | PLANNED / NOT STARTED |
 | S0.7 | Runtime & Infrastructure Verification | PLANNED / NOT STARTED |
@@ -318,8 +349,12 @@ R0 overall: **COMPLETE / ACCEPTED — 2026-08-21.** Full detail:
 
 Stage 8, UI Navigation & Keyboard Ergonomics A, and R0 — Repository / Documentation
 Reconciliation are complete and accepted. The current effort is **S0 — Security Foundation
-Integration**: S0.1–S0.3 are complete and owner-accepted, and the remaining work is approved
-as checkpoints S0.4–S0.8. The next authorized checkpoint is **S0.4 — Security Finding
-Disposition & Bounded Remediation** (NOT STARTED — see "Remaining S0 Work" above and
+Integration**: S0.1–S0.3 are complete and owner-accepted. The active checkpoint is **S0.4 —
+Security Finding Disposition & Bounded Remediation (IN PROGRESS)**: S0.4A — QAD SQL Transport
+Correction is **COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.2-F003` at the
+application-configuration level — see
+`docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`); the next sub-checkpoint is S0.4B — Tauri
+Shell Capability (**NEXT / NOT STARTED**); S0.4C — npm Development-Tooling Advisories is NOT
+STARTED; S0.5–S0.8 remain PLANNED / NOT STARTED (see "Remaining S0 Work" above and
 docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). Stage 9 — Immediate Shortages
 begins only after S0 is formally closed and accepted.
