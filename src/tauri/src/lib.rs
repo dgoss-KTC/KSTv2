@@ -12,6 +12,12 @@ const READINESS_ATTEMPTS: u32 = 30;
 const READINESS_INTERVAL: Duration = Duration::from_secs(1);
 const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
 
+/// Name of the KST backend sidecar, matching the sole entry declared in
+/// `tauri.conf.json` (`bundle.externalBin`: `binaries/Kst.Api`). This is the only
+/// external executable the KST Tauri host launches. See
+/// `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`.
+const BACKEND_SIDECAR_NAME: &str = "Kst.Api";
+
 type SharedBackendState = Arc<Mutex<BackendRuntimeState>>;
 
 /// Startup handshake written by the backend to stdout.
@@ -182,7 +188,7 @@ async fn launch_backend(app: AppHandle, state: SharedBackendState) {
     // Resolve the backend sidecar path.
     // In development: looks for Kst.Api.exe next to the Tauri binary.
     // In production: packaged as a Tauri external binary via tauri.conf.json.
-    let sidecar_result = app.shell().sidecar("Kst.Api");
+    let sidecar_result = app.shell().sidecar(BACKEND_SIDECAR_NAME);
     let sidecar = match sidecar_result {
         Ok(s) => s,
         Err(e) => {
@@ -640,6 +646,114 @@ async fn force_kill_process(pid: u32) -> bool {
             .await;
 
         status.map(|s| s.success()).unwrap_or(false)
+    }
+}
+
+#[cfg(test)]
+mod capability_guard {
+    //! Regression guard for `S0.2-F001` / S0.4B (see
+    //! `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`).
+    //!
+    //! Tauri 2 capabilities restrict webview (frontend) IPC only. KST's accepted
+    //! process lifecycle — the `Kst.Api` sidecar launch and the PID-scoped
+    //! powershell/taskkill shutdown handling — runs from this Rust host and is not
+    //! gated by the capability file. The webview invokes no Tauri shell-plugin
+    //! command, so the checked-in capability must grant no `shell:*` permission and
+    //! nothing beyond the core default set. The sidecar boundary itself is protected
+    //! by the `bundle.externalBin` declaration plus the constant the launch path
+    //! uses.
+
+    use super::BACKEND_SIDECAR_NAME;
+    use serde_json::Value;
+
+    fn read_manifest_file(name: &str) -> Value {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
+        let raw = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("failed to read {}: {e}", path.display()));
+        serde_json::from_str(&raw)
+            .unwrap_or_else(|e| panic!("failed to parse {} as JSON: {e}", path.display()))
+    }
+
+    /// The effective capability must grant exactly `core:default` to the `main`
+    /// window. This fails if `shell:allow-execute`, `shell:allow-open` (or any
+    /// `shell:*` permission, including scoped/object forms) is reintroduced, if a
+    /// new permission or scope entry is added, or if the window targeting drifts.
+    #[test]
+    fn default_capability_grants_core_default_only() {
+        let capability = read_manifest_file("capabilities/default.json");
+
+        let permissions = capability
+            .get("permissions")
+            .and_then(Value::as_array)
+            .expect("capability 'permissions' must be a JSON array");
+
+        let granted: Vec<String> = permissions
+            .iter()
+            .map(|entry| match entry {
+                Value::String(identifier) => identifier.clone(),
+                other => panic!(
+                    "capability entries must be plain permission identifiers; found scoped/object entry: {other}"
+                ),
+            })
+            .collect();
+
+        let shell_grants: Vec<&String> = granted
+            .iter()
+            .filter(|id| id.starts_with("shell:"))
+            .collect();
+        assert!(
+            shell_grants.is_empty(),
+            "capability grants webview shell IPC authority KST does not use: {shell_grants:?}"
+        );
+
+        assert_eq!(
+            granted,
+            vec!["core:default".to_string()],
+            "capability permission set drifted from the S0.4B accepted surface (core:default only); \
+             review against docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md before changing"
+        );
+
+        let windows = capability.get("windows").and_then(Value::as_array);
+        assert_eq!(
+            windows.and_then(|w| w.first()),
+            Some(&Value::String("main".into())),
+            "capability must remain scoped to the main window"
+        );
+        assert_eq!(
+            windows.map(|w| w.len()),
+            Some(1),
+            "capability must remain scoped to exactly one window"
+        );
+    }
+
+    /// The executable boundary must stay exactly the declared `Kst.Api` sidecar:
+    /// `bundle.externalBin` lists only `binaries/Kst.Api`, and the name used by the
+    /// Rust launch path matches it.
+    #[test]
+    fn sidecar_boundary_is_exactly_kst_api() {
+        let conf = read_manifest_file("tauri.conf.json");
+
+        let external_bin = conf
+            .pointer("/bundle/externalBin")
+            .and_then(Value::as_array)
+            .expect("tauri.conf.json bundle.externalBin must be a JSON array");
+
+        let entries: Vec<&str> = external_bin
+            .iter()
+            .map(|v| v.as_str().expect("externalBin entry must be a string"))
+            .collect();
+
+        assert_eq!(
+            entries,
+            vec!["binaries/Kst.Api"],
+            "bundle.externalBin must declare exactly the Kst.Api sidecar"
+        );
+
+        let declared = entries[0].rsplit('/').next().unwrap();
+        assert_eq!(
+            declared, BACKEND_SIDECAR_NAME,
+            "runtime sidecar name (BACKEND_SIDECAR_NAME) must match bundle.externalBin"
+        );
     }
 }
 

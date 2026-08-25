@@ -1,10 +1,8 @@
 {
   "identifier": "default",
-  "description": "Default Tauri app capabilities",
+  "description": "Default Tauri app capabilities: core IPC only. No Tauri shell-plugin permission is granted to the webview; KST's process lifecycle (Kst.Api sidecar launch and PID-scoped shutdown handling) runs from the Rust host, outside the webview IPC surface (see docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md).",
   "windows": ["main"],
   "permissions": [
-    "core:default",
-    "shell:allow-execute",
-    "shell:allow-open"
+    "core:default"
   ]
 }

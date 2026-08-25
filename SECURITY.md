@@ -69,8 +69,11 @@ At minimum, do not silently:
   Bounded Remediation is **in progress**: S0.4A — QAD SQL Transport Correction is **COMPLETE /
   ACCEPTED — 2026-08-25** (resolves `S0.2-F003` at the KST application-configuration level) — see
   [docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md](docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md)
-  (**accepted remediation evidence**, not normative policy). S0.4B / S0.4C remain NOT STARTED.
-  Stage 9 is blocked pending S0 closeout.
+  (**accepted remediation evidence**, not normative policy). S0.4B — Tauri Shell Capability
+  Remediation is **COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.2-F001`) — see
+  [docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md](docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md)
+  (S0.4B remediation evidence, not normative policy). S0.4C — npm Development-Tooling Advisories
+  is NEXT / NOT STARTED. Stage 9 is blocked pending S0 closeout.
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is

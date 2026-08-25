@@ -13,9 +13,11 @@ Policy Injection — **COMPLETE / ACCEPTED — 2026-08-21**; S0.2 — Security B
 ACCEPTED — 2026-08-24**; see `SECURITY.md` and `docs/security/`)
 Current: **S0.4 — Security Finding Disposition & Bounded Remediation — IN PROGRESS** (S0.4A — QAD
 SQL Transport Correction — **COMPLETE / ACCEPTED — 2026-08-25**; S0.4B — Tauri Shell Capability —
-**NEXT / NOT STARTED**; S0.4C — npm Development-Tooling Advisories — NOT STARTED; see
-docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md and "Remaining S0 Work" below)
-Next: S0.4B — Tauri Shell Capability (NEXT / NOT STARTED); S0.5–S0.8 — PLANNED / NOT STARTED
+**COMPLETE / ACCEPTED — 2026-08-25**; S0.4C — npm Development-Tooling Advisories — NOT STARTED; see
+docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md,
+docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md and "Remaining S0 Work" below)
+Next: S0.4C — npm Development-Tooling Advisories (NEXT / NOT STARTED); S0.5–S0.8 — PLANNED / NOT
+STARTED
 Stage 9: **NOT STARTED** — blocked pending S0 closeout
 Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
@@ -35,8 +37,10 @@ docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). The active check
 **S0.4 — Security Finding Disposition & Bounded Remediation — IN PROGRESS**: S0.4A — QAD SQL
 Transport Correction is **COMPLETE / ACCEPTED — 2026-08-25** (accepted remediation evidence:
 `docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`; resolves `S0.2-F003` at the
-application-configuration level); S0.4B — Tauri Shell Capability is NEXT / NOT STARTED and S0.4C —
-npm Development-Tooling Advisories is NOT STARTED. S0.4 is not complete until all three
+application-configuration level); S0.4B — Tauri Shell Capability is **COMPLETE / ACCEPTED —
+2026-08-25** (resolves `S0.2-F001`; accepted remediation evidence:
+`docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`) and S0.4C — npm
+Development-Tooling Advisories is NEXT / NOT STARTED. S0.4 is not complete until all three
 sub-checkpoints are owner-accepted. Stage 9 begins only after S0 is formally closed and accepted.
 
 ## S0 — Security Foundation Integration
@@ -172,7 +176,17 @@ complete only after all three sub-checkpoints are owner-accepted.
   underlying unencrypted-transport constraint remains a **separate residual infrastructure issue —
   not** `Accepted Risk`; formal IT/security risk acceptance and runtime/infrastructure
   verification remain unresolved (S0.7/S0.8).
-- **S0.4B — Tauri Shell Capability: NEXT / NOT STARTED.**
+- **S0.4B — Tauri Shell Capability: COMPLETE / ACCEPTED — 2026-08-25** (implemented and
+  verified 2026-08-25, including owner-guided live sidecar lifecycle verification; owner-accepted
+  2026-08-25). **Resolves `S0.2-F001`:** the webview capability now grants exactly
+  `core:default` (the unused `shell:allow-execute` / `shell:allow-open` grants are removed; the
+  `Kst.Api` sidecar and the PID-scoped powershell/taskkill shutdown handling run from the Rust
+  host, outside the webview IPC surface). Regression coverage: `capability_guard` tests in
+  `src/tauri/src/lib.rs` (`cargo test` in `src/tauri`); mutation check confirmed
+  shell-permission reintroduction is caught. Accepted remediation evidence (**not normative
+  policy**): `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`. New finding:
+  `S0.4B-F001` (Informational — unused `@tauri-apps/plugin-shell` frontend dependency; removal
+  requires separate authorization).
 - **S0.4C — npm Development-Tooling Advisories: NOT STARTED.**
 
 ### Remaining S0 Work — Approved Roadmap (S0.4–S0.8)
@@ -185,7 +199,7 @@ accepted S0.2/S0.3 evidence:
 
 | Checkpoint | Name | Status |
 |---|---|---|
-| S0.4 | Security Finding Disposition & Bounded Remediation | **CURRENT / IN PROGRESS** (S0.4A COMPLETE / ACCEPTED — 2026-08-25; S0.4B NEXT / NOT STARTED; S0.4C NOT STARTED) |
+| S0.4 | Security Finding Disposition & Bounded Remediation | **CURRENT / IN PROGRESS** (S0.4A COMPLETE / ACCEPTED — 2026-08-25; S0.4B COMPLETE / ACCEPTED — 2026-08-25; S0.4C NEXT / NOT STARTED) |
 | S0.5 | Security Regression & Architecture Checks | PLANNED / NOT STARTED |
 | S0.6 | Security Tool Admission | PLANNED / NOT STARTED |
 | S0.7 | Runtime & Infrastructure Verification | PLANNED / NOT STARTED |
@@ -353,8 +367,10 @@ Integration**: S0.1–S0.3 are complete and owner-accepted. The active checkpoin
 Security Finding Disposition & Bounded Remediation (IN PROGRESS)**: S0.4A — QAD SQL Transport
 Correction is **COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.2-F003` at the
 application-configuration level — see
-`docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`); the next sub-checkpoint is S0.4B — Tauri
-Shell Capability (**NEXT / NOT STARTED**); S0.4C — npm Development-Tooling Advisories is NOT
-STARTED; S0.5–S0.8 remain PLANNED / NOT STARTED (see "Remaining S0 Work" above and
+`docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`); S0.4B — Tauri Shell Capability is
+**COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.2-F001`; accepted remediation evidence:
+`docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`); the next sub-checkpoint is S0.4C —
+npm Development-Tooling Advisories (**NEXT / NOT STARTED**); S0.5–S0.8 remain PLANNED / NOT
+STARTED (see "Remaining S0 Work" above and
 docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). Stage 9 — Immediate Shortages
 begins only after S0 is formally closed and accepted.
