@@ -18,8 +18,11 @@ Advisories — **COMPLETE / ACCEPTED — 2026-08-25**; see
 docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md,
 docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md,
 docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md and "Remaining S0 Work" below)
-Next: S0.5 — Security Regression & Architecture Checks (NEXT / NOT STARTED); S0.6–S0.8 — PLANNED /
-NOT STARTED
+Current: **S0.5 — Security Regression & Architecture Checks — COMPLETE / ACCEPTED — 2026-08-26**
+(security regression / architecture checks — see
+docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md); Next: S0.6 — Security Tool
+Admission (NEXT / NOT STARTED); S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT
+STARTED); S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED)
 Stage 9: **NOT STARTED** — blocked pending S0 closeout
 Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
@@ -45,8 +48,11 @@ application-configuration level); S0.4B — Tauri Shell Capability is **COMPLETE
 Development-Tooling Advisories is **COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.3-F001`;
 accepted remediation evidence:
 `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`). All three S0.4 sub-checkpoints are
-owner-accepted; the next sub-checkpoint is S0.5 — Security Regression & Architecture Checks
-(NEXT / NOT STARTED). Stage 9 begins only after S0 is formally closed and accepted.
+owner-accepted. S0.5 — Security Regression & Architecture Checks is **COMPLETE / ACCEPTED —
+2026-08-26** (accepted implementation evidence:
+docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md); the next sub-checkpoint is
+S0.6 — Security Tool Admission (NEXT / NOT STARTED). Stage 9 begins only after S0 is formally
+closed and accepted.
 
 ## S0 — Security Foundation Integration
 
@@ -199,6 +205,31 @@ docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). All three sub-ch
   typecheck/lint/test/build verified (281/281 tests). Accepted remediation evidence (**not
   normative policy**): `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`.
 
+### S0.5 — Security Regression & Architecture Checks
+
+**Status:** COMPLETE / ACCEPTED — 2026-08-26 (implemented 2026-08-25; owner-accepted
+2026-08-26; starting commit `f784c835a507b9fd4a67c95c46ffef9ab308304c`)
+
+S0.5 added durable, repository-native regression protection for the accepted security
+properties identified in the accepted S0.3 evidence: loopback-only backend binding
+(`LoopbackBindingTests` — behavioral OS-level bind check), Tauri CSP `connect-src` loopback
+restriction (`csp_guard` tests in `src/tauri/src/lib.rs`), the accepted frontend CORS origin
+set plus `AllowAnyOrigin`/credentials absence (extended `CorsPolicyTests`), and
+application-emitted read-only QAD SQL (`QadReadOnlySqlTests`). S0.3-G004 (Tauri
+least-privilege) was confirmed already covered by the accepted S0.4B `capability_guard` tests;
+no new S0.4B-scope code was added. No production behavior change, no new dependency, no tool
+installation, no runtime/infrastructure verification (routed to S0.7), and no S0.6 tool
+admission. Informational findings: `S0.5-F001` (operator `ASPNETCORE_URLS` override is
+outside repository regression protection — carried to S0.7), `S0.5-F002` (read-only SQL check
+is lexical/structural; server-side grants remain S0.7). Final accepted gap dispositions:
+S0.3-G002 — Covered by S0.5 repository regression protection; S0.3-G003 — Covered by S0.5
+repository regression protection; S0.3-G004 — Covered by accepted S0.4B regression
+protection; S0.3-G005 — Partially Covered (application-emitted QAD SQL is
+repository-regression protected as read-only; actual server-side database grant enforcement
+remains S0.7); CORS secondary observation — Covered by S0.5 regression protection. Evidence
+(**not normative policy**):
+docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md.
+
 ### Remaining S0 Work — Approved Roadmap (S0.4–S0.8)
 
 **Status:** Approved Planning Baseline — 2026-08-24 (active planning / Tier 4; not normative
@@ -210,8 +241,8 @@ accepted S0.2/S0.3 evidence:
 | Checkpoint | Name | Status |
 |---|---|---|
 | S0.4 | Security Finding Disposition & Bounded Remediation | **COMPLETE / ACCEPTED — 2026-08-25** (S0.4A COMPLETE / ACCEPTED; S0.4B COMPLETE / ACCEPTED; S0.4C COMPLETE / ACCEPTED) |
-| S0.5 | Security Regression & Architecture Checks | NEXT / NOT STARTED |
-| S0.6 | Security Tool Admission | PLANNED / NOT STARTED |
+| S0.5 | Security Regression & Architecture Checks | **COMPLETE / ACCEPTED — 2026-08-26** (implemented 2026-08-25 — see docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md) |
+| S0.6 | Security Tool Admission | NEXT / NOT STARTED |
 | S0.7 | Runtime & Infrastructure Verification | PLANNED / NOT STARTED |
 | S0.8 | Independent Assurance & S0 Closeout | PLANNED / NOT STARTED |
 

@@ -757,6 +757,160 @@ mod capability_guard {
     }
 }
 
+#[cfg(test)]
+mod csp_guard {
+    //! Regression guard for `S0.3-G003` / S0.5 (see
+    //! `docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md`).
+    //!
+    //! The accepted desktop/webview network boundary (S0.2 baseline §10): the webview's
+    //! outbound connections (`connect-src`) are restricted to loopback
+    //! (`http://127.0.0.1:*`) plus `'self'` — the Kst.Api backend on loopback and the page's
+    //! own origin. No remote API origin may be reachable from the webview.
+    //!
+    //! These tests parse `tauri.conf.json`'s `app.security.csp` structurally (directive →
+    //! sources) and assert the *semantic* properties, not the exact CSP string, so harmless
+    //! reordering or unrelated directive changes do not break the security test. A passing
+    //! check proves the asserted CSP configuration only — not general webview exploit
+    //! resistance.
+
+    use serde_json::Value;
+
+    fn read_csp() -> String {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tauri.conf.json");
+        let raw = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("failed to read {}: {e}", path.display()));
+        let conf: Value = serde_json::from_str(&raw)
+            .unwrap_or_else(|e| panic!("failed to parse {} as JSON: {e}", path.display()));
+        conf.pointer("/app/security/csp")
+            .and_then(Value::as_str)
+            .expect("tauri.conf.json app.security.csp must be a CSP string")
+            .to_string()
+    }
+
+    /// Parse a CSP policy into ordered (directive, sources) pairs.
+    fn parse_csp(csp: &str) -> Vec<(&str, Vec<String>)> {
+        csp.split(';')
+            .filter_map(|part| {
+                let part = part.trim();
+                if part.is_empty() {
+                    return None;
+                }
+                let mut tokens = part.split_whitespace();
+                let directive = tokens.next()?;
+                Some((directive, tokens.map(str::to_string).collect()))
+            })
+            .collect()
+    }
+
+    fn sources<'a>(directives: &'a [(&str, Vec<String>)], name: &str) -> Option<&'a [String]> {
+        directives
+            .iter()
+            .find(|(directive, _)| *directive == name)
+            .map(|(_, sources)| sources.as_slice())
+    }
+
+    /// An accepted `connect-src` source is either `'self'` or an http(s) origin whose host is
+    /// exactly `127.0.0.1` (any port, including a port wildcard). Anything else — a bare `*`,
+    /// `localhost`, a LAN address, or any remote host — is a broadening of the accepted
+    /// webview→backend boundary.
+    fn is_accepted_connect_source(source: &str) -> bool {
+        if source == "'self'" {
+            return true;
+        }
+
+        let (scheme, rest) = match source.split_once("://") {
+            Some((scheme, rest)) => (scheme, rest),
+            None => return false,
+        };
+        if scheme != "http" && scheme != "https" {
+            return false;
+        }
+
+        // rest is `host[:port]`; the host token must be exactly 127.0.0.1. (The accepted
+        // architecture uses IPv4 loopback; the backend binds 127.0.0.1, so no IPv6 form is
+        // required or accepted here.)
+        let host = rest.split(':').next().unwrap_or("");
+        host == "127.0.0.1"
+    }
+
+    #[test]
+    fn csp_connect_src_is_restricted_to_loopback_and_self() {
+        let csp = read_csp();
+        let directives = parse_csp(&csp);
+        let connect = sources(&directives, "connect-src").expect(
+            "CSP must define an explicit connect-src — the webview→backend network boundary",
+        );
+
+        assert!(
+            !connect.is_empty(),
+            "connect-src must not be empty (the webview must be able to reach the loopback backend)"
+        );
+
+        for source in connect {
+            assert_ne!(
+                source, "*",
+                "SECURITY REGRESSION (S0.3-G003): connect-src contains the '*' wildcard — the webview could \
+                 connect to arbitrary remote hosts"
+            );
+            assert!(
+                is_accepted_connect_source(source),
+                "SECURITY REGRESSION (S0.3-G003): connect-src source {source:?} is not an accepted \
+                 local/loopback destination — the webview may only connect to 127.0.0.1 (any port) or \
+                 'self'. Review against docs/security/SECURITY_BASELINE.md §10 before any intentional change"
+            );
+        }
+    }
+
+    #[test]
+    fn csp_default_src_remains_self_only() {
+        let csp = read_csp();
+        let directives = parse_csp(&csp);
+        let default_sources = sources(&directives, "default-src").expect(
+            "CSP must define default-src — the baseline source policy for every fetch kind",
+        );
+
+        assert_eq!(
+            default_sources, ["'self'"],
+            "SECURITY REGRESSION (S0.3-G003): default-src drifted from exactly 'self' — the baseline \
+             source policy would allow non-self resources by default"
+        );
+    }
+
+    #[test]
+    fn csp_effective_script_sources_have_no_unsafe_or_remote_sources() {
+        let csp = read_csp();
+        let directives = parse_csp(&csp);
+        // Without an explicit script-src, the effective script policy is default-src.
+        let script_sources = sources(&directives, "script-src").unwrap_or_else(|| {
+            sources(&directives, "default-src").expect("CSP must define default-src or script-src")
+        });
+
+        for source in script_sources {
+            assert_ne!(
+                source, "'unsafe-inline'",
+                "SECURITY REGRESSION (S0.3-G003): the effective script policy includes 'unsafe-inline'"
+            );
+            assert_ne!(
+                source, "'unsafe-eval'",
+                "SECURITY REGRESSION (S0.3-G003): the effective script policy includes 'unsafe-eval'"
+            );
+            assert_ne!(
+                source, "*",
+                "SECURITY REGRESSION (S0.3-G003): the effective script policy includes the '*' wildcard"
+            );
+            // Quoted CSP keywords/hashes ('self', 'nonce-…', 'sha256-…') are allowed; any
+            // unquoted origin (scheme://…) would be a remote script host.
+            if !source.starts_with('\'') {
+                assert!(
+                    !source.contains("://"),
+                    "SECURITY REGRESSION (S0.3-G003): the effective script policy includes the remote \
+                     source {source:?} — scripts must remain same-origin"
+                );
+            }
+        }
+    }
+}
+
 /// Poll `{base_url}/ready` up to `attempts` times with `interval` between each.
 async fn poll_ready(base_url: &str, attempts: u32, interval: Duration) -> bool {
     let url = format!("{base_url}/ready");

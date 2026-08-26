@@ -75,9 +75,11 @@ At minimum, do not silently:
   (S0.4B remediation evidence, not normative policy). S0.4C — npm Development-Tooling Advisories
   is **COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.3-F001`) — see
   [docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md](docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md)
-  (accepted S0.4C remediation evidence, not normative policy). The next sub-checkpoint is S0.5 —
-  Security Regression & Architecture Checks (NEXT / NOT STARTED). Stage 9 is blocked pending S0
-  closeout.
+  (accepted S0.4C remediation evidence, not normative policy). S0.5 — Security Regression &
+  Architecture Checks is **COMPLETE / ACCEPTED — 2026-08-26** — see
+  [docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md](docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md)
+  (accepted S0.5 evidence, not normative policy). The next sub-checkpoint is S0.6 — Security
+  Tool Admission (NEXT / NOT STARTED). Stage 9 is blocked pending S0 closeout.
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is
