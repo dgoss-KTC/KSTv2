@@ -441,3 +441,28 @@ A task is complete only when:
 * required human review or acceptance has not been falsely claimed.
 
 Optimize for correctness and maintainability, not for appearing finished.
+
+### 20. Shell and Path Discipline
+
+KST development on Windows may use multiple shells, including PowerShell and Git Bash/MSYS.
+
+Agents must use the path syntax native to the shell that executes the command.
+
+- PowerShell / cmd.exe:
+  use Windows paths such as `C:\dev\kst_v2\docs\security`.
+- Git Bash / MSYS:
+  use POSIX-style paths such as `/c/dev/kst_v2/docs/security`.
+
+Do not pass Git Bash/MSYS paths such as `/c/...` directly to PowerShell commands unless the path is explicitly converted first.
+
+Do not pass Windows paths to Unix-oriented tools when that tool requires MSYS/POSIX translation.
+
+Before writing, moving, deleting, or creating repository files:
+1. identify the shell actually executing the command;
+2. resolve the target path in that shell's native syntax;
+3. verify the parent directory exists;
+4. after the operation, verify the intended file exists at the repository-relative path.
+
+If a path-related command fails repeatedly, do not iterate by guessing alternate syntax. Inspect the active shell and translate the path deliberately.
+
+Cross-shell invocation must make path conversion explicit.
