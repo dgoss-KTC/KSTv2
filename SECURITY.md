@@ -115,8 +115,16 @@ At minimum, do not silently:
   default behavior, duplicate/noisy representation, first-party representation, and
   license-metadata limitations; none blocks `S0.3-G008`, none is Accepted Risk). The complete Tauri
   Windows installer/application bundle remains **Unable to Verify / future packaged-release
-  verification boundary** (not Accepted Risk; does not block `G008`). The remaining S0.6 capability
-  review (G006 — dedicated SAST) is NOT STARTED. Stage 9 is blocked pending S0 closeout.
+  verification boundary** (not Accepted Risk; does not block `G008`). Capability Review 4 —
+  Dedicated Static Application Security Testing (SAST), gap `S0.3-G006`, is **RESEARCH COMPLETE /
+  AWAITING INDEPENDENT REVIEW / NO TOOL ADMITTED**: a neutral, evidence-backed research packet
+  comparing Semgrep CE (v1.175.0), CodeQL CLI (v2.26.4), and Microsoft DevSkim CLI (v1.0.90) was
+  produced — see
+  [docs/security/S0_6_SAST_ADMISSION_RESEARCH.md](docs/security/S0_6_SAST_ADMISSION_RESEARCH.md)
+  (neutral research packet; **not** a tool recommendation or admission decision). No SAST tool was
+  installed, executed, or admitted; `S0.3-G006` remains **UNDER CAPABILITY REVIEW / RESEARCH
+  COMPLETE / AWAITING INDEPENDENT REVIEW**, not resolved. S0.7 and S0.8 remain PLANNED / NOT
+  STARTED. Stage 9 is blocked pending S0 closeout.
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is
