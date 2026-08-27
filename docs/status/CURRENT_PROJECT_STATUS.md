@@ -23,8 +23,10 @@ Dependency Advisory Capability, gap `S0.3-G001` — **COMPLETE / ACCEPTED — 20
 cargo-audit 0.22.2 ADMITTED / ACCEPTED; cargo-deny 0.20.2 DEFERRED; S0.3-G001 — Covered /
 Resolved — see
 docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md; Capability Review 2 — Dedicated Secret
-Scanning, gap `S0.3-G007` — **OWNER DECISION RECORDED / GITLEAKS v8.30.0 ADMITTED FOR
-INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** — research at
+Scanning, gap `S0.3-G007` — **IMPLEMENTED / AWAITING PROJECT-OWNER ACCEPTANCE** (Gitleaks
+v8.30.0 installed, release-integrity and synthetic-canary verified, scanned current KST content
+(4 findings) and full Git history (8 findings), all rule `private-key`, confirmed documentation
+false positives; `S0.3-G007` not yet marked resolved pending owner acceptance) — research at
 docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md, owner decision and implementation
 evidence at docs/security/S0_6_SECRET_SCANNING_ADMISSION.md (Gitleaks v8.30.1, TruffleHog
 v3.97.1, detect-secrets v1.5.0 DEFERRED); remaining S0.6
@@ -435,8 +437,11 @@ Architecture Checks is **COMPLETE / ACCEPTED — 2026-08-26**; S0.6 — Security
 **IN PROGRESS** (Capability Review 1 — Rust dependency advisory, `S0.3-G001` —
 **COMPLETE / ACCEPTED — 2026-08-26**: cargo-audit 0.22.2 ADMITTED / ACCEPTED — see
 `docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md`; cargo-deny 0.20.2 DEFERRED; Capability
-Review 2 — dedicated secret scanning, `S0.3-G007` — **OWNER DECISION RECORDED / GITLEAKS
-v8.30.0 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** — see
+Review 2 — dedicated secret scanning, `S0.3-G007` — **IMPLEMENTED / AWAITING PROJECT-OWNER
+ACCEPTANCE** (Gitleaks v8.30.0 installed, release-integrity and synthetic-canary verified,
+scanned current KST content (4 findings) and full Git history (8 findings), all rule
+`private-key`, confirmed documentation false positives; `S0.3-G007` not yet marked resolved
+pending owner acceptance) — see
 `docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md` and
 `docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1,
 detect-secrets v1.5.0 DEFERRED; G006/G008 not started); S0.7–S0.8
