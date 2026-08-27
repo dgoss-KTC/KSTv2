@@ -1,6 +1,6 @@
-# KST v2 Master Project Checklist
+﻿# KST v2 Master Project Checklist
 
-**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection, S0.2 — Security Baseline Discovery, and S0.3 — Existing-Tool Security Checks are complete and owner-accepted (2026-08-24). The remaining S0 work is approved as checkpoints S0.4–S0.8 (Approved Planning Baseline — 2026-08-24 — see `docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md`); S0.4 — Security Finding Disposition & Bounded Remediation is COMPLETE / ACCEPTED — 2026-08-25: S0.4A — QAD SQL Transport Correction is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F003` at the application-configuration level — `docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`); S0.4B — Tauri Shell Capability is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F001` — `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`); S0.4C — npm Development-Tooling Advisories is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.3-F001` — `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`). S0.5 — Security Regression & Architecture Checks is COMPLETE / ACCEPTED — 2026-08-26 (implemented 2026-08-25 — repository regression protection for the accepted S0.3 security gaps — see `docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md`). S0.6 — Security Tool Admission is IN PROGRESS: Capability Review 1 (Rust Dependency Advisory Capability, gap `S0.3-G001`) is **COMPLETE / ACCEPTED — 2026-08-26** — cargo-audit 0.22.2 ADMITTED / ACCEPTED; S0.3-G001 — Covered / Resolved (`docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md`); cargo-deny 0.20.2 DEFERRED; Capability Review 2 (Dedicated Secret Scanning, gap `S0.3-G007`) is **COMPLETE / ACCEPTED — 2026-08-27** (Gitleaks v8.30.0 installed, release-integrity and synthetic-canary verified, scanned current KST content (4 findings) and full Git history (8 findings), all rule `private-key`, confirmed documentation false positives; `S0.3-G007` — Covered / Resolved) (`docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1, detect-secrets v1.5.0 DEFERRED); remaining capability reviews G006/G008 are NOT STARTED. Stage 9 begins only after S0 is closed and accepted.
+**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection, S0.2 — Security Baseline Discovery, and S0.3 — Existing-Tool Security Checks are complete and owner-accepted (2026-08-24). The remaining S0 work is approved as checkpoints S0.4–S0.8 (Approved Planning Baseline — 2026-08-24 — see `docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md`); S0.4 — Security Finding Disposition & Bounded Remediation is COMPLETE / ACCEPTED — 2026-08-25: S0.4A — QAD SQL Transport Correction is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F003` at the application-configuration level — `docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`); S0.4B — Tauri Shell Capability is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F001` — `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`); S0.4C — npm Development-Tooling Advisories is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.3-F001` — `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`). S0.5 — Security Regression & Architecture Checks is COMPLETE / ACCEPTED — 2026-08-26 (implemented 2026-08-25 — repository regression protection for the accepted S0.3 security gaps — see `docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md`). S0.6 — Security Tool Admission is IN PROGRESS: Capability Review 1 (Rust Dependency Advisory Capability, gap `S0.3-G001`) is **COMPLETE / ACCEPTED — 2026-08-26** — cargo-audit 0.22.2 ADMITTED / ACCEPTED; S0.3-G001 — Covered / Resolved (`docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md`); cargo-deny 0.20.2 DEFERRED; Capability Review 2 (Dedicated Secret Scanning, gap `S0.3-G007`) is **COMPLETE / ACCEPTED — 2026-08-27** (Gitleaks v8.30.0 installed, release-integrity and synthetic-canary verified, scanned current KST content (4 findings) and full Git history (8 findings), all rule `private-key`, confirmed documentation false positives; `S0.3-G007` — Covered / Resolved) (`docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1, detect-secrets v1.5.0 DEFERRED); Capability Review 3 (Software Bill of Materials, gap `S0.3-G008`) is **COMPLETE / ACCEPTED — 2026-08-27** (Anchore Syft v1.51.1 installed, release-integrity verified, run against KST build/repository evidence and a complementary packaged-artifact view; six informational findings `S0.6-F014`–`S0.6-F019` recorded, none blocking; complete Tauri Windows installer/application bundle Unable to Verify / future packaged-release verification boundary, not Accepted Risk) (`docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SBOM_ADMISSION.md`; Anchore Syft v1.51.1 — ADMITTED / IMPLEMENTED / ACCEPTED; Microsoft sbom-tool v4.1.5 and the CycloneDX ecosystem-native approach DEFERRED); `S0.3-G008` — Covered / Resolved; remaining capability review G006 is NOT STARTED. Stage 9 begins only after S0 is closed and accepted.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -1134,13 +1134,21 @@ are not renumbered.
       `docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md`;
       `docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1,
       detect-secrets v1.5.0 DEFERRED;
-      Capability Review 3: Software Bill of Materials (`S0.3-G008`) — **OWNER DECISION RECORDED /
-      ANCHORE SYFT v1.51.1 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** —
-      see `docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md` (neutral research packet, not a
+      Capability Review 3: Software Bill of Materials (`S0.3-G008`) — **COMPLETE /
+      ACCEPTED — 2026-08-27** (Anchore Syft v1.51.1 installed,
+      release-integrity verified, run against KST build/repository evidence (SPDX 2.3, 1,027
+      packages; CycloneDX 1.6, 1,026 components) and a complementary packaged-artifact view
+      (published `Kst.Api` sidecar, 37 NuGet packages recovered directly); six informational
+      findings `S0.6-F014`–`S0.6-F019` recorded, none blocking; complete Tauri Windows
+      installer/application bundle Unable to Verify / future packaged-release verification
+      boundary, not Accepted Risk) — see
+      `docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md` (neutral research packet, not a
       recommendation or admission decision); `docs/security/S0_6_SBOM_ADMISSION.md` (owner
-      decision; Microsoft sbom-tool v4.1.5 and the CycloneDX ecosystem-native approach —
+      decision and implementation evidence; Anchore Syft v1.51.1 — ADMITTED / IMPLEMENTED /
+      ACCEPTED; Microsoft sbom-tool v4.1.5 and the CycloneDX
+      ecosystem-native approach —
       cyclonedx-dotnet 6.2.0, cyclonedx-npm 6.0.1, cargo-cyclonedx 0.5.9 — DEFERRED);
-      `S0.3-G008` — UNDER IMPLEMENTATION;
+      `S0.3-G008` — Covered / Resolved;
       G006 NOT STARTED).
 - [ ] S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT STARTED).
 - [ ] S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED).
@@ -1876,13 +1884,21 @@ Some export work occurs inside feature phases, but this stage verifies the expor
         `docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md`;
         `docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1,
         detect-secrets v1.5.0 DEFERRED;
-        Capability Review 3: Software Bill of Materials (`S0.3-G008`) — **OWNER DECISION RECORDED /
-        ANCHORE SYFT v1.51.1 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** —
-        see `docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md` (neutral research packet, not a
+        Capability Review 3: Software Bill of Materials (`S0.3-G008`) — **COMPLETE /
+        ACCEPTED — 2026-08-27** (Anchore Syft v1.51.1 installed,
+        release-integrity verified, run against KST build/repository evidence (SPDX 2.3, 1,027
+        packages; CycloneDX 1.6, 1,026 components) and a complementary packaged-artifact view
+        (published `Kst.Api` sidecar, 37 NuGet packages recovered directly); six informational
+        findings `S0.6-F014`–`S0.6-F019` recorded, none blocking; complete Tauri Windows
+        installer/application bundle Unable to Verify / future packaged-release verification
+        boundary, not Accepted Risk) — see
+        `docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md` (neutral research packet, not a
         recommendation or admission decision); `docs/security/S0_6_SBOM_ADMISSION.md` (owner
-        decision; Microsoft sbom-tool v4.1.5 and the CycloneDX ecosystem-native approach —
+        decision and implementation evidence; Anchore Syft v1.51.1 — ADMITTED / IMPLEMENTED /
+        ACCEPTED; Microsoft sbom-tool v4.1.5 and the CycloneDX
+        ecosystem-native approach —
         cyclonedx-dotnet 6.2.0, cyclonedx-npm 6.0.1, cargo-cyclonedx 0.5.9 — DEFERRED);
-        `S0.3-G008` — UNDER IMPLEMENTATION;
+        `S0.3-G008` — Covered / Resolved;
         G006 NOT STARTED).
   - [ ] S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT STARTED).
   - [ ] S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED).

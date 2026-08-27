@@ -97,18 +97,26 @@ At minimum, do not silently:
   **S0.6-F002 through S0.6-F013 — Informational / Confirmed Documentation False Positives** (no
   suppression, no baseline, no Accepted Risk, no severity assignment).
   Gitleaks v8.30.1, TruffleHog v3.97.1, and detect-secrets v1.5.0 are **DEFERRED** (not rejected).
-  Capability Review 3 — Software Bill of Materials (gap `S0.3-G008`) is **OWNER DECISION RECORDED
-  / ANCHORE SYFT v1.51.1 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** —
-  research at
+  Capability Review 3 — Software Bill of Materials (gap `S0.3-G008`) is **COMPLETE / ACCEPTED —
+  2026-08-27**: Anchore Syft v1.51.1 was installed (a pre-existing binary was independently
+  verified byte-identical to a freshly verified official release rather than trusted),
+  release-integrity verified, and run against KST build/repository evidence (`dir:src`; SPDX 2.3
+  JSON, 1,027 packages; CycloneDX 1.6 JSON via the explicit `@1.6` selector, 1,026 components) and
+  a complementary packaged-artifact view (the published self-contained single-file `Kst.Api`
+  sidecar; 37 NuGet packages recovered directly from the executable) — research at
   [docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md](docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md)
   (neutral, evidence-backed research packet; **not** a tool recommendation or admission decision),
-  owner decision at
+  owner decision and implementation evidence at
   [docs/security/S0_6_SBOM_ADMISSION.md](docs/security/S0_6_SBOM_ADMISSION.md). **Anchore Syft
-  v1.51.1 — ADMITTED for installation and verification**; **Microsoft sbom-tool v4.1.5** and the
+  v1.51.1 — ADMITTED / IMPLEMENTED / ACCEPTED**; **Microsoft sbom-tool v4.1.5** and the
   **CycloneDX ecosystem-native approach** (cyclonedx-dotnet 6.2.0, cyclonedx-npm 6.0.1,
-  cargo-cyclonedx 0.5.9) are **DEFERRED** (not rejected); **S0.3-G008 — UNDER IMPLEMENTATION**.
-  The remaining S0.6 capability review (G006) is NOT STARTED. Stage 9 is blocked pending
-  S0 closeout.
+  cargo-cyclonedx 0.5.9) remain **DEFERRED** (not rejected); **`S0.3-G008` — Covered / Resolved**;
+  six informational findings `S0.6-F014` through `S0.6-F019` were recorded (cataloger/config
+  default behavior, duplicate/noisy representation, first-party representation, and
+  license-metadata limitations; none blocks `S0.3-G008`, none is Accepted Risk). The complete Tauri
+  Windows installer/application bundle remains **Unable to Verify / future packaged-release
+  verification boundary** (not Accepted Risk; does not block `G008`). The remaining S0.6 capability
+  review (G006 — dedicated SAST) is NOT STARTED. Stage 9 is blocked pending S0 closeout.
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is
