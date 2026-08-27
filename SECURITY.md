@@ -84,15 +84,17 @@ At minimum, do not silently:
   **cargo-deny 0.20.2 — DEFERRED**; **S0.3-G001 — Covered / Resolved** — see
   [docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md](docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md)
   (accepted admission + implementation evidence, **not** normative policy). Capability Review 2 —
-  Dedicated Secret Scanning (gap `S0.3-G007`) is **OWNER DECISION RECORDED / GITLEAKS v8.30.0
-  ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** — research at
+  Dedicated Secret Scanning (gap `S0.3-G007`) is **IMPLEMENTED / AWAITING PROJECT-OWNER
+  ACCEPTANCE**: **Gitleaks v8.30.0 — ADMITTED / INSTALLED / VERIFIED / AWAITING IMPLEMENTATION
+  ACCEPTANCE** — research at
   [docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md](docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md)
   (neutral, evidence-backed research packet; **not** a tool recommendation or admission decision),
   owner decision and implementation evidence at
   [docs/security/S0_6_SECRET_SCANNING_ADMISSION.md](docs/security/S0_6_SECRET_SCANNING_ADMISSION.md).
   Gitleaks v8.30.1, TruffleHog v3.97.1, and detect-secrets v1.5.0 are **DEFERRED** (not rejected).
-  The remaining S0.6 capability reviews (G006, G008) are NOT STARTED. Stage 9 is blocked pending
-  S0 closeout.
+  `S0.3-G007` is **Capability Implemented / Awaiting Project-Owner Acceptance** (not yet
+  resolved). The remaining S0.6 capability reviews (G006, G008) are NOT STARTED. Stage 9 is
+  blocked pending S0 closeout.
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is

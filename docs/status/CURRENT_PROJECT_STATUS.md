@@ -23,11 +23,12 @@ Dependency Advisory Capability, gap `S0.3-G001` — **COMPLETE / ACCEPTED — 20
 cargo-audit 0.22.2 ADMITTED / ACCEPTED; cargo-deny 0.20.2 DEFERRED; S0.3-G001 — Covered /
 Resolved — see
 docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md; Capability Review 2 — Dedicated Secret
-Scanning, gap `S0.3-G007` — **OWNER DECISION RECORDED / GITLEAKS v8.30.0 ADMITTED FOR
-INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** — research at
+Scanning, gap `S0.3-G007` — **IMPLEMENTED / AWAITING PROJECT-OWNER ACCEPTANCE** — Gitleaks
+v8.30.0 ADMITTED / INSTALLED / VERIFIED / AWAITING IMPLEMENTATION ACCEPTANCE — research at
 docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md, owner decision and implementation
 evidence at docs/security/S0_6_SECRET_SCANNING_ADMISSION.md (Gitleaks v8.30.1, TruffleHog
-v3.97.1, detect-secrets v1.5.0 DEFERRED); remaining S0.6
+v3.97.1, detect-secrets v1.5.0 DEFERRED; S0.3-G007 — Capability Implemented / Awaiting
+Acceptance); remaining S0.6
 capability reviews G006/G008 — NOT STARTED); S0.7 — Runtime & Infrastructure Verification
 (PLANNED / NOT STARTED); S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED)
 Stage 9: **NOT STARTED** — blocked pending S0 closeout
@@ -63,11 +64,12 @@ Admission is **IN PROGRESS**: Capability Review 1 (Rust Dependency Advisory Capa
 ACCEPTED (installed, verified, owner-accepted) per
 docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md (S0.3-G001 — Covered / Resolved;
 cargo-deny 0.20.2 DEFERRED); Capability Review 2 — Dedicated Secret Scanning (gap
-`S0.3-G007`) is **OWNER DECISION RECORDED / GITLEAKS v8.30.0 ADMITTED FOR INSTALLATION AND
-VERIFICATION / IMPLEMENTATION PENDING** — see docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md
+`S0.3-G007`) is **IMPLEMENTED / AWAITING PROJECT-OWNER ACCEPTANCE** — Gitleaks v8.30.0
+ADMITTED / INSTALLED / VERIFIED / AWAITING IMPLEMENTATION ACCEPTANCE — see docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md
 (neutral research packet, not a recommendation or admission decision) and
 docs/security/S0_6_SECRET_SCANNING_ADMISSION.md (owner decision and implementation evidence;
-Gitleaks v8.30.1, TruffleHog v3.97.1, detect-secrets v1.5.0 DEFERRED); the remaining S0.6 capability reviews (G006, G008) are
+Gitleaks v8.30.1, TruffleHog v3.97.1, detect-secrets v1.5.0 DEFERRED; S0.3-G007 — Capability
+Implemented / Awaiting Acceptance); the remaining S0.6 capability reviews (G006, G008) are
 NOT STARTED. Stage 9 begins only after S0 is formally
 closed and accepted.
 
@@ -259,7 +261,7 @@ accepted S0.2/S0.3 evidence:
 |---|---|---|
 | S0.4 | Security Finding Disposition & Bounded Remediation | **COMPLETE / ACCEPTED — 2026-08-25** (S0.4A COMPLETE / ACCEPTED; S0.4B COMPLETE / ACCEPTED; S0.4C COMPLETE / ACCEPTED) |
 | S0.5 | Security Regression & Architecture Checks | **COMPLETE / ACCEPTED — 2026-08-26** (implemented 2026-08-25 — see docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md) |
-| S0.6 | Security Tool Admission | **IN PROGRESS** — Capability Review 1 (Rust dependency advisory, `S0.3-G001`) **COMPLETE / ACCEPTED — 2026-08-26** — cargo-audit 0.22.2 ADMITTED / ACCEPTED; cargo-deny 0.20.2 DEFERRED — see docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md (S0.3-G001 — Covered / Resolved); Capability Review 2 (dedicated secret scanning, `S0.3-G007`) **OWNER DECISION RECORDED / GITLEAKS v8.30.0 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** — see docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md and docs/security/S0_6_SECRET_SCANNING_ADMISSION.md; Gitleaks v8.30.1/TruffleHog v3.97.1/detect-secrets v1.5.0 DEFERRED; G006/G008 not started |
+| S0.6 | Security Tool Admission | **IN PROGRESS** — Capability Review 1 (Rust dependency advisory, `S0.3-G001`) **COMPLETE / ACCEPTED — 2026-08-26** — cargo-audit 0.22.2 ADMITTED / ACCEPTED; cargo-deny 0.20.2 DEFERRED — see docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md (S0.3-G001 — Covered / Resolved); Capability Review 2 (dedicated secret scanning, `S0.3-G007`) **IMPLEMENTED / AWAITING PROJECT-OWNER ACCEPTANCE** — Gitleaks v8.30.0 ADMITTED / INSTALLED / VERIFIED / AWAITING IMPLEMENTATION ACCEPTANCE — see docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md and docs/security/S0_6_SECRET_SCANNING_ADMISSION.md; Gitleaks v8.30.1/TruffleHog v3.97.1/detect-secrets v1.5.0 DEFERRED; S0.3-G007 Capability Implemented / Awaiting Acceptance; G006/G008 not started |
 | S0.7 | Runtime & Infrastructure Verification | PLANNED / NOT STARTED |
 | S0.8 | Independent Assurance & S0 Closeout | PLANNED / NOT STARTED |
 
@@ -435,11 +437,13 @@ Architecture Checks is **COMPLETE / ACCEPTED — 2026-08-26**; S0.6 — Security
 **IN PROGRESS** (Capability Review 1 — Rust dependency advisory, `S0.3-G001` —
 **COMPLETE / ACCEPTED — 2026-08-26**: cargo-audit 0.22.2 ADMITTED / ACCEPTED — see
 `docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md`; cargo-deny 0.20.2 DEFERRED; Capability
-Review 2 — dedicated secret scanning, `S0.3-G007` — **OWNER DECISION RECORDED / GITLEAKS
-v8.30.0 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** — see
+Review 2 — dedicated secret scanning, `S0.3-G007` — **IMPLEMENTED / AWAITING PROJECT-OWNER
+ACCEPTANCE** — Gitleaks v8.30.0 ADMITTED / INSTALLED / VERIFIED / AWAITING IMPLEMENTATION
+ACCEPTANCE — see
 `docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md` and
 `docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1,
-detect-secrets v1.5.0 DEFERRED; G006/G008 not started); S0.7–S0.8
+detect-secrets v1.5.0 DEFERRED; S0.3-G007 Capability Implemented / Awaiting Acceptance;
+G006/G008 not started); S0.7–S0.8
 remain PLANNED / NOT
 STARTED (see "Remaining S0 Work" above and
 docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). Stage 9 — Immediate Shortages
