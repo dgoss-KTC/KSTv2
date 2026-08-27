@@ -18,10 +18,12 @@ Advisories — **COMPLETE / ACCEPTED — 2026-08-25**; see
 docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md,
 docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md,
 docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md and "Remaining S0 Work" below)
-Current: **S0.5 — Security Regression & Architecture Checks — COMPLETE / ACCEPTED — 2026-08-26**
-(security regression / architecture checks — see
-docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md); Next: S0.6 — Security Tool
-Admission (NEXT / NOT STARTED); S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT
+Current: **S0.6 — Security Tool Admission — IN PROGRESS** (Capability Review 1 — Rust
+Dependency Advisory Capability, gap `S0.3-G001` — **COMPLETE / ACCEPTED — 2026-08-26**:
+cargo-audit 0.22.2 ADMITTED / ACCEPTED; cargo-deny 0.20.2 DEFERRED; S0.3-G001 — Covered /
+Resolved — see
+docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md; remaining S0.6 capability reviews
+G006/G007/G008 — NOT STARTED); S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT
 STARTED); S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED)
 Stage 9: **NOT STARTED** — blocked pending S0 closeout
 Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
@@ -50,8 +52,13 @@ accepted remediation evidence:
 `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`). All three S0.4 sub-checkpoints are
 owner-accepted. S0.5 — Security Regression & Architecture Checks is **COMPLETE / ACCEPTED —
 2026-08-26** (accepted implementation evidence:
-docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md); the next sub-checkpoint is
-S0.6 — Security Tool Admission (NEXT / NOT STARTED). Stage 9 begins only after S0 is formally
+docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md). S0.6 — Security Tool
+Admission is **IN PROGRESS**: Capability Review 1 (Rust Dependency Advisory Capability, gap
+`S0.3-G001`) is **COMPLETE / ACCEPTED — 2026-08-26** — cargo-audit 0.22.2 ADMITTED /
+ACCEPTED (installed, verified, owner-accepted) per
+docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md (S0.3-G001 — Covered / Resolved;
+cargo-deny 0.20.2 DEFERRED); the remaining S0.6 capability reviews (G006, G007, G008) are
+NOT STARTED. Stage 9 begins only after S0 is formally
 closed and accepted.
 
 ## S0 — Security Foundation Integration
@@ -242,7 +249,7 @@ accepted S0.2/S0.3 evidence:
 |---|---|---|
 | S0.4 | Security Finding Disposition & Bounded Remediation | **COMPLETE / ACCEPTED — 2026-08-25** (S0.4A COMPLETE / ACCEPTED; S0.4B COMPLETE / ACCEPTED; S0.4C COMPLETE / ACCEPTED) |
 | S0.5 | Security Regression & Architecture Checks | **COMPLETE / ACCEPTED — 2026-08-26** (implemented 2026-08-25 — see docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md) |
-| S0.6 | Security Tool Admission | NEXT / NOT STARTED |
+| S0.6 | Security Tool Admission | **IN PROGRESS** — Capability Review 1 (Rust dependency advisory, `S0.3-G001`) **COMPLETE / ACCEPTED — 2026-08-26** — cargo-audit 0.22.2 ADMITTED / ACCEPTED; cargo-deny 0.20.2 DEFERRED — see docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md (S0.3-G001 — Covered / Resolved); G006/G007/G008 not started |
 | S0.7 | Runtime & Infrastructure Verification | PLANNED / NOT STARTED |
 | S0.8 | Independent Assurance & S0 Closeout | PLANNED / NOT STARTED |
 
@@ -413,8 +420,12 @@ application-configuration level — see
 `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`); S0.4C — npm
 Development-Tooling Advisories is **COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.3-F001`;
 accepted remediation evidence:
-`docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`). The next sub-checkpoint is S0.5 —
-Security Regression & Architecture Checks (**NEXT / NOT STARTED**); S0.6–S0.8 remain PLANNED / NOT
+`docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`). S0.5 — Security Regression &
+Architecture Checks is **COMPLETE / ACCEPTED — 2026-08-26**; S0.6 — Security Tool Admission is
+**IN PROGRESS** (Capability Review 1 — Rust dependency advisory, `S0.3-G001` —
+**COMPLETE / ACCEPTED — 2026-08-26**: cargo-audit 0.22.2 ADMITTED / ACCEPTED — see
+`docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md`; cargo-deny 0.20.2 DEFERRED); S0.7–S0.8
+remain PLANNED / NOT
 STARTED (see "Remaining S0 Work" above and
 docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). Stage 9 — Immediate Shortages
 begins only after S0 is formally closed and accepted.

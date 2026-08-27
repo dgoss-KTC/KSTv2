@@ -78,8 +78,14 @@ At minimum, do not silently:
   (accepted S0.4C remediation evidence, not normative policy). S0.5 — Security Regression &
   Architecture Checks is **COMPLETE / ACCEPTED — 2026-08-26** — see
   [docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md](docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md)
-  (accepted S0.5 evidence, not normative policy). The next sub-checkpoint is S0.6 — Security
-  Tool Admission (NEXT / NOT STARTED). Stage 9 is blocked pending S0 closeout.
+  (accepted S0.5 evidence, not normative policy). S0.6 — Security Tool Admission is **IN
+  PROGRESS**: Capability Review 1 — Rust Dependency Advisory Capability (gap `S0.3-G001`) —
+  **COMPLETE / ACCEPTED — 2026-08-26**: **cargo-audit 0.22.2 — ADMITTED / ACCEPTED**;
+  **cargo-deny 0.20.2 — DEFERRED**; **S0.3-G001 — Covered / Resolved** — see
+  [docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md](docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md)
+  (accepted admission + implementation evidence, **not** normative policy). The remaining S0.6
+  capability reviews (G006, G007, G008) are NOT STARTED. Stage 9 is blocked pending S0
+  closeout.
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is
