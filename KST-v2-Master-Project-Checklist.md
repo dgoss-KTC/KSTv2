@@ -1,6 +1,6 @@
-﻿# KST v2 Master Project Checklist
+# KST v2 Master Project Checklist
 
-**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection, S0.2 — Security Baseline Discovery, and S0.3 — Existing-Tool Security Checks are complete and owner-accepted (2026-08-24). The remaining S0 work is approved as checkpoints S0.4–S0.8 (Approved Planning Baseline — 2026-08-24 — see `docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md`); S0.4 — Security Finding Disposition & Bounded Remediation is COMPLETE / ACCEPTED — 2026-08-25: S0.4A — QAD SQL Transport Correction is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F003` at the application-configuration level — `docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`); S0.4B — Tauri Shell Capability is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F001` — `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`); S0.4C — npm Development-Tooling Advisories is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.3-F001` — `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`). S0.5 — Security Regression & Architecture Checks is COMPLETE / ACCEPTED — 2026-08-26 (implemented 2026-08-25 — repository regression protection for the accepted S0.3 security gaps — see `docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md`). S0.6 — Security Tool Admission is IN PROGRESS: Capability Review 1 (Rust Dependency Advisory Capability, gap `S0.3-G001`) is **COMPLETE / ACCEPTED — 2026-08-26** — cargo-audit 0.22.2 ADMITTED / ACCEPTED; S0.3-G001 — Covered / Resolved (`docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md`); cargo-deny 0.20.2 DEFERRED; Capability Review 2 (Dedicated Secret Scanning, gap `S0.3-G007`) is **COMPLETE / ACCEPTED — 2026-08-27** (Gitleaks v8.30.0 installed, release-integrity and synthetic-canary verified, scanned current KST content (4 findings) and full Git history (8 findings), all rule `private-key`, confirmed documentation false positives; `S0.3-G007` — Covered / Resolved) (`docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1, detect-secrets v1.5.0 DEFERRED); Capability Review 3 (Software Bill of Materials, gap `S0.3-G008`) is **COMPLETE / ACCEPTED — 2026-08-27** (Anchore Syft v1.51.1 installed, release-integrity verified, run against KST build/repository evidence and a complementary packaged-artifact view; six informational findings `S0.6-F014`–`S0.6-F019` recorded, none blocking; complete Tauri Windows installer/application bundle Unable to Verify / future packaged-release verification boundary, not Accepted Risk) (`docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SBOM_ADMISSION.md`; Anchore Syft v1.51.1 — ADMITTED / IMPLEMENTED / ACCEPTED; Microsoft sbom-tool v4.1.5 and the CycloneDX ecosystem-native approach DEFERRED); `S0.3-G008` — Covered / Resolved; Capability Review 4 (Dedicated Static Application Security Testing (SAST), gap `S0.3-G006`) is **OWNER DECISION RECORDED / DEVSKIM CLI v1.0.90 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** (owner reviewed the neutral research packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90 and admitted DevSkim CLI v1.0.90; Semgrep CE v1.175.0 and CodeQL CLI v2.26.4 DEFERRED, not rejected, pending organizational licensing/entitlement review) (`docs/security/S0_6_SAST_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SAST_ADMISSION.md`); `S0.3-G006` — UNDER IMPLEMENTATION. The cross-cutting Third-Party Software & Licensing Governance foundation is ENACTED / ACCEPTED — 2026-08-27 (`docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md`, integrated into `docs/security/DEPENDENCY_ADMISSION.md` and `AGENTS.md`; a governing prerequisite for future third-party dependency/tool admission, not itself an S0 checkpoint). Stage 9 begins only after S0 is closed and accepted.
+**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection, S0.2 — Security Baseline Discovery, and S0.3 — Existing-Tool Security Checks are complete and owner-accepted (2026-08-24). The remaining S0 work is approved as checkpoints S0.4–S0.8 (Approved Planning Baseline — 2026-08-24 — see `docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md`); S0.4 — Security Finding Disposition & Bounded Remediation is COMPLETE / ACCEPTED — 2026-08-25: S0.4A — QAD SQL Transport Correction is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F003` at the application-configuration level — `docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`); S0.4B — Tauri Shell Capability is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F001` — `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`); S0.4C — npm Development-Tooling Advisories is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.3-F001` — `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`). S0.5 — Security Regression & Architecture Checks is COMPLETE / ACCEPTED — 2026-08-26 (implemented 2026-08-25 — repository regression protection for the accepted S0.3 security gaps — see `docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md`). S0.6 — Security Tool Admission is COMPLETE / ACCEPTED — 2026-08-27: Capability Review 1 (Rust Dependency Advisory Capability, gap `S0.3-G001`) is **COMPLETE / ACCEPTED — 2026-08-26** — cargo-audit 0.22.2 ADMITTED / ACCEPTED; S0.3-G001 — Covered / Resolved (`docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md`); cargo-deny 0.20.2 DEFERRED; Capability Review 2 (Dedicated Secret Scanning, gap `S0.3-G007`) is **COMPLETE / ACCEPTED — 2026-08-27** (Gitleaks v8.30.0 installed, release-integrity and synthetic-canary verified, scanned current KST content (4 findings) and full Git history (8 findings), all rule `private-key`, confirmed documentation false positives; `S0.3-G007` — Covered / Resolved) (`docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1, detect-secrets v1.5.0 DEFERRED); Capability Review 3 (Software Bill of Materials, gap `S0.3-G008`) is **COMPLETE / ACCEPTED — 2026-08-27** (Anchore Syft v1.51.1 installed, release-integrity verified, run against KST build/repository evidence and a complementary packaged-artifact view; six informational findings `S0.6-F014`–`S0.6-F019` recorded, none blocking; complete Tauri Windows installer/application bundle Unable to Verify / future packaged-release verification boundary, not Accepted Risk) (`docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SBOM_ADMISSION.md`; Anchore Syft v1.51.1 — ADMITTED / IMPLEMENTED / ACCEPTED; Microsoft sbom-tool v4.1.5 and the CycloneDX ecosystem-native approach DEFERRED); `S0.3-G008` — Covered / Resolved; Capability Review 4 (Dedicated Static Application Security Testing (SAST), gap `S0.3-G006`) is **COMPLETE / ACCEPTED — 2026-08-27** (owner reviewed the neutral research packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90 and admitted DevSkim CLI v1.0.90, which was installed, self-verified, synthetically validated (C#, JavaScript/TypeScript, Rust, SQL), and run against the KST source tree — 50 findings across 3 bundled rules; `S0.6-F020` reviewed 2026-08-27 and reclassified to Informational / Framework-Local Origin / Confirmed DevSkim False Positive for plaintext-network interpretation; `S0.6-F021` — Informational / Known DevSkim Rule Limitation; neither Accepted Risk; Semgrep CE v1.175.0 and CodeQL CLI v2.26.4 DEFERRED, not rejected, pending organizational licensing/entitlement review) (`docs/security/S0_6_SAST_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SAST_ADMISSION.md`); `S0.3-G006` — Covered / Resolved; Microsoft DevSkim CLI v1.0.90 — ADMITTED / INSTALLED / VERIFIED / ACCEPTED. All four S0.6-assigned gaps (`S0.3-G001`, `S0.3-G006`, `S0.3-G007`, `S0.3-G008`) are Covered / Resolved. The cross-cutting Third-Party Software & Licensing Governance foundation is ENACTED / ACCEPTED — 2026-08-27 (`docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md`, integrated into `docs/security/DEPENDENCY_ADMISSION.md` and `AGENTS.md`; a governing prerequisite for future third-party dependency/tool admission, not itself an S0 checkpoint). S0.7 — Runtime & Infrastructure Verification and S0.8 — Independent Assurance & S0 Closeout remain NOT STARTED. Stage 9 begins only after S0 is closed and accepted (currently BLOCKED PENDING S0 CLOSEOUT).
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -1122,7 +1122,7 @@ are not renumbered.
   - [x] S0.4C — npm Development-Tooling Advisories (COMPLETE / ACCEPTED — 2026-08-25 — resolves
         `S0.3-F001` — see `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`, accepted).
 - [x] S0.5 — Security Regression & Architecture Checks (COMPLETE / ACCEPTED — 2026-08-26 — implemented 2026-08-25 — repository regression protection for loopback binding, Tauri CSP, accepted CORS origin set, and read-only QAD SQL; S0.3-G004 covered by accepted S0.4B tests — see `docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md`).
-- [ ] S0.6 — Security Tool Admission (IN PROGRESS — Capability Review 1: Rust Dependency
+- [x] S0.6 — Security Tool Admission (COMPLETE / ACCEPTED — 2026-08-27 — Capability Review 1: Rust Dependency
       Advisory Capability (`S0.3-G001`) — **COMPLETE / ACCEPTED — 2026-08-26** —
       cargo-audit 0.22.2 ADMITTED / ACCEPTED; cargo-deny 0.20.2 DEFERRED — see
       `docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md`; S0.3-G001 — Covered / Resolved;
@@ -1150,21 +1150,28 @@ are not renumbered.
       cyclonedx-dotnet 6.2.0, cyclonedx-npm 6.0.1, cargo-cyclonedx 0.5.9 — DEFERRED);
       `S0.3-G008` — Covered / Resolved;
       Capability Review 4: Dedicated Static Application Security Testing (SAST) (`S0.3-G006`) —
-      **OWNER DECISION RECORDED / DEVSKIM CLI v1.0.90 ADMITTED FOR INSTALLATION AND VERIFICATION /
-      IMPLEMENTATION PENDING** (owner reviewed the neutral research packet comparing Semgrep CE
-      v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90 and admitted DevSkim CLI
-      v1.0.90) — see `docs/security/S0_6_SAST_ADMISSION_RESEARCH.md`
+      **COMPLETE / ACCEPTED — 2026-08-27** (owner reviewed the neutral research
+      packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI
+      v1.0.90 and admitted DevSkim CLI v1.0.90, which was installed, self-verified,
+      synthetically validated (C#, JavaScript/TypeScript, Rust, SQL), and run against the KST
+      source tree (50 findings across 3 bundled rules; `S0.6-F020` reviewed 2026-08-27 and
+      reclassified to Informational / Framework-Local Origin / Confirmed DevSkim False
+      Positive for plaintext-network interpretation; `S0.6-F021` — Informational / Known
+      DevSkim Rule Limitation; neither Accepted Risk)) — see `docs/security/S0_6_SAST_ADMISSION_RESEARCH.md`
       (neutral research packet, not a recommendation or admission decision) and
-      `docs/security/S0_6_SAST_ADMISSION.md` (owner decision and implementation evidence); Semgrep
-      CE v1.175.0 and CodeQL CLI v2.26.4 DEFERRED, not rejected, pending organizational
-      licensing/entitlement review; `S0.3-G006` — UNDER IMPLEMENTATION).
+      `docs/security/S0_6_SAST_ADMISSION.md` (owner decision, full implementation evidence, and
+      2026-08-27 project-owner acceptance);
+      Semgrep CE v1.175.0 and CodeQL CLI v2.26.4 DEFERRED, not rejected, pending organizational
+      licensing/entitlement review; `S0.3-G006` — Covered / Resolved; Microsoft DevSkim CLI
+      v1.0.90 — ADMITTED / INSTALLED / VERIFIED / ACCEPTED. All four S0.6-assigned gaps
+      (`S0.3-G001`, `S0.3-G006`, `S0.3-G007`, `S0.3-G008`) are Covered / Resolved.
 - [x] Third-Party Software & Licensing Governance Foundation (**ENACTED / ACCEPTED — 2026-08-27** —
       see `docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md`; integrated into
       `docs/security/DEPENDENCY_ADMISSION.md` and `AGENTS.md` as a licensing/commercial-use
       admission gate supplementing, not replacing, existing security admission requirements; a
       governing prerequisite for future third-party dependency/tool admission, including the
-      eventual independent SAST candidate review under `S0.3-G006`; not itself an S0 checkpoint and
-      not an admission decision for any specific component; no SAST candidate selected or admitted).
+      SAST candidate admission under S0.3-G006 (since resolved via Capability Review 4); not
+      itself an S0 checkpoint or an admission decision for any specific component).
 - [ ] S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT STARTED).
 - [ ] S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED).
 
@@ -1887,7 +1894,7 @@ Some export work occurs inside feature phases, but this stage verifies the expor
     - [x] S0.4C — npm Development-Tooling Advisories (COMPLETE / ACCEPTED — 2026-08-25 — resolves
           `S0.3-F001` — see `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`, accepted).
   - [x] S0.5 — Security Regression & Architecture Checks (COMPLETE / ACCEPTED — 2026-08-26 — see `docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md`).
-  - [ ] S0.6 — Security Tool Admission (IN PROGRESS — Capability Review 1: Rust Dependency
+  - [x] S0.6 — Security Tool Admission (COMPLETE / ACCEPTED — 2026-08-27 — Capability Review 1: Rust Dependency
         Advisory Capability (`S0.3-G001`) — **COMPLETE / ACCEPTED — 2026-08-26** —
         cargo-audit 0.22.2 ADMITTED / ACCEPTED; cargo-deny 0.20.2 DEFERRED — see
         `docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md`; S0.3-G001 — Covered / Resolved;
@@ -1915,21 +1922,28 @@ Some export work occurs inside feature phases, but this stage verifies the expor
         cyclonedx-dotnet 6.2.0, cyclonedx-npm 6.0.1, cargo-cyclonedx 0.5.9 — DEFERRED);
         `S0.3-G008` — Covered / Resolved;
         Capability Review 4: Dedicated Static Application Security Testing (SAST) (`S0.3-G006`) —
-        **OWNER DECISION RECORDED / DEVSKIM CLI v1.0.90 ADMITTED FOR INSTALLATION AND VERIFICATION /
-        IMPLEMENTATION PENDING** (owner reviewed the neutral research packet comparing Semgrep CE
-        v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90 and admitted DevSkim CLI
-        v1.0.90) — see `docs/security/S0_6_SAST_ADMISSION_RESEARCH.md`
+        **COMPLETE / ACCEPTED — 2026-08-27** (owner reviewed the neutral research
+        packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI
+        v1.0.90 and admitted DevSkim CLI v1.0.90, which was installed, self-verified,
+        synthetically validated (C#, JavaScript/TypeScript, Rust, SQL), and run against the KST
+        source tree (50 findings across 3 bundled rules; `S0.6-F020` reviewed 2026-08-27 and
+        reclassified to Informational / Framework-Local Origin / Confirmed DevSkim False
+        Positive for plaintext-network interpretation; `S0.6-F021` — Informational / Known
+        DevSkim Rule Limitation; neither Accepted Risk)) — see `docs/security/S0_6_SAST_ADMISSION_RESEARCH.md`
         (neutral research packet, not a recommendation or admission decision) and
-        `docs/security/S0_6_SAST_ADMISSION.md` (owner decision and implementation evidence); Semgrep
-        CE v1.175.0 and CodeQL CLI v2.26.4 DEFERRED, not rejected, pending organizational
-        licensing/entitlement review; `S0.3-G006` — UNDER IMPLEMENTATION).
+        `docs/security/S0_6_SAST_ADMISSION.md` (owner decision, full implementation evidence, and
+        2026-08-27 project-owner acceptance);
+        Semgrep CE v1.175.0 and CodeQL CLI v2.26.4 DEFERRED, not rejected, pending organizational
+        licensing/entitlement review; `S0.3-G006` — Covered / Resolved; Microsoft DevSkim CLI
+        v1.0.90 — ADMITTED / INSTALLED / VERIFIED / ACCEPTED. All four S0.6-assigned gaps
+        (`S0.3-G001`, `S0.3-G006`, `S0.3-G007`, `S0.3-G008`) are Covered / Resolved.
   - [x] Third-Party Software & Licensing Governance Foundation (**ENACTED / ACCEPTED — 2026-08-27** —
         see `docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md`; integrated into
         `docs/security/DEPENDENCY_ADMISSION.md` and `AGENTS.md` as a licensing/commercial-use
         admission gate supplementing, not replacing, existing security admission requirements; a
         governing prerequisite for future third-party dependency/tool admission, including the
-        eventual independent SAST candidate review under `S0.3-G006`; not itself an S0 checkpoint and
-        not an admission decision for any specific component; no SAST candidate selected or admitted).
+        SAST candidate admission under S0.3-G006 (since resolved via Capability Review 4); not
+        itself an S0 checkpoint or an admission decision for any specific component).
   - [ ] S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT STARTED).
   - [ ] S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED).
 - [ ] Stage 9 — Immediate Shortages (NOT STARTED / BLOCKED PENDING S0 CLOSEOUT).

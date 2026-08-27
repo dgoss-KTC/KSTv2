@@ -86,8 +86,8 @@ At minimum, do not silently:
   (accepted S0.4C remediation evidence, not normative policy). S0.5 — Security Regression &
   Architecture Checks is **COMPLETE / ACCEPTED — 2026-08-26** — see
   [docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md](docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md)
-  (accepted S0.5 evidence, not normative policy). S0.6 — Security Tool Admission is **IN
-  PROGRESS**: Capability Review 1 — Rust Dependency Advisory Capability (gap `S0.3-G001`) —
+  (accepted S0.5 evidence, not normative policy). S0.6 — Security Tool Admission is **COMPLETE /
+  ACCEPTED — 2026-08-27**: Capability Review 1 — Rust Dependency Advisory Capability (gap `S0.3-G001`) —
   **COMPLETE / ACCEPTED — 2026-08-26**: **cargo-audit 0.22.2 — ADMITTED / ACCEPTED**;
   **cargo-deny 0.20.2 — DEFERRED**; **S0.3-G001 — Covered / Resolved** — see
   [docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md](docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md)
@@ -124,19 +124,30 @@ At minimum, do not silently:
   license-metadata limitations; none blocks `S0.3-G008`, none is Accepted Risk). The complete Tauri
   Windows installer/application bundle remains **Unable to Verify / future packaged-release
   verification boundary** (not Accepted Risk; does not block `G008`). Capability Review 4 —
-  Dedicated Static Application Security Testing (SAST), gap `S0.3-G006`, is **OWNER DECISION
-  RECORDED / DEVSKIM CLI v1.0.90 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION
-  PENDING**: the project owner independently reviewed the neutral research packet at
+  Dedicated Static Application Security Testing (SAST), gap `S0.3-G006`, is **COMPLETE / ACCEPTED —
+  2026-08-27**: the project owner independently reviewed the neutral
+  research packet at
   [docs/security/S0_6_SAST_ADMISSION_RESEARCH.md](docs/security/S0_6_SAST_ADMISSION_RESEARCH.md)
   (neutral research packet; **not** a tool recommendation or admission decision) comparing
   Semgrep CE (v1.175.0), CodeQL CLI (v2.26.4), and Microsoft DevSkim CLI (v1.0.90), and admitted
-  **Microsoft DevSkim CLI v1.0.90** for installation and verification — see
-  [docs/security/S0_6_SAST_ADMISSION.md](docs/security/S0_6_SAST_ADMISSION.md) (owner decision and,
-  as implementation proceeds, implementation evidence). **Semgrep CE v1.175.0 — DEFERRED** pending
+  **Microsoft DevSkim CLI v1.0.90**, which was installed, self-verified, synthetically
+  validated (C#, JavaScript/TypeScript, Rust, SQL), and run against the KST source tree (50
+  findings across 3 bundled rules; `S0.6-F020` reviewed 2026-08-27 and reclassified to
+  Informational / Framework-Local Origin / Confirmed DevSkim False Positive for
+  plaintext-network interpretation (Tauri's locked version is outside the affected range of the
+  reviewed advisory GHSA-7gmj-67g7-phm9; `http://tauri.localhost` is the expected Windows Tauri
+  custom-protocol WebView origin, not internet-routable HTTP; the backend remains loopback-only
+  independent of CORS); `S0.6-F021` remains Informational / Known DevSkim Rule Limitation; neither
+  is Accepted Risk) — see
+  [docs/security/S0_6_SAST_ADMISSION.md](docs/security/S0_6_SAST_ADMISSION.md) (owner decision,
+  full implementation evidence, and 2026-08-27 project-owner acceptance). **Microsoft DevSkim CLI
+  v1.0.90 — ADMITTED / INSTALLED / VERIFIED / ACCEPTED**; **Semgrep CE v1.175.0 — DEFERRED** pending
   organizational licensing review; **CodeQL CLI v2.26.4 — DEFERRED** pending confirmed applicable
   private-repository entitlement and organizational authorization (neither deferred candidate is
-  rejected). `S0.3-G006` is now **UNDER IMPLEMENTATION**, not resolved. S0.7 and S0.8 remain
-  PLANNED / NOT STARTED. Stage 9 is blocked pending S0 closeout.
+  rejected). `S0.3-G006` disposition is now **Covered / Resolved**. With all four S0.6-assigned
+  gaps now Covered / Resolved (`S0.3-G001`, `S0.3-G006`, `S0.3-G007`, `S0.3-G008`), **S0.6 —
+  Security Tool Admission is COMPLETE / ACCEPTED — 2026-08-27**. S0.7 and S0.8 remain PLANNED / NOT
+  STARTED. Stage 9 is blocked pending S0 closeout.
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is
