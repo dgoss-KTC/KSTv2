@@ -1134,7 +1134,14 @@ are not renumbered.
       `docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md`;
       `docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1,
       detect-secrets v1.5.0 DEFERRED;
-      G006/G008 NOT STARTED).
+      Capability Review 3: Software Bill of Materials (`S0.3-G008`) — **OWNER DECISION RECORDED /
+      ANCHORE SYFT v1.51.1 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** —
+      see `docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md` (neutral research packet, not a
+      recommendation or admission decision); `docs/security/S0_6_SBOM_ADMISSION.md` (owner
+      decision; Microsoft sbom-tool v4.1.5 and the CycloneDX ecosystem-native approach —
+      cyclonedx-dotnet 6.2.0, cyclonedx-npm 6.0.1, cargo-cyclonedx 0.5.9 — DEFERRED);
+      `S0.3-G008` — UNDER IMPLEMENTATION;
+      G006 NOT STARTED).
 - [ ] S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT STARTED).
 - [ ] S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED).
 
@@ -1869,7 +1876,14 @@ Some export work occurs inside feature phases, but this stage verifies the expor
         `docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md`;
         `docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1,
         detect-secrets v1.5.0 DEFERRED;
-        G006/G008 NOT STARTED).
+        Capability Review 3: Software Bill of Materials (`S0.3-G008`) — **OWNER DECISION RECORDED /
+        ANCHORE SYFT v1.51.1 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** —
+        see `docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md` (neutral research packet, not a
+        recommendation or admission decision); `docs/security/S0_6_SBOM_ADMISSION.md` (owner
+        decision; Microsoft sbom-tool v4.1.5 and the CycloneDX ecosystem-native approach —
+        cyclonedx-dotnet 6.2.0, cyclonedx-npm 6.0.1, cargo-cyclonedx 0.5.9 — DEFERRED);
+        `S0.3-G008` — UNDER IMPLEMENTATION;
+        G006 NOT STARTED).
   - [ ] S0.7 — Runtime & Infrastructure Verification (PLANNED / NOT STARTED).
   - [ ] S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED).
 - [ ] Stage 9 — Immediate Shortages (NOT STARTED / BLOCKED PENDING S0 CLOSEOUT).

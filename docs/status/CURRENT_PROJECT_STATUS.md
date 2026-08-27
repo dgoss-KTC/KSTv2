@@ -29,8 +29,13 @@ v8.30.0 installed, release-integrity and synthetic-canary verified, scanned curr
 false positives; `S0.3-G007` — Covered / Resolved) — research at
 docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md, owner decision and implementation
 evidence at docs/security/S0_6_SECRET_SCANNING_ADMISSION.md (Gitleaks v8.30.1, TruffleHog
-v3.97.1, detect-secrets v1.5.0 DEFERRED); remaining S0.6
-capability reviews G006/G008 — NOT STARTED); S0.7 — Runtime & Infrastructure Verification
+v3.97.1, detect-secrets v1.5.0 DEFERRED); Capability Review 3 — Software Bill of Materials
+(SBOM), gap `S0.3-G008` — **OWNER DECISION RECORDED / ANCHORE SYFT v1.51.1 ADMITTED /
+IMPLEMENTATION PENDING** — research at docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md (neutral
+research packet, not a recommendation or admission decision) and
+docs/security/S0_6_SBOM_ADMISSION.md (owner decision; Microsoft sbom-tool v4.1.5 and the
+CycloneDX ecosystem-native approach DEFERRED); `S0.3-G008` — UNDER IMPLEMENTATION; remaining S0.6
+capability review G006 — NOT STARTED); S0.7 — Runtime & Infrastructure Verification
 (PLANNED / NOT STARTED); S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED)
 Stage 9: **NOT STARTED** — blocked pending S0 closeout
 Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
@@ -69,8 +74,14 @@ cargo-deny 0.20.2 DEFERRED); Capability Review 2 — Dedicated Secret Scanning (
 VERIFICATION / IMPLEMENTATION PENDING** — see docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md
 (neutral research packet, not a recommendation or admission decision) and
 docs/security/S0_6_SECRET_SCANNING_ADMISSION.md (owner decision and implementation evidence;
-Gitleaks v8.30.1, TruffleHog v3.97.1, detect-secrets v1.5.0 DEFERRED); the remaining S0.6 capability reviews (G006, G008) are
-NOT STARTED. Stage 9 begins only after S0 is formally
+Gitleaks v8.30.1, TruffleHog v3.97.1, detect-secrets v1.5.0 DEFERRED); Capability Review 3 —
+Software Bill of Materials (SBOM), gap `S0.3-G008`, is **OWNER DECISION RECORDED / ANCHORE SYFT
+v1.51.1 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** — see
+docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md (neutral research packet, not a recommendation or
+admission decision) and docs/security/S0_6_SBOM_ADMISSION.md (owner decision; Microsoft sbom-tool
+v4.1.5 and the CycloneDX ecosystem-native approach — cyclonedx-dotnet 6.2.0, cyclonedx-npm 6.0.1,
+cargo-cyclonedx 0.5.9 — DEFERRED); `S0.3-G008` is UNDER IMPLEMENTATION; the remaining S0.6
+capability review (G006) is NOT STARTED. Stage 9 begins only after S0 is formally
 closed and accepted.
 
 ## S0 — Security Foundation Integration
