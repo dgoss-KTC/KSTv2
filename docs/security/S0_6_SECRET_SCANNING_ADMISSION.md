@@ -1,7 +1,7 @@
 # S0.6 — Security Tool Admission: Capability Review 2 — Dedicated Secret Scanning
 
 **S0.6 Capability Review 2 — Dedicated Secret Scanning**
-**Status: IMPLEMENTED / AWAITING PROJECT-OWNER ACCEPTANCE**
+**Status: COMPLETE / ACCEPTED — 2026-08-27**
 
 | Item | Value |
 |---|---|
@@ -9,8 +9,8 @@
 | Gap | `S0.3-G007` |
 | Tool | Gitleaks v8.30.0 |
 | Owner admission decision | ADMITTED for installation and verification — 2026-08-27 |
-| Implementation | COMPLETE — 2026-08-27 (see §7) |
-| Project-owner acceptance | NOT YET ACCEPTED — awaiting explicit owner review of the implementation evidence below |
+| Implementation | COMPLETE — 2026-08-27 (see §7; evidence commit `a9bb2a7`) |
+| Project-owner acceptance | **ACCEPTED — 2026-08-27** |
 | Overall S0.6 status | **IN PROGRESS** (this review closes one capability only; S0.6 as a whole is **not** complete) |
 
 This document is **evidence, not normative policy**. It records the S0.6 Capability Review 2
@@ -281,13 +281,18 @@ constitute a guarantee that no secret exists in any form the default rules do no
 
 ## 8. S0.3-G007 Disposition
 
-**Status: Capability Implemented / Awaiting Project-Owner Acceptance.** The dedicated
-secret-detection capability described above (Gitleaks v8.30.0, installed, release-integrity
-verified, synthetic-canary verified, and run against current KST content and full Git history)
-has been implemented and is recorded here as evidence. `S0.3-G007` is **not yet marked
-resolved** — that determination, and formal acceptance of Capability Review 2 as
-COMPLETE/ACCEPTED, requires explicit project-owner review of the evidence in §7 and is not
-self-certified by this implementation pass.
+**Status: Covered / Resolved — ACCEPTED 2026-08-27.** The dedicated secret-detection capability
+described above (Gitleaks v8.30.0, installed, release-integrity verified, synthetic-canary
+verified, and run against current KST content and full Git history — evidence commit `a9bb2a7`,
+`docs: record Gitleaks secret-scanning implementation evidence`) has been implemented, and the
+project owner has explicitly reviewed and accepted that evidence on 2026-08-27. `S0.3-G007` is
+now **Covered / Resolved**, and this Capability Review 2 is **COMPLETE / ACCEPTED — 2026-08-27**.
+
+All twelve associated findings (`S0.6-F002` through `S0.6-F013`) are confirmed as: all scanner
+matches were literal PEM-header sentinel strings intentionally present as documentation prose;
+review found no private-key body or credential material. No suppression, baseline,
+`.gitleaksignore`, custom scanner configuration, severity assignment, or Accepted Risk
+classification was created or applied.
 
 **Working principle:** the project owner has admitted one narrowly bounded security
 capability — Gitleaks v8.30.0 may be installed and used locally to detect likely secrets in
