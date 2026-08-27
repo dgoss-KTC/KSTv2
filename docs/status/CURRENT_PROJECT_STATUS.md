@@ -48,6 +48,14 @@ installed, executed, or admitted — see docs/security/S0_6_SAST_ADMISSION_RESEA
 `S0.3-G006` — UNDER CAPABILITY REVIEW / RESEARCH COMPLETE / AWAITING INDEPENDENT REVIEW; S0.7 —
 Runtime & Infrastructure Verification
 (PLANNED / NOT STARTED); S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED)
+Cross-cutting governance foundation: **Third-Party Software & Licensing Governance — ENACTED /
+ACCEPTED — 2026-08-27** — see
+docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md (governs license/commercial-use
+admission for third-party dependencies, developer tooling, and services; integrated into
+docs/security/DEPENDENCY_ADMISSION.md and AGENTS.md as a supplement to, not a replacement for,
+existing security admission requirements); now a governing prerequisite for future third-party
+dependency/tool admission, including any future SAST candidate admission under S0.3-G006. No SAST
+tool selected or admitted by this enactment; S0.6 remains IN PROGRESS.
 Stage 9: **NOT STARTED** — blocked pending S0 closeout
 Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
@@ -106,8 +114,14 @@ Resolved; Capability Review 4 — Dedicated Static Application Security Testing 
 research packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI
 v1.0.90 was produced (see docs/security/S0_6_SAST_ADMISSION_RESEARCH.md; not a recommendation or
 admission decision; no tool installed or executed); `S0.3-G006` is UNDER CAPABILITY REVIEW /
-RESEARCH COMPLETE / AWAITING INDEPENDENT REVIEW, not resolved. Stage 9 begins only after S0 is
-formally
+RESEARCH COMPLETE / AWAITING INDEPENDENT REVIEW, not resolved. The cross-cutting **Third-Party
+Software & Licensing Governance** foundation is **ENACTED / ACCEPTED — 2026-08-27** — see
+docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md, integrated into
+docs/security/DEPENDENCY_ADMISSION.md and AGENTS.md as a licensing/commercial-use admission gate
+supplementing (not replacing) existing security admission requirements; this is now a governing
+prerequisite for future third-party dependency/tool admission, including the eventual independent
+SAST candidate review under `S0.3-G006` — no SAST candidate was selected or admitted by this
+enactment. Stage 9 begins only after S0 is formally
 closed and accepted.
 
 ## S0 — Security Foundation Integration
@@ -301,6 +315,12 @@ accepted S0.2/S0.3 evidence:
 | S0.6 | Security Tool Admission | **IN PROGRESS** — Capability Review 1 (Rust dependency advisory, `S0.3-G001`) **COMPLETE / ACCEPTED — 2026-08-26** — cargo-audit 0.22.2 ADMITTED / ACCEPTED; cargo-deny 0.20.2 DEFERRED — see docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md (S0.3-G001 — Covered / Resolved); Capability Review 2 (dedicated secret scanning, `S0.3-G007`) **OWNER DECISION RECORDED / GITLEAKS v8.30.0 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** — see docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md and docs/security/S0_6_SECRET_SCANNING_ADMISSION.md; Gitleaks v8.30.1/TruffleHog v3.97.1/detect-secrets v1.5.0 DEFERRED; Capability Review 3 (SBOM, `S0.3-G008`) **COMPLETE / ACCEPTED — 2026-08-27** — Anchore Syft v1.51.1 ADMITTED / IMPLEMENTED / ACCEPTED — see docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md and docs/security/S0_6_SBOM_ADMISSION.md; Microsoft sbom-tool v4.1.5 and the CycloneDX ecosystem-native approach DEFERRED; six informational findings `S0.6-F014`–`S0.6-F019`, none blocking; complete Tauri Windows installer/application bundle Unable to Verify / future packaged-release verification boundary, not Accepted Risk; `S0.3-G008` — Covered / Resolved; Capability Review 4 (dedicated SAST, `S0.3-G006`) **RESEARCH COMPLETE / AWAITING INDEPENDENT REVIEW / NO TOOL ADMITTED** — neutral research packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90 — see docs/security/S0_6_SAST_ADMISSION_RESEARCH.md (not a recommendation or admission decision); no tool installed or executed; `S0.3-G006` — UNDER CAPABILITY REVIEW / RESEARCH COMPLETE / AWAITING INDEPENDENT REVIEW |
 | S0.7 | Runtime & Infrastructure Verification | PLANNED / NOT STARTED |
 | S0.8 | Independent Assurance & S0 Closeout | PLANNED / NOT STARTED |
+
+**Cross-cutting governance foundation:** Third-Party Software & Licensing Governance is **ENACTED /
+ACCEPTED — 2026-08-27** — see docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md
+(integrated into docs/security/DEPENDENCY_ADMISSION.md and AGENTS.md); a governing prerequisite for
+future third-party dependency/tool admission, not itself an S0 checkpoint and not an admission
+decision for any specific component.
 
 Full scope, boundaries, and the finding/gap-to-checkpoint mapping are in
 docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md (approved active planning; not
@@ -496,5 +516,10 @@ Microsoft DevSkim CLI v1.0.90; no tool installed or executed) — see
 COMPLETE / AWAITING INDEPENDENT REVIEW); S0.7–S0.8
 remain PLANNED / NOT
 STARTED (see "Remaining S0 Work" above and
-docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). Stage 9 — Immediate Shortages
+docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). The cross-cutting Third-Party
+Software & Licensing Governance foundation is **ENACTED / ACCEPTED — 2026-08-27** — see
+`docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md`, integrated into
+`docs/security/DEPENDENCY_ADMISSION.md` and `AGENTS.md`; it is a governing prerequisite for future
+third-party admission (including the eventual independent SAST review under `S0.3-G006`) and is
+not itself an S0 checkpoint or an admission decision for any component. Stage 9 — Immediate Shortages
 begins only after S0 is formally closed and accepted.

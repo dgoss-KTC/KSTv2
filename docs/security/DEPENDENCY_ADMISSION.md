@@ -4,7 +4,9 @@
 
 This policy defines admission rules for third-party dependencies, both application and
 development. See `docs/security/SECURITY_ASSURANCE_POLICY.md` for the cross-cutting principles this
-document elaborates.
+document elaborates, and `docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md` for the
+licensing and commercial-use admission gate this document incorporates (see "Licensing and
+Commercial-Use Gate" below).
 
 ## What Counts as a Dependency
 
@@ -69,11 +71,45 @@ As security tooling matures, admission evaluation should consider:
 - dependency-tree impact;
 - lockfile changes;
 - upstream security posture;
-- licensing where organizationally required.
+- licensing and commercial-use status (see "Licensing and Commercial-Use Gate" below).
 
 Not all of this evidence is currently automated. The policy exists before every enforcement
 mechanism exists — see `docs/security/SECURITY_ASSURANCE_POLICY.md` §"Intentionally Unresolved
 Policy Areas".
+
+## Licensing and Commercial-Use Gate
+
+Before a dependency reaches the **Accept** decision state below, its licensing and commercial-use
+status must also be established, per
+`docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md` (Enacted / Accepted — 2026-08-27).
+This licensing gate **supplements** the security/supply-chain evidence above; it does not replace
+it — a dependency must satisfy both dimensions to reach **Accept**.
+
+At minimum, admission evidence must record:
+
+- exact version being admitted;
+- authoritative license/terms source for that exact version (not merely a registry summary or
+  README badge);
+- intended-use classification (developer-only, build, runtime/distributed, or hosted
+  service — see the licensing policy §3);
+- commercial/business-use status under that license;
+- redistribution status, where applicable;
+- attribution/notice obligations, where applicable;
+- any copyleft, network-copyleft, custom/source-available, or proprietary-license trigger;
+- any private-repository or field-of-use restriction;
+- cost/seat/subscription status;
+- transitive-license considerations, where relevant (see the licensing policy §13).
+
+**Unresolved or ambiguous licensing/commercial terms are not treated as permission.** If any of the
+above cannot be established with authoritative evidence, admission does not proceed to **Accept**;
+it is held pending human review (see the licensing policy §9 for the normal permissive-license
+path and §10 for cases that require explicit human/organizational escalation, such as copyleft,
+proprietary terms, paid licenses, or missing/unclear licensing).
+
+**AI agents cannot accept legal or commercial risk on the company's behalf.** An agent may identify
+license/terms evidence, summarize stated restrictions, and flag ambiguity or cost exposure, but may
+not decide that ambiguous terms are acceptable, agree to paid/commercial terms, or authorize a
+purchase or subscription. See the licensing policy §17 for the full AI-authority boundary.
 
 ## Decision States
 
@@ -89,7 +125,9 @@ this policy.
 Direct dependencies alone are insufficient for security inventory. Lockfiles and resolved dependency
 trees are security-relevant artifacts and must be retained. KST currently uses at least three
 dependency ecosystems: NuGet, npm, and Cargo. Inventorying their actual resolved trees is an
-**S0.2 — Baseline Discovery** activity, not performed here.
+**S0.2 — Baseline Discovery** activity, not performed here. Transitive dependencies also carry
+licensing exposure distinct from their direct parent's license; see
+`docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md` §13.
 
 ## Security Advisory Handling
 

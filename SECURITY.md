@@ -21,6 +21,14 @@ AI coding agent is used. The authoritative platform-neutral rules are:
 - [docs/security/APPLICATION_SECURITY_PROFILE.md](docs/security/APPLICATION_SECURITY_PROFILE.md) —
   KST-specific declared security properties.
 
+Third-party software admission also has a licensing/commercial-use dimension distinct from
+security: see
+[docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md](docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md)
+(Enacted / Accepted — 2026-08-27), which `DEPENDENCY_ADMISSION.md` incorporates as an admission
+gate. Licensing/commercial governance is **not** itself a vulnerability class or a security-severity
+finding — a component can be technically secure yet unacceptable under its license or commercial
+terms, and vice versa; both dimensions must be satisfied independently.
+
 `docs/security/SECURITY_BASELINE.md` is the **observational** S0.2 security baseline (accepted —
 see "Current security-policy status" below). It records what was observed in the repository and
 development environment; it is not itself normative policy. Required properties remain defined by

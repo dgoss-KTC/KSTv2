@@ -222,7 +222,8 @@ Do not silently:
 * suppress a material security finding.
 
 New dependencies follow the dependency-admission process in
-`docs/security/DEPENDENCY_ADMISSION.md`.
+`docs/security/DEPENDENCY_ADMISSION.md`, which incorporates the licensing/commercial-use gate in
+`docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md` (see §21 below).
 
 Networking, credentials, database access, subprocess execution, filesystem access, external
 services, security-sensitive input handling, deployment behavior, and development-agent tooling are
@@ -466,3 +467,34 @@ Before writing, moving, deleting, or creating repository files:
 If a path-related command fails repeatedly, do not iterate by guessing alternate syntax. Inspect the active shell and translate the path deliberately.
 
 Cross-shell invocation must make path conversion explicit.
+
+### 21. Third-Party Software Licensing Governance
+
+No permanent third-party dependency, tool, or service may be introduced without known
+license/terms and commercial-use status. This supplements, and does not replace, the security-facing
+dependency-admission rules in §8 and `docs/security/DEPENDENCY_ADMISSION.md`. See
+`docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md` (Enacted / Accepted — 2026-08-27)
+for the full policy.
+
+Agents must surface:
+
+* paid/subscription/seat requirements;
+* private-repository or field-of-use restrictions;
+* copyleft, network-copyleft, custom/source-available, or proprietary licensing;
+* any ambiguous, missing, or conflicting licensing evidence.
+
+Agents cannot:
+
+* accept paid or commercial terms on the company's behalf;
+* accept legal or commercial risk on the company's behalf;
+* infer permission from public availability, source availability, package-registry publication,
+  GitHub hosting, free download, or "community" branding;
+* silently substitute a differently licensed tool or component for one that was requested or
+  previously admitted.
+
+Ambiguous or missing licensing requires STOP / human review — it is never treated as permission.
+
+A material change in a previously admitted component's version, license, commercial terms, or
+use/distribution model (e.g., developer-only use becoming runtime/distributed, or internal use
+becoming external/customer distribution) requires re-review under the licensing policy before the
+change is carried forward.
