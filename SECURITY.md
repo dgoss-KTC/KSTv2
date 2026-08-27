@@ -124,15 +124,19 @@ At minimum, do not silently:
   license-metadata limitations; none blocks `S0.3-G008`, none is Accepted Risk). The complete Tauri
   Windows installer/application bundle remains **Unable to Verify / future packaged-release
   verification boundary** (not Accepted Risk; does not block `G008`). Capability Review 4 —
-  Dedicated Static Application Security Testing (SAST), gap `S0.3-G006`, is **RESEARCH COMPLETE /
-  AWAITING INDEPENDENT REVIEW / NO TOOL ADMITTED**: a neutral, evidence-backed research packet
-  comparing Semgrep CE (v1.175.0), CodeQL CLI (v2.26.4), and Microsoft DevSkim CLI (v1.0.90) was
-  produced — see
+  Dedicated Static Application Security Testing (SAST), gap `S0.3-G006`, is **OWNER DECISION
+  RECORDED / DEVSKIM CLI v1.0.90 ADMITTED FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION
+  PENDING**: the project owner independently reviewed the neutral research packet at
   [docs/security/S0_6_SAST_ADMISSION_RESEARCH.md](docs/security/S0_6_SAST_ADMISSION_RESEARCH.md)
-  (neutral research packet; **not** a tool recommendation or admission decision). No SAST tool was
-  installed, executed, or admitted; `S0.3-G006` remains **UNDER CAPABILITY REVIEW / RESEARCH
-  COMPLETE / AWAITING INDEPENDENT REVIEW**, not resolved. S0.7 and S0.8 remain PLANNED / NOT
-  STARTED. Stage 9 is blocked pending S0 closeout.
+  (neutral research packet; **not** a tool recommendation or admission decision) comparing
+  Semgrep CE (v1.175.0), CodeQL CLI (v2.26.4), and Microsoft DevSkim CLI (v1.0.90), and admitted
+  **Microsoft DevSkim CLI v1.0.90** for installation and verification — see
+  [docs/security/S0_6_SAST_ADMISSION.md](docs/security/S0_6_SAST_ADMISSION.md) (owner decision and,
+  as implementation proceeds, implementation evidence). **Semgrep CE v1.175.0 — DEFERRED** pending
+  organizational licensing review; **CodeQL CLI v2.26.4 — DEFERRED** pending confirmed applicable
+  private-repository entitlement and organizational authorization (neither deferred candidate is
+  rejected). `S0.3-G006` is now **UNDER IMPLEMENTATION**, not resolved. S0.7 and S0.8 remain
+  PLANNED / NOT STARTED. Stage 9 is blocked pending S0 closeout.
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is

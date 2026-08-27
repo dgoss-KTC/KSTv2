@@ -42,10 +42,12 @@ ecosystem-native approach DEFERRED; six informational findings `S0.6-F014`–`S0
 blocking; complete Tauri Windows installer/application bundle Unable to Verify / future
 packaged-release verification boundary, not Accepted Risk); `S0.3-G008` — Covered / Resolved;
 Capability Review 4 — Dedicated Static Application Security Testing (SAST), gap `S0.3-G006` —
-**RESEARCH COMPLETE / AWAITING INDEPENDENT REVIEW / NO TOOL ADMITTED** — neutral research packet
-comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90; no tool
-installed, executed, or admitted — see docs/security/S0_6_SAST_ADMISSION_RESEARCH.md;
-`S0.3-G006` — UNDER CAPABILITY REVIEW / RESEARCH COMPLETE / AWAITING INDEPENDENT REVIEW; S0.7 —
+**OWNER DECISION RECORDED / DEVSKIM CLI v1.0.90 ADMITTED FOR INSTALLATION AND VERIFICATION /
+IMPLEMENTATION PENDING** — owner reviewed the neutral research packet comparing Semgrep CE
+v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90 and admitted DevSkim CLI v1.0.90;
+Semgrep CE v1.175.0 and CodeQL CLI v2.26.4 DEFERRED (not rejected) pending organizational
+licensing/entitlement review — see docs/security/S0_6_SAST_ADMISSION_RESEARCH.md and
+docs/security/S0_6_SAST_ADMISSION.md; `S0.3-G006` — UNDER IMPLEMENTATION; S0.7 —
 Runtime & Infrastructure Verification
 (PLANNED / NOT STARTED); S0.8 — Independent Assurance & S0 Closeout (PLANNED / NOT STARTED)
 Cross-cutting governance foundation: **Third-Party Software & Licensing Governance — ENACTED /
@@ -110,11 +112,14 @@ and the CycloneDX ecosystem-native approach — cyclonedx-dotnet
 installer/application bundle Unable to Verify / future packaged-release verification boundary, not
 Accepted Risk); `S0.3-G008` is Covered /
 Resolved; Capability Review 4 — Dedicated Static Application Security Testing (SAST), gap
-`S0.3-G006`, is **RESEARCH COMPLETE / AWAITING INDEPENDENT REVIEW / NO TOOL ADMITTED** — a neutral
-research packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI
-v1.0.90 was produced (see docs/security/S0_6_SAST_ADMISSION_RESEARCH.md; not a recommendation or
-admission decision; no tool installed or executed); `S0.3-G006` is UNDER CAPABILITY REVIEW /
-RESEARCH COMPLETE / AWAITING INDEPENDENT REVIEW, not resolved. The cross-cutting **Third-Party
+`S0.3-G006`, is **OWNER DECISION RECORDED / DEVSKIM CLI v1.0.90 ADMITTED FOR INSTALLATION AND
+VERIFICATION / IMPLEMENTATION PENDING** — the owner reviewed the neutral research packet comparing
+Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90 (see
+docs/security/S0_6_SAST_ADMISSION_RESEARCH.md; not a recommendation or admission decision) and
+admitted Microsoft DevSkim CLI v1.0.90 for installation and verification (see
+docs/security/S0_6_SAST_ADMISSION.md); Semgrep CE v1.175.0 and CodeQL CLI v2.26.4 DEFERRED (not
+rejected) pending organizational licensing/entitlement review; `S0.3-G006` is UNDER
+IMPLEMENTATION, not resolved. The cross-cutting **Third-Party
 Software & Licensing Governance** foundation is **ENACTED / ACCEPTED — 2026-08-27** — see
 docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md, integrated into
 docs/security/DEPENDENCY_ADMISSION.md and AGENTS.md as a licensing/commercial-use admission gate
@@ -509,11 +514,12 @@ packaged-release verification boundary, not Accepted Risk) — see
 `docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md` and
 `docs/security/S0_6_SBOM_ADMISSION.md`; Anchore Syft v1.51.1 — ADMITTED / IMPLEMENTED /
 ACCEPTED; `S0.3-G008` — Covered / Resolved; Capability Review 4 — Dedicated Static Application
-Security Testing (SAST), `S0.3-G006` — **RESEARCH COMPLETE / AWAITING INDEPENDENT REVIEW / NO
-TOOL ADMITTED** (neutral research packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and
-Microsoft DevSkim CLI v1.0.90; no tool installed or executed) — see
-`docs/security/S0_6_SAST_ADMISSION_RESEARCH.md`; `S0.3-G006` — UNDER CAPABILITY REVIEW / RESEARCH
-COMPLETE / AWAITING INDEPENDENT REVIEW); S0.7–S0.8
+Security Testing (SAST), `S0.3-G006` — **OWNER DECISION RECORDED / DEVSKIM CLI v1.0.90 ADMITTED
+FOR INSTALLATION AND VERIFICATION / IMPLEMENTATION PENDING** (owner reviewed the neutral research
+packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90 and
+admitted DevSkim CLI v1.0.90; Semgrep CE v1.175.0 and CodeQL CLI v2.26.4 DEFERRED, not rejected) —
+see `docs/security/S0_6_SAST_ADMISSION_RESEARCH.md` and `docs/security/S0_6_SAST_ADMISSION.md`;
+`S0.3-G006` — UNDER IMPLEMENTATION); S0.7–S0.8
 remain PLANNED / NOT
 STARTED (see "Remaining S0 Work" above and
 docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). The cross-cutting Third-Party
