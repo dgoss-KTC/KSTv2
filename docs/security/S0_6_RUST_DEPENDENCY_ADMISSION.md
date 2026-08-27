@@ -11,6 +11,7 @@
 | Implementation | COMPLETE |
 | Project-owner acceptance | ACCEPTED — 2026-08-26 |
 | Overall S0.6 status | **IN PROGRESS** (this review closes one capability only; S0.6 as a whole is **not** complete) |
+| Evidence recovery | 2026-08-27 — Appendix A restores the pre-admission analysis; no tool decision or finding disposition was changed |
 
 This document is **evidence, not normative policy**. It records the S0.6 Capability Review 1
 admission, implementation, verification, and owner acceptance for the Rust dependency advisory
@@ -301,3 +302,190 @@ documents) remains unchanged.
 | Stage 9 | NOT STARTED / BLOCKED PENDING S0 CLOSEOUT |
 
 Capability Review 2 was **not** selected or begun as part of this finalization.
+
+---
+
+## Appendix A — Recovered Admission Analysis (Evidence Recovery)
+
+**Evidence recovery date: 2026-08-27.** Original analysis date: 2026-08-26 (Capability
+Review 1 evaluation). Owner admission decision date: 2026-08-26 (unchanged — recorded in
+§1, §4.1, and §13).
+
+> **Evidence recovery note — 2026-08-27:**
+> The original admission-analysis artifact was reported during Capability Review 1 but was not
+> successfully persisted to the repository. It was discovered missing during finalization; no
+> copy existed in Git history, stashes, or other local paths found by the finalization agent.
+> The finalization agent reconstructed this document from the later owner-authorized
+> finalization instructions. This appendix was reviewed after finalization and supplemented
+> from the accepted Capability Review 1 completion evidence to preserve the original
+> admission reasoning. No tool decision or finding disposition was changed by this recovery.
+>
+> The prose below is restored accepted analysis, **not** newly performed research, and it is
+> not claimed to be byte-identical to the lost original file; it preserves the accepted
+> substantive admission analysis. The recovery commit changed only this documentation file.
+
+Sections 1–15 of this document record the post-admission evidence (installation identity,
+implementation, verification, dispositions, acceptance). This appendix preserves the
+pre-admission analysis — why cargo-audit was admitted and cargo-deny deferred — performed
+on 2026-08-26 under the dependency-admission process (define the need → determine native
+sufficiency → evaluate candidates → document trust/supply-chain implications → obtain human
+approval before installation).
+
+### A.1 Existing Cargo Capability — Gap Analysis
+
+Established by the accepted 2026-08-26 analysis:
+
+| Item | Accepted finding |
+|---|---|
+| Installed Rust/Cargo toolchain | 1.97.1 (accepted S0.2/S0.3 records: `rustc` 1.97.1, `Cargo` 1.97.1) |
+| `src/tauri/Cargo.lock` | 480 resolved packages |
+| Standard Cargo | No first-party vulnerability/advisory database command |
+| `cargo report` | Future-incompatibility/build reporting, not vulnerability advisory scanning |
+| `cargo check` / `cargo clippy` / `cargo test` | Compile/static/test controls, not dependency-advisory database checks |
+
+**Conclusion:** existing Cargo capability does not close `S0.3-G001`.
+
+### A.2 cargo-audit 0.22.2 — Candidate Capability and Trust Analysis
+
+Accepted candidate facts (observed during the 2026-08-26 review):
+
+| Item | Accepted finding |
+|---|---|
+| Version | 0.22.2; release date observed 2026-06-05 |
+| Accepted role | Narrow Rust dependency advisory scanner: `Cargo.lock` → RustSec advisory database |
+| License | Apache-2.0 OR MIT |
+| MSRV | 1.88 (KST Rust toolchain: 1.97.1) |
+| Windows | Official `x86_64-pc-windows-msvc` support |
+| Maintenance | Active RustSec / Rust Secure Code WG project |
+| Purpose | Known-vulnerability/advisory detection |
+| Default additional behavior | Yanked check |
+| Structured output | JSON; SARIF |
+| Offline / local operation | Supported after advisory data has been fetched |
+
+Accepted trust model:
+
+```text
+cargo-audit executable
++
+RustSec advisory database
+```
+
+Normal scanning is local. Public metadata retrieval in normal operation includes the RustSec
+advisory DB from GitHub and crates.io index metadata for the yanked check. No KST source
+upload is part of the intended workflow.
+
+### A.3 cargo-deny 0.20.2 — Candidate Analysis (Deferred)
+
+Accepted candidate facts (observed during the 2026-08-26 review):
+
+| Item | Accepted finding |
+|---|---|
+| Version | 0.20.2; release date observed 2026-07-09 |
+| Accepted role | Broader dependency-policy engine |
+| Capabilities | Advisories; licenses; bans; sources; duplicate/dependency policy |
+| Advisory data | Same RustSec advisory data for advisory checking |
+| Windows | Supported |
+| Structured output | JSON / SARIF |
+| Governance | Structured exit behavior; ignore/reason governance; broader repository policy configuration |
+
+The key accepted decision was **not** that cargo-deny was bad. It was:
+
+> KST currently needs advisory detection, while the broader license/source/ban policy surface
+> does not map to an enacted KST requirement.
+
+Therefore: **cargo-deny 0.20.2 — DEFERRED** (not rejected; it remains a valid future
+candidate — see §4.2).
+
+### A.4 RustSec Advisory-Data Trust Model
+
+| Item | Accepted finding |
+|---|---|
+| Source | `github.com/RustSec/advisory-db` |
+| Maintainer context | Rust Secure Code WG / RustSec ecosystem |
+| Distribution | Git repository fetched locally by consumers |
+| Local cache | Under the Cargo/RustSec user cache |
+| Normal scan | `Cargo.lock` is inspected locally; dependencies are not built/executed by the scanner merely to determine advisories |
+| Offline | Cached DB can be used |
+
+Accepted trust limitation (recorded in §8): the analysis observed that the RustSec library
+extracts commit-signature information, but end-to-end commit-signature verification by
+cargo-audit was **not** established. The trust model therefore relies materially on public
+RustSec repository distribution, hosting/access controls, TLS transport, and the admitted
+executable. This is a documented trust limitation — it is **not** an Accepted Risk.
+
+### A.5 Network / Data-Handling Analysis
+
+The accepted analysis preserved the distinction: public advisory/index metadata comes **to**
+KST, rather than KST source being **uploaded to** a scanner service.
+
+The accepted analysis found no normal workflow requirement to upload KST source,
+`Cargo.lock`, database information, customer information, credentials, or secrets to an
+external scanning service. This is an accepted workflow analysis — it is not forensic proof
+of all possible network activity (see §9).
+
+### A.6 Installation Trust Analysis
+
+The admission review considered both installation paths:
+
+1. official prebuilt Windows release;
+2. `cargo install` from source.
+
+The original review noted: **no separately published checksum file was observed for the
+reviewed prebuilt cargo-audit release asset.**
+
+The project owner then selected:
+
+```text
+cargo install cargo-audit --version 0.22.2 --locked
+```
+
+Accepted rationale: exact version pin; Cargo/crates.io integrity mechanisms; published locked
+dependency set where supported; alignment with the existing Rust development environment.
+
+Accepted tradeoff (recorded, not resolved): a source installation compiles and executes
+admitted third-party build-time code and dependencies. The accepted analysis did not
+characterize source compilation as inherently more secure than a prebuilt binary.
+
+### A.7 Comparative Decision Reasoning
+
+Accepted reasoning:
+
+- **cargo-audit:** narrowly and directly closes `S0.3-G001` (advisory detection over
+  `Cargo.lock`).
+- **cargo-deny:** also closes advisory detection but introduces a broader policy/governance
+  surface (licenses/sources/bans/duplicates) not currently required by an enacted KST
+  requirement.
+
+Therefore the proportional decision was:
+
+```text
+ADMIT cargo-audit 0.22.2
+DEFER cargo-deny 0.20.2
+```
+
+Decision principle:
+
+> Choose the smallest trustworthy capability that reliably closes the measured gap.
+
+### A.8 Other-Candidate Consideration
+
+The review briefly considered broader cross-ecosystem approaches (OSV-based scanners,
+multi-ecosystem vulnerability scanners). They were not pursued for `S0.3-G001` because KST
+already has accepted native NuGet advisory checking and `npm audit`; adding a broader scanner
+solely for the Rust gap would increase trust/overlap unnecessarily. This was a bounded
+consideration, not a G006/G007/G008 evaluation.
+
+### A.9 Unable-to-Verify Treatment
+
+The original review explicitly used the **Unable to Verify** finding state (defined in
+`docs/security/SECURITY_ASSURANCE_POLICY.md` §11) for specific sub-facts that could not be
+established within the review. Recovered examples supported by the accepted admission report:
+
+- End-to-end advisory-DB commit-signature verification by cargo-audit: **not established**
+  (preserved as the documented trust limitation in §8 and A.4 — not an Accepted Risk);
+- Prebuilt cargo-audit release checksum: **not observed during review** (A.6).
+
+The original completion report recorded five specific Unable-to-Verify sub-facts. The
+remaining sub-facts beyond the two preserved above could not be faithfully reconstructed from
+the accepted repository evidence; their exact wording is not preserved in this recovery, and
+no replacement claims are fabricated for them.
