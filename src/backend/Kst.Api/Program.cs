@@ -62,21 +62,30 @@ builder.Services.AddSerilog((services, cfg) =>
                "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{InstanceId}] {Message:lj}{NewLine}{Exception}");
 });
 
-// -- Binding: loopback only ----------------------------------------------------
-// Tauri sidecar manager sets ASPNETCORE_URLS=http://127.0.0.1:<port>.
-// Fall back to OS-assigned loopback port when the env var is absent.
-if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
-{
-    var portArg = args.FirstOrDefault(a => a.StartsWith("--port="))?.Split('=')[1]
-               ?? args.SkipWhile(a => a != "--port").Skip(1).FirstOrDefault()
-               ?? builder.Configuration["KST_PORT"];
+// -- Binding: loopback only (application-enforced invariant) -------------------
+// The KST backend must listen only on the loopback interface (declared property in
+// docs/security/APPLICATION_SECURITY_PROFILE.md). KST therefore always supplies its own
+// explicit 127.0.0.1 endpoint via UseUrls, unconditionally — never a fallback taken only
+// when ASPNETCORE_URLS happens to be absent. The pre-fix code skipped UseUrls whenever
+// ASPNETCORE_URLS was present, which allowed an inherited ASPNETCORE_URLS value to take
+// authority over the listener (reproduced at release runtime; remediated 2026-08-28). On
+// the shipped self-contained .NET 10 release runtime, this explicit endpoint was
+// behaviorally verified to take effect over an inherited ASPNETCORE_URLS value (S0.7A
+// re-verification, 2026-08-28), and the loopback regression tests
+// (Kst.Api.IntegrationTests.LoopbackBindingTests) keep the invariant under continuous
+// protection. See S0.5-F001 and docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md
+// (§8 historical evidence; §26 remediation record).
+// Port selection: explicit --port / KST_PORT, or 0 (OS-assigned dynamic port) — the Tauri
+// host relies on the startup handshake for the actual port.
+var portArg = args.FirstOrDefault(a => a.StartsWith("--port="))?.Split('=')[1]
+           ?? args.SkipWhile(a => a != "--port").Skip(1).FirstOrDefault()
+           ?? builder.Configuration["KST_PORT"];
 
-    var listenPort = 0;
-    if (!string.IsNullOrWhiteSpace(portArg) && int.TryParse(portArg, out var p))
-        listenPort = p;
+var listenPort = 0;
+if (!string.IsNullOrWhiteSpace(portArg) && int.TryParse(portArg, out var p))
+    listenPort = p;
 
-    builder.WebHost.UseUrls($"http://127.0.0.1:{listenPort}");
-}
+builder.WebHost.UseUrls($"http://127.0.0.1:{listenPort}");
 
 // -- Configuration -------------------------------------------------------------
 var qadOptions = builder.Configuration

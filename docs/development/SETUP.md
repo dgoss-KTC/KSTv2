@@ -107,7 +107,7 @@ Expected connected-state fields include:
 | Variable | Description | Default |
 |---|---|---|
 | `ASPNETCORE_ENVIRONMENT` | ASP.NET Core environment | `Production` |
-| `ASPNETCORE_URLS` | Override binding URL | `http://127.0.0.1:0` |
+| `ASPNETCORE_URLS` | (No longer used for binding.) KST always binds explicitly to `127.0.0.1` via `UseUrls` — an application-enforced loopback-only security invariant (S0.5-F001 remediation, S0.7) — so this value no longer selects the listener; port selection is via `--port` / `KST_PORT` | n/a |
 | `KST_PORT` | Override backend port | 0 (OS-assigned) |
 | `VITE_BACKEND_URL` | Override backend URL for frontend dev | `http://127.0.0.1:15402` |
 

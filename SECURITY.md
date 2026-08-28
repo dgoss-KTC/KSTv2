@@ -146,7 +146,28 @@ At minimum, do not silently:
   private-repository entitlement and organizational authorization (neither deferred candidate is
   rejected). `S0.3-G006` disposition is now **Covered / Resolved**. With all four S0.6-assigned
   gaps now Covered / Resolved (`S0.3-G001`, `S0.3-G006`, `S0.3-G007`, `S0.3-G008`), **S0.6 —
-  Security Tool Admission is COMPLETE / ACCEPTED — 2026-08-27**. S0.7 and S0.8 remain PLANNED / NOT
+  Security Tool Admission is COMPLETE / ACCEPTED — 2026-08-27**. **S0.7 — Runtime &
+  Infrastructure Verification is IN PROGRESS**: working pass **S0.7A — Local Release Runtime
+  Verification is COMPLETE / ACCEPTED — 2026-08-28** (2026-08-27 evidence pass —
+  VALID / ACCEPTED AS EVIDENCE by owner review: release-built runtime evidence of loopback-only
+  `127.0.0.1` sidecar listener, clean sidecar lifecycle, runtime CORS matching the accepted
+  five-origin allowlist, and release-build CSP/capability artifact evidence; the safe
+  `ASPNETCORE_URLS` loopback precedence test confirmed the operator environment override alters
+  the effective listener — **`S0.5-F001` — Confirmed Runtime Configuration Weakness / REMEDIATED
+  AND VERIFIED BY S0.7** on 2026-08-28: `Program.cs` now unconditionally sets its own explicit `127.0.0.1`
+  `UseUrls` endpoint (verified on the shipped self-contained .NET 10 release runtime to ignore
+  an inherited `ASPNETCORE_URLS` value after the fix, so inherited hosting configuration no
+  longer takes authority over the listener), with failure-safe behavioral regression tests (no
+  test can create a wildcard listener even in its failing state; the original wildcard
+  real-process test was replaced before acceptance — see evidence §26.3) — including a
+  demonstrated pre-fix failure — and post-fix release-runtime re-verification showing the
+  environment value no longer controls listener selection; **S0.3-G009 — Covered / Resolved** on
+  the post-remediation evidence (accepted with S0.7A — 2026-08-28); **`S0.7-F001`** — Operational /
+  Package-Identity Coexistence Issue (KST v1 ↔ KST v2 single-instance interception) — Deferred
+  for a packaging/deployment decision, non-blocking; S0.7B — database / infrastructure
+  permission verification incl. `S0.3-G010` — PENDING, not started) — see
+  [docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md](docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md)
+  (S0.7A evidence + remediation record, **not** normative policy). S0.8 remains PLANNED / NOT
   STARTED. Stage 9 is blocked pending S0 closeout.
 
 The original design source for this policy set is retained for provenance at
