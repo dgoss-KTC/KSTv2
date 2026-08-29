@@ -146,8 +146,8 @@ At minimum, do not silently:
   private-repository entitlement and organizational authorization (neither deferred candidate is
   rejected). `S0.3-G006` disposition is now **Covered / Resolved**. With all four S0.6-assigned
   gaps now Covered / Resolved (`S0.3-G001`, `S0.3-G006`, `S0.3-G007`, `S0.3-G008`), **S0.6 —
-  Security Tool Admission is COMPLETE / ACCEPTED — 2026-08-27**. **S0.7 — Runtime &
-  Infrastructure Verification is IN PROGRESS**: working pass **S0.7A — Local Release Runtime
+   Security Tool Admission is COMPLETE / ACCEPTED — 2026-08-27**. **S0.7 — Runtime &
+   Infrastructure Verification is COMPLETE / ACCEPTED — 2026-08-28**: working pass **S0.7A — Local Release Runtime
   Verification is COMPLETE / ACCEPTED — 2026-08-28** (2026-08-27 evidence pass —
   VALID / ACCEPTED AS EVIDENCE by owner review: release-built runtime evidence of loopback-only
   `127.0.0.1` sidecar listener, clean sidecar lifecycle, runtime CORS matching the accepted
@@ -165,10 +165,10 @@ At minimum, do not silently:
   the post-remediation evidence (accepted with S0.7A — 2026-08-28); **`S0.7-F001`** — Operational /
   Package-Identity Coexistence Issue (KST v1 ↔ KST v2 single-instance interception) — Deferred
    for a packaging/deployment decision, non-blocking; S0.7B — database / infrastructure
-   permission verification incl. `S0.3-G010` — LOCAL EVIDENCE COMPLETE / AWAITING IT/DBA EVIDENCE —
-   2026-08-28 (`S0.3-G010` — Partially Verified / Awaiting Authoritative Infrastructure Evidence;
-   **`S0.7-F002`** — QAD Read Scope Exceeds KST Application Need / Least-Privilege Gap / Needs Human
-   Review) — see
+   permission verification incl. `S0.3-G010` — **COMPLETE / ACCEPTED — 2026-08-28**
+   (`S0.3-G010` — **Covered / Resolved — 2026-08-28**; **`S0.7-F002`** — **RETIRED** /
+   Application-vs-Enterprise Identity Scope Model Corrected — 2026-08-28 owner scope decision; NOT
+   Accepted Risk; NOT a waived vulnerability; NOT evidence deletion) — see
    [docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md](docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md)
    (S0.7A evidence + remediation record) and
    [docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md](docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md)

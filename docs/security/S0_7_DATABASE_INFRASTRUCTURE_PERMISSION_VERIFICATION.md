@@ -1,9 +1,9 @@
 # S0.7B — Database / Infrastructure Permission Verification
 
-**Status:** LOCAL EVIDENCE COMPLETE / AWAITING IT/DBA EVIDENCE — 2026-08-28
+**Status:** COMPLETE / ACCEPTED — 2026-08-28 (local evidence accepted; 2026-08-28 owner scope decision retired `S0.7-F002` and resolved `S0.3-G010`)
 
-**S0.3-G010:** Partially Verified / Awaiting Authoritative Infrastructure Evidence (IT/DBA)
-**S0.7-F002:** QAD Read Scope Exceeds KST Application Need / Least-Privilege Gap / Needs Human Review (new; no severity assigned; NOT Accepted Risk; no remediation authorized in this pass)
+**S0.3-G010:** Covered / Resolved — 2026-08-28 (runtime auth identity class, effective database role, effective read-only permission posture, and absence of mutation/admin authority verified; enterprise SQL/AD configuration is authoritative infrastructure outside KST administration)
+**S0.7-F002:** RETIRED — Application-vs-Enterprise Identity Scope Model Corrected (2026-08-28 owner scope decision; NOT Accepted Risk, NOT a waived vulnerability, NOT evidence deletion; original observation and finding history preserved in §16)
 **Companion to:** `docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md` (S0.7A evidence)
 **Canonical gap addressed:** `S0.3-G010` — Database-grant verification (server-side QAD login/group grants)
 
@@ -306,16 +306,25 @@ Evidence:
   this QAD database — confirmed via `sys.tables`, which lists only `po_mstr` and `so_mstr` of the
   five probed.)
 
-**Confirmed least-privilege gap — recorded as finding `S0.7-F002` (§16):**
-the QAD principal is **read-only** (Property A satisfied) but **not least-privilege** (Property B
-not satisfied): it holds database-wide `SELECT` (via `db_datareader`) over the full QADPRO2 table
-set (~1810 tables) plus two read-only column-encryption-key view permissions, whereas KST requires
-`SELECT` on 14 tables. Because enacted KST security policy requires **both** read-only **and**
-least privilege (S0.2 13.1), this is a **confirmed least-privilege mismatch**, not merely an
-Unable-to-Verify distinction. It is recorded as finding **`S0.7-F002`** (§16). The administrative
-grant path and the organizational rationale for the database-wide read grant remain **Awaiting
-IT/DBA Evidence** (§10). No severity is assigned (enacted policy provides none for this finding
-class), it is **NOT** Accepted Risk, and **no permission remediation is authorized in this pass**.
+**Scope correction (2026-08-28 owner decision) — `S0.7-F002` RETIRED:**
+The factual observation above (database-wide `SELECT` via `db_datareader` over ~1810 tables,
+including tables KST does not query) is **preserved as genuine evidence** and is **not** erased.
+However, its interpretation as a KST application least-privilege defect is **corrected**. The QAD
+runtime identity is the **operator's pre-existing enterprise Windows Integrated identity**, not a
+KST-provisioned service account. That identity is governed by the authoritative enterprise QAD /
+SQL Server security configuration **outside KST**, and may legitimately support responsibilities and
+systems beyond KST. Comparing "the tables KST currently queries (14)" against "the total `SELECT`
+scope of the operator's enterprise identity" is therefore **not, by itself, a valid KST
+application least-privilege test**. KST's responsibility is to use Windows Integrated
+authentication, provide no SQL credentials, never grant/elevate/request/broaden QAD authority,
+operate read-only, never write back, and remain within the enterprise permissions already assigned
+to the operator. Evaluating the enterprise user's total job-role access is **outside KST's
+application-security responsibility**. The finding originally recorded here as **`S0.7-F002`**
+(confirmed least-privilege gap) is therefore **RETIRED** — Application-vs-Enterprise Identity Scope
+Model Corrected. This is **NOT** Accepted Risk, **NOT** a waived vulnerability, and **NOT** evidence
+deletion; the original observation and finding history are preserved in §16. This does **not** state
+that database-wide read access is universally least privilege; it states that the enterprise
+identity's total job-role access is outside KST's application-security responsibility.
 
 ---
 
@@ -338,11 +347,16 @@ class), it is **NOT** Accepted Risk, and **no permission remediation is authoriz
 - Confirmation that the **database-wide** `SELECT` scope is the intended, governed configuration
   (vs. object-scoped least privilege).
 
-**Conclusion:** G010 is about **actual server-side grants**. The application principal's
-self-observation strongly supports the read-only result but is **insufficient** to prove the
-administrative grant configuration and group mappings that G010 requires. **Independent IT/DBA
-grant inspection is required** before G010 can be `Covered / Resolved`. This is the expected human
-evidence boundary, not a task failure.
+**Conclusion (superseded by 2026-08-28 owner scope decision):** G010 is about **actual server-side
+grants**. The application principal's self-observation strongly supports the read-only result.
+Under the **2026-08-28 owner scope decision**, the enterprise QAD / SQL Server security
+configuration is **authoritative infrastructure outside KST administration**: KST does not own,
+provision, or administer the operator's enterprise Windows Integrated identity, and exact
+administrative grant-chain reconstruction and organizational rationale are **not required KST
+evidence**. G010 is therefore **Covered / Resolved** on the verified runtime evidence (auth identity
+class, effective database role, effective read-only permission posture, absence of mutation/admin
+authority) plus the authoritative enterprise configuration. The IT/DBA request below is preserved
+as the original evidence boundary for reference; it is **no longer required** to close G010.
 
 **IT/DBA evidence request (precise; read-only; no passwords; no secret connection strings):**
 
@@ -434,7 +448,7 @@ is implemented and connected**, not now.
 
 | Database | Required by application | Observed current effective permissions | Authoritative grant evidence available? | Excess authority? | Insufficient authority? | Verification status |
 |---|---|---|---|---|---|---|
-| **QAD** | `SELECT` on 14 `qadpro2.dbo` tables (read-only) | `db_datareader` (db-wide `SELECT`, ~1810 tables); `SELECT` on all 14 KST tables; `CONNECT`; two read-only `VIEW ANY COLUMN … KEY DEFINITION`; no write/DDL/admin; server role `public` only | **No** — grant path (login mapping, AD groups, role-assignment authority, explicit GRANT/DENY) requires IT/DBA | **Yes (read scope)** — db-wide `SELECT` + 2 column-key view perms exceed the 14-table need; **no** write/admin excess | **No** — all 14 needed tables are readable | Read-only **Verified**; least-privilege **Not met** (`S0.7-F002`); grant path **Awaiting IT/DBA** |
+| **QAD** | `SELECT` on 14 `qadpro2.dbo` tables (read-only) | `db_datareader` (db-wide `SELECT`, ~1810 tables); `SELECT` on all 14 KST tables; `CONNECT`; two read-only `VIEW ANY COLUMN … KEY DEFINITION`; no write/DDL/admin; server role `public` only | **n/a** — enterprise SQL/AD configuration is authoritative infrastructure outside KST administration (2026-08-28 owner scope decision); exact grant-chain reconstruction not required KST evidence | **No KST defect** — the broad read scope belongs to the operator's pre-existing enterprise identity (governed outside KST); **no** write/admin excess; KST neither provisions nor expands it | **No** — all 14 needed tables are readable | Read-only **Verified**; KST-owned permission boundary **Verified** (no elevation/broadening); `S0.7-F002` **RETIRED** (scope model corrected) |
 | **keytronicshortage** | Not determinable (integration disabled; no current need) | **None observable** (no connection) | **No** (no connection) | n/a | n/a | **Unable to Verify** (not connected); intended posture = SQL auth + dedicated account + external secret (future) |
 
 **QAD explicit answers:**
@@ -442,9 +456,9 @@ is implemented and connected**, not now.
 - Windows Integrated auth verified? **Yes.**
 - SQL credentials absent? **Yes.**
 - Read-only effective permission verified? **Yes** (metadata; no write attempted).
-- Least-privilege scope verified? **No** — db-wide `SELECT` exceeds the 14-table need (**confirmed least-privilege gap — finding `S0.7-F002`**, §9/§16).
+- Least-privilege scope (KST-owned boundary) verified? **Yes** — KST uses Windows Integrated auth, provides no SQL credentials, and neither provisions nor broadens the operator's enterprise identity authority; the broad read scope belongs to the enterprise identity (governed outside KST). The original `S0.7-F002` least-privilege-gap interpretation is **RETIRED** (scope model corrected, §9/§16).
 - Server/admin privilege absent? **Yes** (server role `public` only; no `db_owner`/`db_ddladmin`/etc.).
-- Grant path sufficiently established? **No** — requires IT/DBA evidence (§10).
+- Grant path sufficiently established? **n/a for KST** — the enterprise SQL/AD grant configuration is authoritative infrastructure outside KST administration (2026-08-28 owner scope decision); exact grant-chain reconstruction is not required KST evidence (§10).
 - Transport state observed? **Client requests `Encrypt=false` (verified from config/code); server-reported live `encrypt_option` and topology Unable to Verify from the principal.**
 
 **keytronicshortage explicit answers:**
@@ -490,11 +504,15 @@ metadata), the date, the properties established, and what remains unresolved.
 
 ## 16. Findings
 
-**One new S0.7 finding is created in this pass: `S0.7-F002`** (the confirmed QAD least-privilege
-gap). The finding namespace `S0.7-Fxxx` was verified; `S0.7-F001` is the only prior ID, so
-`S0.7-F002` is the next genuine ID (no reuse).
+**Finding `S0.7-F002` was created in this pass and is now RETIRED** (2026-08-28 owner scope
+decision). The finding namespace `S0.7-Fxxx` was verified; `S0.7-F001` is the only prior ID, so
+`S0.7-F002` was the next genuine ID (no reuse). The original observation and finding history are
+preserved below, followed by the owner's scope correction and retirement.
 
-### S0.7-F002 — QAD Read Scope Exceeds KST Application Need / Least-Privilege Gap / Needs Human Review
+### S0.7-F002 — RETIRED / Application-vs-Enterprise Identity Scope Model Corrected
+
+**Original observation (preserved, 2026-08-28):** `S0.7-F002` was originally recorded as
+"QAD Read Scope Exceeds KST Application Need / Least-Privilege Gap / Needs Human Review," based on:
 
 - **Effective access is read-only** (verified, §8): the principal has no write/DDL/admin/ownership/
   impersonate authority at the server, database, or object level.
@@ -502,15 +520,25 @@ gap). The finding namespace `S0.7-Fxxx` was verified; `S0.7-F001` is the only pr
   the principal is a `db_datareader` member with database-wide `SELECT` over ~1810 QADPRO2 user
   tables, plus `SELECT` on QAD tables KST does not use (`po_mstr`, `so_mstr`) and two read-only
   `VIEW ANY COLUMN … KEY DEFINITION` permissions.
-- **Administrative grant path and organizational rationale remain Awaiting IT/DBA Evidence** (§10):
-  why `db_datareader` / database-wide `SELECT` is assigned, whether object/schema-scoped `SELECT`
-  for the 14 required tables is feasible, and the source of the two column-key view permissions are
-  all open IT/DBA questions.
-- **No severity is assigned** unless enacted policy provides one (enacted policy provides none for
-  this finding class).
-- **This is NOT Accepted Risk.**
-- **No permission remediation is authorized in this pass** (the IT/DBA request is evidence-only;
-  IT is not asked to change any permission yet).
+- No severity was assigned; it was NOT Accepted Risk; no permission remediation was authorized.
+
+**Owner scope correction and retirement (2026-08-28):** The finding compared the tables KST
+currently queries (14) against the total `SELECT` scope of the **operator's pre-existing enterprise
+Windows Integrated identity**. That identity is **not** a KST-provisioned service account; it is
+governed by the authoritative enterprise QAD / SQL Server security configuration **outside KST** and
+may legitimately support responsibilities and systems beyond KST. KST neither provisions nor expands
+that authority. The comparison therefore **does not establish a KST least-privilege defect**, and
+evaluating the enterprise user's total job-role access is **outside KST's application-security
+responsibility**. `S0.7-F002` is therefore **RETIRED** — Application-vs-Enterprise Identity Scope
+Model Corrected.
+
+This retirement is:
+- **NOT** Accepted Risk;
+- **NOT** a waived vulnerability;
+- **NOT** evidence deletion (the original observation is preserved above and in §9).
+
+This does **not** state that database-wide read access is universally least privilege; it states that
+the enterprise identity's total job-role access is outside KST's application-security responsibility.
 
 **Other items (not new findings):**
 
@@ -522,35 +550,38 @@ gap). The finding namespace `S0.7-Fxxx` was verified; `S0.7-F001` is the only pr
   is intended/future, not current. This is recorded to prevent the prompt's expectation from being
   mistaken for current runtime state. It is not a security finding.
 
-No `Unable to Verify` item is converted into a vulnerability. The new finding `S0.7-F002` is a
-confirmed least-privilege mismatch (enacted policy requires both read-only and least privilege),
-not an invented severity and not a manufactured finding.
+No `Unable to Verify` item is converted into a vulnerability. No finding is manufactured; `S0.7-F002`
+was a genuine observation that is retired on a corrected scope model, not on invented rationale.
 
 ---
 
 ## 17. G010 Disposition
 
-**`S0.3-G010` — Partially Verified / Awaiting Authoritative Infrastructure Evidence (IT/DBA).**
+**`S0.3-G010` — Covered / Resolved — 2026-08-28.**
 
-G010 may become `Covered / Resolved` only when sufficient evidence establishes the **actual
-database/server grant state** for the KST identity within G010's canonical scope. For QAD this
-requires, at minimum: the expected Windows-Integrated identity path (✓ established), no SQL
-credential path (✓ established), production write/admin authority absent (✓ established from the
-principal's effective permissions), read-permission scope understood (✓ established as db-wide via
-`db_datareader`), and **grant/role configuration sufficiently established by authoritative
-evidence (✗ — requires IT/DBA)**.
+G010 (database-grant verification: actual QAD login/group grants are server-side) is **Covered /
+Resolved** on the verified runtime evidence plus the authoritative enterprise configuration:
 
-Because the **grant path** (login mapping, AD group contributions, role-assignment authority,
-explicit GRANT/DENY, and confirmation that the db-wide read scope is the intended governed
-configuration) is **not** established by the application principal's self-observation, G010 is
-**not** resolved in this pass. It is **Partially Verified / Awaiting Authoritative Infrastructure
-Evidence**. G010 is **not** resolved solely because all application SQL is SELECT, solely because
-no write was observed, or solely because the principal reports one role.
+- **Actual runtime authentication identity class verified:** Windows Integrated (the operator's
+  enterprise Windows identity); no SQL credential path.
+- **Actual effective database role verified:** `db_datareader` only (no `db_owner`/`db_datawriter`/
+  `db_ddladmin`/`db_securityadmin`).
+- **Actual effective read-only permission posture verified:** `SELECT`-only on all KST objects;
+  `CONNECT`; two read-only `VIEW ANY COLUMN … KEY DEFINITION`; no write/DDL/control/ownership/
+  impersonate.
+- **Absence of mutation/admin authority verified** through SQL Server permission metadata (server
+  role `public` only; no `sysadmin`/`securityadmin`/etc.).
+- **KST source independently confirms read-only application behavior** (S0.5 `QadReadOnlySqlTests`;
+  S0.2 §14 zero write-verb matches).
+- **Enterprise SQL/AD configuration is authoritative infrastructure outside KST administration**
+  (2026-08-28 owner scope decision): KST does not own, provision, or administer the operator's
+  enterprise Windows Integrated identity.
 
-The new finding **`S0.7-F002`** (QAD least-privilege gap, §16) **does not itself resolve G010**:
-G010 remains **Partially Verified / Awaiting Authoritative Infrastructure Evidence** until the
-grant path is established by IT/DBA. `S0.7-F002` records the confirmed least-privilege mismatch;
-G010 tracks the grant-path verification.
+Exact administrative grant-chain reconstruction (login mapping, AD nested-group contributions,
+explicit GRANT/DENY administration) and organizational rationale are **not required KST evidence**
+under the owner scope decision. This disposition does **not** claim KST independently audited
+Active Directory administration, and does **not** claim IT provided evidence that was not received.
+The retired finding `S0.7-F002` (§16) does not affect this resolution.
 
 ---
 
@@ -568,9 +599,10 @@ G010 tracks the grant-path verification.
 
 ## 19. Organizational / IT Dependencies
 
-1. **IT/DBA grant inspection for QAD (closes the G010 grant-path half):** the evidence request and
-   read-only query packet in §10 / Appendix A. IT/DBA owns the access/authorization; S0.7
-   coordinates the inspection.
+1. **IT/DBA grant inspection for QAD — no longer required to close G010** (2026-08-28 owner scope
+   decision): the enterprise QAD / SQL Server security configuration is authoritative infrastructure
+   outside KST administration; exact grant-chain reconstruction and organizational rationale are not
+   required KST evidence. The §10 / Appendix A request is preserved for reference only.
 2. **Formal IT/security disposition of the legacy unencrypted QAD SQL transport** (behind
    S0.2-F003 / S0.4A): an organizational risk/exception decision **outside engineering authority**.
    This pass does **not** invent acceptance and does **not** reclassify the known legacy transport
@@ -579,20 +611,29 @@ G010 tracks the grant-path verification.
    SQL-auth / dedicated-account / external-secret / scoped-permission posture (S0.2 §13.3) must be
    verified against the live connection, and its hosting/topology established. Not S0.7B work now.
 
-No organizational approval is asserted anywhere in this document. No "IT approved / Security
-accepted / DBA approved" statement is made, because no such decision is evidenced.
+No organizational approval is asserted anywhere in this document. The G010 resolution rests on the
+verified runtime evidence and the owner's authoritative scope decision that the enterprise
+configuration is outside KST administration — **not** on an invented IT/DBA approval or permission
+rationale.
 
 ---
 
 ## 20. Remaining S0.7 Boundaries
 
-- **S0.7B:** local/runtime permission evidence is **complete**; **awaiting IT/DBA grant evidence**
-  to close the G010 grant-path half. S0.7B is **not** marked complete.
+- **S0.7B:** **COMPLETE / ACCEPTED — 2026-08-28.** Local/runtime permission evidence is complete;
+  G010 is Covered / Resolved (owner scope decision: enterprise configuration is authoritative
+  infrastructure outside KST administration).
 - **Installed Windows-package behavior:** remains **Unable to Verify** (no installation performed;
   the owner's production workstation is not an installer experiment). The installed-form half of
   G009 and the `S0.7-F001` package-identity boundary are dispositioned only if the owner later
-  authorizes a safe installation environment.
-- **`S0.7-F001`:** unchanged / Deferred / Non-blocking.
+  authorizes a safe installation environment. **Non-blocking** to S0.7 closeout.
+- **`S0.7-F001`:** unchanged / Deferred for packaging/deployment decision / Non-blocking.
+- **`S0.7-F002`:** **RETIRED** (Application-vs-Enterprise Identity Scope Model Corrected; NOT
+  Accepted Risk; NOT a waived vulnerability; NOT evidence deletion).
+- **QAD legacy `Encrypt=false` transport:** organizational disposition **carried to S0.8** (not
+  Accepted Risk; not reopened in S0.7B).
+- **keytronicshortage:** currently unconnected / not an active database surface; permission
+  verification deferred until the integration actually exists (does not block S0.7).
 - **S0.8:** **NOT STARTED** (organizational surfaces, including the legacy-transport disposition,
   are S0.8 work).
 - **Stage 9:** **BLOCKED PENDING S0 CLOSEOUT** (not started).
@@ -607,33 +648,40 @@ permission change, no tool installation, no source/config/dependency change):
 
 - **Database surfaces:** QAD (connected, Windows Integrated, SELECT-only, 14 tables) and
   keytronicshortage (unconfigured/disabled, not connected).
-- **QAD authentication:** Windows Integrated verified; no SQL credential path; specific scheme
-  (Kerberos/NTLM) Unable to Verify from the principal.
+- **QAD authentication:** Windows Integrated verified (the operator's enterprise Windows identity);
+  no SQL credential path; specific scheme (Kerberos/NTLM) Unable to Verify from the principal.
 - **QAD transport:** client requests `Encrypt=false` (legacy constraint); server-reported live
   encryption state and topology Unable to Verify from the principal; legacy-transport
   organizational acceptance remains unresolved (carried to S0.8).
 - **QAD effective permissions:** server role `public` only; database role `db_datareader` only;
   `SELECT`-only on all 14 KST tables; **no write/DDL/admin/ownership/impersonate authority**.
-- **QAD read-only:** **Verified** (metadata). **QAD least-privilege:** **Not met** — db-wide
-  `SELECT` (~1810 tables) + two read-only column-key view permissions exceed the 14-table need
-  (**confirmed least-privilege gap — finding `S0.7-F002`**; no severity assigned; NOT Accepted
-  Risk; no remediation authorized in this pass).
-- **G010:** **Partially Verified / Awaiting Authoritative Infrastructure Evidence (IT/DBA)** — the
-  grant path requires independent IT/DBA inspection (Appendix A packet provided).
+- **QAD read-only:** **Verified** (metadata). **QAD KST-owned permission boundary:** **Verified** —
+  KST uses Windows Integrated auth, provides no SQL credentials, and neither provisions nor
+  broadens the operator's enterprise identity authority. The broad read scope belongs to the
+  operator's pre-existing enterprise identity (governed outside KST); the original `S0.7-F002`
+  least-privilege-gap interpretation is **RETIRED** (scope model corrected, §9/§16).
+- **G010:** **Covered / Resolved — 2026-08-28** (verified runtime evidence + authoritative
+  enterprise configuration outside KST administration; 2026-08-28 owner scope decision).
 - **keytronicshortage:** not connected; authentication/permissions/transport/topology Unable to
-  Verify at runtime; intended SQL-auth/dedicated-account posture recorded as future.
+  Verify at runtime; intended SQL-auth/dedicated-account posture recorded as future (deferred until
+  the integration exists; does not block S0.7).
 
-**Status after this local evidence pass:**
+**Status after this pass (2026-08-28 owner acceptance + scope decision):**
 
-- **S0.7 — IN PROGRESS.**
-- **S0.7B — LOCAL EVIDENCE COMPLETE / AWAITING IT/DBA EVIDENCE.**
-- **S0.3-G010 — Partially Verified / Awaiting Authoritative Infrastructure Evidence.**
-- **S0.7-F002 — QAD Read Scope Exceeds KST Application Need / Least-Privilege Gap / Needs Human
-  Review** (new; no severity assigned; NOT Accepted Risk; no remediation authorized in this pass).
+- **S0.7 — COMPLETE / ACCEPTED — 2026-08-28.**
+- **S0.7B — COMPLETE / ACCEPTED — 2026-08-28.**
+- **S0.3-G010 — Covered / Resolved — 2026-08-28.**
+- **S0.7-F002 — RETIRED — Application-vs-Enterprise Identity Scope Model Corrected** (NOT Accepted
+  Risk; NOT a waived vulnerability; NOT evidence deletion).
+- **S0.7-F001 — Deferred for packaging/deployment decision / Non-blocking** (unchanged).
+- **Installed Windows-package behavior — Unable to Verify** (non-blocking).
+- **QAD legacy `Encrypt=false` transport — organizational disposition carried to S0.8** (not
+  Accepted Risk).
+- **S0.8 — NOT STARTED.** **Stage 9 — BLOCKED PENDING S0 CLOSEOUT.**
 
-S0.7 is **not** accepted. No S0.8 or Stage 9 work was performed. No remediation was performed.
-This is evidence collection **awaiting project-owner review**; nothing is staged, committed, or
-pushed.
+No S0.8 or Stage 9 work was performed. No permission remediation was performed. No IT/DBA approval
+or permission rationale was invented. This pass records the project-owner authority/scope decision
+against the already-accepted evidence.
 
 ---
 

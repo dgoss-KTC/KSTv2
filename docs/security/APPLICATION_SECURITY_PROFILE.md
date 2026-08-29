@@ -55,8 +55,16 @@ Development-mode CORS behavior is not assumed to represent packaged-runtime beha
 - Direct `INSERT`/`UPDATE`/`DELETE`/`MERGE` or other database-side operational changes from the
   application are prohibited.
 - QAD and other authoritative company systems remain systems of record.
-- Operational changes leave KST as human-reviewable files for external processing, not direct
-  database mutation.
+The application must not submit changes into QAD or QXtend, automatically trigger an import, or
+perform direct write-back to production databases.
+
+Least privilege applies to credentials, service accounts, permissions, capabilities, and identities
+that KST provisions or controls: for those, KST must use least privilege appropriate to application
+need. For an existing enterprise human identity authenticated through Windows Integrated
+authentication (for example, the operator's QAD identity), KST must not elevate, broaden,
+provision, or otherwise modify that identity's enterprise authority and must operate only within the
+permissions assigned by the authoritative enterprise system; KST is not responsible for documenting
+the business rationale behind the user's broader enterprise access.
 
 ## Credentials
 

@@ -5,7 +5,7 @@
 (2026-08-27 evidence pass: COMPLETE / ACCEPTED AS EVIDENCE by project-owner review; S0.5-F001 narrow
 remediation implemented and re-verified 2026-08-28; failure-safe regression-test correction per
 steering, 2026-08-28 — see §26; project-owner final acceptance of S0.7A — 2026-08-28)
-**S0.7B — Database / Infrastructure Permission Verification:** LOCAL EVIDENCE COMPLETE / AWAITING IT/DBA EVIDENCE — 2026-08-28 (companion evidence: `docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md`; `S0.3-G010` — Partially Verified / Awaiting Authoritative Infrastructure Evidence; **`S0.7-F002`** — QAD Read Scope Exceeds KST Application Need / Least-Privilege Gap / Needs Human Review)
+**S0.7B — Database / Infrastructure Permission Verification:** COMPLETE / ACCEPTED — 2026-08-28 (companion evidence: `docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md`; `S0.3-G010` — Covered / Resolved — 2026-08-28; **`S0.7-F002`** — RETIRED / Application-vs-Enterprise Identity Scope Model Corrected — 2026-08-28 owner scope decision; NOT Accepted Risk; NOT a waived vulnerability; NOT evidence deletion)
 
 **Date:** 2026-08-27 (evidence pass); 2026-08-28 (remediation, re-verification, steering correction, and project-owner acceptance — §26)
 **Starting commit:** `00dcd11dd75722d26dbea753aea24579eb40e42d` (`docs: accept DevSkim SAST capability`)
@@ -148,7 +148,9 @@ the preflight and none are committed.
 - Repository convention is a **per-checkpoint finding namespace** (S0.2/S0.3/S0.4B/S0.5/
   S0.6 each own their `Fxxx` sequence). S0.7 therefore uses a **new namespace
   `S0.7-Fxxx`**, continuing the established per-checkpoint pattern. No ID is reused;
-  exactly one new finding was created (`S0.7-F001`, §20) for genuinely observed behavior.
+   two findings were created in S0.7: `S0.7-F001` (§20, genuinely observed behavior — Deferred) and
+   `S0.7-F002` (QAD least-privilege gap — **RETIRED** 2026-08-28, Application-vs-Enterprise Identity
+   Scope Model Corrected; NOT Accepted Risk; NOT a waived vulnerability; NOT evidence deletion).
 
 **Toolchain observed at start (read-only; nothing installed):**
 
@@ -805,31 +807,34 @@ silently accepted):
 
 ## 24. Remaining S0.7B Infrastructure Work
 
-**S0.7B local evidence pass — COMPLETE 2026-08-28** (companion document:
+**S0.7B — COMPLETE / ACCEPTED — 2026-08-28** (companion document:
 `docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md`). Using the existing
 safe Windows-Integrated connection path and read-only metadata queries, the pass established the
 QAD runtime identity (Windows Integrated; no SQL credential path), the effective permissions of the
 current principal (server role `public` only; database role `db_datareader` only; `SELECT`-only on
 all 14 KST QAD tables; **no** write/DDL/admin/ownership/impersonate authority), the client-requested
-transport (`Encrypt=false` legacy constraint), and the read-only vs least-privilege assessment
-(read-only **verified**; least-privilege **not met** — db-wide `SELECT` over ~1810 tables exceeds the
-14-table need — **confirmed least-privilege gap, recorded as finding `S0.7-F002`**; no severity
-assigned, NOT Accepted Risk, no remediation authorized in this pass). The keytronicshortage surface
-is confirmed **unconfigured/disabled** (no current connection).
+transport (`Encrypt=false` legacy constraint), and the read-only / KST-owned permission-boundary
+assessment (read-only **verified**; KST neither provisions nor broadens the operator's enterprise
+identity authority). The broad read scope belongs to the operator's pre-existing enterprise Windows
+Integrated identity (governed outside KST); the original `S0.7-F002` least-privilege-gap
+interpretation is **RETIRED** (Application-vs-Enterprise Identity Scope Model Corrected; NOT
+Accepted Risk; NOT a waived vulnerability; NOT evidence deletion). The keytronicshortage surface is
+confirmed **unconfigured/disabled** (no current connection).
 
-**Remaining (not completable from the application principal):**
+**G010 — Covered / Resolved — 2026-08-28.** `S0.3-G010` is resolved on the verified runtime
+evidence (auth identity class, effective database role, effective read-only permission posture,
+absence of mutation/admin authority) plus the authoritative enterprise QAD / SQL Server
+configuration, which is infrastructure outside KST administration (2026-08-28 owner scope decision).
+Exact administrative grant-chain reconstruction and organizational rationale are not required KST
+evidence.
 
-- **Server-side QAD grant-path verification** (S0.3-G010): the **grant path** — SQL login / Windows
-  login mapping, AD/Windows (nested) group contributions, the authority that assigned the
-  `db_datareader` membership and the two `VIEW ANY COLUMN … KEY DEFINITION` permissions, explicit
-  GRANT/DENY entries, and confirmation that the db-wide read scope is the intended governed
-  configuration — requires **independent IT/DBA inspection** (read-only query packet in the companion
-  document, Appendix A). `S0.3-G010` is therefore **Partially Verified / Awaiting Authoritative
-  Infrastructure Evidence**, not `Covered / Resolved`.
+**Remaining (non-blocking / carried; not S0.7 work):**
+
 - **`keytronicshortage` hosting/permission details:** Unable to Verify at runtime (integration not
-  connected); to be verified when the integration is implemented and connected.
+  connected); to be verified when the integration is implemented and connected. Does not block S0.7.
 - **Installed-package verification** if the owner authorizes a safe installation
-  environment (disposition of the §18 boundary and the installed-form half of G009).
+  environment (disposition of the §18 boundary and the installed-form half of G009). Non-blocking.
+- **`S0.7-F001`:** Deferred for packaging/deployment decision / Non-blocking.
 - **Organizational surfaces for S0.8 (not S0.7 work):** formal IT/security disposition of
   the legacy unencrypted QAD transport (behind S0.2-F003) and the
   `ASPNETCORE_URLS` override decision (§21) will be surfaced at S0.8 closeout.
@@ -872,18 +877,24 @@ Two items require project-owner/IT review and prevent full closure in this pass:
    (single-instance interception; shared application identity) — operational, needs
    project-owner review; no changes made.
 
-**S0.7 overall remains IN PROGRESS.** S0.7 is **not** accepted. S0.7B (database /
-infrastructure permission verification) **local evidence is complete (2026-08-28)** and is
-**awaiting IT/DBA grant-path evidence** to close the `S0.3-G010` grant-path half (companion
-document: `docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md`). The S0.7B pass
-recorded **`S0.7-F002`** — QAD Read Scope Exceeds KST Application Need / Least-Privilege Gap /
-Needs Human Review (confirmed least-privilege mismatch; no severity assigned; NOT Accepted Risk; no
-remediation authorized in this pass). No S0.8 or Stage 9 work was performed. No security tool was
-installed; no dependency, source, config, or build metadata changed; no QAD write occurred; no
-non-loopback exposure test was performed; no installer was installed; no CSP/devtools
-instrumentation was added. (The S0.7B pass performed read-only, metadata-only QAD permission
-inspection scoped to the current principal; it changed no permissions, grants, logins, or
-configuration.)
+**S0.7 — COMPLETE / ACCEPTED — 2026-08-28.** S0.7A (local release runtime verification) is
+**COMPLETE / ACCEPTED — 2026-08-28** (`S0.5-F001` loopback-binding remediation implemented and
+re-verified; `S0.3-G009` Covered / Resolved). S0.7B (database / infrastructure permission
+verification) is **COMPLETE / ACCEPTED — 2026-08-28**: the local/runtime permission evidence is
+complete, `S0.3-G010` is **Covered / Resolved** (verified runtime evidence + the authoritative
+enterprise QAD / SQL Server configuration, which is infrastructure outside KST administration per the
+2026-08-28 owner scope decision), and the original `S0.7-F002` least-privilege-gap interpretation is
+**RETIRED** (Application-vs-Enterprise Identity Scope Model Corrected; NOT Accepted Risk; NOT a
+waived vulnerability; NOT evidence deletion). Companion document:
+`docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md`. Remaining non-blocking /
+carried items: `S0.7-F001` (Deferred for packaging/deployment decision), installed Windows-package
+behavior (Unable to Verify), the QAD legacy `Encrypt=false` transport organizational disposition
+(carried to S0.8), and keytronicshortage permission verification (deferred until that integration
+exists). No S0.8 or Stage 9 work was performed. No security tool was installed; no dependency,
+source, config, or build metadata changed; no QAD write occurred; no non-loopback exposure test was
+performed; no installer was installed; no CSP/devtools instrumentation was added. (The S0.7B pass
+performed read-only, metadata-only QAD permission inspection scoped to the current principal; it
+changed no permissions, grants, logins, or configuration.)
 
 ## 26. Remediation — Enforce Loopback-Only Backend Binding (S0.5-F001 / S0.3-G009) — 2026-08-28
 
