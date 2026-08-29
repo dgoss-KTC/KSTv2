@@ -164,10 +164,15 @@ At minimum, do not silently:
   environment value no longer controls listener selection; **S0.3-G009 — Covered / Resolved** on
   the post-remediation evidence (accepted with S0.7A — 2026-08-28); **`S0.7-F001`** — Operational /
   Package-Identity Coexistence Issue (KST v1 ↔ KST v2 single-instance interception) — Deferred
-  for a packaging/deployment decision, non-blocking; S0.7B — database / infrastructure
-  permission verification incl. `S0.3-G010` — PENDING, not started) — see
-  [docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md](docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md)
-  (S0.7A evidence + remediation record, **not** normative policy). S0.8 remains PLANNED / NOT
+   for a packaging/deployment decision, non-blocking; S0.7B — database / infrastructure
+   permission verification incl. `S0.3-G010` — LOCAL EVIDENCE COMPLETE / AWAITING IT/DBA EVIDENCE —
+   2026-08-28 (`S0.3-G010` — Partially Verified / Awaiting Authoritative Infrastructure Evidence;
+   **`S0.7-F002`** — QAD Read Scope Exceeds KST Application Need / Least-Privilege Gap / Needs Human
+   Review) — see
+   [docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md](docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md)
+   (S0.7A evidence + remediation record) and
+   [docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md](docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md)
+   (S0.7B database/permission evidence; **not** normative policy). S0.8 remains PLANNED / NOT
   STARTED. Stage 9 is blocked pending S0 closeout.
 
 The original design source for this policy set is retained for provenance at

@@ -5,7 +5,7 @@
 (2026-08-27 evidence pass: COMPLETE / ACCEPTED AS EVIDENCE by project-owner review; S0.5-F001 narrow
 remediation implemented and re-verified 2026-08-28; failure-safe regression-test correction per
 steering, 2026-08-28 — see §26; project-owner final acceptance of S0.7A — 2026-08-28)
-**S0.7B — Database / Infrastructure Permission Verification:** PENDING / NOT STARTED (not started in this pass)
+**S0.7B — Database / Infrastructure Permission Verification:** LOCAL EVIDENCE COMPLETE / AWAITING IT/DBA EVIDENCE — 2026-08-28 (companion evidence: `docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md`; `S0.3-G010` — Partially Verified / Awaiting Authoritative Infrastructure Evidence; **`S0.7-F002`** — QAD Read Scope Exceeds KST Application Need / Least-Privilege Gap / Needs Human Review)
 
 **Date:** 2026-08-27 (evidence pass); 2026-08-28 (remediation, re-verification, steering correction, and project-owner acceptance — §26)
 **Starting commit:** `00dcd11dd75722d26dbea753aea24579eb40e42d` (`docs: accept DevSkim SAST capability`)
@@ -805,13 +805,29 @@ silently accepted):
 
 ## 24. Remaining S0.7B Infrastructure Work
 
-S0.7B (**not started** in this pass) remains:
+**S0.7B local evidence pass — COMPLETE 2026-08-28** (companion document:
+`docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md`). Using the existing
+safe Windows-Integrated connection path and read-only metadata queries, the pass established the
+QAD runtime identity (Windows Integrated; no SQL credential path), the effective permissions of the
+current principal (server role `public` only; database role `db_datareader` only; `SELECT`-only on
+all 14 KST QAD tables; **no** write/DDL/admin/ownership/impersonate authority), the client-requested
+transport (`Encrypt=false` legacy constraint), and the read-only vs least-privilege assessment
+(read-only **verified**; least-privilege **not met** — db-wide `SELECT` over ~1810 tables exceeds the
+14-table need — **confirmed least-privilege gap, recorded as finding `S0.7-F002`**; no severity
+assigned, NOT Accepted Risk, no remediation authorized in this pass). The keytronicshortage surface
+is confirmed **unconfigured/disabled** (no current connection).
 
-- **Server-side QAD database-grant verification** (S0.3-G010): confirm, with
-  IT participation, that the actual QAD login/group grants make the KST account
-  technically read-only / least-privilege (the S0.5 `QadReadOnlySqlTests` prove
-  application-emitted SQL is read-only; they do not prove server-side incapability).
-- **`keytronicshortage` hosting/permission details** (where appropriate).
+**Remaining (not completable from the application principal):**
+
+- **Server-side QAD grant-path verification** (S0.3-G010): the **grant path** — SQL login / Windows
+  login mapping, AD/Windows (nested) group contributions, the authority that assigned the
+  `db_datareader` membership and the two `VIEW ANY COLUMN … KEY DEFINITION` permissions, explicit
+  GRANT/DENY entries, and confirmation that the db-wide read scope is the intended governed
+  configuration — requires **independent IT/DBA inspection** (read-only query packet in the companion
+  document, Appendix A). `S0.3-G010` is therefore **Partially Verified / Awaiting Authoritative
+  Infrastructure Evidence**, not `Covered / Resolved`.
+- **`keytronicshortage` hosting/permission details:** Unable to Verify at runtime (integration not
+  connected); to be verified when the integration is implemented and connected.
 - **Installed-package verification** if the owner authorizes a safe installation
   environment (disposition of the §18 boundary and the installed-form half of G009).
 - **Organizational surfaces for S0.8 (not S0.7 work):** formal IT/security disposition of
@@ -857,11 +873,17 @@ Two items require project-owner/IT review and prevent full closure in this pass:
    project-owner review; no changes made.
 
 **S0.7 overall remains IN PROGRESS.** S0.7 is **not** accepted. S0.7B (database /
-infrastructure permission verification) has **not** been started. No S0.8 or Stage 9
-work was performed. No security tool was installed; no dependency, source, config, or
-build metadata changed; no database permission/grant verification occurred; no QAD write
-occurred; no non-loopback exposure test was performed; no installer was installed; no
-CSP/devtools instrumentation was added.
+infrastructure permission verification) **local evidence is complete (2026-08-28)** and is
+**awaiting IT/DBA grant-path evidence** to close the `S0.3-G010` grant-path half (companion
+document: `docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md`). The S0.7B pass
+recorded **`S0.7-F002`** — QAD Read Scope Exceeds KST Application Need / Least-Privilege Gap /
+Needs Human Review (confirmed least-privilege mismatch; no severity assigned; NOT Accepted Risk; no
+remediation authorized in this pass). No S0.8 or Stage 9 work was performed. No security tool was
+installed; no dependency, source, config, or build metadata changed; no QAD write occurred; no
+non-loopback exposure test was performed; no installer was installed; no CSP/devtools
+instrumentation was added. (The S0.7B pass performed read-only, metadata-only QAD permission
+inspection scoped to the current principal; it changed no permissions, grants, logins, or
+configuration.)
 
 ## 26. Remediation — Enforce Loopback-Only Backend Binding (S0.5-F001 / S0.3-G009) — 2026-08-28
 
