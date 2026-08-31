@@ -51,9 +51,9 @@ Existing installed tools are not automatically approved for every use merely bec
 already installed, but this policy does not invent a centralized allowlist mechanism — one does not
 currently exist.
 
-The existing project convention already treats activation of installed Pi packages/modes as
+The current local-agent workflow treats additional capability installation or activation as
 human-controlled (see `docs/development/KST v2 Project Instructions — Local Agent Addendum.md`).
-This policy generalizes that principle to all development environments and AI agent platforms.
+This policy applies that principle to all development environments and AI agent platforms.
 
 ## Local AI Is Not Automatically Safe
 

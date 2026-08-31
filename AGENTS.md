@@ -23,6 +23,22 @@ If agent memory or prior-session recall conflicts with current repository docume
 
 Do not silently reconcile conflicting authoritative sources. Identify the conflict and ask the project owner when it affects correctness.
 
+### Normal Local Coding Harness
+
+KST v2 currently uses OpenCode with Magic Context and AFT active for local agentic development.
+This is not an architectural dependency; a different development environment may be used later if it
+follows the same repository, security, and human-control requirements.
+
+The repository and this file remain the coding agent's authoritative persistent project context.
+Magic Context, AFT, OpenCode session context, model memory, and other retrieval/context mechanisms
+are assistance only. They do not override enacted repository instructions, accepted project
+documentation, accepted implementation, or project-owner decisions.
+
+Current Magic Context and AFT capabilities are already active. Do not silently install or activate
+additional plugins, extensions, packages, skills, MCP servers, agent modes, or other capabilities.
+When a task genuinely requires an additional capability, surface it to the project owner first and
+follow the enacted admission and security requirements.
+
 ### Documentation Authority Tiers
 
 The rules above are formalized as six tiers of documentation authority, used to resolve "which
@@ -84,6 +100,16 @@ Planning should identify:
 * required verification.
 
 Do not modify production code while performing a planning-only task.
+
+For local agentic work, prefer bounded tasks and retrieve relevant repository context rather than
+embedding the whole repository into prompts. Separate investigation/planning from implementation for
+complex work, ask rather than guess when requirements are ambiguous, and use automated and manual
+verification as external correctness mechanisms. Avoid unnecessarily large multi-purpose tasks;
+optimize context use for correctness rather than maximum token consumption.
+
+Use parallel or subagent work only when decomposition provides clear value. Avoid unnecessary
+concurrent long-context work, especially where it duplicates repository reading or increases local
+context/compute pressure; prefer serial bounded work in those cases.
 
 ## 3. Do Not Guess Business Rules
 

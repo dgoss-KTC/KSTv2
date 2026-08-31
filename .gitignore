@@ -31,6 +31,7 @@ Thumbs.db
 .vscode/settings.json
 *.suo
 *.user
+.cortexkit/
 
 # Secrets (never commit)
 **/appsettings.*.local.json
