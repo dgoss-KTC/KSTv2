@@ -7,7 +7,7 @@ UI Navigation & Keyboard Ergonomics A: **COMPLETE / ACCEPTED — 2026-08-21**
 Active cross-cutting effort: **R0 — Repository / Documentation Reconciliation — COMPLETE /
 ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation Status` below and
 `docs/status/R0_REPOSITORY_RECONCILIATION_CLOSEOUT.md`)
-Current cross-cutting effort: **S0 — Security Foundation Integration — CURRENT** (S0.1 — Security
+Current cross-cutting effort: **S0 — Security Foundation Integration — COMPLETE / ACCEPTED — 2026-08-31** (S0.1 — Security
 Policy Injection — **COMPLETE / ACCEPTED — 2026-08-21**; S0.2 — Security Baseline Discovery —
 **COMPLETE / ACCEPTED — 2026-08-24**; S0.3 — Existing-Tool Security Checks — **COMPLETE /
 ACCEPTED — 2026-08-24**; see `SECURITY.md` and `docs/security/`)
@@ -65,24 +65,28 @@ Permission Verification — **COMPLETE / ACCEPTED — 2026-08-28**
 (`S0.3-G010` — **Covered / Resolved — 2026-08-28**; **`S0.7-F002`** — **RETIRED** / Application-vs-Enterprise Identity Scope Model Corrected — 2026-08-28 owner scope decision; NOT Accepted Risk; NOT a waived vulnerability; NOT evidence deletion) — see
 docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md +
 docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md); S0.8 — Independent Assurance & S0
-Closeout (PLANNED / NOT STARTED)
+Closeout (**COMPLETE / ACCEPTED — 2026-08-31** — project-owner acceptance recorded; S0 — **COMPLETE / ACCEPTED — 2026-08-31** — see docs/security/S0_8_INDEPENDENT_ASSURANCE_CLOSEOUT.md and docs/security/KST_V2_SECURITY_IMPLEMENTATION_REPORT.md)
 Cross-cutting governance foundation: **Third-Party Software & Licensing Governance — ENACTED /
 ACCEPTED — 2026-08-27** — see
 docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md (governs license/commercial-use
 admission for third-party dependencies, developer tooling, and services; integrated into
 docs/security/DEPENDENCY_ADMISSION.md and AGENTS.md as a supplement to, not a replacement for,
 existing security admission requirements); now a governing prerequisite for future third-party
-dependency/tool admission. S0.6 is now COMPLETE / ACCEPTED — 2026-08-27; S0.7 is now IN PROGRESS
-(S0.7A — Local Release Runtime Verification — COMPLETE / ACCEPTED — 2026-08-28:
-2026-08-27 evidence valid/accepted as evidence; 2026-08-28 S0.5-F001 remediation implemented
-and re-verified, S0.3-G009 Covered / Resolved);
-S0.8 remains PLANNED / NOT STARTED.
-Stage 9: **NOT STARTED** — blocked pending S0 closeout
+dependency/tool admission. S0.6 is now COMPLETE / ACCEPTED — 2026-08-27; S0.7 is now COMPLETE /
+ACCEPTED — 2026-08-28 (S0.7A — Local Release Runtime Verification — COMPLETE / ACCEPTED —
+2026-08-28: 2026-08-27 evidence valid/accepted as evidence; 2026-08-28 S0.5-F001 remediation
+implemented and re-verified, S0.3-G009 Covered / Resolved; S0.7B — database/infrastructure
+permission verification — COMPLETE / ACCEPTED — 2026-08-28, S0.3-G010 Covered / Resolved,
+S0.7-F002 RETIRED);
+S0.8 is now COMPLETE / ACCEPTED — 2026-08-31. S0 is now COMPLETE / ACCEPTED — 2026-08-31.
+Stage 9: **UNBLOCKED / NOT STARTED**
 Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
 Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versioning-foundation) below)
 
 ## Current Position
+
+**Final S0 closeout:** S0 — **COMPLETE / ACCEPTED — 2026-08-31**; S0.8 — **COMPLETE / ACCEPTED — 2026-08-31**; S0.7 — **COMPLETE / ACCEPTED — 2026-08-28**. Stage 9 — **UNBLOCKED / NOT STARTED**.
 
 Stages 1 through 8 are complete and accepted, and UI Navigation & Keyboard Ergonomics A is complete
 and accepted. The project is not yet working on Stage 9. R0 — Repository / Documentation
@@ -159,7 +163,7 @@ closed and accepted.
 
 ## S0 — Security Foundation Integration
 
-**Status:** CURRENT
+**Status:** COMPLETE / ACCEPTED — 2026-08-31
 
 ### S0.1 — Security Policy Injection
 
@@ -327,9 +331,11 @@ outside repository regression protection — carried to S0.7), `S0.5-F002` (read
 is lexical/structural; server-side grants remain S0.7). Final accepted gap dispositions:
 S0.3-G002 — Covered by S0.5 repository regression protection; S0.3-G003 — Covered by S0.5
 repository regression protection; S0.3-G004 — Covered by accepted S0.4B regression
-protection; S0.3-G005 — Partially Covered (application-emitted QAD SQL is
-repository-regression protected as read-only; actual server-side database grant enforcement
-remains S0.7); CORS secondary observation — Covered by S0.5 regression protection. Evidence
+protection; S0.3-G005 — Covered / Resolved (application-emitted QAD SQL is
+repository-regression protected as read-only by S0.5 `QadReadOnlySqlTests`, and effective
+production QAD permissions independently enforce read-only per S0.7B/G010; the application-level
+guard remains lexical/structural per S0.5-F002); CORS secondary observation — Covered by S0.5
+regression protection. Evidence
 (**not normative policy**):
 docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md.
 
@@ -347,7 +353,7 @@ accepted S0.2/S0.3 evidence:
 | S0.5 | Security Regression & Architecture Checks | **COMPLETE / ACCEPTED — 2026-08-26** (implemented 2026-08-25 — see docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md) |
 | S0.6 | Security Tool Admission | **COMPLETE / ACCEPTED — 2026-08-27** — Capability Review 1 (Rust dependency advisory, `S0.3-G001`) **COMPLETE / ACCEPTED — 2026-08-26** — cargo-audit 0.22.2 ADMITTED / ACCEPTED; cargo-deny 0.20.2 DEFERRED — see docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md (S0.3-G001 — Covered / Resolved); Capability Review 2 (dedicated secret scanning, `S0.3-G007`) **COMPLETE / ACCEPTED — 2026-08-27** (Gitleaks v8.30.0 ADMITTED / IMPLEMENTED / ACCEPTED) — see docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md and docs/security/S0_6_SECRET_SCANNING_ADMISSION.md; Gitleaks v8.30.1/TruffleHog v3.97.1/detect-secrets v1.5.0 DEFERRED; `S0.3-G007` — Covered / Resolved; Capability Review 3 (SBOM, `S0.3-G008`) **COMPLETE / ACCEPTED — 2026-08-27** — Anchore Syft v1.51.1 ADMITTED / IMPLEMENTED / ACCEPTED — see docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md and docs/security/S0_6_SBOM_ADMISSION.md; Microsoft sbom-tool v4.1.5 and the CycloneDX ecosystem-native approach DEFERRED; six informational findings `S0.6-F014`–`S0.6-F019`, none blocking; complete Tauri Windows installer/application bundle Unable to Verify / future packaged-release verification boundary, not Accepted Risk; `S0.3-G008` — Covered / Resolved; Capability Review 4 (dedicated SAST, `S0.3-G006`) **COMPLETE / ACCEPTED — 2026-08-27** — neutral research packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90 — see docs/security/S0_6_SAST_ADMISSION_RESEARCH.md (not a recommendation or admission decision) and docs/security/S0_6_SAST_ADMISSION.md (owner decision, full implementation evidence, and 2026-08-27 project-owner acceptance); Microsoft DevSkim CLI v1.0.90 ADMITTED / INSTALLED / VERIFIED / ACCEPTED (50 findings across 3 bundled rules from the KST source-tree scan; `S0.6-F020` — Informational / Framework-Local Origin / Confirmed DevSkim False Positive for plaintext-network interpretation; `S0.6-F021` — Informational / Known DevSkim Rule Limitation; neither Accepted Risk); Semgrep CE v1.175.0 and CodeQL CLI v2.26.4 DEFERRED (not rejected); `S0.3-G006` — Covered / Resolved. All four S0.6-assigned gaps (`S0.3-G001`, `S0.3-G006`, `S0.3-G007`, `S0.3-G008`) are Covered / Resolved. |
 | S0.7 | Runtime & Infrastructure Verification | **COMPLETE / ACCEPTED — 2026-08-28** — S0.7A — Local Release Runtime Verification (working pass) — **COMPLETE / ACCEPTED — 2026-08-28** (2026-08-27 evidence pass VALID / ACCEPTED AS EVIDENCE by owner review: release-built runtime evidence — loopback-only `127.0.0.1` sidecar listener on OS-assigned port, no wildcard/LAN listener, clean sidecar lifecycle with no orphans, runtime CORS matching the accepted five-origin allowlist, release-build CSP/capability artifact evidence; safe `ASPNETCORE_URLS` loopback precedence test confirmed the operator environment override alters the effective listener. 2026-08-28: `S0.5-F001` loopback-binding remediation implemented — the sidecar now unconditionally sets an explicit `http://127.0.0.1:<port>` `UseUrls` endpoint (verified on the shipped self-contained .NET 10 release runtime to ignore an inherited `ASPNETCORE_URLS` value after the fix), so inherited hosting configuration no longer takes authority over the listener — with failure-safe behavioral regression tests (no test can create a wildcard listener even in its failing state; original wildcard real-process test replaced before acceptance — see evidence §26.3; incl. demonstrated pre-fix failure), 672/672 backend suite, and post-fix release-runtime re-verification (env value no longer controls listener selection) — **`S0.5-F001` — REMEDIATED AND VERIFIED BY S0.7**; **S0.3-G009 — Covered / Resolved** (accepted with S0.7A — 2026-08-28); **`S0.7-F001`** — Operational / Package-Identity Coexistence Issue — Deferred for packaging/deployment decision; S0.7B — database/infrastructure permission verification incl. `S0.3-G010` — **COMPLETE / ACCEPTED — 2026-08-28** (`S0.3-G010` — **Covered / Resolved — 2026-08-28**; **`S0.7-F002`** — **RETIRED** / Application-vs-Enterprise Identity Scope Model Corrected — 2026-08-28 owner scope decision; NOT Accepted Risk; NOT a waived vulnerability; NOT evidence deletion) — see docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md + docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md |
-| S0.8 | Independent Assurance & S0 Closeout | PLANNED / NOT STARTED |
+| S0.8 | Independent Assurance & S0 Closeout | **COMPLETE / ACCEPTED — 2026-08-31** (project-owner acceptance recorded; S0 — **COMPLETE / ACCEPTED — 2026-08-31** — see docs/security/S0_8_INDEPENDENT_ASSURANCE_CLOSEOUT.md and docs/security/KST_V2_SECURITY_IMPLEMENTATION_REPORT.md) |
 
 **Cross-cutting governance foundation:** Third-Party Software & Licensing Governance is **ENACTED /
 ACCEPTED — 2026-08-27** — see docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md
@@ -357,9 +363,8 @@ decision for any specific component.
 
 Full scope, boundaries, and the finding/gap-to-checkpoint mapping are in
 docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md (approved active planning; not
-normative policy). Approval of the roadmap does not complete any checkpoint; no remediation
-has been performed. Stage 9 — Immediate Shortages is NOT STARTED and blocked until S0 is
-formally closed and accepted.
+normative policy). The roadmap is historical planning evidence; S0.4–S0.8 are now complete and
+accepted. Stage 9 — Immediate Shortages is **UNBLOCKED / NOT STARTED**.
 
 ## Stage 8 — Component and BOM Detail
 
@@ -577,12 +582,13 @@ verification incl. `S0.3-G010` — **COMPLETE / ACCEPTED — 2026-08-28**
 (`S0.3-G010` — **Covered / Resolved — 2026-08-28**; **`S0.7-F002`** — **RETIRED** /
 Application-vs-Enterprise Identity Scope Model Corrected — 2026-08-28 owner scope decision; NOT
 Accepted Risk; NOT a waived vulnerability; NOT evidence deletion) — see
-docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md. S0.8 remains PLANNED / NOT STARTED
-(see "Remaining S0 Work" above and
-docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md). The cross-cutting Third-Party
+docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md. S0.8 — Independent Assurance & S0
+Closeout is **COMPLETE / ACCEPTED — 2026-08-31**; S0 — **COMPLETE / ACCEPTED — 2026-08-31** — see
+docs/security/S0_8_INDEPENDENT_ASSURANCE_CLOSEOUT.md and
+docs/security/KST_V2_SECURITY_IMPLEMENTATION_REPORT.md. The cross-cutting Third-Party
 Software & Licensing Governance foundation is **ENACTED / ACCEPTED — 2026-08-27** — see
 `docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md`, integrated into
 `docs/security/DEPENDENCY_ADMISSION.md` and `AGENTS.md`; it is a governing prerequisite for future
 third-party admission and is
 not itself an S0 checkpoint or an admission decision for any component. Stage 9 — Immediate Shortages
-begins only after S0 is formally closed and accepted.
+is **UNBLOCKED / NOT STARTED**.

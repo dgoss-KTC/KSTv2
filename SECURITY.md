@@ -172,8 +172,13 @@ At minimum, do not silently:
    [docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md](docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md)
    (S0.7A evidence + remediation record) and
    [docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md](docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md)
-   (S0.7B database/permission evidence; **not** normative policy). S0.8 remains PLANNED / NOT
-  STARTED. Stage 9 is blocked pending S0 closeout.
+     (S0.7B database/permission evidence; **not** normative policy). S0.8 — Independent
+     Assurance & S0 Closeout is **COMPLETE / ACCEPTED — 2026-08-31** — the project owner
+     accepted the independent assurance review and S0 Security Foundation on 2026-08-31; S0 —
+     **COMPLETE / ACCEPTED — 2026-08-31** — see
+    [docs/security/S0_8_INDEPENDENT_ASSURANCE_CLOSEOUT.md](docs/security/S0_8_INDEPENDENT_ASSURANCE_CLOSEOUT.md)
+    and [docs/security/KST_V2_SECURITY_IMPLEMENTATION_REPORT.md](docs/security/KST_V2_SECURITY_IMPLEMENTATION_REPORT.md).
+     Stage 9 is **UNBLOCKED / NOT STARTED**.
 
 The original design source for this policy set is retained for provenance at
 `docs/reference/security/KST v2 Security Foundation — Initial Policy and Enactment Draft.md` and is
