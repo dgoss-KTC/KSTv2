@@ -2152,7 +2152,7 @@ describe('MpsWorkspace', () => {
       expect(bomRequestCalls(fetchMock)).toHaveLength(0);
     });
 
-    it('P/M and Phantom filter changes make no new API request', async () => {
+    it('Component Item, Description, P/M, and Phantom filter changes make no new API request', async () => {
       setupBackend();
       render(<App />);
       await waitForConnected();
@@ -2170,6 +2170,7 @@ describe('MpsWorkspace', () => {
       await user.selectOptions(screen.getByLabelText('P/M'), 'P');
       await user.selectOptions(screen.getByLabelText('Phantom'), 'no');
       await user.type(screen.getByLabelText('Filter by Component Item'), 'COMP');
+      await user.type(screen.getByLabelText('Filter by Description'), 'COMP');
       await waitFor(() => {
         expect(screen.getByText('COMP-A')).toBeInTheDocument();
       });

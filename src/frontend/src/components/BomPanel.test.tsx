@@ -212,14 +212,143 @@ describe('BomPanel', () => {
     });
   });
 
+  describe('Description filter', () => {
+    // Deliberately not alphabetical; includes a repeated component (P-339), a level gap (1 → 3),
+    // and null/blank descriptions so filtering can be checked against structural truth.
+    const descLines: BomLineDto[] = [
+      makeBomLine({ occurrenceKey: 'd-1', level: 1, componentPart: 'P-339', description: 'MAIN PCB ASSEMBLY' }),
+      makeBomLine({ occurrenceKey: 'd-2', level: 1, componentPart: 'P-440', pmCode: 'M', isPhantom: true, description: 'PCB FAB' }),
+      makeBomLine({ occurrenceKey: 'd-3', level: 2, componentPart: 'P-339', description: 'Control Pcb' }),
+      makeBomLine({ occurrenceKey: 'd-4', level: 3, componentPart: 'P-551', pmCode: 'M', description: 'Metal Bracket' }),
+      makeBomLine({ occurrenceKey: 'd-5', level: 3, componentPart: 'P-662', isPhantom: true, description: null }),
+      makeBomLine({ occurrenceKey: 'd-6', level: 3, componentPart: 'P-773', pmCode: 'M', description: '' }),
+    ];
+
+    it('matches description substrings case-insensitively', async () => {
+      const user = userEvent.setup();
+      renderPanel({ bom: makeBom({ lines: descLines }) });
+      await user.type(screen.getByLabelText('Filter by Description'), 'pcb');
+      expect(bodyRowParts().map((row) => row[1])).toEqual(['P-339', 'P-440', 'P-339']);
+    });
+
+    it('preserves source order, repeated occurrences, and actual Level values', async () => {
+      const user = userEvent.setup();
+      renderPanel({ bom: makeBom({ lines: descLines }) });
+      await user.type(screen.getByLabelText('Filter by Description'), 'pcb');
+      expect(bodyRowParts()).toEqual([
+        ['1', 'P-339', 'P', 'No', 'MAIN PCB ASSEMBLY', '2', '0.5%', '10', '3'],
+        ['1', 'P-440', 'M', 'Yes', 'PCB FAB', '2', '0.5%', '10', '3'],
+        ['2', 'P-339', 'P', 'No', 'Control Pcb', '2', '0.5%', '10', '3'],
+      ]);
+    });
+
+    it('trims leading and trailing filter whitespace for matching', async () => {
+      const user = userEvent.setup();
+      renderPanel({ bom: makeBom({ lines: descLines }) });
+      await user.type(screen.getByLabelText('Filter by Description'), '  PCB  ');
+      expect(bodyRowParts().map((row) => row[1])).toEqual(['P-339', 'P-440', 'P-339']);
+    });
+
+    it('combines with the Component Item filter using AND semantics', async () => {
+      const user = userEvent.setup();
+      renderPanel({ bom: makeBom({ lines: descLines }) });
+      await user.type(screen.getByLabelText('Filter by Component Item'), '339');
+      await user.type(screen.getByLabelText('Filter by Description'), 'pcb');
+      // P-440 matches the description but not the part; both P-339 occurrences match both.
+      expect(bodyRowParts().map((row) => row[1])).toEqual(['P-339', 'P-339']);
+    });
+
+    it('combines with P/M and Phantom using AND semantics', async () => {
+      const user = userEvent.setup();
+      renderPanel({ bom: makeBom({ lines: descLines }) });
+      await user.type(screen.getByLabelText('Filter by Description'), 'pcb');
+      await user.selectOptions(screen.getByLabelText('P/M'), 'M');
+      await user.selectOptions(screen.getByLabelText('Phantom'), 'yes');
+      // Only d-2 satisfies all three (PCB FAB, M, phantom).
+      expect(bodyRowParts().map((row) => row[1])).toEqual(['P-440']);
+    });
+
+    it('clearing only the Description filter leaves the other filters active', async () => {
+      const user = userEvent.setup();
+      renderPanel({ bom: makeBom({ lines: descLines }) });
+      const descriptionInput = screen.getByLabelText('Filter by Description');
+      await user.type(screen.getByLabelText('Filter by Component Item'), '339');
+      await user.type(descriptionInput, 'MAIN');
+      await user.selectOptions(screen.getByLabelText('P/M'), 'P');
+      // Only d-1 satisfies all three (P-339, "MAIN PCB ASSEMBLY", P).
+      expect(bodyRowParts().map((row) => row[1])).toEqual(['P-339']);
+
+      await user.clear(descriptionInput);
+      expect(descriptionInput).toHaveValue('');
+      // Component Item + P/M remain active: both P-339 occurrences return.
+      expect(screen.getByLabelText('Filter by Component Item')).toHaveValue('339');
+      expect(screen.getByLabelText('P/M')).toHaveValue('P');
+      expect(bodyRowParts().map((row) => row[1])).toEqual(['P-339', 'P-339']);
+    });
+
+    it('never matches null or blank descriptions and imposes no restriction when empty', async () => {
+      const user = userEvent.setup();
+      renderPanel({ bom: makeBom({ lines: descLines }) });
+      const descriptionInput = screen.getByLabelText('Filter by Description');
+      await user.type(descriptionInput, 'pcb');
+      // d-5 (null) and d-6 (blank) never match; no error or stale state renders.
+      expect(bodyRowParts().map((row) => row[1])).toEqual(['P-339', 'P-440', 'P-339']);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+      // A whitespace-only query imposes no restriction: all six rows return, and the filter
+      // still counts as active for the Clear action (same convention as Component Item).
+      await user.clear(descriptionInput);
+      await user.type(descriptionInput, '   ');
+      expect(bodyRowParts()).toHaveLength(6);
+      expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+    });
+
+    it('a Description-only zero match uses the filtered-zero message (not the true-empty one)', async () => {
+      const user = userEvent.setup();
+      renderPanel({ bom: makeBom({ lines: descLines }) });
+      await user.type(screen.getByLabelText('Filter by Description'), 'zzz');
+      expect(screen.getByText('No BOM components match the current filters.')).toBeInTheDocument();
+      expect(screen.queryByText(/no bom components found/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    });
+  });
+
   describe('P/M and Phantom filters', () => {
     // Order deliberately not alphabetical; includes a repeated component (SUB-1) and a level
     // gap (1 → 3) so filtering can be checked against structural truth.
     const filterLines: BomLineDto[] = [
-      makeBomLine({ occurrenceKey: 'f-1', level: 1, componentPart: 'SUB-1', pmCode: 'P', isPhantom: false }),
-      makeBomLine({ occurrenceKey: 'f-2', level: 1, componentPart: 'SUB-2', pmCode: 'M', isPhantom: true }),
-      makeBomLine({ occurrenceKey: 'f-3', level: 3, componentPart: 'SUB-1', pmCode: 'P', isPhantom: false }),
-      makeBomLine({ occurrenceKey: 'f-4', level: 3, componentPart: 'SUB-3', pmCode: 'M', isPhantom: false }),
+      makeBomLine({
+        occurrenceKey: 'f-1',
+        level: 1,
+        componentPart: 'SUB-1',
+        pmCode: 'P',
+        isPhantom: false,
+        description: 'Sub One Fastener',
+      }),
+      makeBomLine({
+        occurrenceKey: 'f-2',
+        level: 1,
+        componentPart: 'SUB-2',
+        pmCode: 'M',
+        isPhantom: true,
+        description: 'Sub Two Bracket',
+      }),
+      makeBomLine({
+        occurrenceKey: 'f-3',
+        level: 3,
+        componentPart: 'SUB-1',
+        pmCode: 'P',
+        isPhantom: false,
+        description: 'Sub One Fastener',
+      }),
+      makeBomLine({
+        occurrenceKey: 'f-4',
+        level: 3,
+        componentPart: 'SUB-3',
+        pmCode: 'M',
+        isPhantom: false,
+        description: 'Sub Three Bracket',
+      }),
     ];
 
     it('default All displays P and M rows', () => {
@@ -260,37 +389,44 @@ describe('BomPanel', () => {
       expect(bodyRowParts().map((row) => row[1])).toEqual(['SUB-1', 'SUB-1', 'SUB-3']);
     });
 
-    it('search, P/M, and Phantom combine with AND semantics, preserving order, duplicates, and level gaps', async () => {
+    it('search, Description, P/M, and Phantom combine with AND semantics, preserving order, duplicates, and level gaps', async () => {
       const user = userEvent.setup();
       renderPanel({ bom: makeBom({ lines: filterLines }) });
+      const descriptionInput = screen.getByLabelText('Filter by Description');
       await user.type(screen.getByLabelText('Filter by Component Item'), 'sub');
+      await user.type(descriptionInput, 'bracket');
       await user.selectOptions(screen.getByLabelText('P/M'), 'M');
       await user.selectOptions(screen.getByLabelText('Phantom'), 'yes');
-      // Only f-2 satisfies all three (SUB-2, M, phantom).
-      expect(bodyRowParts()).toEqual([['1', 'SUB-2', 'M', 'Yes', 'Component One', '2', '0.5%', '10', '3']]);
+      // Only f-2 satisfies all four (SUB-2, "Sub Two Bracket", M, phantom).
+      expect(bodyRowParts()).toEqual([['1', 'SUB-2', 'M', 'Yes', 'Sub Two Bracket', '2', '0.5%', '10', '3']]);
 
-      // Widen to P + all phantoms: the repeated SUB-1 occurrences stay repeated, in order, with
-      // the 1 → 3 level gap intact.
+      // Widen to P + all phantoms + fastener descriptions: the repeated SUB-1 occurrences stay
+      // repeated, in order, with the 1 → 3 level gap intact.
+      await user.clear(descriptionInput);
+      await user.type(descriptionInput, 'fastener');
       await user.selectOptions(screen.getByLabelText('P/M'), 'P');
       await user.selectOptions(screen.getByLabelText('Phantom'), 'all');
       expect(bodyRowParts().map((row) => row[1])).toEqual(['SUB-1', 'SUB-1']);
       expect(bodyRowParts().map((row) => row[0])).toEqual(['1', '3']);
     });
 
-    it('Clear resets search, P/M, and Phantom and restores the complete sequence', async () => {
+    it('Clear resets search, Description, P/M, and Phantom and restores the complete sequence', async () => {
       const user = userEvent.setup();
       renderPanel({ bom: makeBom({ lines: filterLines }) });
       const input = screen.getByLabelText('Filter by Component Item');
+      const descriptionInput = screen.getByLabelText('Filter by Description');
       const pmSelect = screen.getByLabelText('P/M');
       const phantomSelect = screen.getByLabelText('Phantom');
 
       await user.type(input, 'sub');
+      await user.type(descriptionInput, 'bracket');
       await user.selectOptions(pmSelect, 'M');
       await user.selectOptions(phantomSelect, 'yes');
       expect(bodyRowParts()).toHaveLength(1);
 
       await user.click(screen.getByRole('button', { name: 'Clear' }));
       expect(input).toHaveValue('');
+      expect(descriptionInput).toHaveValue('');
       expect(pmSelect).toHaveValue('all');
       expect(phantomSelect).toHaveValue('all');
       expect(bodyRowParts().map((row) => row[1])).toEqual(['SUB-1', 'SUB-2', 'SUB-1', 'SUB-3']);

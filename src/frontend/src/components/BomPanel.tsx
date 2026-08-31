@@ -43,38 +43,49 @@ function formatScrap(value: number | string | null | undefined): string {
  * returned by the accepted 8D.3 endpoint. Rows preserve backend structural order (no sort, no
  * regroup, no dedup), show actual Level values (gaps included), and are keyed by the opaque
  * OccurrenceKey. Search is a client-side Component Part substring filter (the accepted Stage 7
- * kitting search interaction); it never re-queries. Any row (Stage 8D.6) opens the blocking
+ * kitting search interaction) plus a separate client-side Description substring filter; neither
+ * re-queries. Any row (Stage 8D.6) opens the blocking
  * Component Information modal for its component part via `onSelectComponent`; this panel owns no
  * modal state itself.
  */
 export function BomPanel({ parentPart, bom, isLoading, error, onRetry, onSelectComponent }: BomPanelProps) {
   const [searchText, setSearchText] = useState('');
+  const [descriptionText, setDescriptionText] = useState('');
   const [pmFilter, setPmFilter] = useState<PmFilter>('all');
   const [phantomFilter, setPhantomFilter] = useState<PhantomFilter>('all');
   const searchInputId = useId();
+  const descriptionInputId = useId();
   const pmSelectId = useId();
   const phantomSelectId = useId();
 
-  const filtersActive = searchText.length > 0 || pmFilter !== 'all' || phantomFilter !== 'all';
+  const filtersActive =
+    searchText.length > 0 || descriptionText.length > 0 || pmFilter !== 'all' || phantomFilter !== 'all';
 
   const clearFilters = () => {
     setSearchText('');
+    setDescriptionText('');
     setPmFilter('all');
     setPhantomFilter('all');
   };
 
   // The accepted kitting Component Item search (trim + case-insensitive substring on
-  // componentPart only) combined with the P/M and Phantom display filters using AND semantics.
+  // componentPart only), the separate Description filter (trim + case-insensitive substring on
+  // the displayed description; null/blank descriptions never match a non-empty query), and the
+  // P/M and Phantom display filters, combined using AND semantics.
   // Original API order, Level values, gaps, and repeated occurrences are preserved.
   const visibleLines: BomLineDto[] = useMemo(() => {
     if (!bom) return [];
+    const descriptionNeedle = descriptionText.trim().toLowerCase();
     return filterMaterialLinesByPart(bom.lines, searchText).filter((line) => {
+      if (descriptionNeedle && !(line.description ?? '').toLowerCase().includes(descriptionNeedle)) {
+        return false;
+      }
       if (pmFilter !== 'all' && line.pmCode !== pmFilter) return false;
       if (phantomFilter === 'yes' && !line.isPhantom) return false;
       if (phantomFilter === 'no' && line.isPhantom) return false;
       return true;
     });
-  }, [bom, searchText, pmFilter, phantomFilter]);
+  }, [bom, searchText, descriptionText, pmFilter, phantomFilter]);
 
   return (
     <div className="bom-panel" aria-label={`BOM for ${parentPart}`}>
@@ -115,6 +126,14 @@ export function BomPanel({ parentPart, bom, isLoading, error, onRetry, onSelectC
                   value={searchText}
                   onChange={(event) => setSearchText(event.target.value)}
                   placeholder="e.g. 00-0001"
+                />
+                <label htmlFor={descriptionInputId}>Filter by Description</label>
+                <input
+                  id={descriptionInputId}
+                  type="text"
+                  value={descriptionText}
+                  onChange={(event) => setDescriptionText(event.target.value)}
+                  placeholder="e.g. PCB"
                 />
                 <label htmlFor={pmSelectId}>P/M</label>
                 <select

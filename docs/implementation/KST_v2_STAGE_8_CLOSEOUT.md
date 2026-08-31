@@ -190,3 +190,26 @@ None of the above were started in this pass.
 ## Final decision
 
 **Stage 8 completion gate: PASS. Stage 8 is COMPLETE / ACCEPTED.**
+
+## Post-acceptance amendments
+
+### 2026-08-31 — BOM Description filter (accepted UX amendment)
+
+After the original Stage 8 acceptance, the project owner accepted a small BOM UX amendment: a
+separate, frontend-local **Description** text filter in the BOM view, alongside the existing
+filters. The BOM view now supports:
+
+- Component Item substring filter (part-number-only; unchanged by this amendment);
+- Description substring filter — case-insensitive substring against the displayed component
+  description; leading/trailing filter whitespace trimmed; empty or whitespace-only imposes no
+  restriction; null/blank descriptions never match a non-empty query and cause no error;
+- P/M filter;
+- Phantom filter;
+- all four filters combine using AND semantics;
+- filtering remains entirely frontend-local and never triggers an additional BOM request; source
+  order, repeated occurrences, actual Level values, and occurrence identity are preserved.
+
+Frontend-only change (`src/frontend/src/components/BomPanel.tsx` and its tests); no backend, QAD
+SQL, OpenAPI, generated-contract, or dependency change. Manually verified and accepted by the
+project owner on 2026-08-31. This amendment is recorded as accepted after the original 2026-08-21
+acceptance; it does not modify the acceptance record above. Stage 8 remains COMPLETE / ACCEPTED.

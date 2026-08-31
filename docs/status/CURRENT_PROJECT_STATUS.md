@@ -374,8 +374,10 @@ Stage 8 is an **informational Component/BOM investigation capability**. It does 
 material-requirement netting, shortage classification, or PO coverage.
 
 Accepted behavior includes the current effective multi-level BOM (`ps_mstr`) with structural
-hierarchy/order and repeated occurrences preserved, phantoms shown and exploded, BOM search plus
-P/M and Phantom filters, the shared Stage 6 Net / Non-Net inventory semantics, a blocking Component
+hierarchy/order and repeated occurrences preserved, phantoms shown and exploded, BOM Component Item
+and Description search plus P/M and Phantom filters (the Description filter was added by the
+2026-08-31 accepted UX amendment recorded in the Stage 8 closeout), the shared Stage 6 Net /
+Non-Net inventory semantics, a blocking Component
 Information modal with selected-site planning fields, Standard Cost (`sct_sim = 'Standard'`, latest
 `sct_cst_date`), QCTC (`inp_source = 'qtbom_det'`, latest `inp_start_date`), and Approved Alternates
 as the user-facing term (technical `ApprovedVendor` / `vp_mstr` naming is retained).
