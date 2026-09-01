@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
+using Kst.Domain.Mps;
 using Kst.Domain.WorkOrders;
 using Kst.Integrations.Qad.Mps;
 using Kst.Integrations.Qad.Options;
@@ -9,12 +11,14 @@ using Kst.Integrations.Qad.Options;
 namespace Kst.Integrations.Qad.WorkOrders;
 
 /// <summary>
-/// Direct, parameterized QAD adapter for Stage 7 work-order summary/card retrieval (accepted contract
-/// §7/§13). Supports two query shapes that share the same card-field + Kitting-count SQL projection:
-/// (1) explicit WOID lookup, for the top-level bucket → Work Orders drill-down, where the caller
-/// already knows the relevant WOIDs from the retained MPS snapshot; (2) candidate subassembly lookup
-/// by manufactured component part, across all eligible A/F/R work orders regardless of Due Date. Both
-/// restrict results to the eligible A/F/R status set and exclude RMABOM work orders at the SQL boundary.
+/// Direct, parameterized QAD adapter for Stage 7/7R work-order summary/card retrieval (accepted
+/// contract §7/§13, amended by Stage 7R). Two query shapes share the same card-field +
+/// Kitting-count SQL projection:
+/// (1) the parent-scoped four-week planning window (Stage 7R), sourced directly from <c>wo_mstr</c>
+///     and open to every non-closed work order (Closed and RMABOM excluded at the SQL boundary);
+/// (2) a single WOID lookup without the A/F/R eligibility filter, used to resolve a planning-window
+///     parent's facts (a Stage 7R depth-1 work order may carry any non-closed status).
+/// All shapes exclude RMABOM work orders at the SQL boundary.
 /// </summary>
 public sealed class QadWorkOrderSummaryReader
 {
@@ -27,148 +31,169 @@ public sealed class QadWorkOrderSummaryReader
         _logger = logger;
     }
 
-    /// <summary>Reads Stage 7 work-order summaries for an explicit set of WOIDs (top-level bucket drill-down).</summary>
-    public async Task<IReadOnlyList<WorkOrderSummary>> ReadByWoidsAsync(
+    /// <summary>
+    /// Reads the parent-scoped four-week Work Order planning window (Stage 7R): Due-Date-based
+    /// Falldown plus Week 0..3 under the active weekly-bucket basis, for every non-closed,
+    /// non-RMABOM work order on the parent part. <paramref name="bucketKind"/>/
+    /// <paramref name="bucketWeekStart"/> narrow the result to a single bucket (Falldown, or one
+    /// forward week); both null returns the full window. Falldown is always Due-Date based
+    /// regardless of <paramref name="dateBasis"/>.
+    /// </summary>
+    public async Task<IReadOnlyList<WorkOrderSummary>> ReadPlanningWindowAsync(
         string site,
-        IReadOnlyList<string> woids,
+        string parentPart,
+        MpsDateBasis dateBasis,
+        DateOnly weekStart,
+        DateOnly windowEndExclusive,
+        MpsBucketKind? bucketKind,
+        DateOnly? bucketWeekStart,
         CancellationToken cancellationToken = default)
     {
         if (!_options.IsConfigured)
             throw new InvalidOperationException("QAD connection is not configured.");
-        if (woids.Count == 0)
-            return [];
 
         var domain = QadSiteDomainMap.Resolve(site);
         var stopwatch = Stopwatch.StartNew();
 
         await using var connection = await QadConnectionFactory.OpenAsync(_options, cancellationToken);
 
-        var (sql, parameters) = BuildByWoidsQuery(domain, site, woids);
+        var (sql, parameters) = BuildPlanningWindowQuery(
+            domain, site, parentPart, dateBasis, weekStart, windowEndExclusive, bucketKind, bucketWeekStart);
         var command = new CommandDefinition(
             sql, parameters, commandTimeout: _options.CommandTimeoutSeconds, cancellationToken: cancellationToken);
-        var rawRows = await connection.QueryAsync<QadWorkOrderSummaryRawRow>(command);
-        var normalized = rawRows.Select(Normalize).ToList();
+        var rawRows = (await connection.QueryAsync<QadWorkOrderSummaryRawRow>(command)).ToList();
+        var normalized = rawRows.Select(NormalizePlanningWindow).ToList();
 
         stopwatch.Stop();
         _logger.LogInformation(
-            "Work order summary read for {WoidCount} WOID(s) in site {Site} returned {RowCount} rows in {ElapsedMs}ms.",
-            woids.Count, site, normalized.Count, stopwatch.ElapsedMilliseconds);
+            "Planning-window work order read for part {ParentPart} in site {Site} returned {RowCount} rows in {ElapsedMs}ms.",
+            parentPart, site, normalized.Count, stopwatch.ElapsedMilliseconds);
 
         return normalized;
     }
 
     /// <summary>
-    /// Reads candidate subassembly work orders for a manufactured component across all eligible
-    /// A/F/R work orders, regardless of Due Date. Fetches one row beyond <paramref name="limit"/> so
-    /// truncation can be detected without a second round trip.
+    /// Reads one work-order summary by WOID without the A/F/R eligibility filter (Stage 7R). A
+    /// planning-window depth-1 work order may carry any non-closed status, so the immediate parent's
+    /// facts must resolve for non-A/F/R parents too. Closed and RMABOM work orders are still
+    /// excluded at the SQL boundary. Returns null when no such work order exists.
     /// </summary>
-    public async Task<CandidateWorkOrdersResult> ReadCandidatesAsync(
+    public async Task<WorkOrderSummary?> ReadByWoidAsync(
         string site,
-        string componentPart,
-        int limit,
+        string woid,
         CancellationToken cancellationToken = default)
     {
         if (!_options.IsConfigured)
             throw new InvalidOperationException("QAD connection is not configured.");
-        if (limit <= 0)
-            throw new ArgumentOutOfRangeException(nameof(limit), "Candidate limit must be positive.");
 
         var domain = QadSiteDomainMap.Resolve(site);
-        var stopwatch = Stopwatch.StartNew();
 
         await using var connection = await QadConnectionFactory.OpenAsync(_options, cancellationToken);
 
-        var (sql, parameters) = BuildCandidateQuery(domain, site, componentPart, limit);
+        var (sql, parameters) = BuildByWoidQuery(domain, site, woid);
         var command = new CommandDefinition(
             sql, parameters, commandTimeout: _options.CommandTimeoutSeconds, cancellationToken: cancellationToken);
-        var rawRows = (await connection.QueryAsync<QadWorkOrderSummaryRawRow>(command)).ToList();
+        var row = await connection.QueryFirstOrDefaultAsync<QadWorkOrderSummaryRawRow>(command);
 
-        stopwatch.Stop();
-        _logger.LogInformation(
-            "Candidate work order read for component {ComponentPart} in site {Site} returned {RowCount} rows in {ElapsedMs}ms.",
-            componentPart, site, rawRows.Count, stopwatch.ElapsedMilliseconds);
-
-        return ComposeCandidateResult(rawRows, limit);
-    }
-
-    /// <summary>Public and pure so the fetch-one-extra / truncation-detection logic is independently testable.</summary>
-    public static CandidateWorkOrdersResult ComposeCandidateResult(IReadOnlyList<QadWorkOrderSummaryRawRow> rawRows, int limit)
-    {
-        var isTruncated = rawRows.Count > limit;
-        var candidates = rawRows.Take(limit).Select(Normalize).ToList();
-        return new CandidateWorkOrdersResult(candidates, isTruncated);
+        return row is null ? null : NormalizePlanningWindow(row);
     }
 
     /// <summary>
-    /// Builds the explicit-WOID lookup query. Public and pure (no connection) so SQL/parameter shape
-    /// is independently testable. Uses the same VALUES-table parameterization convention as
-    /// <see cref="Mps.QadMpsSourceReader.BuildBatchQuery"/> rather than Dapper's automatic IN-clause
-    /// expansion, for consistent, directly-inspectable SQL text.
+    /// Builds the parent-scoped four-week planning-window query. Public and pure (no connection) so
+    /// SQL/parameter shape is independently testable. The forward-window predicate switches between
+    /// <c>wo_due_date</c> (Due basis) and <c>wo_rel_date</c> (Release basis) via the <c>@DateBasis</c>
+    /// parameter; the Falldown predicate always uses <c>wo_due_date</c>. <c>@WindowEnd</c> is the
+    /// exclusive horizon end (first day of Week 4) so the four-week boundary is parameterized, not
+    /// hardcoded.
     /// </summary>
-    public static (string Sql, DynamicParameters Parameters) BuildByWoidsQuery(
-        string domain, string site, IReadOnlyList<string> woids)
+    public static (string Sql, DynamicParameters Parameters) BuildPlanningWindowQuery(
+        string domain, string site, string parentPart,
+        MpsDateBasis dateBasis,
+        DateOnly weekStart,
+        DateOnly windowEndExclusive,
+        MpsBucketKind? bucketKind,
+        DateOnly? bucketWeekStart)
     {
         var parameters = new DynamicParameters();
         parameters.Add("Domain", domain);
         parameters.Add("Site", site);
+        parameters.Add("ParentPart", parentPart);
+        parameters.Add("WeekStart", weekStart.ToDateTime(TimeOnly.MinValue), DbType.Date);
+        parameters.Add("DateBasis", dateBasis == MpsDateBasis.ReleaseDate ? "releaseDate" : "dueDate");
 
-        var valueRows = new List<string>(woids.Count);
-        for (var i = 0; i < woids.Count; i++)
+        string predicate;
+        if (bucketKind == MpsBucketKind.Falldown)
         {
-            var paramName = $"Woid{i}";
-            parameters.Add(paramName, woids[i]);
-            valueRows.Add($"(@{paramName})");
+            // Falldown is always Due-Date based, regardless of the active weekly-bucket basis.
+            predicate = "wo.wo_due_date < @WeekStart";
+        }
+        else if (bucketKind == MpsBucketKind.Weekly)
+        {
+            if (bucketWeekStart is not { } bucketStart)
+                throw new ArgumentException(
+                    "A weekly planning-window bucket requires a bucket week start.", nameof(bucketWeekStart));
+            var bucketWeekEnd = bucketStart.AddDays(7);
+            parameters.Add("BucketWeekStart", bucketStart.ToDateTime(TimeOnly.MinValue), DbType.Date);
+            parameters.Add("BucketWeekEnd", bucketWeekEnd.ToDateTime(TimeOnly.MinValue), DbType.Date);
+            predicate = """
+                ( (@DateBasis = 'releaseDate' AND wo.wo_rel_date >= @BucketWeekStart AND wo.wo_rel_date < @BucketWeekEnd)
+                  OR (@DateBasis = 'dueDate' AND wo.wo_due_date >= @BucketWeekStart AND wo.wo_due_date < @BucketWeekEnd) )
+                """;
+        }
+        else
+        {
+            // Full planning window: Due-Date-based Falldown PLUS Week 0..3 under the active basis.
+            // Intentionally not reducible to one date-field predicate in Release mode.
+            parameters.Add("WindowEnd", windowEndExclusive.ToDateTime(TimeOnly.MinValue), DbType.Date);
+            predicate = """
+                ( wo.wo_due_date < @WeekStart
+                  OR (@DateBasis = 'releaseDate' AND wo.wo_rel_date >= @WeekStart AND wo.wo_rel_date < @WindowEnd)
+                  OR (@DateBasis = 'dueDate' AND wo.wo_due_date >= @WeekStart AND wo.wo_due_date < @WindowEnd) )
+                """;
         }
 
         var sql = $"""
-            WITH RequestedWoids (Woid) AS
-            (
-                SELECT Woid FROM (VALUES {string.Join(", ", valueRows)}) AS W (Woid)
-            )
             SELECT
             {CardSelectColumnsSql}
             FROM qadpro2.dbo.wo_mstr AS wo
-            INNER JOIN RequestedWoids AS req
-                ON req.Woid = wo.wo_lot
             {KittingApplySql}
             WHERE wo.wo_domain = @Domain
               AND wo.wo_site = @Site
-              AND wo.wo_status IN ('A', 'F', 'R')
-              AND ISNULL(wo.wo_bom_code, '') <> 'RMABOM';
+              AND wo.wo_part = @ParentPart
+              AND wo.wo_status <> 'C'
+              AND ISNULL(wo.wo_bom_code, '') <> 'RMABOM'
+              AND {predicate}
+            ORDER BY
+                CASE WHEN wo.wo_due_date < @WeekStart THEN 0 ELSE 1 END,
+                CASE WHEN @DateBasis = 'releaseDate' THEN wo.wo_rel_date ELSE wo.wo_due_date END,
+                wo.wo_lot
             """;
 
         return (sql, parameters);
     }
 
     /// <summary>
-    /// Builds the candidate-subassembly query. Public and pure for the same reason as
-    /// <see cref="BuildByWoidsQuery"/>. Returns all eligible A/F/R work orders for the component
-    /// regardless of Due Date. Ordering matches the accepted rule: most recent Due Date first (Due
-    /// Date, then Release Date, both descending), WOID as a deterministic tie-break.
+    /// Builds the single-WOID lookup query (Stage 7R parent resolution). Public and pure for the
+    /// same reason as <see cref="BuildPlanningWindowQuery"/>. No A/F/R filter — a planning-window
+    /// parent may carry any non-closed status — but Closed and RMABOM are still excluded.
     /// </summary>
-    public static (string Sql, DynamicParameters Parameters) BuildCandidateQuery(
-        string domain, string site, string componentPart, int limit)
+    public static (string Sql, DynamicParameters Parameters) BuildByWoidQuery(string domain, string site, string woid)
     {
         var parameters = new DynamicParameters();
         parameters.Add("Domain", domain);
         parameters.Add("Site", site);
-        parameters.Add("ComponentPart", componentPart);
-        parameters.Add("FetchLimit", limit + 1);
+        parameters.Add("Woid", woid);
 
         var sql = $"""
-            SELECT TOP (@FetchLimit)
+            SELECT
             {CardSelectColumnsSql}
             FROM qadpro2.dbo.wo_mstr AS wo
             {KittingApplySql}
             WHERE wo.wo_domain = @Domain
               AND wo.wo_site = @Site
-              AND wo.wo_part = @ComponentPart
-              AND wo.wo_status IN ('A', 'F', 'R')
-              AND ISNULL(wo.wo_bom_code, '') <> 'RMABOM'
-            ORDER BY
-                wo.wo_due_date DESC,
-                wo.wo_rel_date DESC,
-                wo.wo_lot ASC;
+              AND wo.wo_lot = @Woid
+              AND wo.wo_status <> 'C'
+              AND ISNULL(wo.wo_bom_code, '') <> 'RMABOM';
             """;
 
         return (sql, parameters);
@@ -206,10 +231,14 @@ public sealed class QadWorkOrderSummaryReader
             ) AS kit
         """;
 
-    public static WorkOrderSummary Normalize(QadWorkOrderSummaryRawRow raw) => new(
+    /// <summary>Normalizes a planning-window / single-WOID row, passing any non-closed raw status code through (trimmed).</summary>
+    public static WorkOrderSummary NormalizePlanningWindow(QadWorkOrderSummaryRawRow raw) =>
+        BuildSummary(raw, NormalizePlanningWindowStatus);
+
+    private static WorkOrderSummary BuildSummary(QadWorkOrderSummaryRawRow raw, Func<string, string> statusNormalizer) => new(
         PartNumber: raw.PartNumber,
         Woid: raw.Woid,
-        Status: NormalizeStatus(raw.Status),
+        Status: statusNormalizer(raw.Status),
         OrderedQuantity: raw.OrderedQuantity,
         CompletedQuantity: raw.CompletedQuantity,
         ReleaseDate: raw.ReleaseDate.HasValue ? DateOnly.FromDateTime(raw.ReleaseDate.Value) : null,
@@ -217,14 +246,13 @@ public sealed class QadWorkOrderSummaryReader
         Kitting: KittingSummary.Calculate(raw.ApplicableLineCount, raw.FullyIssuedLineCount),
         SalesOrder: string.IsNullOrWhiteSpace(raw.SalesOrder) ? null : raw.SalesOrder.Trim());
 
-    /// <summary>SQL already restricts to A/F/R; an unexpected value indicates a query/data defect and must fail loudly.</summary>
-    public static WorkOrderStatus NormalizeStatus(string status) => status.Trim() switch
-    {
-        "A" => WorkOrderStatus.Allocating,
-        "F" => WorkOrderStatus.Frozen,
-        "R" => WorkOrderStatus.Released,
-        _ => throw new InvalidOperationException($"Unexpected work order status '{status}' outside the eligible A/F/R set.")
-    };
+    /// <summary>
+    /// Normalizes a planning-window / single-WOID status: any non-closed raw code passes through
+    /// (trimmed) so a previously unseen non-closed code renders safely instead of failing the read.
+    /// Closed ('C') is excluded at the SQL boundary; no defensive drop is applied here so a query
+    /// defect would surface rather than silently removing a row.
+    /// </summary>
+    public static string NormalizePlanningWindowStatus(string status) => status.Trim();
 }
 
 /// <summary>QAD-shaped raw Dapper result row. Does not travel past this integration boundary.</summary>

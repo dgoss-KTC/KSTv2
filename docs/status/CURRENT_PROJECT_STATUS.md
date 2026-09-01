@@ -80,7 +80,7 @@ permission verification — COMPLETE / ACCEPTED — 2026-08-28, S0.3-G010 Covere
 S0.7-F002 RETIRED);
 S0.8 is now COMPLETE / ACCEPTED — 2026-08-31. S0 is now COMPLETE / ACCEPTED — 2026-08-31.
 Stage 9: **UNBLOCKED / NOT STARTED**
-Stage 7 status: **COMPLETE / ACCEPTED — 2026-08-13**
+Stage 7 status: **COMPLETE / ACCEPTED - 2026-08-13; reopened, amended, and closed by Stage 7R (Four-Week Work Order Planning Window) - 2026-09-01** - see [Stage 7R Amendment](#stage-7r-amendment-four-week-work-order-planning-window) below
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
 Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versioning-foundation) below)
 
@@ -441,6 +441,22 @@ accepted outcome are recorded in
 - `KST-v2-Master-Project-Checklist.md`
 - `docs/status/CURRENT_PROJECT_STATUS.md`
 
+## Stage 7R Amendment (Four-Week Work Order Planning Window)
+
+Stage 7 was **reopened and amended** as Stage 7R, then manually validated and **closed / accepted on 2026-09-01**. The original Stage 7 acceptance (2026-08-13) is preserved as history; this amendment supersedes the specific provisions below. Full detail: `docs/implementation/KST_v2_STAGE_7_WORK_ORDER_KITTING_CONTRACT.md` section 14.
+
+- **Parent-level Work Orders visibility:** selecting a parent without a bucket now exposes Part Info + BOM + Work Orders. The Work Orders tab shows the complete parent-level planning population (Due-Date-based Falldown + Weeks 0-3 under the active weekly basis). Shortages remains rendered but deferred (disabled).
+- **Four-week forward planning horizon:** the Work Order drill-down eligibility horizon is Falldown + the first four forward MPS business weeks (Weeks 0-3) - `WORK_ORDER_DRILLDOWN_HORIZON_WEEKS = 4` (frontend) and `WorkOrderPlanningWindow.ForwardWeekCount = 4` (backend). Weeks 4+ do not present the drill-down. The broader MPS display horizon is unchanged.
+- **Population source:** the top-level planning population is sourced directly from `wo_mstr` (parent-scoped), not from MPS-retained Work Order references. The MPS snapshot remains the authority for selected workspace/parent/site, active snapshot generation, the Due/Release weekly-bucket basis, and bucket selection/display.
+- **Non-closed status-driven visibility is no longer limited to A/F/R:** any non-closed `wo_status` produces a planning-window card. Unknown non-closed codes are preserved as their raw value and rendered safely (no invented label, no silent drop). This applies equally to top-level parents and manufactured subassemblies reached through the supported Work Order drill-down.
+- **`RMABOM` exclusion retained;** Closed Work Orders remain excluded at the query boundary.
+- **Falldown remains always Due-Date based:** Falldown membership is always `wo_due_date < current business-week start`, regardless of the active Due/Release basis. Switching basis never changes Falldown membership.
+- **Forward weekly Work Order buckets follow the selected Due/Release basis:** Weeks 0-3 membership uses `wo_due_date` in Due mode and `wo_rel_date` in Release mode. The planning population is the union of Due-Date-based Falldown and active-basis Weeks 0-3, deduplicated by WOID.
+- **API:** a single planning-window capability serves both top-level views - `GET /api/v1/workspaces/{assignmentId}/work-orders/planning-window` (parent-level, or bucket-filtered via `bucketKind`/`weekLabel`). The previous `GET .../work-orders/bucket` endpoint is retired. The candidates endpoint remains the manufactured-material authorization path for nested navigation and delegates to the same complete planning-window population.
+- **Material (bounded treatment):** actual `wod_det` material records are displayed truthfully; an empty `wod_det` yields a truthful empty/unavailable state (not an error, no fabricated requirements). Kitting reports N/A (never a false 0%) when no applicable material exists. BOM-derived projected requirements for unreleased WOs are **not** implemented and are explicitly deferred to Stage 9 design.
+- **Manufactured subassemblies:** Work Orders reached through the supported material drill-down use the same complete four-week planning-window population as top-level parents. The material line remains the navigation authorization; no parent/child Work Order relationship is inferred. The nested path no longer uses A/F/R-only candidate visibility or a ten-result cap.
+- **Preserved unchanged:** WOID identity; card fields; SO display; actual material calculations; issued/required quantity behavior; manufactured-component navigation; lazy loading; snapshot-aware cache invalidation; stale/refresh behavior; Escape/navigation; read-only QAD access; architectural layering; max drill depth (3); Stage 8 BOM behavior.
+- **Verification:** backend build + full test suite + `dotnet format` clean; frontend lint/typecheck/test/build clean; OpenAPI + generated TypeScript regenerated; `cargo check` clean; sidecar rebuilt; project-owner manual validation passed.
 ## Stage 6 Accepted Behavior
 
 - Selecting an MPS parent focuses the grid to that parent and opens Part Info directly beneath it.

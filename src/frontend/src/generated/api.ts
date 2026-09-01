@@ -229,15 +229,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/workspaces/{assignmentId}/work-orders/bucket": {
+    "/api/v1/workspaces/{assignmentId}/work-orders/planning-window": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Returns the eligible (Allocating/Frozen/Released) work orders for one MPS bucket. */
-        get: operations["GetBucketWorkOrders"];
+        /** Returns the parent-scoped four-week Work Order planning window (Due-Date-based Falldown plus Week 0-3 under the active Due/Release basis), optionally narrowed to one bucket. */
+        get: operations["GetPlanningWindowWorkOrders"];
         put?: never;
         post?: never;
         delete?: never;
@@ -270,7 +270,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Returns candidate subassembly work orders for a manufactured component, across all eligible A/F/R work orders regardless of Due Date. */
+        /** Returns the complete Stage 7R planning-window population for a manufactured component authorized through the Work Order drill-down. */
         get: operations["GetWorkOrderCandidates"];
         put?: never;
         post?: never;
@@ -565,14 +565,9 @@ export interface components {
             accentColor: string;
             rowDensity: string;
         };
-        WorkOrderBucketResponseDto: {
-            snapshotId: string;
-            workOrders: components["schemas"]["WorkOrderSummaryDto"][];
-        };
         WorkOrderCandidateResponseDto: {
             snapshotId: string;
             candidates: components["schemas"]["WorkOrderSummaryDto"][];
-            isTruncated: boolean;
         };
         WorkOrderMaterialLineDto: {
             componentPart: string;
@@ -594,6 +589,10 @@ export interface components {
             woid: string;
             kitting: components["schemas"]["KittingSummaryDto"];
             lines: components["schemas"]["WorkOrderMaterialLineDto"][];
+        };
+        WorkOrderPlanningWindowResponseDto: {
+            snapshotId: string;
+            workOrders: components["schemas"]["WorkOrderSummaryDto"][];
         };
         WorkOrderSummaryDto: {
             partNumber: string;
@@ -1176,15 +1175,14 @@ export interface operations {
             };
         };
     };
-    GetBucketWorkOrders: {
+    GetPlanningWindowWorkOrders: {
         parameters: {
             query?: {
                 snapshotId?: string;
                 parentPart?: string;
+                dateBasis?: string;
                 bucketKind?: string;
                 weekLabel?: string;
-                dateBasis?: string;
-                horizonWeeks?: number | string;
             };
             header?: never;
             path: {
@@ -1200,7 +1198,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WorkOrderBucketResponseDto"];
+                    "application/json": components["schemas"]["WorkOrderPlanningWindowResponseDto"];
                 };
             };
             /** @description Bad Request */
@@ -1309,6 +1307,7 @@ export interface operations {
                 immediateParentWoid?: string;
                 componentPart?: string;
                 targetDepth?: number | string;
+                dateBasis?: string;
             };
             header?: never;
             path: {

@@ -31,6 +31,7 @@ describe('WorkOrderMaterialGrid', () => {
         woid="WO-1000"
         assignmentId="assignment-1"
         snapshotId="snapshot-1"
+        dateBasis="dueDate"
       />,
     );
 
@@ -52,6 +53,7 @@ describe('WorkOrderMaterialGrid', () => {
         woid="WO-1000"
         assignmentId="assignment-1"
         snapshotId="snapshot-1"
+        dateBasis="dueDate"
       />,
     );
 
@@ -70,6 +72,7 @@ describe('WorkOrderMaterialGrid', () => {
         woid="WO-1000"
         assignmentId="assignment-1"
         snapshotId="snapshot-1"
+        dateBasis="dueDate"
       />,
     );
 
@@ -92,6 +95,7 @@ describe('WorkOrderMaterialGrid', () => {
         woid="WO-1000"
         assignmentId="assignment-1"
         snapshotId="snapshot-1"
+        dateBasis="dueDate"
       />,
     );
 
@@ -110,6 +114,7 @@ describe('WorkOrderMaterialGrid', () => {
         woid="WO-1000"
         assignmentId="assignment-1"
         snapshotId="snapshot-1"
+        dateBasis="dueDate"
       />,
     );
 
@@ -128,6 +133,7 @@ describe('WorkOrderMaterialGrid', () => {
         woid="WO-1000"
         assignmentId="assignment-1"
         snapshotId="snapshot-1"
+        dateBasis="dueDate"
       />,
     );
 
@@ -149,6 +155,7 @@ describe('WorkOrderMaterialGrid', () => {
         woid="WO-1000"
         assignmentId="assignment-1"
         snapshotId="snapshot-1"
+        dateBasis="dueDate"
       />,
     );
 

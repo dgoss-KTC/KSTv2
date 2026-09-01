@@ -19,6 +19,7 @@ interface WorkOrderCardProps {
   /** 1 = top-level bucket Work Order (default). Nested manufactured-candidate cards (Stage 7D.9)
    * pass a higher depth so the material grid can disable further drill at the max depth. */
   depth?: number;
+  dateBasis: string;
 }
 
 /**
@@ -28,7 +29,7 @@ interface WorkOrderCardProps {
  * generic so Stage 7D.9 candidate subassembly Work Orders reuse it directly (via
  * `WorkOrderCandidatePanel`) at an incremented `depth`, rather than a parallel card component.
  */
-export function WorkOrderCard({ workOrder, assignmentId, snapshotId, depth = 1 }: WorkOrderCardProps) {
+export function WorkOrderCard({ workOrder, assignmentId, snapshotId, depth = 1, dateBasis }: WorkOrderCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   // Escape collapses material lines exactly like clicking "Hide material lines" — one drill-down
   // level up, not all the way back to the grid.
@@ -60,26 +61,30 @@ export function WorkOrderCard({ workOrder, assignmentId, snapshotId, depth = 1 }
         </div>
 
         <div className="work-order-card__fields">
-          <span className="work-order-card__field">
-            <label>Ordered</label>
-            {formatQuantity(workOrder.orderedQuantity)}
-          </span>
-          <span className="work-order-card__field">
-            <label>Completed</label>
-            {formatQuantity(workOrder.completedQuantity)}
-          </span>
-          <span className="work-order-card__field">
-            <label>Open</label>
-            {formatQuantity(workOrder.openQuantity)}
-          </span>
-          <span className="work-order-card__field">
-            <label>Release</label>
-            {formatOptionalDate(workOrder.releaseDate)}
-          </span>
-          <span className="work-order-card__field">
-            <label>Due</label>
-            {formatOptionalDate(workOrder.dueDate)}
-          </span>
+          <div className="work-order-card__quantity-fields">
+            <span className="work-order-card__field">
+              <label>Ordered</label>
+              {formatQuantity(workOrder.orderedQuantity)}
+            </span>
+            <span className="work-order-card__field">
+              <label>Completed</label>
+              {formatQuantity(workOrder.completedQuantity)}
+            </span>
+            <span className="work-order-card__field">
+              <label>Open</label>
+              {formatQuantity(workOrder.openQuantity)}
+            </span>
+          </div>
+          <div className="work-order-card__date-fields">
+            <span className="work-order-card__field">
+              <label>Release</label>
+              {formatOptionalDate(workOrder.releaseDate)}
+            </span>
+            <span className="work-order-card__field">
+              <label>Due</label>
+              {formatOptionalDate(workOrder.dueDate)}
+            </span>
+          </div>
         </div>
 
         <div className="work-order-card__kitting">
@@ -145,6 +150,7 @@ export function WorkOrderCard({ workOrder, assignmentId, snapshotId, depth = 1 }
               woid={workOrder.woid}
               assignmentId={assignmentId}
               snapshotId={snapshotId}
+              dateBasis={dateBasis}
             />
           )}
         </div>

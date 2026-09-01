@@ -10,7 +10,7 @@ import type {
   PartDetailResponseDto,
   UserPreferencesDto,
   PreferencesResponseDto,
-  WorkOrderBucketResponseDto,
+  WorkOrderPlanningWindowResponseDto,
   WorkOrderSummaryDto,
   WorkOrderMaterialResponseDto,
   WorkOrderMaterialLineDto,
@@ -166,9 +166,9 @@ function makeWorkOrderSummary(overrides: Partial<WorkOrderSummaryDto> = {}): Wor
   };
 }
 
-function makeBucketWorkOrdersResponse(
-  overrides: Partial<WorkOrderBucketResponseDto> = {},
-): WorkOrderBucketResponseDto {
+function makePlanningWindowResponse(
+  overrides: Partial<WorkOrderPlanningWindowResponseDto> = {},
+): WorkOrderPlanningWindowResponseDto {
   return {
     snapshotId: 'snap-1',
     workOrders: [makeWorkOrderSummary()],
@@ -219,7 +219,6 @@ function makeCandidateResponse(
   return {
     snapshotId: 'snap-1',
     candidates: [makeCandidateWorkOrder()],
-    isTruncated: false,
     ...overrides,
   };
 }
@@ -332,7 +331,7 @@ describe('MpsWorkspace', () => {
     onGetMps?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onRefreshMps?: () => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onGetPartDetail?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
-    onGetBucketWorkOrders?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
+    onGetPlanningWindow?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onGetMaterialLines?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onGetWorkOrderCandidates?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
     onGetBom?: (url: string) => { ok: boolean; status?: number; json?: () => Promise<unknown>; text?: () => Promise<string> };
@@ -359,9 +358,9 @@ describe('MpsWorkspace', () => {
           handlers.onGetWorkOrderCandidates?.(url) ?? { ok: true, json: async () => makeCandidateResponse() };
         return Promise.resolve(result);
       }
-      if (method === 'GET' && url.includes('/work-orders/bucket')) {
+      if (method === 'GET' && url.includes('/work-orders/planning-window')) {
         const result =
-          handlers.onGetBucketWorkOrders?.(url) ?? { ok: true, json: async () => makeBucketWorkOrdersResponse() };
+          handlers.onGetPlanningWindow?.(url) ?? { ok: true, json: async () => makePlanningWindowResponse() };
         return Promise.resolve(result);
       }
       if (method === 'GET' && url.includes('/work-orders/') && url.includes('/material')) {
@@ -822,7 +821,7 @@ describe('MpsWorkspace', () => {
   });
 
   describe('Stage 7D.6 selection and tab behavior', () => {
-    it('parent-only selection opens Part Info and leaves Work Orders and later tabs disabled', async () => {
+    it('parent-only selection opens Part Info and exposes the Work Orders planning window (Shortages deferred)', async () => {
       setupBackend();
       render(<App />);
       await waitForConnected();
@@ -837,14 +836,49 @@ describe('MpsWorkspace', () => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
       expect(screen.getByRole('tab', { name: 'Part Info' })).toHaveAttribute('aria-selected', 'true');
-      // Stage 8 accepted tab structure: parent-only selection shows Part Info + BOM only. Work
-      // Orders/Shortages are bucket-context tabs (rendered only with a selected bucket), and
-      // Future Shortages is removed from the workflow.
+      // Stage 7R: parent-only selection exposes Part Info + BOM + Work Orders (the planning-window
+      // population). Shortages remains rendered but deferred (disabled). Future Shortages is
+      // removed from the workflow.
       expect(screen.getByRole('tab', { name: 'BOM' })).toBeEnabled();
-      expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('tab', { name: 'Shortages' })).not.toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Work Orders' })).toBeEnabled();
+      expect(screen.getByRole('tab', { name: 'Shortages' })).toBeDisabled();
       expect(screen.queryByRole('tab', { name: 'Future Shortages' })).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', { name: 'Components' })).not.toBeInTheDocument();
+    });
+
+    it('opening the Work Orders tab on a parent-only selection loads the parent-level planning window', async () => {
+      setupBackend();
+      render(<App />);
+      await waitForConnected();
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC100')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+      });
+
+      // The parent-level planning window loads on parent selection (no bucketKind/weekLabel).
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/work-orders/planning-window') &&
+            !url.includes('bucketKind') &&
+            !url.includes('weekLabel'),
+        ),
+      ).toBe(true);
+
+      await user.click(screen.getByRole('tab', { name: 'Work Orders' }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
+      });
+      await waitFor(() => {
+        expect(screen.getByText('WO1001')).toBeInTheDocument();
+      });
     });
 
     it('clicking an eligible weekly bucket cell selects the parent + bucket and auto-opens Work Orders', async () => {
@@ -869,7 +903,7 @@ describe('MpsWorkspace', () => {
         fetchMock.mock.calls.some(
           ([url]) =>
             typeof url === 'string' &&
-            url.includes('/work-orders/bucket') &&
+            url.includes('/work-orders/planning-window') &&
             url.includes('bucketKind=weekly') &&
             url.includes('weekLabel=2025-06-30'),
         ),
@@ -893,7 +927,7 @@ describe('MpsWorkspace', () => {
       expect(screen.getByRole('heading', { name: /falldown/i })).toBeInTheDocument();
       expect(
         fetchMock.mock.calls.some(
-          ([url]) => typeof url === 'string' && url.includes('/work-orders/bucket') && url.includes('bucketKind=falldown'),
+          ([url]) => typeof url === 'string' && url.includes('/work-orders/planning-window') && url.includes('bucketKind=falldown'),
         ),
       ).toBe(true);
     });
@@ -919,7 +953,7 @@ describe('MpsWorkspace', () => {
         fetchMock.mock.calls.some(
           ([url]) =>
             typeof url === 'string' &&
-            url.includes('/work-orders/bucket') &&
+            url.includes('/work-orders/planning-window') &&
             url.includes('bucketKind=weekly') &&
             url.includes('weekLabel=2025-06-30'),
         ),
@@ -1002,10 +1036,17 @@ describe('MpsWorkspace', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
-      expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
-      expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/work-orders/bucket'))).toBe(
-        false,
-      );
+      // The fall-through selects the parent (no bucket), so the parent-level Work Orders tab is
+      // exposed — but no bucket-filtered planning-window request may have fired.
+      expect(screen.getByRole('tab', { name: 'Work Orders' })).toBeEnabled();
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/work-orders/planning-window') &&
+            url.includes('bucketKind'),
+        ),
+      ).toBe(false);
     });
 
     it('clicking the already-selected parent row toggles everything closed even when a bucket is selected', async () => {
@@ -1035,7 +1076,7 @@ describe('MpsWorkspace', () => {
 
     it('shows a deliberate empty message (not an error) when the bucket has no eligible work orders', async () => {
       setupBackend({
-        onGetBucketWorkOrders: () => ({ ok: true, json: async () => makeBucketWorkOrdersResponse({ workOrders: [] }) }),
+        onGetPlanningWindow: () => ({ ok: true, json: async () => makePlanningWindowResponse({ workOrders: [] }) }),
       });
       render(<App />);
       await waitForConnected();
@@ -1047,7 +1088,7 @@ describe('MpsWorkspace', () => {
       await user.click(screen.getByText('100'));
 
       await waitFor(() => {
-        expect(screen.getByText(/no eligible work orders/i)).toBeInTheDocument();
+        expect(screen.getByText(/no work orders in the planning window/i)).toBeInTheDocument();
       });
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
@@ -1078,8 +1119,13 @@ describe('MpsWorkspace', () => {
         expect(screen.getByText('700')).toBeInTheDocument();
       });
 
+      // The 4th forward week (index 3) is the last eligible bucket; it exposes the drill-down.
+      const eligibleCell = screen.getByText('400').closest('td');
+      if (!eligibleCell) throw new Error('eligible cell not found');
+      expect(eligibleCell).toHaveAttribute('tabindex', '0');
+
       fetchMock.mockClear();
-      await user.click(screen.getByText('700')); // the 7th forward week (index 6, beyond the 6-week horizon)
+      await user.click(screen.getByText('500')); // the 5th forward week (index 4, beyond the 4-week horizon)
 
       // No dedicated bucket action fires; the click behaves like any other cell in the row and
       // simply selects the parent (falling through to the row's own click handler), opening Part
@@ -1087,10 +1133,17 @@ describe('MpsWorkspace', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
-      expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
-      expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/work-orders/bucket'))).toBe(
-        false,
-      );
+      // The fall-through selects the parent (no bucket), so the parent-level Work Orders tab is
+      // exposed — but no bucket-filtered planning-window request may have fired.
+      expect(screen.getByRole('tab', { name: 'Work Orders' })).toBeEnabled();
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/work-orders/planning-window') &&
+            url.includes('bucketKind'),
+        ),
+      ).toBe(false);
     });
   });
 
@@ -1283,10 +1336,10 @@ describe('MpsWorkspace', () => {
 
     it('shows an SO badge opposite the WOID when the work order has a sales order job', async () => {
       setupBackend({
-        onGetBucketWorkOrders: () => ({
+        onGetPlanningWindow: () => ({
           ok: true,
           json: async () =>
-            makeBucketWorkOrdersResponse({ workOrders: [makeWorkOrderSummary({ salesOrder: 'SO-4521' })] }),
+            makePlanningWindowResponse({ workOrders: [makeWorkOrderSummary({ salesOrder: 'SO-4521' })] }),
         }),
       });
       render(<App />);
@@ -1317,10 +1370,10 @@ describe('MpsWorkspace', () => {
 
     it('shows Kitting as N/A (not 0%) and an empty progress bar when there are no applicable material lines', async () => {
       setupBackend({
-        onGetBucketWorkOrders: () => ({
+        onGetPlanningWindow: () => ({
           ok: true,
           json: async () =>
-            makeBucketWorkOrdersResponse({
+            makePlanningWindowResponse({
               workOrders: [
                 makeWorkOrderSummary({ kitting: { applicableLineCount: 0, fullyIssuedLineCount: 0, kittingPercent: null } }),
               ],
@@ -1396,10 +1449,10 @@ describe('MpsWorkspace', () => {
 
     it('supports multiple cards for one bucket, independently expandable', async () => {
       setupBackend({
-        onGetBucketWorkOrders: () => ({
+        onGetPlanningWindow: () => ({
           ok: true,
           json: async () =>
-            makeBucketWorkOrdersResponse({
+            makePlanningWindowResponse({
               workOrders: [
                 makeWorkOrderSummary(),
                 makeWorkOrderSummary({ woid: 'WO1002', status: 'frozen', kitting: { applicableLineCount: 2, fullyIssuedLineCount: 2, kittingPercent: 100 } }),
@@ -1495,7 +1548,7 @@ describe('MpsWorkspace', () => {
   });
 
   describe('Stage 7D.9 manufactured-subassembly candidate drill-down', () => {
-    it('shows truthful "Work Orders for <Part>" candidates with A/F/R status coloring, never implying pegging', async () => {
+    it('shows truthful planning-window work orders for a manufactured part, never implying pegging', async () => {
       setupBackend({
         onGetMaterialLines: () => ({
           ok: true,
@@ -1533,43 +1586,14 @@ describe('MpsWorkspace', () => {
             url.includes('/work-orders/candidates') &&
             url.includes('immediateParentWoid=WO1001') &&
             url.includes('componentPart=SUBASSY') &&
-            url.includes('targetDepth=2'),
+            url.includes('targetDepth=2') &&
+            url.includes('dateBasis=dueDate'),
         ),
       ).toBe(true);
       expect(screen.queryByText(/child work orders|linked work orders|related work orders/i)).not.toBeInTheDocument();
     });
 
-    it('communicates truncation without implying database pegging when candidate results are capped', async () => {
-      setupBackend({
-        onGetMaterialLines: () => ({
-          ok: true,
-          json: async () =>
-            makeMaterialResponse({ lines: [makeMaterialLine({ componentPart: 'SUBASSY', isManufactured: true })] }),
-        }),
-        onGetWorkOrderCandidates: () => ({
-          ok: true,
-          json: async () => makeCandidateResponse({ isTruncated: true }),
-        }),
-      });
-      render(<App />);
-      await waitForConnected();
-
-      await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
-      });
-      await user.click(screen.getByText('100'));
-      const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
-      await user.click(screen.getByRole('button', { name: /show material lines/i }));
-      await waitFor(() => {
-        expect(within(card).getByText('SUBASSY')).toBeInTheDocument();
-      });
-
-      await user.click(within(card).getByRole('button', { name: 'SUBASSY' }));
-
-      expect(await screen.findByText(/more may exist/i)).toBeInTheDocument();
-    });
-
-    it('shows a deliberate empty message (not an error) when a manufactured part has no eligible candidate work orders', async () => {
+    it('shows a deliberate empty message (not an error) when a manufactured part has no planning-window work orders', async () => {
       setupBackend({
         onGetMaterialLines: () => ({
           ok: true,
@@ -1597,7 +1621,7 @@ describe('MpsWorkspace', () => {
       await user.click(within(card).getByRole('button', { name: 'SUBASSY' }));
 
       await waitFor(() => {
-        expect(screen.getByText(/no active preceding work orders found for this part/i)).toBeInTheDocument();
+        expect(screen.getByText(/no work orders in the planning window for this part/i)).toBeInTheDocument();
       });
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
@@ -1803,7 +1827,9 @@ describe('MpsWorkspace', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
-      expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
+      // The bucket drill-down is cleared (Part Info is active again), but the parent remains
+      // selected, so the parent-level Work Orders tab stays available (not selected).
+      expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'false');
       expect(screen.queryByText('WO1001')).not.toBeInTheDocument();
     });
 

@@ -18,11 +18,8 @@ public enum WorkOrderCandidateOutcomeKind
     /// <summary>The caller's requested snapshot id no longer matches the workspace's current MPS snapshot.</summary>
     SnapshotChanged,
 
-    /// <summary>The immediate parent WOID could not be resolved to any A/F/R Work Order.</summary>
+    /// <summary>The immediate parent WOID could not be resolved to an eligible non-closed, non-RMABOM Work Order.</summary>
     WorkOrderNotFound,
-
-    /// <summary>The immediate parent Work Order was found but has no usable Due Date; candidates cannot be bounded.</summary>
-    ParentDueDateUnavailable,
 
     /// <summary>The requested component is not a manufactured (pt_pm_code='M') line on the immediate parent's material list.</summary>
     ComponentNotManufactured,
@@ -33,16 +30,15 @@ public enum WorkOrderCandidateOutcomeKind
 
 public sealed record WorkOrderCandidateResult(
     WorkOrderCandidateOutcomeKind Kind,
-    CandidateWorkOrdersResult? Result = null,
+    IReadOnlyList<WorkOrderSummary>? Candidates = null,
     SnapshotId? SnapshotId = null)
 {
-    public static WorkOrderCandidateResult Loaded(SnapshotId snapshotId, CandidateWorkOrdersResult result) =>
-        new(WorkOrderCandidateOutcomeKind.Loaded, result, snapshotId);
+    public static WorkOrderCandidateResult Loaded(SnapshotId snapshotId, IReadOnlyList<WorkOrderSummary> candidates) =>
+        new(WorkOrderCandidateOutcomeKind.Loaded, candidates, snapshotId);
 
     public static WorkOrderCandidateResult MpsNotLoaded { get; } = new(WorkOrderCandidateOutcomeKind.MpsNotLoaded);
     public static WorkOrderCandidateResult SnapshotChanged { get; } = new(WorkOrderCandidateOutcomeKind.SnapshotChanged);
     public static WorkOrderCandidateResult WorkOrderNotFound { get; } = new(WorkOrderCandidateOutcomeKind.WorkOrderNotFound);
-    public static WorkOrderCandidateResult ParentDueDateUnavailable { get; } = new(WorkOrderCandidateOutcomeKind.ParentDueDateUnavailable);
     public static WorkOrderCandidateResult ComponentNotManufactured { get; } = new(WorkOrderCandidateOutcomeKind.ComponentNotManufactured);
     public static WorkOrderCandidateResult Unavailable { get; } = new(WorkOrderCandidateOutcomeKind.Unavailable);
 }

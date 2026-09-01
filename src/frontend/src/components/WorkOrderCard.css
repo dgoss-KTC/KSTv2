@@ -44,6 +44,11 @@
   letter-spacing: 0.03em;
   padding: 2px 8px;
   border-radius: 999px;
+  /* Neutral badge: the default for any non-closed status without a dedicated color (Stage 7R
+     unknown/non-A-F-R codes render here as their raw value). */
+  background: var(--chip);
+  color: var(--tx2);
+  border: 1px solid var(--bd);
 }
 
 .work-order-card__status--allocating {
@@ -74,8 +79,22 @@
 
 .work-order-card__fields {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px 20px;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.work-order-card__quantity-fields,
+.work-order-card__date-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.work-order-card__quantity-fields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.work-order-card__date-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .work-order-card__field {

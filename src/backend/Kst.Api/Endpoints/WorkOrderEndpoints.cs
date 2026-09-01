@@ -7,24 +7,20 @@ using Kst.Domain.WorkOrders;
 namespace Kst.Api.Endpoints;
 
 /// <summary>
-/// Lazy-loaded Stage 7 Work Orders and Kitting drill-down endpoints. Never triggers an MPS load; the
-/// workspace's MPS snapshot must already be current, and every request must supply the snapshot id it
-/// was shown so a stale UI context is never silently combined with a newer snapshot (accepted contract
-/// §17-21).
+/// Lazy-loaded Stage 7/7R Work Orders and Kitting drill-down endpoints. Never triggers an MPS load;
+/// the workspace's MPS snapshot must already be current, and every request must supply the snapshot id
+/// it was shown so a stale UI context is never silently combined with a newer snapshot (accepted
+/// contract §17-21).
 /// </summary>
 public static class WorkOrderEndpoints
 {
-    private const int MinHorizonWeeks = 1;
-    private const int MaxHorizonWeeks = 72;
-    private const int DefaultHorizonWeeks = 12;
-
     public static void MapWorkOrderEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/v1/workspaces/{assignmentId:guid}/work-orders/bucket", GetBucketWorkOrders)
-            .WithName("GetBucketWorkOrders")
-            .WithSummary("Returns the eligible (Allocating/Frozen/Released) work orders for one MPS bucket.")
+        app.MapGet("/api/v1/workspaces/{assignmentId:guid}/work-orders/planning-window", GetPlanningWindow)
+            .WithName("GetPlanningWindowWorkOrders")
+            .WithSummary("Returns the parent-scoped four-week Work Order planning window (Due-Date-based Falldown plus Week 0-3 under the active Due/Release basis), optionally narrowed to one bucket.")
             .WithTags("WorkOrders")
-            .Produces<WorkOrderBucketResponseDto>(StatusCodes.Status200OK)
+            .Produces<WorkOrderPlanningWindowResponseDto>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -42,7 +38,7 @@ public static class WorkOrderEndpoints
 
         app.MapGet("/api/v1/workspaces/{assignmentId:guid}/work-orders/candidates", GetCandidates)
             .WithName("GetWorkOrderCandidates")
-            .WithSummary("Returns candidate subassembly work orders for a manufactured component, across all eligible A/F/R work orders regardless of Due Date.")
+            .WithSummary("Returns the complete Stage 7R planning-window population for a manufactured component authorized through the Work Order drill-down.")
             .WithTags("WorkOrders")
             .Produces<WorkOrderCandidateResponseDto>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -51,14 +47,13 @@ public static class WorkOrderEndpoints
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
     }
 
-    private static async Task<IResult> GetBucketWorkOrders(
+    private static async Task<IResult> GetPlanningWindow(
         Guid assignmentId,
         string? snapshotId,
         string? parentPart,
+        string? dateBasis,
         string? bucketKind,
         DateOnly? weekLabel,
-        string? dateBasis,
-        int? horizonWeeks,
         WorkOrderDrilldownService service,
         IClock clock,
         CancellationToken cancellationToken)
@@ -68,9 +63,8 @@ public static class WorkOrderEndpoints
         var parsedSnapshotId = TryParseSnapshotId(snapshotId, errors);
         if (string.IsNullOrWhiteSpace(parentPart))
             errors["parentPart"] = ["parentPart is required."];
-        var parsedBucketKind = TryParseBucketKind(bucketKind, errors);
         var parsedDateBasis = TryParseDateBasis(dateBasis, errors);
-        var horizon = TryParseHorizonWeeks(horizonWeeks, errors);
+        var (parsedBucketKind, parsedWeekLabel) = TryParseBucket(bucketKind, weekLabel, errors);
 
         if (errors.Count > 0)
             return Results.ValidationProblem(errors);
@@ -78,8 +72,8 @@ public static class WorkOrderEndpoints
         var today = DateOnly.FromDateTime(clock.LocalNow.Date);
         try
         {
-            var result = await service.GetBucketWorkOrdersAsync(
-                assignmentId, parsedSnapshotId, parentPart!, parsedBucketKind, weekLabel, parsedDateBasis, horizon, today, cancellationToken);
+            var result = await service.GetPlanningWindowAsync(
+                assignmentId, parsedSnapshotId, parentPart!, parsedDateBasis, parsedBucketKind, parsedWeekLabel, today, cancellationToken);
             return ToResult(result);
         }
         catch (WorkOrderDrilldownWorkspaceNotFoundException)
@@ -117,7 +111,9 @@ public static class WorkOrderEndpoints
         string? immediateParentWoid,
         string? componentPart,
         int? targetDepth,
+        string? dateBasis,
         WorkOrderDrilldownService service,
+        IClock clock,
         CancellationToken cancellationToken)
     {
         var errors = new Dictionary<string, string[]>();
@@ -128,6 +124,7 @@ public static class WorkOrderEndpoints
             errors["componentPart"] = ["componentPart is required."];
         if (targetDepth is null)
             errors["targetDepth"] = ["targetDepth is required."];
+        var parsedDateBasis = TryParseDateBasis(dateBasis, errors);
 
         if (errors.Count > 0)
             return Results.ValidationProblem(errors);
@@ -135,7 +132,8 @@ public static class WorkOrderEndpoints
         try
         {
             var result = await service.GetCandidatesAsync(
-                assignmentId, parsedSnapshotId, immediateParentWoid!, componentPart!, targetDepth!.Value, cancellationToken);
+                assignmentId, parsedSnapshotId, immediateParentWoid!, componentPart!, targetDepth!.Value, parsedDateBasis,
+                DateOnly.FromDateTime(clock.LocalNow.Date), cancellationToken);
             return ToResult(result);
         }
         catch (WorkOrderDrilldownWorkspaceNotFoundException)
@@ -162,21 +160,40 @@ public static class WorkOrderEndpoints
         return new SnapshotId(parsed);
     }
 
-    private static MpsBucketKind TryParseBucketKind(string? bucketKind, Dictionary<string, string[]> errors)
+    /// <summary>
+    /// Parses the optional bucket filter. Absent <c>bucketKind</c> means the full parent-level
+    /// planning window. <c>weekly</c> requires a <c>weekLabel</c>; <c>falldown</c> takes none.
+    /// </summary>
+    private static (MpsBucketKind? BucketKind, DateOnly? WeekLabel) TryParseBucket(
+        string? bucketKind, DateOnly? weekLabel, Dictionary<string, string[]> errors)
     {
-        var parsed = string.IsNullOrWhiteSpace(bucketKind)
-            ? null
-            : bucketKind.Trim().ToLowerInvariant() switch
-            {
-                "falldown" => MpsBucketKind.Falldown,
-                "weekly" => MpsBucketKind.Weekly,
-                _ => (MpsBucketKind?)null
-            };
+        if (string.IsNullOrWhiteSpace(bucketKind))
+            return (null, null);
 
-        if (parsed is null)
+        var kind = bucketKind.Trim().ToLowerInvariant() switch
+        {
+            "falldown" => MpsBucketKind.Falldown,
+            "weekly" => MpsBucketKind.Weekly,
+            _ => (MpsBucketKind?)null
+        };
+
+        if (kind is null)
+        {
             errors["bucketKind"] = ["bucketKind must be 'falldown' or 'weekly'."];
+            return (MpsBucketKind.Weekly, null);
+        }
 
-        return parsed ?? MpsBucketKind.Weekly;
+        if (kind == MpsBucketKind.Weekly)
+        {
+            if (weekLabel is null)
+            {
+                errors["weekLabel"] = ["weekLabel is required when bucketKind is 'weekly'."];
+                return (kind, null);
+            }
+            return (kind, weekLabel);
+        }
+
+        return (kind, null);
     }
 
     private static MpsDateBasis TryParseDateBasis(string? dateBasis, Dictionary<string, string[]> errors)
@@ -196,35 +213,26 @@ public static class WorkOrderEndpoints
         return parsed ?? MpsDateBasis.DueDate;
     }
 
-    private static int TryParseHorizonWeeks(int? horizonWeeks, Dictionary<string, string[]> errors)
+    private static IResult ToResult(WorkOrderPlanningWindowResult result) => result.Kind switch
     {
-        var horizon = horizonWeeks ?? DefaultHorizonWeeks;
-        if (horizon < MinHorizonWeeks || horizon > MaxHorizonWeeks)
-            errors["horizonWeeks"] = [$"horizonWeeks must be between {MinHorizonWeeks} and {MaxHorizonWeeks}."];
-
-        return horizon;
-    }
-
-    private static IResult ToResult(WorkOrderBucketResult result) => result.Kind switch
-    {
-        WorkOrderBucketOutcomeKind.Loaded => Results.Ok(new WorkOrderBucketResponseDto(
+        WorkOrderPlanningWindowOutcomeKind.Loaded => Results.Ok(new WorkOrderPlanningWindowResponseDto(
             result.SnapshotId!.Value.ToString(),
             result.WorkOrders!.Select(ToDto).ToList())),
 
-        WorkOrderBucketOutcomeKind.MpsNotLoaded => MpsNotLoadedProblem(),
-        WorkOrderBucketOutcomeKind.SnapshotChanged => SnapshotChangedProblem(),
+        WorkOrderPlanningWindowOutcomeKind.MpsNotLoaded => MpsNotLoadedProblem(),
+        WorkOrderPlanningWindowOutcomeKind.SnapshotChanged => SnapshotChangedProblem(),
 
-        WorkOrderBucketOutcomeKind.PartNotInScope => Results.Problem(
+        WorkOrderPlanningWindowOutcomeKind.PartNotInScope => Results.Problem(
             title: "Part not in workspace scope",
             detail: "The requested part is not in this workspace's current MPS parent scope.",
             statusCode: StatusCodes.Status404NotFound),
 
-        WorkOrderBucketOutcomeKind.BucketNotFound => Results.Problem(
+        WorkOrderPlanningWindowOutcomeKind.BucketNotFound => Results.Problem(
             title: "Bucket not found",
             detail: "The requested bucket was not found in the current MPS schedule for this part.",
             statusCode: StatusCodes.Status404NotFound),
 
-        WorkOrderBucketOutcomeKind.Unavailable => UnavailableProblem(),
+        WorkOrderPlanningWindowOutcomeKind.Unavailable => UnavailableProblem(),
 
         _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError)
     };
@@ -248,8 +256,7 @@ public static class WorkOrderEndpoints
     {
         WorkOrderCandidateOutcomeKind.Loaded => Results.Ok(new WorkOrderCandidateResponseDto(
             result.SnapshotId!.Value.ToString(),
-            result.Result!.Candidates.Select(ToDto).ToList(),
-            result.Result!.IsTruncated)),
+            result.Candidates!.Select(ToDto).ToList())),
 
         WorkOrderCandidateOutcomeKind.MpsNotLoaded => MpsNotLoadedProblem(),
         WorkOrderCandidateOutcomeKind.SnapshotChanged => SnapshotChangedProblem(),
@@ -258,11 +265,6 @@ public static class WorkOrderEndpoints
             title: "Work order not found",
             detail: "The immediate parent work order was not found.",
             statusCode: StatusCodes.Status404NotFound),
-
-        WorkOrderCandidateOutcomeKind.ParentDueDateUnavailable => Results.Problem(
-            title: "Parent Work Order Due Date unavailable",
-            detail: "The immediate parent work order has no Due Date.",
-            statusCode: StatusCodes.Status409Conflict),
 
         WorkOrderCandidateOutcomeKind.ComponentNotManufactured => Results.Problem(
             title: "Component not manufactured",
@@ -317,13 +319,22 @@ public static class WorkOrderEndpoints
         line.IsManufactured,
         line.IsFullyIssued);
 
-    private static string ToStatusString(WorkOrderStatus status) => status switch
+    /// <summary>
+    /// Maps a raw QAD status code to its API presentation value. Known codes (A/F/R) receive
+    /// friendly lowercase labels; any other non-closed code passes through as its raw value so a
+    /// previously unseen status renders safely instead of failing (Stage 7R).
+    /// </summary>
+    private static string ToStatusString(string rawStatus)
     {
-        WorkOrderStatus.Allocating => "allocating",
-        WorkOrderStatus.Frozen => "frozen",
-        WorkOrderStatus.Released => "released",
-        _ => "unknown"
-    };
+        var trimmed = rawStatus.Trim();
+        return trimmed.ToLowerInvariant() switch
+        {
+            "a" => "allocating",
+            "f" => "frozen",
+            "r" => "released",
+            _ => trimmed
+        };
+    }
 
     private static string? ToIssueStatusString(WorkOrderIssueStatus? status) => status switch
     {

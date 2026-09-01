@@ -129,12 +129,13 @@ export function parseIsoDateOnly(iso: string): Date {
 }
 
 /**
- * Work Order drill-down (Stage 7) is only exposed for Falldown plus this many forward weekly
- * buckets, regardless of the MPS grid's own display horizon (see the accepted Stage 7 UI
- * contract §4). Kept as a single named constant so the horizon can change without restructuring
- * selection/click-handling code.
+ * Work Order drill-down (Stage 7R) is only exposed for Falldown plus this many forward weekly
+ * buckets (Week 0-3), regardless of the MPS grid's own display horizon. This matches the
+ * four-week Work Order planning window and is kept as a single named constant so the horizon can
+ * change without restructuring selection/click-handling code. Keep in sync with the backend
+ * `Kst.Domain.WorkOrders.WorkOrderPlanningWindow.ForwardWeekCount`.
  */
-export const WORK_ORDER_DRILLDOWN_HORIZON_WEEKS = 6;
+export const WORK_ORDER_DRILLDOWN_HORIZON_WEEKS = 4;
 
 /** Whether the weekly bucket at this zero-based index (within one part's weekly buckets, i.e.
  * excluding Falldown) exposes the Work Order drill-down action. Falldown is always eligible and
@@ -163,7 +164,11 @@ const WORK_ORDER_STATUS_LABELS: Record<string, string> = {
   released: 'Released',
 };
 
-/** Accessible semantic label for a Work Order's Stage 7 status (Allocating/Frozen/Released). */
+/**
+ * Accessible semantic label for a Work Order's status. Known codes (A/F/R) arrive as friendly
+ * lowercase values and map to a label; any other non-closed raw code (Stage 7R) passes through
+ * unchanged so a previously unseen status renders safely rather than being dropped or invented.
+ */
 export function workOrderStatusLabel(status: string): string {
   return WORK_ORDER_STATUS_LABELS[status] ?? status;
 }

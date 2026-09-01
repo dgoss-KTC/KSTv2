@@ -4,7 +4,6 @@ import { fetchWorkOrderCandidates, toWorkOrdersApiError, type WorkOrdersApiError
 
 export interface WorkOrderCandidatesState {
   candidates: WorkOrderSummaryDto[] | null;
-  isTruncated: boolean;
   isLoading: boolean;
   error: WorkOrdersApiError | null;
   retry: () => void;
@@ -21,16 +20,15 @@ export function useWorkOrderCandidates(
   immediateParentWoid: string,
   componentPart: string,
   targetDepth: number,
+  dateBasis: string,
 ): WorkOrderCandidatesState {
   const [candidates, setCandidates] = useState<WorkOrderSummaryDto[] | null>(null);
-  const [isTruncated, setIsTruncated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<WorkOrdersApiError | null>(null);
 
   const load = useCallback(async () => {
     if (snapshotId === null) {
       setCandidates(null);
-      setIsTruncated(false);
       setError(null);
       setIsLoading(false);
       return;
@@ -44,25 +42,24 @@ export function useWorkOrderCandidates(
         immediateParentWoid,
         componentPart,
         targetDepth,
+        dateBasis,
       );
       setCandidates(result.candidates);
-      setIsTruncated(result.isTruncated);
       setError(null);
     } catch (err) {
       setCandidates(null);
-      setIsTruncated(false);
       setError(
         toWorkOrdersApiError(err) ?? { type: 'error', detail: 'Could not load candidate work orders. Try again.' },
       );
     } finally {
       setIsLoading(false);
     }
-  }, [assignmentId, snapshotId, immediateParentWoid, componentPart, targetDepth]);
+  }, [assignmentId, snapshotId, immediateParentWoid, componentPart, targetDepth, dateBasis]);
 
   useEffect(() => {
     const id = setTimeout(() => void load(), 0);
     return () => clearTimeout(id);
   }, [load]);
 
-  return { candidates, isTruncated, isLoading, error, retry: load };
+  return { candidates, isLoading, error, retry: load };
 }

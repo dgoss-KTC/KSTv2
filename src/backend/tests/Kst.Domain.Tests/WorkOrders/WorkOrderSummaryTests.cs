@@ -7,7 +7,7 @@ public sealed class WorkOrderSummaryTests
     private static WorkOrderSummary Summary(decimal ordered, decimal completed) => new(
         PartNumber: "ABC100",
         Woid: "12345",
-        Status: WorkOrderStatus.Released,
+        Status: "R",
         OrderedQuantity: ordered,
         CompletedQuantity: completed,
         ReleaseDate: new DateOnly(2026, 8, 1),

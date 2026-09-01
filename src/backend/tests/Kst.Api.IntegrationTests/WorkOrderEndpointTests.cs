@@ -24,83 +24,94 @@ public sealed class WorkOrderEndpointTests
         return doc.RootElement.GetProperty("assignmentId").GetGuid();
     }
 
-    // -- Bucket work orders ------------------------------------------------
+    // -- Planning window work orders ----------------------------------------
 
     [Fact]
-    public async Task GetBucketWorkOrders_Returns404_For_Unknown_Workspace()
+    public async Task GetPlanningWindow_Returns404_For_Unknown_Workspace()
     {
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync(
-            $"/api/v1/workspaces/{Guid.NewGuid()}/work-orders/bucket?snapshotId={Guid.NewGuid()}&parentPart=ABC100&bucketKind=weekly");
+            $"/api/v1/workspaces/{Guid.NewGuid()}/work-orders/planning-window?snapshotId={Guid.NewGuid()}&parentPart=ABC100");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task GetBucketWorkOrders_Returns409_When_Mps_Not_Loaded()
+    public async Task GetPlanningWindow_Returns409_When_Mps_Not_Loaded()
     {
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
         var assignmentId = await CreateWorkspaceAsync(client);
 
         var response = await client.GetAsync(
-            $"/api/v1/workspaces/{assignmentId}/work-orders/bucket?snapshotId={Guid.NewGuid()}&parentPart=ABC100&bucketKind=weekly");
+            $"/api/v1/workspaces/{assignmentId}/work-orders/planning-window?snapshotId={Guid.NewGuid()}&parentPart=ABC100");
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
     [Fact]
-    public async Task GetBucketWorkOrders_Returns400_When_SnapshotId_Missing()
+    public async Task GetPlanningWindow_Returns400_When_SnapshotId_Missing()
     {
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
         var assignmentId = await CreateWorkspaceAsync(client);
 
         var response = await client.GetAsync(
-            $"/api/v1/workspaces/{assignmentId}/work-orders/bucket?parentPart=ABC100&bucketKind=weekly");
+            $"/api/v1/workspaces/{assignmentId}/work-orders/planning-window?parentPart=ABC100");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
-    public async Task GetBucketWorkOrders_Returns400_When_ParentPart_Missing()
+    public async Task GetPlanningWindow_Returns400_When_ParentPart_Missing()
     {
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
         var assignmentId = await CreateWorkspaceAsync(client);
 
         var response = await client.GetAsync(
-            $"/api/v1/workspaces/{assignmentId}/work-orders/bucket?snapshotId={Guid.NewGuid()}&bucketKind=weekly");
+            $"/api/v1/workspaces/{assignmentId}/work-orders/planning-window?snapshotId={Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
-    public async Task GetBucketWorkOrders_Returns400_When_BucketKind_Invalid()
+    public async Task GetPlanningWindow_Returns400_When_BucketKind_Invalid()
     {
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
         var assignmentId = await CreateWorkspaceAsync(client);
 
         var response = await client.GetAsync(
-            $"/api/v1/workspaces/{assignmentId}/work-orders/bucket?snapshotId={Guid.NewGuid()}&parentPart=ABC100&bucketKind=notARealBucket");
+            $"/api/v1/workspaces/{assignmentId}/work-orders/planning-window?snapshotId={Guid.NewGuid()}&parentPart=ABC100&bucketKind=notARealBucket");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(73)]
-    public async Task GetBucketWorkOrders_Returns400_For_HorizonWeeks_Out_Of_Range(int horizonWeeks)
+    [Fact]
+    public async Task GetPlanningWindow_Returns400_When_Weekly_Bucket_Missing_WeekLabel()
     {
         await using var factory = new KstApiFactory();
         using var client = factory.CreateClient();
         var assignmentId = await CreateWorkspaceAsync(client);
 
         var response = await client.GetAsync(
-            $"/api/v1/workspaces/{assignmentId}/work-orders/bucket?snapshotId={Guid.NewGuid()}&parentPart=ABC100&bucketKind=weekly&horizonWeeks={horizonWeeks}");
+            $"/api/v1/workspaces/{assignmentId}/work-orders/planning-window?snapshotId={Guid.NewGuid()}&parentPart=ABC100&bucketKind=weekly");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetPlanningWindow_Returns400_When_DateBasis_Invalid()
+    {
+        await using var factory = new KstApiFactory();
+        using var client = factory.CreateClient();
+        var assignmentId = await CreateWorkspaceAsync(client);
+
+        var response = await client.GetAsync(
+            $"/api/v1/workspaces/{assignmentId}/work-orders/planning-window?snapshotId={Guid.NewGuid()}&parentPart=ABC100&dateBasis=notABasis");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -234,8 +245,8 @@ public sealed class WorkOrderEndpointTests
             .GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>()
             .Value.SerializerOptions;
 
-        var bucketJson = JsonSerializer.Serialize(
-            new Kst.Api.Dtos.WorkOrderBucketResponseDto(
+        var planningWindowJson = JsonSerializer.Serialize(
+            new Kst.Api.Dtos.WorkOrderPlanningWindowResponseDto(
                 Guid.NewGuid().ToString(),
                 [
                     new Kst.Api.Dtos.WorkOrderSummaryDto(
@@ -244,8 +255,8 @@ public sealed class WorkOrderEndpointTests
                         new Kst.Api.Dtos.KittingSummaryDto(4, 2, 50m))
                 ]),
             serializerOptions);
-        AssertHasProperties(bucketJson, "snapshotId", "workOrders");
-        var woJson = JsonDocument.Parse(bucketJson).RootElement.GetProperty("workOrders")[0];
+        AssertHasProperties(planningWindowJson, "snapshotId", "workOrders");
+        var woJson = JsonDocument.Parse(planningWindowJson).RootElement.GetProperty("workOrders")[0];
         AssertHasProperties(
             woJson, "partNumber", "woid", "status", "orderedQuantity", "completedQuantity",
             "openQuantity", "releaseDate", "dueDate", "salesOrder", "kitting");
@@ -273,10 +284,9 @@ public sealed class WorkOrderEndpointTests
                     new Kst.Api.Dtos.WorkOrderSummaryDto(
                         "SUBASSY", "2001", "allocating", 10m, 0m, 10m, null,
                         new DateOnly(2026, 8, 10), null, new Kst.Api.Dtos.KittingSummaryDto(0, 0, null))
-                ],
-                false),
+                ]),
             serializerOptions);
-        AssertHasProperties(candidateJson, "snapshotId", "candidates", "isTruncated");
+        AssertHasProperties(candidateJson, "snapshotId", "candidates");
     }
 
     private static void AssertHasProperties(string json, params string[] propertyNames) =>

@@ -7,7 +7,7 @@ import {
   useMpsDashboard,
 } from '../hooks/useMpsDashboard';
 import { usePartDetail } from '../hooks/usePartDetail';
-import { useBucketWorkOrders } from '../hooks/useBucketWorkOrders';
+import { usePlanningWindowWorkOrders } from '../hooks/usePlanningWindowWorkOrders';
 import { useBom } from '../hooks/useBom';
 import { useComponentDetail } from '../hooks/useComponentDetail';
 import { useApprovedVendors } from '../hooks/useApprovedVendors';
@@ -134,17 +134,20 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   const { detail: partDetail, isLoading: isPartDetailLoading, error: partDetailError, retry: retryPartDetail } =
     usePartDetail(workspace.assignmentId, selectedParent);
 
+  // Stage 7R: the Work Orders population is the parent-scoped four-week planning window, sourced
+  // from the same capability for both the parent-level view (selectedBucket null) and the
+  // bucket-filtered view (selectedBucket set).
   const {
-    workOrders: bucketWorkOrders,
-    isLoading: isBucketWorkOrdersLoading,
-    error: bucketWorkOrdersError,
-    retry: retryBucketWorkOrders,
-  } = useBucketWorkOrders(
+    workOrders: planningWindowWorkOrders,
+    isLoading: isPlanningWindowLoading,
+    error: planningWindowError,
+    retry: retryPlanningWindow,
+  } = usePlanningWindowWorkOrders(
     workspace.assignmentId,
     dashboard?.snapshot.snapshotId ?? null,
-    selectedBucket,
+    selectedParent,
     dateBasis,
-    horizonWeeks,
+    selectedBucket,
   );
 
   // BOM is parent-contextual (never bucket/basis/horizon-contextual) and lazy: the request fires
@@ -544,22 +547,21 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
             >
               BOM
             </button>
-            {selectedBucket && (
-              <>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'workOrders'}
-                  className={`mps-detail__tab${activeTab === 'workOrders' ? ' mps-detail__tab--active' : ''}`}
-                  onClick={() => setActiveTab('workOrders')}
-                >
-                  Work Orders
-                </button>
-                <button type="button" role="tab" aria-selected={false} className="mps-detail__tab" disabled>
-                  Shortages
-                </button>
-              </>
-            )}
+            {/* Stage 7R: Work Orders is available whenever a parent is selected (parent-level
+                planning window, or bucket-filtered when a bucket is also selected). Shortages
+                remains deferred/disabled. */}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'workOrders'}
+              className={`mps-detail__tab${activeTab === 'workOrders' ? ' mps-detail__tab--active' : ''}`}
+              onClick={() => setActiveTab('workOrders')}
+            >
+              Work Orders
+            </button>
+            <button type="button" role="tab" aria-selected={false} className="mps-detail__tab" disabled>
+              Shortages
+            </button>
           </div>
 
           {activeTab === 'partInfo' && (
@@ -584,17 +586,18 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
             />
           )}
 
-          {activeTab === 'workOrders' && selectedBucket && (
+          {activeTab === 'workOrders' && (
             <EscapeStackContext.Provider value={escapeStackApi}>
               <WorkOrdersPanel
-                parentPart={selectedBucket.parentPart}
-                bucketLabel={describeBucketSelection(selectedBucket)}
+                parentPart={selectedParent}
+                bucketLabel={selectedBucket ? describeBucketSelection(selectedBucket) : 'Planning window'}
                 assignmentId={workspace.assignmentId}
                 snapshotId={dashboard?.snapshot.snapshotId ?? null}
-                workOrders={bucketWorkOrders}
-                isLoading={isBucketWorkOrdersLoading}
-                error={bucketWorkOrdersError}
-                onRetry={() => void retryBucketWorkOrders()}
+                workOrders={planningWindowWorkOrders}
+                isLoading={isPlanningWindowLoading}
+                error={planningWindowError}
+                onRetry={() => void retryPlanningWindow()}
+                dateBasis={dateBasis}
               />
             </EscapeStackContext.Provider>
           )}

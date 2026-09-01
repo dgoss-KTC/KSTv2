@@ -210,16 +210,17 @@ builder.Services.AddSingleton<PartDetailService>();
 // -- Work Orders (Stage 7) --------------------------------------------------
 builder.Services.AddSingleton<IWorkOrderSummaryCacheStore, InMemoryWorkOrderSummaryCacheStore>();
 builder.Services.AddSingleton<IWorkOrderMaterialCacheStore, InMemoryWorkOrderMaterialCacheStore>();
-builder.Services.AddSingleton<IWorkOrderCandidateCacheStore, InMemoryWorkOrderCandidateCacheStore>();
+builder.Services.AddSingleton<IWorkOrderPlanningWindowCacheStore, InMemoryWorkOrderPlanningWindowCacheStore>();
 
 if (qadOptions.IsConfigured)
 {
     builder.Services.AddSingleton<QadWorkOrderSummaryReader>();
     builder.Services.AddSingleton<QadWorkOrderMaterialReader>();
     builder.Services.AddSingleton<IWorkOrderSummaryReader>(sp => new DelegateWorkOrderSummaryReader(
-        (site, woids, ct) => sp.GetRequiredService<QadWorkOrderSummaryReader>().ReadByWoidsAsync(site, woids, ct),
-        (site, component, limit, ct) =>
-            sp.GetRequiredService<QadWorkOrderSummaryReader>().ReadCandidatesAsync(site, component, limit, ct)));
+        (site, parentPart, dateBasis, weekStart, windowEnd, bucketKind, bucketWeekStart, ct) =>
+            sp.GetRequiredService<QadWorkOrderSummaryReader>().ReadPlanningWindowAsync(
+                site, parentPart, dateBasis, weekStart, windowEnd, bucketKind, bucketWeekStart, ct),
+        (site, woid, ct) => sp.GetRequiredService<QadWorkOrderSummaryReader>().ReadByWoidAsync(site, woid, ct)));
     builder.Services.AddSingleton<IWorkOrderMaterialReader>(sp => new DelegateWorkOrderMaterialReader(
         (site, woid, ct) => sp.GetRequiredService<QadWorkOrderMaterialReader>().ReadAsync(site, woid, ct)));
 }
@@ -227,8 +228,8 @@ else
 {
     const string notConfiguredMessage = "QAD connection is not configured.";
     builder.Services.AddSingleton<IWorkOrderSummaryReader>(_ => new DelegateWorkOrderSummaryReader(
-        (_, _, _) => throw new InvalidOperationException(notConfiguredMessage),
-        (_, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+        (_, _, _, _, _, _, _, _) => throw new InvalidOperationException(notConfiguredMessage),
+        (_, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
     builder.Services.AddSingleton<IWorkOrderMaterialReader>(_ => new DelegateWorkOrderMaterialReader(
         (_, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
 }

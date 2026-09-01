@@ -31,7 +31,7 @@ public sealed record WorkOrderMaterialLineDto(
     bool IsFullyIssued
 );
 
-public sealed record WorkOrderBucketResponseDto(
+public sealed record WorkOrderPlanningWindowResponseDto(
     string SnapshotId,
     IReadOnlyList<WorkOrderSummaryDto> WorkOrders
 );
@@ -45,6 +45,5 @@ public sealed record WorkOrderMaterialResponseDto(
 
 public sealed record WorkOrderCandidateResponseDto(
     string SnapshotId,
-    IReadOnlyList<WorkOrderSummaryDto> Candidates,
-    bool IsTruncated
+    IReadOnlyList<WorkOrderSummaryDto> Candidates
 );

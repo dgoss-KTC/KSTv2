@@ -5,6 +5,7 @@ import './WorkOrdersPanel.css';
 
 interface WorkOrdersPanelProps {
   parentPart: string;
+  /** 'Planning window' for the parent-level view, or the bucket description (e.g. 'Week of …'). */
   bucketLabel: string;
   assignmentId: string;
   snapshotId: string | null;
@@ -12,12 +13,14 @@ interface WorkOrdersPanelProps {
   isLoading: boolean;
   error: WorkOrdersApiError | null;
   onRetry: () => void;
+  dateBasis: string;
 }
 
 /**
- * Stage 7D.6/7D.7: selection/tab plumbing for the Work Orders investigation context. Renders
- * every field the accepted Stage 7 card contract requires as compact status-badged
- * `WorkOrderCard`s with a Kitting % progress presentation and expand/collapse material drill-down.
+ * Stage 7/7R: selection/tab plumbing for the Work Orders investigation context. Renders the
+ * planning-window population (Due-Date-based Falldown + Week 0-3 under the active basis, or a
+ * single bucket) as compact status-badged `WorkOrderCard`s with a Kitting % progress presentation
+ * and expand/collapse material drill-down.
  */
 export function WorkOrdersPanel({
   parentPart,
@@ -28,6 +31,7 @@ export function WorkOrdersPanel({
   isLoading,
   error,
   onRetry,
+  dateBasis,
 }: WorkOrdersPanelProps) {
   return (
     <div className="work-orders-panel" aria-label={`Work orders for ${parentPart}, ${bucketLabel}`}>
@@ -59,14 +63,14 @@ export function WorkOrdersPanel({
 
       {!isLoading && !error && workOrders && workOrders.length === 0 && (
         <div className="work-orders-panel__state work-orders-panel__state--empty">
-          No eligible work orders (Allocating, Frozen, or Released) for this bucket.
+          No work orders in the planning window for this part.
         </div>
       )}
 
       {!isLoading && !error && workOrders && workOrders.length > 0 && (
         <ul className="work-orders-panel__list">
           {workOrders.map((wo) => (
-            <WorkOrderCard key={wo.woid} workOrder={wo} assignmentId={assignmentId} snapshotId={snapshotId} />
+            <WorkOrderCard key={wo.woid} workOrder={wo} assignmentId={assignmentId} snapshotId={snapshotId} dateBasis={dateBasis} />
           ))}
         </ul>
       )}

@@ -216,7 +216,7 @@ describe('withPeriodColor', () => {
 
 describe('isWeeklyBucketWorkOrderEligible', () => {
   it('is eligible for the first WORK_ORDER_DRILLDOWN_HORIZON_WEEKS zero-based indices', () => {
-    expect(WORK_ORDER_DRILLDOWN_HORIZON_WEEKS).toBe(6);
+    expect(WORK_ORDER_DRILLDOWN_HORIZON_WEEKS).toBe(4);
     for (let i = 0; i < WORK_ORDER_DRILLDOWN_HORIZON_WEEKS; i++) {
       expect(isWeeklyBucketWorkOrderEligible(i)).toBe(true);
     }
@@ -249,6 +249,12 @@ describe('workOrderStatusLabel', () => {
 
   it('falls back to the raw value for an unrecognized status', () => {
     expect(workOrderStatusLabel('unknown')).toBe('unknown');
+  });
+
+  it('passes through raw non-A-F-R QAD status codes unchanged (Stage 7R)', () => {
+    expect(workOrderStatusLabel('P')).toBe('P');
+    expect(workOrderStatusLabel('e')).toBe('e');
+    expect(workOrderStatusLabel('Z')).toBe('Z');
   });
 });
 

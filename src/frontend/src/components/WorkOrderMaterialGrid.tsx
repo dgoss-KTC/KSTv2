@@ -23,6 +23,7 @@ interface WorkOrderMaterialGridProps {
   woid: string;
   assignmentId: string;
   snapshotId: string | null;
+  dateBasis: string;
 }
 
 /**
@@ -32,7 +33,7 @@ interface WorkOrderMaterialGridProps {
  * (selecting a different manufactured row collapses the prior one), per the accepted contract's
  * "avoid uncontrolled nested expansion" requirement.
  */
-export function WorkOrderMaterialGrid({ lines, depth, woid, assignmentId, snapshotId }: WorkOrderMaterialGridProps) {
+export function WorkOrderMaterialGrid({ lines, depth, woid, assignmentId, snapshotId, dateBasis }: WorkOrderMaterialGridProps) {
   const [filterText, setFilterText] = useState('');
   const [expandedRowKey, setExpandedRowKey] = useState<string | null>(null);
   // Escape collapses the open candidate branch one level up, same as clicking its drill button again.
@@ -139,8 +140,9 @@ export function WorkOrderMaterialGrid({ lines, depth, woid, assignmentId, snapsh
                           assignmentId={assignmentId}
                           snapshotId={snapshotId}
                           immediateParentWoid={woid}
-                          componentPart={line.componentPart}
-                          depth={depth + 1}
+                                componentPart={line.componentPart}
+                                depth={depth + 1}
+                                dateBasis={dateBasis}
                         />
                       </td>
                     </tr>

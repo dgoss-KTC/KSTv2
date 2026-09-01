@@ -9,6 +9,7 @@ interface WorkOrderCandidatePanelProps {
   componentPart: string;
   /** Depth to render the candidate cards at (immediate parent's depth + 1). */
   depth: number;
+  dateBasis: string;
 }
 
 /**
@@ -22,20 +23,22 @@ export function WorkOrderCandidatePanel({
   immediateParentWoid,
   componentPart,
   depth,
+  dateBasis,
 }: WorkOrderCandidatePanelProps) {
-  const { candidates, isTruncated, isLoading, error, retry } = useWorkOrderCandidates(
+  const { candidates, isLoading, error, retry } = useWorkOrderCandidates(
     assignmentId,
     snapshotId,
     immediateParentWoid,
     componentPart,
     depth,
+    dateBasis,
   );
 
   return (
     <div className="work-order-candidate-panel">
       <h4 className="work-order-candidate-panel__title">Work Orders for {componentPart}</h4>
 
-      {isLoading && <div className="work-order-candidate-panel__state">Loading candidate work orders&hellip;</div>}
+      {isLoading && <div className="work-order-candidate-panel__state">Loading work orders&hellip;</div>}
 
       {!isLoading && error && (
         <div className="work-order-candidate-panel__state work-order-candidate-panel__state--error">
@@ -52,17 +55,12 @@ export function WorkOrderCandidatePanel({
 
       {!isLoading && !error && candidates && candidates.length === 0 && (
         <div className="work-order-candidate-panel__state work-order-candidate-panel__state--empty">
-          No active preceding work orders found for this part.
+          No work orders in the planning window for this part.
         </div>
       )}
 
       {!isLoading && !error && candidates && candidates.length > 0 && (
         <>
-          {isTruncated && (
-            <p className="work-order-candidate-panel__truncated">
-              Showing the nearest {candidates.length} preceding candidate work orders; more may exist.
-            </p>
-          )}
           <ul className="work-order-candidate-panel__list">
             {candidates.map((candidate) => (
               <WorkOrderCard
@@ -71,6 +69,7 @@ export function WorkOrderCandidatePanel({
                 assignmentId={assignmentId}
                 snapshotId={snapshotId}
                 depth={depth}
+                dateBasis={dateBasis}
               />
             ))}
           </ul>

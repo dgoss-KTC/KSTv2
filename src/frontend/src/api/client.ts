@@ -20,7 +20,7 @@ export type MpsPartScheduleDto = components['schemas']['MpsPartScheduleDto'];
 export type MpsBucketDto = components['schemas']['MpsBucketDto'];
 export type PartDetailResponseDto = components['schemas']['PartDetailResponseDto'];
 export type PartPriceBreakDto = components['schemas']['PartPriceBreakDto'];
-export type WorkOrderBucketResponseDto = components['schemas']['WorkOrderBucketResponseDto'];
+export type WorkOrderPlanningWindowResponseDto = components['schemas']['WorkOrderPlanningWindowResponseDto'];
 export type WorkOrderSummaryDto = components['schemas']['WorkOrderSummaryDto'];
 export type KittingSummaryDto = components['schemas']['KittingSummaryDto'];
 export type WorkOrderMaterialResponseDto = components['schemas']['WorkOrderMaterialResponseDto'];
@@ -149,24 +149,27 @@ export class ApiClient {
     );
   }
 
-  async getBucketWorkOrders(
+  async getPlanningWindowWorkOrders(
     assignmentId: string,
     snapshotId: string,
     parentPart: string,
-    bucketKind: 'falldown' | 'weekly',
-    weekLabel: string | null,
     dateBasis: string,
-    horizonWeeks: number,
-  ): Promise<WorkOrderBucketResponseDto> {
-    const weekLabelParam = weekLabel ? `&weekLabel=${encodeURIComponent(weekLabel)}` : '';
-    const query =
+    bucketKind?: 'falldown' | 'weekly',
+    weekLabel?: string,
+  ): Promise<WorkOrderPlanningWindowResponseDto> {
+    let query =
       `?snapshotId=${encodeURIComponent(snapshotId)}` +
       `&parentPart=${encodeURIComponent(parentPart)}` +
-      `&bucketKind=${encodeURIComponent(bucketKind)}` +
-      weekLabelParam +
-      `&dateBasis=${encodeURIComponent(dateBasis)}` +
-      `&horizonWeeks=${horizonWeeks}`;
-    return this.get<WorkOrderBucketResponseDto>(`/api/v1/workspaces/${assignmentId}/work-orders/bucket${query}`);
+      `&dateBasis=${encodeURIComponent(dateBasis)}`;
+    if (bucketKind) {
+      query += `&bucketKind=${encodeURIComponent(bucketKind)}`;
+      if (bucketKind === 'weekly' && weekLabel) {
+        query += `&weekLabel=${encodeURIComponent(weekLabel)}`;
+      }
+    }
+    return this.get<WorkOrderPlanningWindowResponseDto>(
+      `/api/v1/workspaces/${assignmentId}/work-orders/planning-window${query}`,
+    );
   }
 
   async getWorkOrderMaterialLines(
@@ -186,12 +189,14 @@ export class ApiClient {
     immediateParentWoid: string,
     componentPart: string,
     targetDepth: number,
+    dateBasis: string,
   ): Promise<WorkOrderCandidateResponseDto> {
     const query =
       `?snapshotId=${encodeURIComponent(snapshotId)}` +
       `&immediateParentWoid=${encodeURIComponent(immediateParentWoid)}` +
       `&componentPart=${encodeURIComponent(componentPart)}` +
-      `&targetDepth=${targetDepth}`;
+      `&targetDepth=${targetDepth}` +
+      `&dateBasis=${encodeURIComponent(dateBasis)}`;
     return this.get<WorkOrderCandidateResponseDto>(`/api/v1/workspaces/${assignmentId}/work-orders/candidates${query}`);
   }
 

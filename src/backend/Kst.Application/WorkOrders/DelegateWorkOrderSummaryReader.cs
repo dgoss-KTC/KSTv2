@@ -1,3 +1,4 @@
+using Kst.Domain.Mps;
 using Kst.Domain.WorkOrders;
 
 namespace Kst.Application.WorkOrders;
@@ -8,26 +9,30 @@ namespace Kst.Application.WorkOrders;
 /// </summary>
 public sealed class DelegateWorkOrderSummaryReader : IWorkOrderSummaryReader
 {
-    private readonly Func<string, IReadOnlyList<string>, CancellationToken, Task<IReadOnlyList<WorkOrderSummary>>> _readByWoids;
-    private readonly Func<string, string, int, CancellationToken, Task<CandidateWorkOrdersResult>> _readCandidates;
+    private readonly Func<string, string, MpsDateBasis, DateOnly, DateOnly, MpsBucketKind?, DateOnly?, CancellationToken, Task<IReadOnlyList<WorkOrderSummary>>> _readPlanningWindow;
+    private readonly Func<string, string, CancellationToken, Task<WorkOrderSummary?>> _readByWoid;
 
     public DelegateWorkOrderSummaryReader(
-        Func<string, IReadOnlyList<string>, CancellationToken, Task<IReadOnlyList<WorkOrderSummary>>> readByWoids,
-        Func<string, string, int, CancellationToken, Task<CandidateWorkOrdersResult>> readCandidates)
+        Func<string, string, MpsDateBasis, DateOnly, DateOnly, MpsBucketKind?, DateOnly?, CancellationToken, Task<IReadOnlyList<WorkOrderSummary>>> readPlanningWindow,
+        Func<string, string, CancellationToken, Task<WorkOrderSummary?>> readByWoid)
     {
-        _readByWoids = readByWoids;
-        _readCandidates = readCandidates;
+        _readPlanningWindow = readPlanningWindow;
+        _readByWoid = readByWoid;
     }
 
-    public Task<IReadOnlyList<WorkOrderSummary>> ReadByWoidsAsync(
+    public Task<IReadOnlyList<WorkOrderSummary>> ReadPlanningWindowAsync(
         string site,
-        IReadOnlyList<string> woids,
-        CancellationToken cancellationToken = default) => _readByWoids(site, woids, cancellationToken);
-
-    public Task<CandidateWorkOrdersResult> ReadCandidatesAsync(
-        string site,
-        string componentPart,
-        int limit,
+        string parentPart,
+        MpsDateBasis dateBasis,
+        DateOnly weekStart,
+        DateOnly windowEndExclusive,
+        MpsBucketKind? bucketKind,
+        DateOnly? bucketWeekStart,
         CancellationToken cancellationToken = default) =>
-        _readCandidates(site, componentPart, limit, cancellationToken);
+        _readPlanningWindow(site, parentPart, dateBasis, weekStart, windowEndExclusive, bucketKind, bucketWeekStart, cancellationToken);
+
+    public Task<WorkOrderSummary?> ReadByWoidAsync(
+        string site,
+        string woid,
+        CancellationToken cancellationToken = default) => _readByWoid(site, woid, cancellationToken);
 }
