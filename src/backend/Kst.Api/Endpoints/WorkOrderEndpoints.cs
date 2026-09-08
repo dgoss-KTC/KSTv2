@@ -1,8 +1,10 @@
 using Kst.Api.Dtos;
 using Kst.Application.WorkOrders;
+using Kst.Application.Shortages;
 using Kst.Domain.Common;
 using Kst.Domain.Mps;
 using Kst.Domain.WorkOrders;
+using Kst.Domain.Shortages;
 
 namespace Kst.Api.Endpoints;
 
@@ -31,6 +33,26 @@ public static class WorkOrderEndpoints
             .WithSummary("Returns lazily-loaded material/kitting lines and Kitting Summary for one work order.")
             .WithTags("WorkOrders")
             .Produces<WorkOrderMaterialResponseDto>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
+        app.MapGet("/api/v1/workspaces/{assignmentId:guid}/work-orders/{woid}/immediate-material", GetImmediateMaterial)
+            .WithName("GetWorkOrderImmediateMaterial")
+            .WithSummary("Returns the Stage 9 immediate material analysis for one work order.")
+            .WithTags("WorkOrders")
+            .Produces<WorkOrderImmediateMaterialAnalysisResponseDto>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
+        app.MapGet("/api/v1/workspaces/{assignmentId:guid}/work-orders/immediate-material-summary", GetImmediateMaterialSummary)
+            .WithName("GetWorkOrderImmediateMaterialSummary")
+            .WithSummary("Returns Stage 9 immediate-material summary indicators for the parent-scoped four-week planning window.")
+            .WithTags("WorkOrders")
+            .Produces<WorkOrderImmediateMaterialSummaryResponseDto>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -98,6 +120,49 @@ public static class WorkOrderEndpoints
         {
             var result = await service.GetMaterialLinesAsync(assignmentId, parsedSnapshotId, woid, cancellationToken);
             return ToResult(result, woid);
+        }
+        catch (WorkOrderDrilldownWorkspaceNotFoundException)
+        {
+            return Results.NotFound();
+        }
+    }
+
+    private static async Task<IResult> GetImmediateMaterial(
+        Guid assignmentId, string woid, string? snapshotId, string? dateBasis,
+        WorkOrderImmediateShortageService service, IClock clock, CancellationToken cancellationToken)
+    {
+        var errors = new Dictionary<string, string[]>();
+        var parsedSnapshotId = TryParseSnapshotId(snapshotId, errors);
+        var parsedDateBasis = TryParseDateBasis(dateBasis, errors);
+        if (errors.Count > 0) return Results.ValidationProblem(errors);
+
+        try
+        {
+            var result = await service.GetImmediateMaterialAsync(
+                assignmentId, parsedSnapshotId, woid, parsedDateBasis,
+                DateOnly.FromDateTime(clock.LocalNow.Date), cancellationToken);
+            return ToResult(result);
+        }
+        catch (WorkOrderDrilldownWorkspaceNotFoundException)
+        {
+            return Results.NotFound();
+        }
+    }
+
+    private static async Task<IResult> GetImmediateMaterialSummary(
+        Guid assignmentId, string? snapshotId, string? parentPart, string? dateBasis,
+        WorkOrderImmediateShortageService service, IClock clock, CancellationToken cancellationToken)
+    {
+        var errors = new Dictionary<string, string[]>();
+        var parsedSnapshotId = TryParseSnapshotId(snapshotId, errors);
+        var parsedDateBasis = TryParseDateBasis(dateBasis, errors);
+        if (errors.Count > 0) return Results.ValidationProblem(errors);
+        try
+        {
+            var result = string.IsNullOrWhiteSpace(parentPart)
+                ? await service.GetWorkspaceSummaryAsync(assignmentId, parsedSnapshotId, parsedDateBasis, DateOnly.FromDateTime(clock.LocalNow.Date), cancellationToken)
+                : await service.GetSummaryAsync(assignmentId, parsedSnapshotId, parentPart, parsedDateBasis, DateOnly.FromDateTime(clock.LocalNow.Date), cancellationToken);
+            return ToResult(result);
         }
         catch (WorkOrderDrilldownWorkspaceNotFoundException)
         {
@@ -252,6 +317,35 @@ public static class WorkOrderEndpoints
         _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError)
     };
 
+    private static IResult ToResult(WorkOrderImmediateMaterialResult result) => result.Kind switch
+    {
+        WorkOrderImmediateMaterialOutcomeKind.Loaded => Results.Ok(ToDto(result.SnapshotId!.Value, result.Analysis!)),
+        WorkOrderImmediateMaterialOutcomeKind.MpsNotLoaded => MpsNotLoadedProblem(),
+        WorkOrderImmediateMaterialOutcomeKind.SnapshotChanged => SnapshotChangedProblem(),
+        WorkOrderImmediateMaterialOutcomeKind.WorkOrderNotInImmediateWindow => Results.Problem(
+            title: "Work order not found",
+            detail: "The requested work order is not in the current immediate planning window.",
+            statusCode: StatusCodes.Status404NotFound),
+        WorkOrderImmediateMaterialOutcomeKind.Unavailable => UnavailableProblem(),
+        _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError)
+    };
+
+    private static IResult ToResult(WorkOrderImmediateMaterialSummaryResult result) => result.Kind switch
+    {
+        WorkOrderImmediateMaterialSummaryOutcomeKind.Loaded => Results.Ok(new WorkOrderImmediateMaterialSummaryResponseDto(
+            result.SnapshotId!.Value.ToString(), result.Analyses!.Select(analysis => new WorkOrderImmediateMaterialSummaryDto(
+                analysis.WorkOrder.WoId, analysis.WorkOrder.BuildPart,
+                ToPlanningBucketContextString(analysis.WorkOrder.PlanningBucketContext),
+                analysis.WorkOrder.DueDate, analysis.WorkOrder.ReleaseDate,
+                analysis.ComponentRows.Any(row => row.MaterialStatus == MaterialStatus.Short),
+                analysis.Diagnostic is not null || analysis.ComponentRows.Any(row => row.MaterialStatus == MaterialStatus.Unknown))).ToList())),
+        WorkOrderImmediateMaterialSummaryOutcomeKind.MpsNotLoaded => MpsNotLoadedProblem(),
+        WorkOrderImmediateMaterialSummaryOutcomeKind.SnapshotChanged => SnapshotChangedProblem(),
+        WorkOrderImmediateMaterialSummaryOutcomeKind.PartNotInScope => Results.Problem(title: "Part not in workspace scope", detail: "The requested part is not in this workspace's current MPS parent scope.", statusCode: StatusCodes.Status404NotFound),
+        WorkOrderImmediateMaterialSummaryOutcomeKind.Unavailable => UnavailableProblem(),
+        _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError)
+    };
+
     private static IResult ToResult(WorkOrderCandidateResult result) => result.Kind switch
     {
         WorkOrderCandidateOutcomeKind.Loaded => Results.Ok(new WorkOrderCandidateResponseDto(
@@ -303,6 +397,34 @@ public static class WorkOrderEndpoints
         summary.SalesOrder,
         ToDto(summary.Kitting));
 
+    private static WorkOrderImmediateMaterialAnalysisResponseDto ToDto(SnapshotId snapshotId, WorkOrderImmediateMaterialAnalysis analysis) => new(
+        snapshotId.ToString(),
+        new(analysis.WorkOrder.WoId, analysis.WorkOrder.BuildPart, ToStatusString(analysis.WorkOrder.Status),
+            analysis.WorkOrder.WoType, analysis.WorkOrder.MaterialBuildQuantity, analysis.WorkOrder.DueDate,
+            analysis.WorkOrder.ReleaseDate, ToPlanningBucketContextString(analysis.WorkOrder.PlanningBucketContext)),
+        analysis.ComponentRows.Select(ToDto).ToList(), analysis.Diagnostic);
+
+    private static WorkOrderImmediateMaterialComponentDto ToDto(ComponentRow row) => new(
+        row.Requirement.ComponentPart, row.Requirement.Description, row.Requirement.IsManufactured,
+        row.Requirement.UnitOfMeasure,
+        row.Requirement.Source == RequirementSource.ActualWo ? "actualWo" : "projectedBom",
+        row.MaterialStatus switch { MaterialStatus.Unknown => "unknown", MaterialStatus.Short => "short", MaterialStatus.NotApplicable => "notApplicable", _ => "onHand" },
+        row.AllocationMode switch { AllocationMode.HardAllocatedCommitted => "hardAllocatedCommitted", AllocationMode.CommittedSequential => "committedSequential", _ => "advisorySharedPool" },
+        row.Requirement.AdjustedRequiredQuantity, row.IssuedQuantity, row.VarianceQuantity, row.IssuedPercent,
+        row.UncoveredRequirement, row.UsableHardAllocationToThisWoComponent, row.OwnHardCoverage,
+        row.UncoveredRequirement, row.AvailableQuantityAtEvaluation, row.AllocatedQuantity,
+        row.InventoryPosition.UsableQuantity, row.ShortQuantity,
+        row.IsFloorStockOrNonIssued, row.IsOverIssued,
+        new(row.InventoryPosition.ActivityQuantities.GetValueOrDefault(InventoryActivity.Transit),
+            row.InventoryPosition.ActivityQuantities.GetValueOrDefault(InventoryActivity.Inspection),
+            row.InventoryPosition.ActivityQuantities.GetValueOrDefault(InventoryActivity.NonNet),
+            row.InventoryPosition.ActivityQuantities.GetValueOrDefault(InventoryActivity.Mrb),
+            row.InventoryPosition.ActivityQuantities.GetValueOrDefault(InventoryActivity.NcmInspection),
+            row.InventoryPosition.ActivityQuantities.GetValueOrDefault(InventoryActivity.ExpiredExpiring)),
+        row.Incoming is null ? null : new(row.Incoming.IsKss, row.Incoming.PoState, row.Incoming.PoNumber,
+            row.Incoming.PoDueDate, row.Incoming.PoOpenQuantity, row.Incoming.PoConfirmed, row.Incoming.TrackingInfo),
+        row.Diagnostic);
+
     private static KittingSummaryDto ToDto(KittingSummary kitting) => new(
         kitting.ApplicableLineCount,
         kitting.FullyIssuedLineCount,
@@ -335,6 +457,14 @@ public static class WorkOrderEndpoints
             _ => trimmed
         };
     }
+
+    private static string ToPlanningBucketContextString(PlanningBucketContext context) => context switch
+    {
+        PlanningBucketContext.Falldown => "falldown",
+        PlanningBucketContext.ForwardDue => "forwardDue",
+        PlanningBucketContext.ForwardRelease => "forwardRelease",
+        _ => "unknown"
+    };
 
     private static string? ToIssueStatusString(WorkOrderIssueStatus? status) => status switch
     {

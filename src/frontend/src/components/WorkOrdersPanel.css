@@ -64,3 +64,5 @@
   padding: 0;
   list-style: none;
 }
+.work-orders-panel__detail { margin-top: 14px; border-top: 1px solid var(--bd); padding-top: 14px; }
+.work-orders-panel__detail .shortages-panel, .work-orders-panel__detail .shortages-panel__state { margin: 0; }

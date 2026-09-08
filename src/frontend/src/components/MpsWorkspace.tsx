@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { WorkspaceAssignmentDto } from '../api/client';
+import type { WorkspaceAssignmentDto, WorkOrderImmediateMaterialComponentDto } from '../api/client';
 import { useFiscalCalendarSettings } from '../hooks/useFiscalCalendarSettings';
 import {
   MAX_MPS_HORIZON_WEEKS,
@@ -11,10 +11,13 @@ import { usePlanningWindowWorkOrders } from '../hooks/usePlanningWindowWorkOrder
 import { useBom } from '../hooks/useBom';
 import { useComponentDetail } from '../hooks/useComponentDetail';
 import { useApprovedVendors } from '../hooks/useApprovedVendors';
+import { useWorkOrderImmediateMaterial } from '../hooks/useWorkOrderImmediateMaterial';
+import { useWorkOrderImmediateMaterialSummary } from '../hooks/useWorkOrderImmediateMaterialSummary';
 import { PartInfoPanel } from './PartInfoPanel';
 import { BomPanel } from './BomPanel';
 import { ComponentInfoModal } from './ComponentInfoModal';
 import { WorkOrdersPanel } from './WorkOrdersPanel';
+import { ShortagesPanel } from './ShortagesPanel';
 import { getFiscalDisplayInfo } from '../fiscal/fiscalCalendar';
 import { EscapeStackContext, type EscapeStackEntry } from '../mps/escapeStack';
 import {
@@ -72,7 +75,12 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   // Stage 6 contract §2, extended by the accepted Stage 7 contract §4).
   const [selectedParent, setSelectedParent] = useState<string | null>(null);
   const [selectedBucket, setSelectedBucket] = useState<BucketSelection | null>(null);
-  const [activeTab, setActiveTab] = useState<'partInfo' | 'bom' | 'workOrders'>('partInfo');
+  const [activeTab, setActiveTab] = useState<'partInfo' | 'bom' | 'workOrders' | 'shortages'>('partInfo');
+  const [selectedWoid, setSelectedWoid] = useState<string | null>(null);
+  const [inspectedShortage, setInspectedShortage] = useState<{
+    row: WorkOrderImmediateMaterialComponentDto;
+    returnFocusEl: HTMLElement | null;
+  } | null>(null);
   // Stage 8D.6: the component currently inspected in the blocking Component Information modal,
   // plus the originating BOM row so focus can be restored to it on close. Modal state is owned
   // here (not by BomPanel) so it survives independently of BOM filter/search state.
@@ -83,6 +91,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   // Keyed by parentPart so Escape can restore focus to the exact grid row that was drilled into,
   // even though the row stays mounted (never removed) while its detail view is open.
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+  const materialToggleRef = useRef<HTMLButtonElement | null>(null);
   // LIFO stack of nested Work Orders drill-down expansions (material lines, candidate branches)
   // registered by descendants via `useEscapeLevel`; the api object is memoized once (stable
   // identity) so descendants' effects don't re-run on every MpsWorkspace render.
@@ -107,6 +116,8 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
       setSelectedParent(null);
       setSelectedBucket(null);
       setActiveTab('partInfo');
+      setSelectedWoid(null);
+      setInspectedShortage(null);
       setInspectedComponent(null);
     }, 0);
     return () => clearTimeout(id);
@@ -127,6 +138,8 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     if (previousSnapshotId !== null && currentSnapshotId !== null && previousSnapshotId !== currentSnapshotId) {
       setSelectedBucket(null);
       setActiveTab('partInfo');
+      setSelectedWoid(null);
+      setInspectedShortage(null);
       setInspectedComponent(null);
     }
   }, [dashboard?.snapshot.snapshotId]);
@@ -184,6 +197,13 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     retry: retryApprovedVendors,
   } = useApprovedVendors(workspace.assignmentId, inspectedComponent?.componentPart ?? null);
 
+  const { analysis: immediateMaterialAnalysis, isLoading: isImmediateMaterialLoading, error: immediateMaterialError, retry: retryImmediateMaterial } = useWorkOrderImmediateMaterial(
+    workspace.assignmentId, dashboard?.snapshot.snapshotId ?? null, selectedWoid, dateBasis, (activeTab === 'workOrders' || activeTab === 'shortages') && selectedWoid !== null,
+  );
+  const { summary: immediateMaterialSummary, error: immediateMaterialSummaryError } = useWorkOrderImmediateMaterialSummary(
+    workspace.assignmentId, dashboard?.snapshot.snapshotId ?? null, dateBasis,
+  );
+
   function handleSelectComponent(componentPart: string, rowElement: HTMLElement) {
     setInspectedComponent({ componentPart, returnFocusEl: rowElement });
   }
@@ -196,11 +216,37 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     }
   }
 
+  function handleOpenMaterialLines(woid: string | null, trigger?: HTMLButtonElement) {
+    setSelectedWoid(woid);
+    setInspectedShortage(null);
+    if (woid) {
+      materialToggleRef.current = trigger ?? null;
+      return;
+    }
+    const returnFocusEl = materialToggleRef.current;
+    materialToggleRef.current = null;
+    setTimeout(() => {
+      if (returnFocusEl?.isConnected) returnFocusEl.focus();
+    }, 0);
+  }
+
+  function handleSelectShortageDetail(row: WorkOrderImmediateMaterialComponentDto, returnFocusEl: HTMLElement) {
+    setInspectedShortage({ row, returnFocusEl });
+  }
+
+  function handleCloseShortageDetail() {
+    const returnFocusEl = inspectedShortage?.returnFocusEl ?? null;
+    setInspectedShortage(null);
+    if (returnFocusEl?.isConnected) returnFocusEl.focus();
+  }
+
   function clearSelection() {
     const partToRefocus = selectedParent;
     setSelectedParent(null);
     setSelectedBucket(null);
     setActiveTab('partInfo');
+    setSelectedWoid(null);
+    setInspectedShortage(null);
     setInspectedComponent(null);
     // Deferred: the detail panel unmounting and the grid reverting to its full (unfiltered) row
     // set both commit in this same update: check connectivity only after that commit lands.
@@ -222,7 +268,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   useEffect(() => {
     function handleDocumentEscape(e: KeyboardEvent) {
       if (e.key !== 'Escape') return;
-      if (inspectedComponent) return;
+      if (inspectedComponent || inspectedShortage) return;
       if (escapeStackApi.popTop()) {
         e.preventDefault();
         e.stopPropagation();
@@ -250,6 +296,8 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     setSelectedParent(partNumber);
     setSelectedBucket(null);
     setActiveTab('partInfo');
+    setSelectedWoid(null);
+    setInspectedShortage(null);
   }
 
   // Bucket selection (Falldown or an eligible weekly cell) selects the parent + bucket together
@@ -265,6 +313,8 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     setSelectedParent(partNumber);
     setSelectedBucket({ parentPart: partNumber, kind, weekLabel });
     setActiveTab('workOrders');
+    setSelectedWoid(null);
+    setInspectedShortage(null);
   }
 
   const title = workspace.displayName ?? workspace.site;
@@ -547,9 +597,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
             >
               BOM
             </button>
-            {/* Stage 7R: Work Orders is available whenever a parent is selected (parent-level
-                planning window, or bucket-filtered when a bucket is also selected). Shortages
-                remains deferred/disabled. */}
+            {/* Stage 7R planning-window cards establish the selected Work Order for Stage 9. */}
             <button
               type="button"
               role="tab"
@@ -559,7 +607,14 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
             >
               Work Orders
             </button>
-            <button type="button" role="tab" aria-selected={false} className="mps-detail__tab" disabled>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'shortages'}
+              className={`mps-detail__tab${activeTab === 'shortages' ? ' mps-detail__tab--active' : ''}`}
+              onClick={() => setActiveTab('shortages')}
+              disabled={!selectedWoid}
+            >
               Shortages
             </button>
           </div>
@@ -597,6 +652,36 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
                 isLoading={isPlanningWindowLoading}
                 error={planningWindowError}
                 onRetry={() => void retryPlanningWindow()}
+                dateBasis={dateBasis}
+                selectedWoid={selectedWoid}
+                onSelectWoid={handleOpenMaterialLines}
+                summary={immediateMaterialSummary}
+                summaryError={immediateMaterialSummaryError}
+                analysis={immediateMaterialAnalysis}
+                isAnalysisLoading={isImmediateMaterialLoading}
+                analysisError={immediateMaterialError}
+                onRetryAnalysis={() => void retryImmediateMaterial()}
+                detail={inspectedShortage?.row ?? null}
+                onSelectDetail={handleSelectShortageDetail}
+                onCloseDetail={handleCloseShortageDetail}
+              />
+            </EscapeStackContext.Provider>
+          )}
+          {activeTab === 'shortages' && (
+            <EscapeStackContext.Provider value={escapeStackApi}>
+              <ShortagesPanel
+                selectedWoid={selectedWoid}
+                analysis={immediateMaterialAnalysis}
+                isLoading={isImmediateMaterialLoading}
+                error={immediateMaterialError}
+                onRetry={() => void retryImmediateMaterial()}
+                detail={inspectedShortage?.row ?? null}
+                onSelectDetail={handleSelectShortageDetail}
+                onCloseDetail={handleCloseShortageDetail}
+                onCloseAnalysis={() => handleOpenMaterialLines(null)}
+                registerSelectedWoidEscape
+                assignmentId={workspace.assignmentId}
+                snapshotId={dashboard?.snapshot.snapshotId ?? null}
                 dateBasis={dateBasis}
               />
             </EscapeStackContext.Provider>

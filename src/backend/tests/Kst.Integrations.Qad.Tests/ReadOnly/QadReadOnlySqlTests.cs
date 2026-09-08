@@ -138,6 +138,14 @@ public sealed class QadReadOnlySqlTests
         if (type == typeof(Guid)) return Guid.NewGuid();
         if (type == typeof(CancellationToken)) return CancellationToken.None;
 
+        // Nullable value types (e.g. DateOnly?, MpsBucketKind?): pass null ("absent").
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+            return null;
+
+        // Enums (e.g. MpsDateBasis): pass the first defined value.
+        if (type.IsEnum)
+            return Enum.GetValues(type).GetValue(0);
+
         if (type.IsGenericType
             && type.GetGenericArguments().Length == 1
             && type.GetGenericArguments()[0] == typeof(string)

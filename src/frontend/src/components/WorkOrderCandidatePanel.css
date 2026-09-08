@@ -61,3 +61,6 @@
   padding: 0;
   list-style: none;
 }
+
+.work-order-candidate-panel__detail { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--bd-soft); }
+.work-order-candidate-panel__detail .shortages-panel, .work-order-candidate-panel__detail .shortages-panel__state { margin: 0; }

@@ -24,6 +24,11 @@ namespace Kst.Domain.Bom;
 /// <see cref="QuantityPer"/> and <see cref="ScrapPercentage"/> are relationship/occurrence
 /// level values carried verbatim — never multiplied through the hierarchy, never turned into
 /// requirement calculations.
+/// <see cref="UnitOfMeasure"/> is the nullable component-master <c>pt_mstr.pt_um</c> fact,
+/// retained for Stage 9 projected-requirement normalization; it is not a Stage 8 display field.
+/// <see cref="MasterPmCode"/> preserves the nullable <c>pt_mstr.pt_pm_code</c> fact for Stage 9
+/// purchased-material classification. It is deliberately distinct from the Stage 8 effective
+/// <see cref="PmCode"/> value, which may be overridden at the selected site.
 ///
 /// Deliberately absent: Net/Non-Net/RMA QOH, Extended Requirement, Incoming Supply, Coverage,
 /// Material Status, Short Quantity, Projected QOH — inventory grain is Site + Part
@@ -41,4 +46,6 @@ public sealed record BomOccurrence(
     bool IsPhantom,
     string? Description,
     decimal? QuantityPer,
-    decimal? ScrapPercentage);
+    decimal? ScrapPercentage,
+    string? UnitOfMeasure = null,
+    string? MasterPmCode = null);

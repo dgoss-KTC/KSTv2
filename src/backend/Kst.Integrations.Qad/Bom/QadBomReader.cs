@@ -160,6 +160,7 @@ public sealed class QadBomReader
                 pt.pt_phantom     AS Phantom,
                 ptp.ptp_pm_code   AS SitePmCode,
                 pt.pt_pm_code     AS GlobalPmCode,
+                pt.pt_um          AS UnitOfMeasure,
                 ROW_NUMBER() OVER (
                     PARTITION BY u.ParentPart
                     ORDER BY u.ComponentPart, u.Reference, u.OidPsMstr
@@ -337,7 +338,9 @@ public sealed class QadBomReader
         IsPhantom: raw.Phantom ?? false,
         Description: CombineDescription(raw.Description1, raw.Description2),
         QuantityPer: raw.QuantityPer,
-        ScrapPercentage: raw.ScrapPercentage);
+        ScrapPercentage: raw.ScrapPercentage,
+        UnitOfMeasure: string.IsNullOrWhiteSpace(raw.UnitOfMeasure) ? null : raw.UnitOfMeasure.Trim(),
+        MasterPmCode: string.IsNullOrWhiteSpace(raw.GlobalPmCode) ? null : raw.GlobalPmCode.Trim());
 
     /// <summary>
     /// Serializes a relationship OID (live-confirmed <c>decimal(28,10)</c>, fractional OIDs such
@@ -358,7 +361,7 @@ public sealed class QadBomReader
 /// Types reflect the live-confirmed QADPRO2 schema (2026-07): <c>oid_ps_mstr</c> decimal(28,10);
 /// <c>ps_qty_per</c>/<c>ps_scrp_pct</c> decimal(28,10) nullable; <c>ps_par</c>/<c>ps_comp</c>/<c>ps_ref</c>
 /// nvarchar(60); <c>pt_desc1</c>/<c>pt_desc2</c> nvarchar(160); <c>pt_phantom</c> bit nullable;
-/// <c>pt_pm_code</c>/<c>ptp_pm_code</c> nvarchar(60). <c>SiblingOrder</c> is <see langword="long"/> because
+/// <c>pt_pm_code</c>/<c>ptp_pm_code</c>/<c>pt_um</c> nvarchar(60). <c>SiblingOrder</c> is <see langword="long"/> because
 /// the driver reports <c>ROW_NUMBER()</c> as Int64 (live-confirmed). Does not travel past this
 /// integration boundary.
 /// </summary>
@@ -374,4 +377,5 @@ public sealed record QadBomStructuralRawRow(
     bool? Phantom,
     string? SitePmCode,
     string? GlobalPmCode,
+    string? UnitOfMeasure,
     long SiblingOrder);

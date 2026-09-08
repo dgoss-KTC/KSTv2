@@ -6,9 +6,9 @@ Generated from `DataMap.xlsx`.
 
 - Source file: `DataMap.xlsx`
 - Generated UTC: `2026-08-06T23:23:17+00:00`
-- Tables: `27` (25 from `DataMap.xlsx` + `sct_det` [added Stage 8D.5] + `loc_mstr` [added R0.6 — see that table's entry])
-- Fields: `566` (555 from `DataMap.xlsx` + 6 `sct_det` fields + 1 `in_price.inp_source` field [added R0.6] + 4 `loc_mstr` fields [added R0.6])
-- Validated fields: `563`
+- Tables: `28` (24 from `DataMap.xlsx` + `sct_det` [added Stage 8D.5] + `loc_mstr` [added R0.6 — see that table's entry] + `icc_ctrl` [added Stage 9.1] + `lad_det` [added Stage 9.1])
+- Fields: `574` (548 from `DataMap.xlsx` + 6 `sct_det` fields + 1 `in_price.inp_source` field [added R0.6] + 4 `loc_mstr` fields [added R0.6] + 3 `icc_ctrl` fields [added Stage 9.1] + 10 `lad_det` fields [added Stage 9.1] + 2 KSS effectivity fields [added Stage 9.8])
+- Validated fields: `571`
 
 ## Agent Usage Rules
 
@@ -80,6 +80,18 @@ Generated from `DataMap.xlsx`.
 | `cmt_indx` | Comment Index | Yes |
 | `cmt_ref` | Comment Reference | Yes |
 | `cmt_seq` | Comment Sequence/Page Number | Yes |
+
+### Table: `icc_ctrl`
+
+- **Business name:** Inventory Control
+- **Source sheet:** _not in `DataMap.xlsx`_ — added Stage 9.1 (Immediate Work-Order Shortages source-mapping reconciliation), confirmed directly against live QADPRO2 schema/data. `icc_iss_days` is the QAD issue-days source used by the legacy shortage logic (`ktshrtge11`) and the accepted Stage 9 Expired/Expiring rule.
+- **Fields:** 3
+
+| Field | Description | Validated |
+|---|---|---:|
+| `icc_domain` | Domain | Yes |
+| `icc_iss_days` | Issue Days | Yes |
+| `icc_site` | Site | Yes |
 
 ### Table: `in_mstr`
 
@@ -178,6 +190,25 @@ Generated from `DataMap.xlsx`.
 | `ktlot_part` | Lot Part Number | Yes |
 | `ktlot_part_rev` | Lot Part Revision | Yes |
 | `ktlot_prod_type` | Product Type | Yes |
+
+### Table: `lad_det`
+
+- **Business name:** Lot Allocation Detail
+- **Source sheet:** _not in `DataMap.xlsx`_ — added Stage 9.1 (Immediate Work-Order Shortages source-mapping reconciliation), corrected by Stage 9.3 live-QAD identity reconciliation. Firm/detail inventory allocation: which specific lots (`lad_lot`) at which locations (`lad_loc`) are allocated to which work order (`lad_nbr` = WOID and `lad_line` = operation, when `lad_dataset='wod_det'`) or sales order (`lad_dataset='sod_det'`) for which component (`lad_part`). Stage 9 hard-allocation identity is directly `lad_det` domain/site/WOID/operation/component; a matching `wod_det` row is not required. `lad_qty_all` is the hard/firm allocation quantity; the hard allocation remains part of physical `ld_det.ld_qty_oh` until issue.
+- **Fields:** 10
+
+| Field | Description | Validated |
+|---|---|---:|
+| `lad_dataset` | Allocation Dataset (`wod_det` = work order, `sod_det` = sales order) | Yes |
+| `lad_domain` | Domain | Yes |
+| `lad_line` | Operation Number (`wod_op` when `lad_dataset='wod_det'`) | Yes |
+| `lad_loc` | Location | Yes |
+| `lad_lot` | Lot | Yes |
+| `lad_nbr` | Work Order ID (`wod_lot` when `lad_dataset='wod_det'`; sales order number when `sod_det`) | Yes |
+| `lad_part` | Part | Yes |
+| `lad_qty_all` | Hard/Firm Allocation Quantity | Yes |
+| `lad_qty_pick` | Picked Quantity | Yes |
+| `lad_site` | Site | Yes |
 
 ### Table: `ld_det`
 
@@ -323,7 +354,7 @@ Generated from `DataMap.xlsx`.
 
 - **Business name:** Purchase Order Master
 - **Source sheet:** `QADPRO2`
-- **Fields:** 26
+- **Fields:** 27
 
 | Field | Description | Validated |
 |---|---|---:|
@@ -337,6 +368,7 @@ Generated from `DataMap.xlsx`.
 | `po_disc_pct` | Discount Percentage | Yes |
 | `po_domain` | Domain | Yes |
 | `po_due_date` | Due Date | Yes |
+| `po_eff_to` | Supplier-schedule effective-to date; with `po_sched = 1` and effective `pod_det` relationship, supports Stage 9 KSS classification independent of conventional PO availability | Yes |
 | `po_ex_rate` | Exchange Rate | Yes |
 | `po_fob` | FOB Shipping Point | Yes |
 | `po_nbr` | Purchase Order Number | Yes |
@@ -345,11 +377,11 @@ Generated from `DataMap.xlsx`.
 | `po_rev` | Order Revision | Yes |
 | `po_rev_date` | Revision Date | Yes |
 | `po_rmks` | Remarks | Yes |
-| `po_sched` | Supplier Scheduled (T/F)  (KSS) | Yes |
+| `po_sched` | Supplier Scheduled (T/F); with effective `pod_det` relationship, authoritative Stage 9 KSS classification | Yes |
 | `po_ship` | Ship To Code | Yes |
 | `po_shipvia` | Ship Via | Yes |
 | `po_site` | Site | Yes |
-| `po_stat` | PO Status | Yes |
+| `po_stat` | PO Status; Stage 9 master-status qualification unresolved, no predicate accepted | Yes |
 | `po_type` | Purchase Order Type | Yes |
 | `po_user_id` | Entered By | Yes |
 | `po_vend` | Supplier Code | Yes |
@@ -358,7 +390,7 @@ Generated from `DataMap.xlsx`.
 
 - **Business name:** Purchase Order Detail
 - **Source sheet:** `QADPRO2`
-- **Fields:** 32
+- **Fields:** 33
 
 | Field | Description | Validated |
 |---|---|---:|
@@ -367,6 +399,7 @@ Generated from `DataMap.xlsx`.
 | `pod__chr10` | Proforma Invoice Number | Yes |
 | `pod__dte01` | Ship Date | Yes |
 | `pod__dte02` | Line Added Date | Yes |
+| `pod_end_eff##1` | Supplier-schedule effective-to date (SQL Server mirror of Progress `pod_end_eff[1]`); supports Stage 9 KSS classification with `po_mstr.po_sched` / `po_eff_to` | Yes |
 | `pod__log01` | Confirmed (T/F) | Yes |
 | `pod_consignment` | Consignment (T/F) | Yes |
 | `pod_desc` | Description | Yes |
@@ -383,7 +416,7 @@ Generated from `DataMap.xlsx`.
 | `pod_qty_ord` | Quantity Ordered | Yes |
 | `pod_qty_rcvd` | Quantity Received | Yes |
 | `pod_rev` | Revision | Yes |
-| `pod_sched` | KSS/Feed | Yes |
+| `pod_sched` | KSS/Feed indicator; not by itself the Stage 9 independent KSS authority | Yes |
 | `pod_site` | Site | Yes |
 | `pod_so_status` | Sales Order Status | Yes |
 | `pod_sod_line` | Line Number | Yes |
@@ -423,7 +456,7 @@ Generated from `DataMap.xlsx`.
 
 - **Business name:** Part Master
 - **Source sheet:** `QADPRO2`
-- **Fields:** 60
+- **Fields:** 61
 
 | Field | Description | Validated |
 |---|---|---:|
@@ -450,6 +483,7 @@ Generated from `DataMap.xlsx`.
 | `pt_group` | Part Group | Yes |
 | `pt_insp_lead` | Inspection Lead Time | Yes |
 | `pt_insp_rqd` | Inspection Required (T/F) | Yes |
+| `pt_iss_pol` | Issue Policy (Master Fallback, T/F) | Yes |
 | `pt_loc` | Location | Yes |
 | `pt_loc_type` | Location Type | Yes |
 | `pt_memo_type` | Memo Order Type | Yes |
@@ -463,7 +497,7 @@ Generated from `DataMap.xlsx`.
 | `pt_part` | Item Number | Yes |
 | `pt_part_type` | Part Type | Yes |
 | `pt_phantom` | Phantom (T/F) | Yes |
-| `pt_pm_code` | PM Code | Yes |
+| `pt_pm_code` | Master P/M code; authoritative Stage 9 purchased-material classification (`M` manufactured, nonblank non-`M` eligible, blank unknown) | Yes |
 | `pt_po_site` | PO Site | Yes |
 | `pt_prod_line` | Product Line | Yes |
 | `pt_pur_lead` | Purchasing Lead Time | Yes |

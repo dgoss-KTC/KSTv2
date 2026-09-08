@@ -123,7 +123,7 @@ public sealed class QadMpsSourceReader
             WHERE
                 mrp.mrp_dataset = 'wo_mstr'
                 AND LOWER(mrp.mrp_type) IN ('supply', 'supplyf', 'supplyp')
-                AND wo.wo_status <> 'C'
+                AND UPPER(wo.wo_status) <> 'C'
                 AND ISNULL(wo.wo_bom_code, '') <> 'RMABOM'
             ORDER BY
                 mrp.mrp_part,
@@ -156,13 +156,13 @@ public sealed class QadMpsSourceReader
     };
 
     /// <summary>SQL already excludes 'C'; any other unexpected value normalizes to Unknown rather than failing.</summary>
-    public static MpsWorkOrderState NormalizeWorkOrderState(string woStatus) => woStatus.Trim() switch
+    public static MpsWorkOrderState NormalizeWorkOrderState(string woStatus) => woStatus.Trim().ToUpperInvariant() switch
     {
         "A" => MpsWorkOrderState.Allocating,
         "F" => MpsWorkOrderState.Frozen,
         "R" => MpsWorkOrderState.Released,
         "P" => MpsWorkOrderState.Planned,
-        "e" => MpsWorkOrderState.ExplicitlyScheduled,
+        "E" => MpsWorkOrderState.ExplicitlyScheduled,
         _ => MpsWorkOrderState.Unknown
     };
 }

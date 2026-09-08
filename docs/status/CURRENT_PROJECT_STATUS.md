@@ -1,8 +1,8 @@
 # Current Project Status
 
-Date: 2026-08-21
+Date: 2026-09-08
 Workstation: Windows (`C:\Dev\kst_v2`)
-Current stage: **Stage 8 — Component and BOM Detail — COMPLETE / ACCEPTED — 2026-08-21**
+Current stage: **Stage 9 — Immediate Work-Order Shortages — COMPLETE / ACCEPTED / LOCKED — 2026-09-08**
 UI Navigation & Keyboard Ergonomics A: **COMPLETE / ACCEPTED — 2026-08-21**
 Active cross-cutting effort: **R0 — Repository / Documentation Reconciliation — COMPLETE /
 ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation Status` below and
@@ -79,18 +79,18 @@ implemented and re-verified, S0.3-G009 Covered / Resolved; S0.7B — database/in
 permission verification — COMPLETE / ACCEPTED — 2026-08-28, S0.3-G010 Covered / Resolved,
 S0.7-F002 RETIRED);
 S0.8 is now COMPLETE / ACCEPTED — 2026-08-31. S0 is now COMPLETE / ACCEPTED — 2026-08-31.
-Stage 9: **UNBLOCKED / NOT STARTED**
+Stage 9: **COMPLETE / ACCEPTED / LOCKED — 2026-09-08**
 Stage 7 status: **COMPLETE / ACCEPTED - 2026-08-13; reopened, amended, and closed by Stage 7R (Four-Week Work Order Planning Window) - 2026-09-01** - see [Stage 7R Amendment](#stage-7r-amendment-four-week-work-order-planning-window) below
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
 Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versioning-foundation) below)
 
 ## Current Position
 
-**Final S0 closeout:** S0 — **COMPLETE / ACCEPTED — 2026-08-31**; S0.8 — **COMPLETE / ACCEPTED — 2026-08-31**; S0.7 — **COMPLETE / ACCEPTED — 2026-08-28**. Stage 9 — **UNBLOCKED / NOT STARTED**.
+**Final S0 closeout:** S0 — **COMPLETE / ACCEPTED — 2026-08-31**; S0.8 — **COMPLETE / ACCEPTED — 2026-08-31**; S0.7 — **COMPLETE / ACCEPTED — 2026-08-28**. Stage 9 — **COMPLETE / ACCEPTED / LOCKED — 2026-09-08**.
 
 Stages 1 through 8 are complete and accepted, and UI Navigation & Keyboard Ergonomics A is complete
-and accepted. The project is not yet working on Stage 9. R0 — Repository / Documentation
-Reconciliation is complete and accepted. The current cross-cutting effort is **S0 — Security
+and accepted. Stage 9 is **COMPLETE / ACCEPTED / LOCKED** following owner acceptance at 9.11.
+R0 — Repository / Documentation Reconciliation is complete and accepted. The current cross-cutting effort is **S0 — Security
 Foundation Integration**; S0.1 — Security Policy Injection and S0.2 — Security Baseline Discovery
 are complete and owner-accepted, and S0.3 — Existing-Tool Security Checks is complete and
 owner-accepted (see `SECURITY.md`, `docs/security/`, and the S0 section of
@@ -364,7 +364,7 @@ decision for any specific component.
 Full scope, boundaries, and the finding/gap-to-checkpoint mapping are in
 docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md (approved active planning; not
 normative policy). The roadmap is historical planning evidence; S0.4–S0.8 are now complete and
-accepted. Stage 9 — Immediate Shortages is **UNBLOCKED / NOT STARTED**.
+accepted. Stage 9 — Immediate Work-Order Shortages is **COMPLETE / ACCEPTED / LOCKED — 2026-09-08**.
 
 ## Stage 8 — Component and BOM Detail
 
@@ -391,6 +391,26 @@ Full delivered capability, source decisions, and verification evidence (backend 
 frontend 260/260 tests, architecture tests, live QAD validation, owner acceptance) are recorded in
 `docs/implementation/KST_v2_STAGE_8_CLOSEOUT.md` — see that document rather than this summary for
 detailed acceptance evidence.
+
+## Stage 9 — Immediate Work-Order Shortages
+
+**Status:** **COMPLETE / ACCEPTED / LOCKED — 2026-09-08**. Stages 9.7 automated audit, 9.8 live-QAD
+validation, 9.9 full regression, 9.10 documentation reconciliation, and 9.11 owner acceptance are
+complete. Current closeout authority:
+`docs/implementation/KST_v2_STAGE_9_CLOSEOUT.md`.
+
+Stage 9 provides a **Work Order + Component** immediate-material analysis over the accepted Stage
+7R planning window. Actual or Projected requirements preserve master-P/M reliability: manufactured
+components remain visible and drillable as `NotApplicable`, while only nonblank master non-`M`
+components participate in shortage arithmetic. Physical usable inventory is evaluated through the
+accepted hybrid allocation model: authoritative usable `lad_det` hard reservations, residual
+committed R-to-A allocation, and a non-additive advisory pool for uncommitted WOs. PO/KSS context
+is informational only; KSS is an independent effective supplier-schedule relationship. The normal
+workflow is Work Orders → Show/Hide Material Lines → one integrated selected-WO analysis, with no
+MPS-grid shortage marker.
+
+The Stage 9 plan preserves planning history. The audit, live-QAD validation, regression record,
+source mapping, and closeout provide the current accepted evidence and disposition.
 
 ## UI Navigation & Keyboard Ergonomics A
 
@@ -534,79 +554,10 @@ R0 overall: **COMPLETE / ACCEPTED — 2026-08-21.** Full detail:
 
 ## Next Action
 
-Stage 8, UI Navigation & Keyboard Ergonomics A, and R0 — Repository / Documentation
-Reconciliation are complete and accepted. The current effort is **S0 — Security Foundation
-Integration**: S0.1–S0.3 are complete and owner-accepted, and S0.4 — Security Finding
-Disposition & Bounded Remediation is **COMPLETE / ACCEPTED — 2026-08-25**: S0.4A — QAD SQL
-Transport Correction is **COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.2-F003` at the
-application-configuration level — see
-`docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`); S0.4B — Tauri Shell Capability is
-**COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.2-F001`; accepted remediation evidence:
-`docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`); S0.4C — npm
-Development-Tooling Advisories is **COMPLETE / ACCEPTED — 2026-08-25** (resolves `S0.3-F001`;
-accepted remediation evidence:
-`docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`). S0.5 — Security Regression &
-Architecture Checks is **COMPLETE / ACCEPTED — 2026-08-26**; S0.6 — Security Tool Admission is
-**COMPLETE / ACCEPTED — 2026-08-27** (Capability Review 1 — Rust dependency advisory, `S0.3-G001` —
-**COMPLETE / ACCEPTED — 2026-08-26**: cargo-audit 0.22.2 ADMITTED / ACCEPTED — see
-`docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md`; cargo-deny 0.20.2 DEFERRED; Capability
-Review 2 — dedicated secret scanning, `S0.3-G007` — **COMPLETE / ACCEPTED — 2026-08-27**
-(Gitleaks v8.30.0 installed, release-integrity and synthetic-canary verified,
-scanned current KST content (4 findings) and full Git history (8 findings), all rule
-`private-key`, confirmed documentation false positives; `S0.3-G007` — Covered / Resolved) — see
-`docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md` and
-`docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1,
-detect-secrets v1.5.0 DEFERRED; Capability Review 3 — Software Bill of Materials, `S0.3-G008` —
-**COMPLETE / ACCEPTED — 2026-08-27** (Anchore Syft v1.51.1 installed,
-release-integrity verified, run against build/repository evidence and a complementary
-packaged-artifact view; six informational findings `S0.6-F014`–`S0.6-F019` recorded, none
-blocking; complete Tauri Windows installer/application bundle Unable to Verify / future
-packaged-release verification boundary, not Accepted Risk) — see
-`docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md` and
-`docs/security/S0_6_SBOM_ADMISSION.md`; Anchore Syft v1.51.1 — ADMITTED / IMPLEMENTED /
-ACCEPTED; `S0.3-G008` — Covered / Resolved; Capability Review 4 — Dedicated Static Application
-Security Testing (SAST), `S0.3-G006` — **COMPLETE / ACCEPTED — 2026-08-27** (owner
-reviewed the neutral research
-packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90 and
-admitted DevSkim CLI v1.0.90, which was installed, self-verified, synthetically
-validated, and run against the KST source tree — 50 findings across 3 bundled rules; `S0.6-F020`
-reviewed 2026-08-27 and reclassified to Informational / Framework-Local Origin / Confirmed
-DevSkim False Positive for plaintext-network interpretation; `S0.6-F021` — Informational / Known
-DevSkim Rule Limitation; neither Accepted Risk; Semgrep CE v1.175.0 and CodeQL CLI
-v2.26.4 DEFERRED, not rejected) —
-see `docs/security/S0_6_SAST_ADMISSION_RESEARCH.md` and `docs/security/S0_6_SAST_ADMISSION.md`;
-`S0.3-G006` — Covered / Resolved; Microsoft DevSkim CLI v1.0.90 — ADMITTED / INSTALLED / VERIFIED /
-ACCEPTED). All four S0.6-assigned gaps (`S0.3-G001`, `S0.3-G006`, `S0.3-G007`, `S0.3-G008`) are
-Covered / Resolved. S0.7 — Runtime & Infrastructure Verification is **COMPLETE / ACCEPTED — 2026-08-28**: the S0.7A —
-Local Release Runtime Verification working pass is **COMPLETE / ACCEPTED — 2026-08-28**
-(2026-08-27 release-built runtime evidence — VALID / ACCEPTED AS EVIDENCE by owner
-review: loopback-only sidecar listener, clean sidecar lifecycle, runtime CORS verified against
-the accepted five-origin allowlist, release-build CSP/capability artifact evidence; the
-`ASPNETCORE_URLS` loopback precedence test confirmed the operator environment override alters
-the effective listener. On 2026-08-28 the `S0.5-F001` weakness was remediated — the sidecar now
-unconditionally sets an explicit `http://127.0.0.1:<port>` `UseUrls` endpoint (verified on the
-shipped self-contained .NET 10 release runtime to ignore an inherited `ASPNETCORE_URLS` value
-after the fix, so inherited hosting configuration no longer takes authority over the
-listener), with failure-safe behavioral regression tests (no test can create a wildcard
-listener even in its failing state; the original wildcard real-process test was replaced
-before acceptance — see evidence §26.3 — including a demonstrated pre-fix failure), a 672/672
-backend suite, and post-fix release-runtime re-verification showing the environment value no
-longer controls listener selection — **`S0.5-F001` — Confirmed Runtime Configuration Weakness /
-REMEDIATED AND VERIFIED BY S0.7**; **S0.3-G009 — Covered / Resolved** on the post-remediation
-evidence (accepted with S0.7A — 2026-08-28); **`S0.7-F001`** — Operational / Package-Identity
-Coexistence Issue (KST v1 ↔ KST v2 single-instance interception) — Deferred for a
-packaging/deployment decision, non-blocking; S0.7B — database/infrastructure permission
-verification incl. `S0.3-G010` — **COMPLETE / ACCEPTED — 2026-08-28**
-(`S0.3-G010` — **Covered / Resolved — 2026-08-28**; **`S0.7-F002`** — **RETIRED** /
-Application-vs-Enterprise Identity Scope Model Corrected — 2026-08-28 owner scope decision; NOT
-Accepted Risk; NOT a waived vulnerability; NOT evidence deletion) — see
-docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md. S0.8 — Independent Assurance & S0
-Closeout is **COMPLETE / ACCEPTED — 2026-08-31**; S0 — **COMPLETE / ACCEPTED — 2026-08-31** — see
-docs/security/S0_8_INDEPENDENT_ASSURANCE_CLOSEOUT.md and
-docs/security/KST_V2_SECURITY_IMPLEMENTATION_REPORT.md. The cross-cutting Third-Party
-Software & Licensing Governance foundation is **ENACTED / ACCEPTED — 2026-08-27** — see
-`docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md`, integrated into
-`docs/security/DEPENDENCY_ADMISSION.md` and `AGENTS.md`; it is a governing prerequisite for future
-third-party admission and is
-not itself an S0 checkpoint or an admission decision for any component. Stage 9 — Immediate Shortages
-is **UNBLOCKED / NOT STARTED**.
+S0 — Security Foundation Integration is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1 through 8,
+UI Navigation & Keyboard Ergonomics A, and R0 — Repository / Documentation Reconciliation are
+complete and accepted.
+
+Stage 9 is **COMPLETE / ACCEPTED / LOCKED**. Technical, regression, and live-QAD evidence is
+complete. `po_mstr.po_stat` remains a deferred evidence item and does not block the accepted Stage 9
+closeout. Do not reopen Stage 9 business rules or begin Stage 10 without separate authorization.

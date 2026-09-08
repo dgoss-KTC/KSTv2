@@ -142,7 +142,7 @@ export function WorkOrderMaterialGrid({ lines, depth, woid, assignmentId, snapsh
                           immediateParentWoid={woid}
                                 componentPart={line.componentPart}
                                 depth={depth + 1}
-                                dateBasis={dateBasis}
+                                 dateBasis={dateBasis}
                         />
                       </td>
                     </tr>

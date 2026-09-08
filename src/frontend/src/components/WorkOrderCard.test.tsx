@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import type { WorkOrderSummaryDto } from '../api/client';
 import { WorkOrderCard } from './WorkOrderCard';
 
@@ -22,7 +22,7 @@ const workOrder: WorkOrderSummaryDto = {
 
 describe('WorkOrderCard', () => {
   it('keeps Release and Due together in a separate row from quantities', () => {
-    render(<WorkOrderCard workOrder={workOrder} assignmentId="assignment-1" snapshotId="snapshot-1" dateBasis="dueDate" />);
+    render(<WorkOrderCard workOrder={workOrder} />);
 
     const quantityFields = document.querySelector<HTMLElement>('.work-order-card__quantity-fields');
     const dateFields = document.querySelector<HTMLElement>('.work-order-card__date-fields');
@@ -38,5 +38,17 @@ describe('WorkOrderCard', () => {
     expect(within(dateFields).getByText('Due')).toBeInTheDocument();
     expect(within(dateFields).getByText('Sep 1')).toBeInTheDocument();
     expect(within(dateFields).getByText('Sep 7')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['shortage', 'Has Shortage'],
+    ['dataIssue', 'Unknown / Data Issue'],
+    ['clear', 'No current Shortage'],
+    ['unavailable', 'Shortage summary unavailable'],
+  ] as const)('renders the %s shortage state label and card class', (shortageState, label) => {
+    render(<WorkOrderCard workOrder={workOrder} shortageState={shortageState} />);
+
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByRole('listitem')).toHaveClass(`work-order-card--${shortageState}`);
   });
 });

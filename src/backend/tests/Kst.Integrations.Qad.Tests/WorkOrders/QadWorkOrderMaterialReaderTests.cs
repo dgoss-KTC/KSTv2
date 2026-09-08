@@ -36,6 +36,7 @@ public sealed class QadWorkOrderMaterialReaderTests
         Assert.Contains("pt.pt_part = wod.wod_part", sql);
         Assert.Contains("pt.pt_desc1      AS ComponentDescription", sql);
         Assert.Contains("pt.pt_pm_code    AS ComponentPmCode", sql);
+        Assert.Contains("pt.pt_um         AS UnitOfMeasure", sql);
     }
 
     [Fact]
@@ -90,19 +91,32 @@ public sealed class QadWorkOrderMaterialReaderTests
     }
 
     [Theory]
-    [InlineData("M", true)]
-    [InlineData("m", true)]
-    [InlineData("P", false)]
-    [InlineData(null, false)]
-    [InlineData("", false)]
-    public void Normalize_Maps_PmCode_M_To_IsManufactured(string? pmCode, bool expected)
+    [InlineData("M", true, true)]
+    [InlineData("m", true, true)]
+    [InlineData("P", false, true)]
+    [InlineData("N", false, true)]
+    [InlineData(null, false, false)]
+    [InlineData("", false, false)]
+    [InlineData("  ", false, false)]
+    public void Normalize_Preserves_MasterPm_Manufactured_And_Reliability_States(string? pmCode, bool isManufactured, bool isReliable)
     {
-        Assert.Equal(expected, QadWorkOrderMaterialReader.Normalize(Raw(pmCode: pmCode)).IsManufactured);
+        var line = QadWorkOrderMaterialReader.Normalize(Raw(pmCode: pmCode));
+
+        Assert.Equal(isManufactured, line.IsManufactured);
+        Assert.Equal(isReliable, line.IsMasterPmCodeReliable);
     }
 
     [Fact]
     public void Normalize_Allows_Null_Description()
     {
         Assert.Null(QadWorkOrderMaterialReader.Normalize(Raw(componentDescription: null)).ComponentDescription);
+    }
+
+    [Fact]
+    public void Normalize_Trims_Component_UnitOfMeasure()
+    {
+        var raw = Raw() with { UnitOfMeasure = " EA " };
+
+        Assert.Equal("EA", QadWorkOrderMaterialReader.Normalize(raw).UnitOfMeasure);
     }
 }

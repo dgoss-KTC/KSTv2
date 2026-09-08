@@ -26,6 +26,9 @@ export type KittingSummaryDto = components['schemas']['KittingSummaryDto'];
 export type WorkOrderMaterialResponseDto = components['schemas']['WorkOrderMaterialResponseDto'];
 export type WorkOrderMaterialLineDto = components['schemas']['WorkOrderMaterialLineDto'];
 export type WorkOrderCandidateResponseDto = components['schemas']['WorkOrderCandidateResponseDto'];
+export type WorkOrderImmediateMaterialAnalysisResponseDto = components['schemas']['WorkOrderImmediateMaterialAnalysisResponseDto'];
+export type WorkOrderImmediateMaterialComponentDto = components['schemas']['WorkOrderImmediateMaterialComponentDto'];
+export type WorkOrderImmediateMaterialSummaryResponseDto = components['schemas']['WorkOrderImmediateMaterialSummaryResponseDto'];
 export type BomLineDto = components['schemas']['BomLineDto'];
 export type BomResponseDto = components['schemas']['BomResponseDto'];
 export type ComponentDetailResponseDto = components['schemas']['ComponentDetailResponseDto'];
@@ -180,6 +183,31 @@ export class ApiClient {
     const query = `?snapshotId=${encodeURIComponent(snapshotId)}`;
     return this.get<WorkOrderMaterialResponseDto>(
       `/api/v1/workspaces/${assignmentId}/work-orders/${encodeURIComponent(woid)}/material${query}`,
+    );
+  }
+
+  async getWorkOrderImmediateMaterial(
+    assignmentId: string,
+    snapshotId: string,
+    woid: string,
+    dateBasis: string,
+  ): Promise<WorkOrderImmediateMaterialAnalysisResponseDto> {
+    const query = `?snapshotId=${encodeURIComponent(snapshotId)}&dateBasis=${encodeURIComponent(dateBasis)}`;
+    return this.get<WorkOrderImmediateMaterialAnalysisResponseDto>(
+      `/api/v1/workspaces/${assignmentId}/work-orders/${encodeURIComponent(woid)}/immediate-material${query}`,
+    );
+  }
+
+  async getWorkOrderImmediateMaterialSummary(
+    assignmentId: string,
+    snapshotId: string,
+    parentPart: string | undefined,
+    dateBasis: string,
+  ): Promise<WorkOrderImmediateMaterialSummaryResponseDto> {
+    const parentQuery = parentPart ? `&parentPart=${encodeURIComponent(parentPart)}` : '';
+    const query = `?snapshotId=${encodeURIComponent(snapshotId)}${parentQuery}&dateBasis=${encodeURIComponent(dateBasis)}`;
+    return this.get<WorkOrderImmediateMaterialSummaryResponseDto>(
+      `/api/v1/workspaces/${assignmentId}/work-orders/immediate-material-summary${query}`,
     );
   }
 

@@ -1,5 +1,10 @@
+import { useState } from 'react';
+import type { WorkOrderImmediateMaterialComponentDto } from '../api/client';
 import { useWorkOrderCandidates } from '../hooks/useWorkOrderCandidates';
+import { useWorkOrderImmediateMaterial } from '../hooks/useWorkOrderImmediateMaterial';
+import { useEscapeLevel } from '../mps/escapeStack';
 import { WorkOrderCard } from './WorkOrderCard';
+import { ShortagesPanel } from './ShortagesPanel';
 import './WorkOrderCandidatePanel.css';
 
 interface WorkOrderCandidatePanelProps {
@@ -25,6 +30,8 @@ export function WorkOrderCandidatePanel({
   depth,
   dateBasis,
 }: WorkOrderCandidatePanelProps) {
+  const [selectedWoid, setSelectedWoid] = useState<string | null>(null);
+  const [detail, setDetail] = useState<{ row: WorkOrderImmediateMaterialComponentDto; returnFocusEl: HTMLElement | null } | null>(null);
   const { candidates, isLoading, error, retry } = useWorkOrderCandidates(
     assignmentId,
     snapshotId,
@@ -33,6 +40,18 @@ export function WorkOrderCandidatePanel({
     depth,
     dateBasis,
   );
+  const { analysis, isLoading: isAnalysisLoading, error: analysisError, retry: retryAnalysis } = useWorkOrderImmediateMaterial(
+    assignmentId, snapshotId, selectedWoid, dateBasis, selectedWoid !== null,
+  );
+  useEscapeLevel(selectedWoid !== null, () => {
+    setSelectedWoid(null);
+    setDetail(null);
+  });
+  useEscapeLevel(detail !== null, () => {
+    const returnFocusEl = detail?.returnFocusEl ?? null;
+    setDetail(null);
+    if (returnFocusEl?.isConnected) returnFocusEl.focus();
+  });
 
   return (
     <div className="work-order-candidate-panel">
@@ -66,13 +85,36 @@ export function WorkOrderCandidatePanel({
               <WorkOrderCard
                 key={candidate.woid}
                 workOrder={candidate}
-                assignmentId={assignmentId}
-                snapshotId={snapshotId}
-                depth={depth}
-                dateBasis={dateBasis}
+                isOpen={selectedWoid === candidate.woid}
+                shortageState="unavailable"
+                onToggle={() => {
+                  setSelectedWoid((current) => current === candidate.woid ? null : candidate.woid);
+                  setDetail(null);
+                }}
               />
             ))}
           </ul>
+          {selectedWoid && (
+            <div className="work-order-candidate-panel__detail">
+              <ShortagesPanel
+                selectedWoid={selectedWoid}
+                analysis={analysis}
+                isLoading={isAnalysisLoading}
+                error={analysisError}
+                onRetry={() => void retryAnalysis()}
+                detail={detail?.row ?? null}
+                onSelectDetail={(row, element) => setDetail({ row, returnFocusEl: element })}
+                onCloseDetail={() => {
+                  const returnFocusEl = detail?.returnFocusEl ?? null;
+                  setDetail(null);
+                  if (returnFocusEl?.isConnected) returnFocusEl.focus();
+                }}
+                assignmentId={assignmentId}
+                snapshotId={snapshotId}
+                dateBasis={dateBasis}
+              />
+            </div>
+          )}
         </>
       )}
     </div>

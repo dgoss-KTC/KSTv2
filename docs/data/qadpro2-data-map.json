@@ -2,15 +2,17 @@
   "metadata": {
     "source_file": "DataMap.xlsx",
     "generated_utc": "2026-08-06T23:23:17+00:00",
-    "table_count": 27,
-    "field_count": 566,
-    "validated_field_count": 563,
+    "table_count": 28,
+    "field_count": 574,
+    "validated_field_count": 571,
     "notes": [
       "Generated from the KST v2 DataMap workbook.",
       "Validated is true when the source workbook contained x/yes/y/true/1.",
       "This file is documentation metadata only. It does not include live data.",
       "Stage 8D.5 (Component Info Backend) added the sct_det table (6 fields) directly from live QADPRO2 schema/data -- it was not present in the original DataMap.xlsx workbook.",
-      "R0.6 (Data / QAD Reconciliation) added the loc_mstr table (4 fields) and the in_price.inp_source field, both confirmed directly against implemented QAD adapter queries rather than the original workbook."
+      "R0.6 (Data / QAD Reconciliation) added the loc_mstr table (4 fields) and the in_price.inp_source field, both confirmed directly against implemented QAD adapter queries rather than the original workbook.",
+      "Stage 9.1 (Immediate Work-Order Shortages source-mapping reconciliation) added the icc_ctrl table (3 fields: icc_domain, icc_iss_days, icc_site) and the lad_det table (10 fields), both confirmed directly against live QADPRO2 schema/data. icc_iss_days is the QAD issue-days source used by the legacy shortage logic (ktshrtge11) and the accepted Stage 9 Expired/Expiring rule. lad_det is the firm/detail inventory allocation table (hard allocation); see the Stage 9 source-mapping document for the allocation-authority conflict with the accepted Stage 9 reconstructed allocation.",
+      "Stage 9.8 KSS blocker correction added po_mstr.po_eff_to and pod_det.pod_end_eff##1, confirmed directly against the live SQL Server QADPRO2 mirror. pod_end_eff##1 is the SQL Server column name for Progress pod_end_eff[1]; together with po_sched they establish effective KSS supplier-schedule classification independently of conventional PO availability."
     ]
   },
   "databases": {
@@ -195,6 +197,24 @@
           },
           "cmt_seq": {
             "description": "Comment Sequence/Page Number",
+            "validated": true
+          }
+        }
+      },
+      "icc_ctrl": {
+        "business_name": "Inventory Control",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "icc_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "icc_iss_days": {
+            "description": "Issue Days",
+            "validated": true
+          },
+          "icc_site": {
+            "description": "Site",
             "validated": true
           }
         }
@@ -437,6 +457,52 @@
           },
           "ktlot_prod_type": {
             "description": "Product Type",
+            "validated": true
+          }
+        }
+      },
+      "lad_det": {
+        "business_name": "Lot Allocation Detail",
+        "source_sheet": "QADPRO2",
+        "fields": {
+          "lad_dataset": {
+            "description": "Allocation Dataset (wod_det = work order, sod_det = sales order)",
+            "validated": true
+          },
+          "lad_domain": {
+            "description": "Domain",
+            "validated": true
+          },
+          "lad_line": {
+            "description": "Operation Number (wod_op when lad_dataset=wod_det)",
+            "validated": true
+          },
+          "lad_loc": {
+            "description": "Location",
+            "validated": true
+          },
+          "lad_lot": {
+            "description": "Lot",
+            "validated": true
+          },
+          "lad_nbr": {
+            "description": "Work Order ID (Stage 9 direct WOID identity when lad_dataset=wod_det; sales order number when sod_det; no matching wod_det row required)",
+            "validated": true
+          },
+          "lad_part": {
+            "description": "Part",
+            "validated": true
+          },
+          "lad_qty_all": {
+            "description": "Hard/Firm Allocation Quantity",
+            "validated": true
+          },
+          "lad_qty_pick": {
+            "description": "Picked Quantity",
+            "validated": true
+          },
+          "lad_site": {
+            "description": "Site",
             "validated": true
           }
         }
@@ -819,6 +885,10 @@
             "description": "Due Date",
             "validated": true
           },
+          "po_eff_to": {
+            "description": "Supplier-schedule effective-to date; with po_sched=1 and effective pod_det relationship, supports Stage 9 KSS classification independent of conventional PO availability",
+            "validated": true
+          },
           "po_ex_rate": {
             "description": "Exchange Rate",
             "validated": true
@@ -852,7 +922,7 @@
             "validated": true
           },
           "po_sched": {
-            "description": "Supplier Scheduled (T/F)  (KSS)",
+            "description": "Supplier Scheduled (T/F); with effective pod_det relationship, authoritative Stage 9 KSS classification",
             "validated": true
           },
           "po_ship": {
@@ -868,7 +938,7 @@
             "validated": true
           },
           "po_stat": {
-            "description": "PO Status",
+            "description": "PO Status; Stage 9 master-status qualification unresolved, no predicate accepted",
             "validated": true
           },
           "po_type": {
@@ -907,6 +977,10 @@
           },
           "pod__dte02": {
             "description": "Line Added Date",
+            "validated": true
+          },
+          "pod_end_eff##1": {
+            "description": "Supplier-schedule effective-to date (SQL Server mirror of Progress pod_end_eff[1]); supports Stage 9 KSS classification with po_mstr.po_sched / po_eff_to",
             "validated": true
           },
           "pod__log01": {
@@ -974,7 +1048,7 @@
             "validated": true
           },
           "pod_sched": {
-            "description": "KSS/Feed",
+            "description": "KSS/Feed indicator; not by itself the Stage 9 independent KSS authority",
             "validated": true
           },
           "pod_site": {
@@ -1181,6 +1255,10 @@
             "description": "Inspection Required (T/F)",
             "validated": true
           },
+          "pt_iss_pol": {
+            "description": "Issue Policy (Master Fallback, T/F)",
+            "validated": true
+          },
           "pt_loc": {
             "description": "Location",
             "validated": true
@@ -1234,7 +1312,7 @@
             "validated": true
           },
           "pt_pm_code": {
-            "description": "PM Code",
+            "description": "Master P/M code; authoritative Stage 9 purchased-material classification (M manufactured, nonblank non-M eligible, blank unknown)",
             "validated": true
           },
           "pt_po_site": {

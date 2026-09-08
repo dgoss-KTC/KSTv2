@@ -8,6 +8,8 @@ using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
 using Kst.Application.Preferences;
 using Kst.Application.Workspaces;
+using Kst.Application.Shortages;
+using Kst.Application.WorkOrders;
 using Kst.Domain.Preferences;
 using Kst.Domain.Workspaces;
 
@@ -38,6 +40,15 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
     /// <summary>Optional deterministic <see cref="IApprovedVendorSourceReader"/> override (Stage 8D.7).</summary>
     public IApprovedVendorSourceReader? ApprovedVendorSourceReader { get; set; }
+    public ICommittedWorkOrderPopulationReader? CommittedWorkOrderPopulationReader { get; set; }
+    public IHardAllocationReader? HardAllocationReader { get; set; }
+    public IInventoryPositionReader? InventoryPositionReader { get; set; }
+    public IIssuePolicyReader? IssuePolicyReader { get; set; }
+    public IIssueDaysReader? IssueDaysReader { get; set; }
+    public INextPurchaseOrderReader? NextPurchaseOrderReader { get; set; }
+    public IKssScheduleReader? KssScheduleReader { get; set; }
+    public IWorkOrderSummaryReader? WorkOrderSummaryReader { get; set; }
+    public IWorkOrderMaterialReader? WorkOrderMaterialReader { get; set; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -111,12 +122,30 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
                     services.Remove(approvedVendorSourceDescriptor);
                 services.AddSingleton(approvedVendorSourceReader);
             }
+
+            ReplaceIfProvided(services, CommittedWorkOrderPopulationReader);
+            ReplaceIfProvided(services, HardAllocationReader);
+            ReplaceIfProvided(services, InventoryPositionReader);
+            ReplaceIfProvided(services, IssuePolicyReader);
+            ReplaceIfProvided(services, IssueDaysReader);
+            ReplaceIfProvided(services, NextPurchaseOrderReader);
+            ReplaceIfProvided(services, KssScheduleReader);
+            ReplaceIfProvided(services, WorkOrderSummaryReader);
+            ReplaceIfProvided(services, WorkOrderMaterialReader);
         });
 
         builder.ConfigureLogging(logging =>
         {
             logging.ClearProviders();
         });
+    }
+
+    private static void ReplaceIfProvided<T>(IServiceCollection services, T? replacement) where T : class
+    {
+        if (replacement is null) return;
+        var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(T));
+        if (descriptor is not null) services.Remove(descriptor);
+        services.AddSingleton(replacement);
     }
 }
 

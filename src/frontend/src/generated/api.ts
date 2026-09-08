@@ -263,6 +263,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{assignmentId}/work-orders/{woid}/immediate-material": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the Stage 9 immediate material analysis for one work order. */
+        get: operations["GetWorkOrderImmediateMaterial"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/work-orders/immediate-material-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns Stage 9 immediate-material summary indicators for the parent-scoped four-week planning window. */
+        get: operations["GetWorkOrderImmediateMaterialSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{assignmentId}/work-orders/candidates": {
         parameters: {
             query?: never;
@@ -568,6 +602,103 @@ export interface components {
         WorkOrderCandidateResponseDto: {
             snapshotId: string;
             candidates: components["schemas"]["WorkOrderSummaryDto"][];
+        };
+        WorkOrderImmediateMaterialAnalysisResponseDto: {
+            snapshotId: string;
+            workOrder: components["schemas"]["WorkOrderImmediateMaterialContextDto"];
+            components: components["schemas"]["WorkOrderImmediateMaterialComponentDto"][];
+            diagnostic: null | string;
+        };
+        WorkOrderImmediateMaterialComponentDto: {
+            componentPart: string;
+            description: null | string;
+            isManufactured: boolean;
+            unitOfMeasure: null | string;
+            requirementSource: string;
+            materialStatus: string;
+            allocationMode: string;
+            /** Format: double */
+            requiredQuantity: number | string;
+            /** Format: double */
+            issuedQuantity: null | number | string;
+            /** Format: double */
+            varianceQuantity: null | number | string;
+            /** Format: double */
+            issuedPercent: null | number | string;
+            /** Format: double */
+            remainingRequirement: null | number | string;
+            /** Format: double */
+            usableHardAllocationToThisWoComponent: number | string;
+            /** Format: double */
+            ownHardCoverage: number | string;
+            /** Format: double */
+            uncoveredRequirement: null | number | string;
+            /** Format: double */
+            availableQuantityAtEvaluation: null | number | string;
+            /** Format: double */
+            allocatedQuantity: null | number | string;
+            /** Format: double */
+            usableOnHand: number | string;
+            /** Format: double */
+            shortQuantity: null | number | string;
+            isFloorStockOrNonIssued: boolean;
+            isOverIssued: null | boolean;
+            inventoryActivity: components["schemas"]["WorkOrderImmediateMaterialInventoryActivityDto"];
+            incoming: null | components["schemas"]["WorkOrderImmediateMaterialIncomingContextDto"];
+            diagnostic: null | string;
+        };
+        WorkOrderImmediateMaterialContextDto: {
+            woid: string;
+            buildPart: string;
+            status: string;
+            workOrderType: null | string;
+            /** Format: double */
+            materialBuildQuantity: number | string;
+            /** Format: date */
+            dueDate: null | string;
+            /** Format: date */
+            releaseDate: null | string;
+            planningBucketContext: string;
+        };
+        WorkOrderImmediateMaterialIncomingContextDto: {
+            isKss: boolean;
+            poState: null | string;
+            poNumber: null | string;
+            /** Format: date */
+            poDueDate: null | string;
+            /** Format: double */
+            poOpenQuantity: null | number | string;
+            poConfirmed: null | boolean;
+            trackingInfo: null | string;
+        };
+        WorkOrderImmediateMaterialInventoryActivityDto: {
+            /** Format: double */
+            transit: number | string;
+            /** Format: double */
+            inspection: number | string;
+            /** Format: double */
+            nonNet: number | string;
+            /** Format: double */
+            mrb: number | string;
+            /** Format: double */
+            ncmInspection: number | string;
+            /** Format: double */
+            expiredExpiring: number | string;
+        };
+        WorkOrderImmediateMaterialSummaryDto: {
+            woid: string;
+            buildPart: string;
+            planningBucketContext: string;
+            /** Format: date */
+            dueDate: null | string;
+            /** Format: date */
+            releaseDate: null | string;
+            hasShortage: boolean;
+            hasDataIssue: boolean;
+        };
+        WorkOrderImmediateMaterialSummaryResponseDto: {
+            snapshotId: string;
+            workOrders: components["schemas"]["WorkOrderImmediateMaterialSummaryDto"][];
         };
         WorkOrderMaterialLineDto: {
             componentPart: string;
@@ -1260,6 +1391,130 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkOrderMaterialResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetWorkOrderImmediateMaterial: {
+        parameters: {
+            query?: {
+                snapshotId?: string;
+                dateBasis?: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+                woid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderImmediateMaterialAnalysisResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetWorkOrderImmediateMaterialSummary: {
+        parameters: {
+            query?: {
+                snapshotId?: string;
+                parentPart?: string;
+                dateBasis?: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderImmediateMaterialSummaryResponseDto"];
                 };
             };
             /** @description Bad Request */

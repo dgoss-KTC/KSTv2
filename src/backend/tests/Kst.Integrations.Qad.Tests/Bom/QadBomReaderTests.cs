@@ -80,6 +80,7 @@ public sealed class QadBomReaderTests
         Assert.Contains("LEFT JOIN qadpro2.dbo.pt_mstr AS pt", sql);
         Assert.Contains("pt.pt_domain = @Domain", sql);
         Assert.Contains("pt.pt_part = u.ComponentPart", sql);
+        Assert.Contains("pt.pt_um          AS UnitOfMeasure", sql);
         Assert.DoesNotContain("pt_site", sql);
     }
 
@@ -222,6 +223,7 @@ public sealed class QadBomReaderTests
             SitePmCode: "M",
             GlobalPmCode: "P",
             Phantom: true,
+            UnitOfMeasure: " EA ",
             SiblingOrder: 1);
 
         var occurrence = QadBomReader.Normalize(raw, level: 2, occurrenceKey: "90/100");
@@ -230,10 +232,36 @@ public sealed class QadBomReaderTests
         Assert.Equal(2, occurrence.Level);
         Assert.Equal("B", occurrence.ComponentPart);
         Assert.Equal("M", occurrence.PmCode);
+        Assert.Equal("P", occurrence.MasterPmCode);
         Assert.True(occurrence.IsPhantom);
         Assert.Equal("CAP ASSY", occurrence.Description);
         Assert.Equal(4m, occurrence.QuantityPer);
         Assert.Equal(2.5m, occurrence.ScrapPercentage);
+        Assert.Equal("EA", occurrence.UnitOfMeasure);
+    }
+
+    [Fact]
+    public void Normalize_Preserves_Effective_SitePm_Separately_From_MasterPm()
+    {
+        var raw = new QadBomStructuralRawRow(
+            OidPsMstr: 101m,
+            ParentPart: "A",
+            ComponentPart: "C",
+            Reference: "020",
+            QuantityPer: 1m,
+            ScrapPercentage: null,
+            Description1: "Component",
+            Description2: null,
+            SitePmCode: "P",
+            GlobalPmCode: "M",
+            Phantom: false,
+            UnitOfMeasure: "EA",
+            SiblingOrder: 1);
+
+        var occurrence = QadBomReader.Normalize(raw, level: 1, occurrenceKey: "101");
+
+        Assert.Equal("P", occurrence.PmCode);
+        Assert.Equal("M", occurrence.MasterPmCode);
     }
 
     [Fact]
@@ -251,15 +279,18 @@ public sealed class QadBomReaderTests
             SitePmCode: null,
             GlobalPmCode: "P",
             Phantom: null, // no pt_mstr row
+            UnitOfMeasure: null,
             SiblingOrder: 1);
 
         var occurrence = QadBomReader.Normalize(raw, level: 1, occurrenceKey: "100");
 
         Assert.False(occurrence.IsPhantom);
         Assert.Equal("P", occurrence.PmCode);
+        Assert.Equal("P", occurrence.MasterPmCode);
         Assert.Null(occurrence.Description);
         Assert.Null(occurrence.QuantityPer);
         Assert.Null(occurrence.ScrapPercentage);
+        Assert.Null(occurrence.UnitOfMeasure);
     }
 
     [Fact]
@@ -550,7 +581,8 @@ public sealed class QadBomReaderTests
         string? desc2 = null,
         string? sitePm = null,
         string? globalPm = null,
-        bool? phantom = null) => new(
+        bool? phantom = null,
+        string? unitOfMeasure = null) => new(
         OidPsMstr: oid,
         ParentPart: parent,
         ComponentPart: component,
@@ -561,6 +593,7 @@ public sealed class QadBomReaderTests
         Description2: desc2,
         SitePmCode: sitePm,
         GlobalPmCode: globalPm,
+        UnitOfMeasure: unitOfMeasure,
         Phantom: phantom,
         SiblingOrder: siblingOrder);
 

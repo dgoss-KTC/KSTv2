@@ -22,7 +22,9 @@ public sealed record WorkOrderSummary(
     DateOnly? ReleaseDate,
     DateOnly? DueDate,
     KittingSummary Kitting,
-    string? SalesOrder = null
+    string? SalesOrder = null,
+    string? WorkOrderType = null,
+    decimal RejectedQuantity = 0m
 )
 {
     public decimal OpenQuantity => OrderedQuantity - CompletedQuantity;

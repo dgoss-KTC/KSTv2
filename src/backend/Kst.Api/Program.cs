@@ -17,6 +17,7 @@ using Kst.Application.Workspaces;
 using Kst.Application.WorkOrders;
 using Kst.Domain.Common;
 using Kst.Application.Snapshots;
+using Kst.Application.Shortages;
 using Kst.Infrastructure;
 using Kst.Infrastructure.Bom;
 using Kst.Infrastructure.ComponentDetail;
@@ -25,6 +26,7 @@ using Kst.Infrastructure.Identity;
 using Kst.Infrastructure.Mps;
 using Kst.Infrastructure.PartDetail;
 using Kst.Infrastructure.SystemStatus;
+using Kst.Infrastructure.Shortages;
 using Kst.Infrastructure.WorkOrders;
 using Kst.Integrations.Qad.ApprovedVendors;
 using Kst.Integrations.Qad.Bom;
@@ -34,6 +36,7 @@ using Kst.Integrations.Qad.Inventory;
 using Kst.Integrations.Qad.Mps;
 using Kst.Integrations.Qad.Options;
 using Kst.Integrations.Qad.PartDetail;
+using Kst.Integrations.Qad.Shortages;
 using Kst.Integrations.Qad.WorkOrders;
 using Kst.Integrations.Shortages.Connectivity;
 using Kst.Integrations.Shortages.Options;
@@ -296,6 +299,54 @@ else
 }
 
 builder.Services.AddSingleton<ApprovedVendorService>();
+
+// -- Immediate Material Analysis (Stage 9.4; no HTTP endpoint until Stage 9.5) -------------
+builder.Services.AddSingleton<IWorkOrderImmediateMaterialCacheStore, InMemoryWorkOrderImmediateMaterialCacheStore>();
+
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadCommittedWorkOrderPopulationReader>();
+    builder.Services.AddSingleton<QadHardAllocationReader>();
+    builder.Services.AddSingleton<QadInventoryPositionReader>();
+    builder.Services.AddSingleton<QadIssuePolicyReader>();
+    builder.Services.AddSingleton<QadIssueDaysReader>();
+    builder.Services.AddSingleton<QadNextPurchaseOrderReader>();
+    builder.Services.AddSingleton<QadKssScheduleReader>();
+    builder.Services.AddSingleton<ICommittedWorkOrderPopulationReader>(sp => new DelegateCommittedWorkOrderPopulationReader(
+        async (site, basis, weekStart, windowEnd, ct) => (await sp.GetRequiredService<QadCommittedWorkOrderPopulationReader>().ReadAsync(site, basis, weekStart, windowEnd, ct))
+            .Select(row => new CommittedWorkOrderComponent(row.Woid, row.Status, row.WorkOrderType, row.DueDate, row.ReleaseDate, row.ComponentPart, row.RequiredQuantity, row.IssuedQuantity, row.UnitOfMeasure)).ToList()));
+    builder.Services.AddSingleton<IHardAllocationReader>(sp => new DelegateHardAllocationReader(
+        async (site, today, issueDays, ct) => (await sp.GetRequiredService<QadHardAllocationReader>().ReadAsync(site, today, issueDays, ct))
+            .Select(row => new HardAllocation(row.Woid, row.OperationNumber, row.ComponentPart, row.Location, row.Lot, row.AllocatedQuantity)).ToList()));
+    builder.Services.AddSingleton<IInventoryPositionReader>(sp => new DelegateInventoryPositionReader(
+        async (site, parts, today, issueDays, ct) => (await sp.GetRequiredService<QadInventoryPositionReader>().ReadAsync(site, parts, today, issueDays, ct))
+            .Select(row => new InventoryPosition(row.PartNumber, row.Position)).ToList()));
+    builder.Services.AddSingleton<IIssuePolicyReader>(sp => new DelegateIssuePolicyReader(
+        (site, part, ct) => sp.GetRequiredService<QadIssuePolicyReader>().ReadAsync(site, part, ct)));
+    builder.Services.AddSingleton<IIssueDaysReader>(sp => new DelegateIssueDaysReader(
+        (site, ct) => sp.GetRequiredService<QadIssueDaysReader>().ReadAsync(site, ct)));
+    builder.Services.AddSingleton<INextPurchaseOrderReader>(sp => new DelegateNextPurchaseOrderReader(
+        async (site, part, ct) =>
+        {
+            var row = await sp.GetRequiredService<QadNextPurchaseOrderReader>().ReadAsync(site, part, ct);
+            return row is null ? null : new NextPurchaseOrder(row.PoNumber, row.DueDate, row.OpenQuantity, row.IsConfirmed, row.TrackingInfo, row.IsKss, row.PoState);
+        }));
+    builder.Services.AddSingleton<IKssScheduleReader>(sp => new DelegateKssScheduleReader(
+        (site, part, today, ct) => sp.GetRequiredService<QadKssScheduleReader>().IsKssAsync(site, part, today, ct)));
+}
+else
+{
+    const string notConfiguredMessage = "QAD connection is not configured.";
+    builder.Services.AddSingleton<ICommittedWorkOrderPopulationReader>(_ => new DelegateCommittedWorkOrderPopulationReader((_, _, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+    builder.Services.AddSingleton<IHardAllocationReader>(_ => new DelegateHardAllocationReader((_, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+    builder.Services.AddSingleton<IInventoryPositionReader>(_ => new DelegateInventoryPositionReader((_, _, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+    builder.Services.AddSingleton<IIssuePolicyReader>(_ => new DelegateIssuePolicyReader((_, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+    builder.Services.AddSingleton<IIssueDaysReader>(_ => new DelegateIssueDaysReader((_, _) => throw new InvalidOperationException(notConfiguredMessage)));
+    builder.Services.AddSingleton<INextPurchaseOrderReader>(_ => new DelegateNextPurchaseOrderReader((_, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+    builder.Services.AddSingleton<IKssScheduleReader>(_ => new DelegateKssScheduleReader((_, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+}
+
+builder.Services.AddSingleton<WorkOrderImmediateShortageService>();
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();

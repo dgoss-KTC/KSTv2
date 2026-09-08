@@ -4,14 +4,18 @@ namespace Kst.Domain.WorkOrders;
 /// One applicable Stage 7 work-order material (<c>wod_det</c>) line (accepted contract §9/§11).
 /// Zero-required (<c>wod_qty_req = 0</c>) rows are excluded before this model is constructed; do not
 /// construct one for such a row. <see cref="IsManufactured"/> is normalized from <c>pt_pm_code = 'M'</c>
-/// at the QAD integration boundary; PM Code itself never travels past that boundary.
+/// at the QAD integration boundary. <see cref="IsMasterPmCodeReliable"/> distinguishes a valid
+/// non-M classification from a missing/blank authoritative master P/M value without exposing the
+/// source value outside the integration boundary.
 /// </summary>
 public sealed record WorkOrderMaterialLine(
     string ComponentPart,
     string? ComponentDescription,
     decimal RequiredQuantity,
     decimal IssuedQuantity,
-    bool IsManufactured
+    bool IsManufactured,
+    string? UnitOfMeasure = null,
+    bool IsMasterPmCodeReliable = true
 )
 {
     public decimal VarianceQuantity => IssuedQuantity - RequiredQuantity;

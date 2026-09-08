@@ -1,0 +1,3926 @@
+/* ktshrtge11.p  Cloned and modifed ktshrtge10.p version to incorporate the
+ *   planner code logic for tkt 1855.  jmh 09/16                            
+ *     Fixed to handle E status orders as well. 
+ ************************************************************************** 
+ * jmh 11/19/14 tkt 7536 - Modified to treat E status orders like P's & F's
+ *
+ * jmh tkts -   17201 - add columns to the master download file
+ *              11626 - add sub contract parts to part shortage considers
+ *              18280 - Set material to pull list up to be emailed.  Modified  
+ *                   to include exceptions such as expiring materials, consigned
+ *                   material none netable
+ *              18279 - OK to kit list is emailed
+ *              11306 - set up revenue risk report up to be emailed. 
+ * jmh tkts 18427 removed all logic related to save_short and ok_to_save
+ *                removed logic for setid...no idea why we needed it
+ *                fixed the mask on the short field cause it was too small
+ * srr 08/29/16 TKT20198 - Add scrap if wo__log01 = yes
+ *              Fix bug from 18427 (use variable rather than sod_price field)
+ * jmh 08/30/16 tkt 20989 added #weeks for WO due date
+ * jmh 09/16 tkt 
+ * and 01/17 TKT23886 Added IOS field and WO ID t30258o OktoKit file.
+ * rcb 5/10/17 tkt26455 add ecn/tecn to planner and oktokit
+ * cjt 5/31/17 tkt26488 break down other stock column inventory.
+ * jmh 6/26/17 tkt 27798 added pt_pm_codes = "d" to part detail file
+ * cjt 08/24/17 tkt 29319 remove wo__dec04 Logic due to non-use
+ * jmh 09/17  tkt 29122 add floorstock tab to output email
+ *          Removed a lot of code that was commented out for years or comments
+ *          were very old.  
+ * cjt 10/10/17 tkt 30258 break down other stock column in floorstock column
+ * jmh 12/21/17 tkt 32013 added some logic to make sure the WO exists before
+ *      displaying the WO data.  
+ * jmh 02/19/18 tkt 32622 added pt status to planner file and comp planner code
+ *    to the material pull report  
+ * jmh 02/22/18 tkt 33346 fix to get configured parts and iss pol no parts
+ * jmh 03/20/18 tkt 33346 modified again to handle the wo_type = F orders.  
+ *      Because they are configured, the BOM cannot be exploded like we do for
+ *      other P and F orders.  So for E Status and wo type = F, we are going 
+ *      to use the wod_det records.  All other E status orders processed the 
+ *      same as P and F.
+ * rcb 05/23/18 tkt35219 added status code filter to form 
+ * srr 05/31/18 tkt35743 Fix previous change to filter on pt_status only when 
+ *              entered. Also fixed syntax error affecting sendMail.p.
+ * srr 06/01/18 tkt35743 Modify filtering logic once again...
+ * rcb 07/05/18 tkt35788 replaced mstr_cust with mstr_ios and added status
+ *                       description to the output
+ * jmh 10/18  tkt 36338 changed new bld logic to rct-wo and 2 years back
+ * jmh 10/18  tkt 39377 fixed facility logic to no look for facilities flag
+ *    as "Other".  
+ * jmh 04/19 tkt 43514 modified the plannerfile section to save the po number
+ *   and info from the first pod_det record it finds...rather than the last
+ * jmh 8/19 tkt 46728  changed mstr_cust to mstr_ios for download files
+ * srr 05/06/20 TKT53716 Add column for substitute items to buyer, planner, 
+ *                       material and problem parts files
+ * zbd 06/05/20 TKT53719 Commented out SMDS code
+ * zbd 07/01/20 TKT55228 Check for Supplier Schedule set to "KSS" if available
+ * zbd 08/24/20 TKT56428 Added tracking info to outputs.
+ * zbd 12/15/20 KTC2019  Compiled as is into QAD 2019
+ * zbd 06/23/21 TKT45962 Removed reference to ktcm_mstr
+ * jmh 03/02/31 TKT72223 Added logic to check is_nettable flag
+ * jmh 09/13/22 tkt77844 modified to adjust defaults for MN 
+ * srr 01/03/24 TKT80902 Add logic for plant 9
+ * zbd 04/04/24 TKT03625 Speed up processing. Fix bug where mult runs mismatch
+ * jmh 09/05/24 TKT7539  Added pt_group to parameters for running.
+ * srr 10/17/24 TKT08328 Discontinue dropbox copy and remove 'ems' from emails
+ * srr 11/12/24 TKT08881 Remove phantoms from output
+ * srr 11/18/24 TKT09021 Bug fix for previous change
+ * zbd 05/08/25 TKT06948 Add container qty to output
+ * srr 05/20/25 TKT12579 Save planner file to dropbox when not run in batch
+ * srr 09/30/25 TKT15727 Always save planner file to dropbox
+ ****************************************************************************/
+
+
+ def temp-table mstr_wkfl         /*srr040208* new shared temp-table ktmpswks*/
+ field mstr_pri        as integer                             /*srr041408*/
+ field mstr_prodln     like pt_prod_line
+ field mstr_group      like pt_group          //7539
+ field mstr_part       like pt_part
+ field mstr_pt_st     like pt_status  /*32622*/
+ field mstr_nbr        like mrp_nbr
+ field mstr_demand_item     like pt_part
+ field mstr_model   like pt_part /*TKT03625*/
+ field mstr_line       like mrp_line
+ field mstr_cust       as char format "x(30)"    /*like ktcm_user1 TKT45962*/
+ field mstr_wk_nbr     as char format "x(2)"
+ field mstr_due_date   like mrp_due_date
+ field mstr_rel_date   like wo_rel_date
+ field mstr_rpt_date   like wo_rel_date
+ field mstr_qty        as dec format "->>>>>9.99"
+ field mstr_status     as char format "x(1)"
+ field mstr_ecn_note   as char
+ field mstr_wo_status  like wo_status /*tkt26488*/
+ field mstr_wo_type    like wo_type  /*33346*/
+ field mstr_routing    like ro_routing         /*tkt58584*/
+ field mstr_alt_bom    like ps_par             /*tkt58584*/
+ field mstr_ios        like pt_warr_cd                        /*tkt35788*/
+ index mstr_indx1 mstr_prodln mstr_part mstr_nbr
+ index mstr_wknbr   mstr_wk_nbr                               /*srr042108*/
+ index mstr_pri     mstr_pri                                  /*srr042108*/
+ index mstr_nbrline mstr_nbr mstr_line mstr_part              /*srr042108*/
+ index mstr_indx4 mstr_rpt_date mstr_line.
+
+def var iss_pol like ptp_iss_pol.   /*tkt 33346*/
+def temp-table duplicate_table                      /*srr040208* new shared */
+ field dup_part like pt_part.
+def var short_cost like sct_cst_tot.
+define variable sodprice like sod_price.                         /*srr081308*/
+define variable stdcost  as logical.                             /*srr081308*/
+
+def var womodel like wo_part.       /* jmh 32013*/
+def var dup_msg as logical.
+def var fa_rpt as logical initial no.
+def new shared var planner1 like pt_buyer.
+def new shared var planner2 like pt_buyer.
+def new shared var site1    like pt_site init "".           //77844
+def new shared var incl_subc as logical initial yes.  /* 11626 */
+def var incl_flrstk as logical initial yes.  /*tkt 29122*/
+def var part like wo_part.
+def var part1 like wo_part.
+def var due like wo_due_date.
+def var group1 like pt_group.                                      //7539
+def var IOS like pt_warr_cd.                                       /*TKT23886*/
+def var due1 like wo_due_date label "WO Due Date".
+def var temp_dtl_mrp_req like mrp_qty extent 15.          /*7    *srr081709*/
+def var eaddress as char format "x(25)".
+def var esubject as char format "x(35)" initial "Parts Report".
+def new shared var pass_date as date.
+def new shared var fisyear as int format "9999".
+def new shared var fisweek as int format "99".
+
+def new shared var sundte as date extent 15.              /*7    *srr081709*/
+def new shared var satdte as date extent 15.              /*7    *srr081709*/
+def var flweek as int format "99" extent 15.              /*7    *srr081709*/
+def var temp_wk_nbr like mstr_wk_nbr.
+def var temp_rpt_req like pk_qty.
+def var mrp_requirements as logical initial yes.
+def var display_req like mrp_qty.
+def var prod_ln1 as char format "x(4)" no-undo.
+def var prod_ln2 as char format "x(4)" no-undo.
+def var cmmts    as logical label "Comments" init "yes".
+def var k as integer.
+def var sum_dtl  as char format "x(01)" label "Summary/Detail" init "D".
+def var due_release as char format "x(01)" label "Due/Release" init "D". /*srr0108*/
+def var sort_order as char format "x(1)" init "W".
+def var molded_parts as logical init yes.                      //77844
+def var wodue_wks as integer initial 1 label "# Wks Out". 
+def new shared var temp_iss_days like icc_iss_days.  /*csr 1805*/
+def var exp_parts as logical.  /*csr 1805*/
+def var i as integer.
+
+def var stat_det as char format "x(3)".                 /*tkt35788*/
+
+def var filter1 as char format "x(1)".                           /*tkt35219*/
+def var filter2 as char format "x(1)".                           /*tkt35219*/
+def var filter3 as char format "x(1)".                           /*tkt35219*/
+
+def var containerQty like snc_dec1.                              /*TKT06948*/
+
+def var avail_qty like in_qty_oh.
+def var req_qty like avail_qty.
+def var feed_parts as logical initial yes.
+
+def var inv_nettable as logical.
+def var inv_facility as char.  /* 18247*/
+def var inv_cmmt as char format "x(30)".
+def var offsite_loc as logical.
+def var ecn_note as character format "x(14)".                  /*tkt26455*/
+def var twowkdate as date.
+
+def temp-table detail_wkfl no-undo                   /*srr040208* workfile */
+ field dtl_nbr       like mrp_nbr
+ field dtl_wk        like mstr_wk_nbr
+ field dtl_line      like mrp_line
+ field dtl_buyer     as char format "x(8)"
+ field dtl_part      like pt_part
+ field dtl_comp      like ps_comp
+ field dtl_op        as int format ">>>>>9"
+ field dtl_feed      as char format "x(1)"              /*02/08 jmh*/
+ field dtl_iss_pol   like ptp_iss_pol     /*tkt 33346*/
+ field dtl_qty_per   like pk_qty
+ field dtl_qty_tran  like in_qty_oh
+ field dtl_qty_insp  like in_qty_oh                       /*02/19/08 jmh*/
+ field dtl_qty_nonet   like in_qty_oh                       /*srr081106*/
+ field dtl_qty_mrb     like in_qty_oh               /*09/10 jmh*/
+ field dtl_qty_flr    like in_qty_oh
+ field dtl_qty_oth   like in_qty_oh
+ field dtl_qty       like pk_qty
+ field dtl_qty_bal   like in_qty_oh                       /*srr040208*/
+ field dtl_req       as decimal extent 15 format "->,>>>,>>9.9<<<"
+ field dtl_mrp_req   like pk_qty
+ field dtl_rpt_req   like pk_qty
+ field dtl_qty_oh    like pk_qty
+ field dtl_qty_ohstart like pk_qty                        /*srr042308*/
+ field dtl_qty_short like pk_qty
+ field dtl_exp_parts as logical     /*csr 1805*/
+ field dtl_qty_expire like ld_qty_oh  /*csr 1805*/
+ field dtl_qty_ncm    like ld_qty_oh  /*csr 2200*/
+ field dtl_byr       like pt_buyer
+ field dtl_abc       like pt_abc
+ field dtl_rohs      like pt_user1
+ field dtl_calc      as logical                    /*srr041708*/
+ field dtl_cmmt      as character format "x(70)"    /*jmh02/08*/
+ field dtl_track     like pod__chr06                /*TKT56428*/
+ /*tkt26488*/
+ field dtl_BF1       like ld_qty_oh
+ field dtl_JZ1       like ld_qty_oh
+ field dtl_JZ2       like ld_qty_oh
+ field dtl_JZ3       like ld_qty_oh
+ field dtl_JZ4       like ld_qty_oh
+ field dtl_JZ5       like ld_qty_oh
+ field dtl_JZ6       like ld_qty_oh
+ field dtl_JZ7       like ld_qty_oh
+ field dtl_JZ8       like ld_qty_oh
+ field dtl_JZ9       like ld_qty_oh                             //TKT80902
+ field dtl_Other     like ld_qty_oh
+ /*tkt26488 end*/
+      index dtl_nbrline dtl_nbr dtl_line dtl_part         /*srr042108*/
+      index dtl_partop dtl_part dtl_op dtl_comp           /*srr042108*/
+      index dtl_comp dtl_comp                             /*srr042108*/
+      index dtl_compwk dtl_comp dtl_wk dtl_part.           /*srr042108*/
+
+def buffer dtlbuff for detail_wkfl.
+
+
+def var tran_qty like ld_qty_oh.
+def var nonet_qty like ld_qty_oh.                              /*srr081106*/
+def var insp_qty like ld_qty_oh.                      /*jmh02/08*/
+def var mrb_qty like ld_qty_oh.                /*jmh 09/10*/
+def var expire_qty like ld_qty_oh.   /*csr 1805*/
+def var ncminsp_qty like ld_qty_oh.  /*csr 2200*/
+def var qty_flr like ld_qty_oh.
+def var qty_oth like ld_qty_oh.
+def var podnbr like pod_nbr.
+def var poddue like pod_due_date.
+def var podqty like pod_qty_ord.
+def var podtrack like pod__chr06.                              /*TKT56428*/
+def var pocfm like po_confirm.
+def var pobyr like po_buyer.
+/*tkt26488 start*/
+def var Fac_BF1 like ld_qty_oh.
+def var Fac_JZ1 like ld_qty_oh.
+def var Fac_JZ2 like ld_qty_oh.
+def var Fac_JZ3 like ld_qty_oh.
+def var Fac_JZ4 like ld_qty_oh.
+def var Fac_JZ5 like ld_qty_oh.
+def var Fac_JZ6 like ld_qty_oh.
+def var Fac_JZ7 like ld_qty_oh.
+def var Fac_JZ8 like ld_qty_oh.
+def var Fac_JZ9 like ld_qty_oh.                                    //TKT80902
+def var Fac_Other like ld_qty_oh.
+/*tkt26488 end*/
+def var sub_parts     as char.                                  /*TKT53716*/
+
+def temp-table part_loc_prob               /* 18280/18279*/
+ field prob_part like pt_part
+ field prob_loc like ld_loc
+ field prob_facility like loc_user1
+ field prob_lot_serial like lad_lot
+ field prob_inv_status like ld_status
+ field prob_qoh like ld_qty_oh
+ field prob_expiration like ld_expire
+ field prob_consigned like ld_status
+ field prob_cmmt as char format "x(30)".
+
+def temp-table floor_stock
+ field floor_part like pt_part
+ field floor_wo like wo_nbr
+ field floor_woid like wo_lot
+ field floor_wk like dtl_wk
+ field floor_qty_per like ps_qty_per
+ field floor_qty like wod_qty_req
+ field floor_qoh like in_qty_oh
+ /*tkt 30258 start*/
+ field floor_BF1       like ld_qty_oh
+ field floor_JZ1       like ld_qty_oh
+ field floor_JZ2       like ld_qty_oh
+ field floor_JZ3       like ld_qty_oh
+ field floor_JZ4       like ld_qty_oh
+ field floor_JZ5       like ld_qty_oh
+ field floor_JZ6       like ld_qty_oh
+ field floor_JZ7       like ld_qty_oh
+ field floor_JZ8       like ld_qty_oh
+ field floor_JZ9       like ld_qty_oh                           //TKT80902
+ field floor_Other     like ld_qty_oh.
+ /*tkt 30258 end*/
+
+def variable floor_avail like in_qty_oh.   /*tkt 29122*/
+
+def new shared workfile pkdet no-undo
+ field pkcomp     like ps_comp
+ field pkop       as int format ">>>>>9"
+ field pkstart    like pk_start
+ field pkend      like pk_end
+ field pkqty      like pk_qty
+ field pkbombatch like bom_batch initial 1
+ field pkqtyoh like pk_qty                                 /*srr042308*/
+ field pkqtybal like pk_qty                                /*srr042308*/
+ field pkltoff    like ps_lt_off.
+
+def var date_code as character format "x(6)".
+
+define new shared workfile wf-oh no-undo                      /*srr042308*/
+field ohpart like ps_comp                                    /*srr042308*/
+field ohqty like pk_qty.                                     /*srr042308*/
+
+def new shared var eff_date as date label "As of".
+def new shared var qty like pt_batch  label "Quantity".
+def new shared var comp like ps_comp.
+def var cust like ad_name.
+def new shared var op as int label "Op" format ">>>".
+def new shared var net_oh like mfc_logical init no label "Net OH".
+def new shared var use_up like mfc_logical init yes label "Use up Ph".
+def new shared var site like si_site no-undo.
+def new shared var maxlevel as int format ">>>" no-undo.
+def new shared var ztop_ref as char init "op".
+def var purch_only as logical init no label "Purchase Parts Only". //77844
+def var comp_plnr1 like ptp_buyer.
+def var comp_plnr2 like ptp_buyer.
+/* def var smt_hours_only as logical.       */    /*jmh 09/01/06 */
+
+def var purch_due as date.                                      /*dsj010306*/
+def var short like mfc_logical init no.                         /*srr010406*/
+def var ztab as char.                                           /*srr010406*/
+
+def buffer womstr for wo_mstr.                                  /*srr021006*/
+/* def var priority_cd as integer format ">>>" label "Pri".  /*srr021006 */ 
+*                                                      tkt29319         */
+def var demand_item like pt_part.                               /*srr021006*/
+def var rohs like pt_user1 format "x(2)" label "ROHS".          /*srr021006*/
+def var feed like pt_user1 format "x(2)" label "FEED".          /*cjw072911*/
+def var open_ref like wo_qty_ord label "Qty to Go".             /*srr021006*/
+def var new_bld as character format "x(1)" label "New".         /*srr021006*/
+def var print_rpt as logical init no label "Print Report".
+def var email_buyers as logical init no label "Email Buyers".
+def var email_mstr as logical init yes label "Email Master".
+def var kit_facility like loc_user1 initial "".  /* 11626*/
+
+define variable cmmt_site as char format "x(9)".                /*srr042307*/
+define variable zrcp_date like prh_rcp_date.                    /*srr110807*/
+define variable zrcp_qty like prh_rcvd format "->>>>>>9.99".    /*srr110807*/
+define variable zdue_date like pod_due_date.                    /*srr110807*/
+define variable zopen_ref like pod_qty_ord format "->>>>>>9.99". /*srr110807*/
+define variable zsupplier like po_vend.
+define variable zsupp_name like ad_sort.
+function evalemail returns logical (input addr as char) forward.
+
+def var short_wks as int format "99" initial 1.
+def var custname as char format "x(30)".                        /*dsj031306*/
+def var sv_part like pt_part.                                   /*dsj031306*/
+def var sv_wo like wo_nbr.                                      /*srr050406*/
+def new shared temp-table ttmp_tbl                              /*dsj031306*/
+ field tpar  like ps_par                                     /*dsj031306*/
+ field tcomp like ps_comp                                    /*dsj031306*/
+ field tcust as char.                                        /*dsj031306*/
+
+define variable scrap_pct   like ld_qty_oh.     /*TKT20198*/
+define variable qty_dec     as logical.         /*TKT20198*/
+
+{us/mf/mfdtitle.i}
+{us/kt/ktwo1093b.i}                                   /*TKT20198*/
+
+ztab = chr(09).
+
+form
+ site1        colon 15
+ cust         colon 15 label "Customer"
+ part         colon 15
+ part1        colon 47 label {us/t0/t001.i}
+ prod_ln1     colon 15 label "Product Line"
+ prod_ln2     colon 29 label {us/t0/t001.i}
+ group1       colon 53 label "  * Or *   Group"
+//   due          no-label              7539 removed as not used
+ due1         colon 15 label "WO Date To"
+//     "  * Or *" at 25           7539 moved to label below
+ wodue_wks    colon 53  label "* Or *   # WKS"
+ due_release  colon 15  
+ filter1      colon 41 label "Status Code Filter 1"          /*tkt35219*/
+ filter2      colon 53 label "Filter 2"
+ filter3      colon 65 label "Filter 3"
+ planner1     colon 15 label "Model Planner"
+ planner2     colon 41 label {us/t0/t001.i}
+ comp_plnr1   colon 15 label "Comp Planner"
+ comp_plnr2   colon 41 label {us/t0/t001.i}
+ skip(1)
+  short_wks colon 16 label "# WKS"
+  kit_facility colon 43 label "Kit Facility"  /*18427*/
+  "(Blank = all plants)" at 55                       
+ cmmts        colon 16
+ purch_only   colon 43 label "Purchase Parts Only"
+ molded_parts colon 70 label "Incl Molded Parts"
+ feed_parts   colon 16 label "Incl Feed Parts"
+ incl_subc    colon 43 label "Incl Sub Contract"       /*18427*/
+ incl_flrstk  colon 70 label "Incl Floor Stk"  /*tkt 29122*/
+ sort_order    colon 16 label "Sort by (F2)"
+ sum_dtl       colon 39
+ print_rpt   colon 67         /*show_ok*/ /*tkt29122**/
+ email_buyers colon 16
+ email_mstr   colon 39
+ esubject colon 16 label "Subject"
+with frame a side-labels.
+
+/**** pghdr1 ***/
+form header
+    skip(1)
+   "Wk"              at 1
+   "WO ID/Comp Short" at 6
+   "Desc"            at 26
+   "B/P"             at 39
+   "FD"              at 43
+   "Op"              at 47
+   "Req"             at 55
+   "Tot Req"         at 60
+   "QOH"             at 72
+   "Not Avl"         at 78              /* jmh 02/08*/
+   "Short"           at 88
+   "Comments"        at 94
+   "-- - ------------------- ------------ --- --- -- " +
+   "-------- -------- -------- -------- --------" +
+   " --------------------------------------" at 1
+     format "x(132)"
+with frame pghdr1 page-top down width 132 no-box no-labels.
+
+/*** pghdr_model  *srr112309*/
+form header
+    skip(1)
+   "Wk"              at 1
+   "WO ID"           at 6
+   "Model"           at 16
+   "Customer"        at 34
+   "WO Qty"          to 56
+   "Due Date"        at 58
+   "Comp Short"      at 64
+   "Desc"            at 74
+   "Req"             to 120
+   "-- - --------  ----------------- --------------- " +
+   "------- ----- --------- ----------------------------- " + 
+   "-------" at 1 format "x(132)"
+with frame pghdr_model page-top down width 132 no-box no-labels.
+
+/*** pghdr2 ***/
+form header
+   "Nettable"        at 56            /*srr100306*/
+    skip
+   "Wk"              at 1
+   "WO ID/Comp Short" at 6
+   "Desc"            at 26
+   "B/P"             at 39
+   "FD"              at 43
+   "Tot Req"         at 47
+   "Not Avl"         at 57              /*srr100306*/
+   "Short"           at 67
+   "Cost"            at 78
+   "Comments"        at 86
+   "-- - ------------------- ------------ --- --- " +
+   "-------- -------- -------- -------- " +
+   "-----------------------------------------------" at 1
+     format "x(132)"
+with frame pghdr2 page-top down width 132 no-box no-labels.
+
+/*** pghdr_abc ****/
+form header
+ "Nettable"          at 56   skip
+ "ABC"               at 1
+ "WO ID/Comp Short"  at 6
+ "Desc"              at 26
+ "B/P"               at 39
+/*  "RHS"               at 43                cjw072911*/
+ "FD"                at 43
+ "Tot Req"           at 47
+ "Not Avl"           at 57
+ "Short"             at 67
+ "Cost"              at 78
+ "Comments"          at 86
+ "-- - ------------------- ------------ --- --- " +
+ "-------- -------- -------- -------- " +
+ "-----------------------------------------------" at 1
+ format "x(132)"
+with frame pghdr_abc page-top down width 132 no-box no-labels.
+
+Repeat:                                                        /*cjw071013*/
+
+ /*Reset Values for Repeat Loop*/                               /*cjw071013*/
+ sv_wo = "".                     
+
+ /*TKT03625 Replaced with empty temp-table
+  * FOR EACH detail_wkfl:      DELETE detail_wkfl.     END.
+  * FOR EACH mstr_wkfl:        DELETE mstr_wkfl.       END.
+  * FOR EACH duplicate_table:  DELETE duplicate_table. END.
+  * FOR EACH ttmp_tbl:         DELETE ttmp_tbl.        END.
+  * FOR EACH wf-oh:            DELETE wf-oh.           END.
+  * FOR EACH pkdet:            DELETE pkdet.           END.
+  */
+
+ FOR EACH dtlbuff:          DELETE dtlbuff.         END.
+
+ /*TKT03625 Begin Add*/
+ empty temp-table part_loc_prob.                             
+ empty temp-table floor_stock.                               
+ for each wf-oh: delete wf-oh. end.
+ for each pkdet: delete pkdet. end.
+ empty temp-table mstr_wkfl.
+ empty temp-table duplicate_table.
+ empty temp-table detail_wkfl.
+ empty temp-table ttmp_tbl.
+ /*TKT03625 End Add*/
+
+ display sum_dtl with frame a.
+ 
+ if part1      = hi_char  then part1    = "".
+ if due        = low_date then due      = ?.
+ if due1       = hi_date  then due1     = ?.
+ if prod_ln2   = hi_char  then prod_ln2 = "".
+ if planner2   = hi_char  then planner2 = "".
+ if comp_plnr2 = hi_char then comp_plnr2 = "".
+
+ purch_due = ?.                                             /*dsj010306*/
+
+ find first icc_ctrl no-lock no-error.     /*csr 1805*/
+ assign temp_iss_days = icc_iss_days.
+ assign twowkdate = today - 14.                                  /*tkt26455*/
+
+ update
+     site1 validate(can-find(si_mstr  where si_mstr.si_domain = global_domain
+     and (  si_site = site1)), "Invalid site.")
+     cust
+     part part1
+     prod_ln1 prod_ln2
+     group1                                              //7539
+     due1
+     wodue_wks
+     due_release  validate(index("DR", due_release) > 0,
+           "Due or Release Date")                              
+     filter1                                              
+     filter2
+     filter3                                              
+     planner1 planner2
+     comp_plnr1 comp_plnr2
+         short_wks validate(Short_wks >=1 and short_wks <=15,
+         "# Wks Demand cannot be greater than 15")        
+     kit_facility validate(can-find(code_mstr 
+       where code_domain = global_domain
+         and code_fldname = "loc_user1" and code_value = kit_facility) 
+         or kit_facility = "", "Facility code does not exist")       
+     cmmts
+     purch_only
+     molded_parts
+     feed_parts
+     incl_subc
+     incl_flrstk                                           
+     sort_order validate(index("AWMPB", sort_order) > 0,   
+         "Must enter A, W, M, P or B")                     
+     sum_dtl validate(index("DS", sum_dtl) > 0,
+         "Summary or Detail")
+     print_rpt  
+     email_buyers                                            
+     email_mstr 
+     esubject
+ with frame a.
+
+ bcdparm = "".
+ {us/mf/mfquoter.i site1    }
+ {us/mf/mfquoter.i cust }
+ {us/mf/mfquoter.i part     }
+ {us/mf/mfquoter.i part1    }
+ {us/mf/mfquoter.i prod_ln1 }
+ {us/mf/mfquoter.i prod_ln2 }
+ {us/mf/mfquoter.i group1   }                    //7539
+ {us/mf/mfquoter.i due1     }
+ {us/mf/mfquoter.i wodue_wks}
+ {us/mf/mfquoter.i due_release } /*srr0108*/
+ {us/mf/mfquoter.i filter1   } /*tkt35219*/
+ {us/mf/mfquoter.i filter2   } /*tkt35219*/
+ {us/mf/mfquoter.i filter3   } /*tkt35219*/
+ {us/mf/mfquoter.i planner1 }
+ {us/mf/mfquoter.i planner2 }
+ {us/mf/mfquoter.i comp_plnr1}
+ {us/mf/mfquoter.i comp_plnr2}
+ {us/mf/mfquoter.i short_wks}
+ {us/mf/mfquoter.i kit_facility    }
+ {us/mf/mfquoter.i cmmts    }
+ {us/mf/mfquoter.i purch_only}
+ {us/mf/mfquoter.i molded_parts}
+ {us/mf/mfquoter.i feed_parts}
+ {us/mf/mfquoter.i incl_subc    }
+ {us/mf/mfquoter.i incl_flrstk  }                    /*tkt 29122*/
+ {us/mf/mfquoter.i sort_order }
+ {us/mf/mfquoter.i sum_dtl   }
+ {us/mf/mfquoter.i print_rpt    }                              /*srr021006*/
+ {us/mf/mfquoter.i email_buyers}                            /*srr030306*/
+ {us/mf/mfquoter.i email_mstr}                            /*ss112907*/
+ {us/mf/mfquoter.i esubject}
+ {us/mf/mfselbpr.i "printer" 132}
+ {us/bbi/mfphead.i}
+
+ if part1    = "" then part1    = hi_char.
+ if due      = ?  then due      = today - 90.
+
+ if due1 ne ? 
+     then due1 = due1.
+ else if due1 = ? and wodue_wks = 1 
+     then due1 = today + 7.       
+ else due1 = today + (7 * wodue_wks).
+
+ if prod_ln2 = "" then prod_ln2 = hi_char.
+ if planner2 = "" then planner2 = hi_char.
+ if comp_plnr2 = "" then comp_plnr2 = hi_char.
+
+ if purch_due = ? then purch_due = due1.                
+ pass_date = today - (weekday(today)).  /* Sunday */
+ 
+ sundte[1] = due.
+ satdte[1] = pass_date.
+
+ i = 1.
+ do while i < 15: /**srr091206***4: ***/                 /*7    *srr081709*/
+     {us/bbi/gprun.i ""ktut1000.p""}
+     flweek[i] = fisweek.
+ 
+     if i < 15 then                                      /*7    *srr081709*/
+     assign sundte[i + 1] = satdte[i] + 1
+           satdte[i + 1] = satdte[i] + 7.
+ 
+     i = i + 1.
+     pass_date = pass_date + 7.
+ end.
+
+ assign cmmt_site = trim(site1) + "S".           /* SWS/NWS      srr042307*/
+
+ if due1 < sundte[15] 
+     then assign sundte[15] = ?       /*7    *srr081709*/
+                 satdte[15] = ?.      /*7    *srr081709*/
+
+ assign purch_due = satdte[short_wks].            /*12/07 jmh*/
+
+ /* get models within parameters entered into [mstr_wkfl tbl */
+ for each wo_mstr  where wo_mstr.wo_domain = global_domain 
+     and  wo_site = site1
+     and ((due_release = "D" and wo_due_date >= due and wo_due_date <= due1)
+     or (due_release = "R" and wo_rel_date >= due and wo_rel_date <= due1 ))
+     and wo_status <> "c" no-lock,
+ each pt_mstr no-lock where pt_mstr.pt_domain = global_domain
+     and pt_part = wo_part
+     and (pt_pm_code eq "m" or pt_pm_code = "C")    /*tkt 33346*/
+     and (prod_ln1 eq "" or (pt_prod_line >= prod_ln1       /*tkt 26945*/
+     and pt_prod_line <= prod_ln2))
+     and (group1 eq "" or pt_group = group1)                 //7539
+     and (pt_buyer >= planner1 and pt_buyer <= planner2)
+     and (pt_part >= part and pt_part <= part1 )
+     and ((filter1 = pt_status or filter2 = pt_status or filter3 = pt_status)
+     or (filter1 = "" and filter2 = "" and filter3 = ""))
+ break by pt_part: /*TKT03625*/
+                         
+     if first-of(pt_part) then do: /*TKT03625*/
+
+         ecn_note = ''.            /*TKT03625*/                                     
+         run find_ecn.             /*TKT26455*/      
+
+     end.                          /*TKT03625*/    
+
+     /*srr061008 - skip planned orders for phantoms*/
+     if wo_status = "P" then do:
+         find first ptp_det where ptp_domain = global_domain
+                             and ptp_part = wo_part
+                             and ptp_site = wo_site no-lock no-error.
+         if available ptp_det and ptp_phantom = yes then next.
+         else if pt_phantom = yes then next.
+     end.
+
+     /* Find customer name */
+     for each ttmp_tbl: delete ttmp_tbl. end.
+     if available pt_mstr then do:
+         custname = "".
+         {us/bbi/gprun.i ""ktgetcust.p"" "(input pt_part,       /*srr072809*/
+                                   output custname)"}          /*srr072809*/
+         if custname = "" then do:                              /*srr072809*/
+             {us/bbi/gprun.i ""ktps1021.p"" "(input pt_part)"}
+         end.
+       
+         find first ttmp_tbl where tcust <> "" no-error.
+         if available ttmp_tbl then custname = tcust.
+     end. /* if available pt_mstr */
+ 
+     if cust ne "" and cust ne custname then next.
+ 
+     demand_item = "".
+     find first mrp_det  where mrp_det.mrp_domain = global_domain
+           and  mrp_part = wo_part
+           and mrp_type begins "Demand"
+           and mrp_site = wo_site
+           and mrp_detail <> "Scrap Requirement"
+           use-index mrp_sitetype
+           no-lock no-error.
+ 
+     if available(mrp_det) then do:
+         find first womstr  where womstr.wo_domain = global_domain
+             and womstr.wo_nbr = mrp_nbr
+             and womstr.wo_lot = mrp_line
+             no-lock no-error.
+ 
+         if available(womstr)
+           then demand_item = womstr.wo_part.
+           else demand_item = mrp_nbr.
+     end.
+     release womstr.
+ 
+     create mstr_wkfl.
+     assign mstr_prodln    = pt_mstr.pt_prod_line
+           mstr_part      = pt_mstr.pt_part
+           mstr_pt_st     = pt_mstr.pt_status   /*32622*/
+           mstr_nbr       = wo_mstr.wo_nbr
+           mstr_line      = wo_mstr.wo_lot
+           mstr_wo_type   = wo_mstr.wo_type  /*33346*/
+           mstr_cust      = custname
+           mstr_demand_item = demand_item
+           mstr_status    = wo_mstr.wo_status
+           mstr_due_date  = wo_mstr.wo_due_date
+           mstr_rel_date  = wo_mstr.wo_rel_date
+           mstr_routing   = wo_mstr.wo_routing               /*58584*/
+           mstr_alt_bom   = wo_mstr.wo_bom                   /*58584*/
+           mstr_ecn_note  = ecn_note                        /*tkt26455*/
+           mstr_qty       = wo_mstr.wo_qty_ord - wo_mstr.wo_qty_comp
+                             - wo_mstr.wo_qty_rjct
+           mstr_ios       = pt_mstr.pt_warr_cd.             /*tkt35788*/
+ 
+
+     // ecn_note = "".  /*TKT03625*/                          /*tkt26455*/
+     if wo_mstr.wo_status = "R" then mstr_pri = 1.            /*srr041408*/
+     else if wo_mstr.wo_status = "A" then mstr_pri = 2.       /*srr041408*/
+         else mstr_pri = 3.                                  /*srr041408*/
+ 
+     if due_release = "r" then assign mstr_rpt_date = wo_mstr.wo_rel_date.
+                         else assign mstr_rpt_date = wo_mstr.wo_due_date.
+ 
+     /* fiscal wk # of rpt date */
+     assign i = 1.
+     do while i < 16:                                   /*8    *srr081709*/
+         if mstr_rpt_date >= sundte[i]
+         and mstr_rpt_date <= satdte[i] then do:
+             assign mstr_wk_nbr = string(flweek[i], "99").
+             leave.
+         end.
+         i = i + 1.
+     end.
+ /*srr042308 - begin add*/
+ end. /*wo_mstr*/
+
+ for each mstr_wkfl no-lock /*TKT03625 add no-lock*/
+ break by mstr_pri by mstr_rpt_date by mstr_line:
+ 
+     if  mstr_status = "a" or
+         mstr_status = "r" or                    /*33346*/
+         (mstr_status = "E" and mstr_wo_type = "F") 
+     then do:
+
+         /* total qty of each component for this model */
+         for each wod_det  where wod_det.wod_domain = global_domain
+             and  wod_lot = mstr_line
+         no-lock :
+                                                 /*tkt 33346*/
+             find first pt_mstr no-lock where pt_domain = global_domain
+               and pt_part = wod_part no-error.
+             find first ptp_det no-lock where ptp_domain = global_domain
+                 and ptp_part = wod_part and ptp_site = wo_site no-error. 
+
+             iss_pol = yes.   
+             if available ptp_det then iss_pol = ptp_iss_pol.
+             if not available ptp_det and available pt_mstr 
+                 then iss_pol = pt_iss_pol.
+
+             if iss_pol = yes and (wod_qty_iss >= wod_qty_req)
+               then next.
+                                                     
+                                                 /*tkt 33346 end add*/
+             create detail_wkfl.
+             assign dtl_part    = mstr_part
+                     dtl_comp    = wod_part
+                     dtl_wk      = mstr_wk_nbr
+                     dtl_nbr     = wod_nbr
+                     dtl_line    = wod_lot
+                     dtl_op      = wod_op
+                     dtl_iss_pol = iss_pol        /*tkt 33346*/
+                     dtl_qty_oh  = 0              /*TKT03625*/
+                     dtl_qty_per = wod_qty_req - wod_qty_iss
+                     dtl_qty     = wod_qty_req - wod_qty_iss
+                     dtl_calc    = yes.                            /*srr041708*/
+ 
+             /*TKT20198 - begin add*/
+             scrap_pct = 0.
+             qty_dec = no.
+                     
+             run scrap_var(dtl_part, dtl_comp, input-output dtl_qty
+               , input-output scrap_pct, input-output qty_dec).
+
+             if scrap_pct > 0 then do:
+
+             find first wo_mstr where wo_domain = global_domain
+                    and wo_lot    = mstr_line no-lock no-error.
+                 
+             if available wo_mstr and wo_mstr.wo__log01 = yes then do:
+
+                  find first pt_mstr where pt_domain = global_domain
+                         and pt_part   = dtl_comp no-lock no-error.
+                     
+                     if available pt_mstr then
+                     find first com_mstr where com_domain    = global_domain
+                                           and com_comm_code = pt_comm_code
+                                            no-lock no-error.
+                     
+                     if not available (com_mstr) or com_user1 = "No" 
+                               or com_user1 = ""
+                       then assign dtl_qty = dtl_qty * (100 / (100 
+                                              - scrap_pct))
+                                   dtl_qty_per = dtl_qty_per * (100 / (100
+                                              - scrap_pct)).
+                     /* if com_user1 = Yes, then scrap already included */
+                 end. /* available wo_mstr & wo__log01 = yes */
+             end. /* scrap_pct > 0 */
+             /*TKT20198 - end add*/
+             
+             find first wf-oh where ohpart = wod_part no-error.
+             if not available wf-oh then do:
+ 
+                 find in_mstr no-lock  
+                    where in_mstr.in_domain = global_domain and
+                          in_part = wod_part and in_site = site1
+                          no-error.
+                 
+                 if available in_mstr then do:
+                     
+                     dtl_qty_oh = in_qty_oh.
+     
+                     for each ld_det  where ld_det.ld_domain = global_domain
+                             and  ld_site = site1
+                             and ld_part = wod_part no-lock:
+                                                             /*72223*/
+                         find first is_mstr no-lock 
+                            where is_domain = global_domain
+                              and is_status = ld_status no-error.
+
+                         if available (is_mstr) and is_nettable = yes
+                             and (ld_expire <= (today + temp_iss_days))
+                         then do:
+                             assign dtl_qty_oh = dtl_qty_oh - ld_qty_oh.
+                         end.         
+                         else do:  
+                             if ld_status = "tran"
+                                 then dtl_qty_oh = dtl_qty_oh - ld_qty_oh.
+
+                             if ld_status = "inspect" 
+                                 then dtl_qty_oh = dtl_qty_oh - ld_qty_oh.
+                                                           /*csr 2200*/
+                             if ld_status = "ncminsp"
+                                 then dtl_qty_oh = dtl_qty_oh - ld_qty_oh.
+                         end.               
+                     end.
+                     
+                     dtl_qty_oh = max(dtl_qty_oh, 0).
+                     
+                 end.
+     
+                 create wf-oh.
+                 assign ohpart = wod_part
+                         ohqty  = dtl_qty_oh.
+
+             end. /* IF NOT AVAILABLE wf-oh */
+             else dtl_qty_oh = ohqty.
+ 
+             dtl_qty_bal = dtl_qty_oh - dtl_qty.
+             ohqty = dtl_qty_bal.
+ 
+         end. /* IF AVAILABLE pt_mstr */
+     end. /* if wo_status = a, e, r */
+ 
+       
+     if (mstr_status = "e" and mstr_wo_type <> "F")          /*33346*/
+       or mstr_status = "F" or mstr_status = "P"
+     then do:
+ 
+         assign req_qty  = mstr_qty
+               comp     = mstr_part
+               eff_date = mstr_rpt_date
+               qty      = mstr_qty                              /*srr042308*/
+               site     = site1.                                /*srr042308*/
+ 
+         /*58584 set bom to explode to alternate if it exist*/
+         if mstr_alt_bom <> "" then comp = mstr_alt_bom.
+       
+         /* Explode each model with use-up phantom onhand logic */
+         {us/bbi/gprun.i ""ktshrtgebm.p""}                     /*srr042308*/
+ 
+         /* total qty of each component for this model */
+         for each pkdet where eff_date = ? or (eff_date <> ?)
+                         and (pkstart = ? or pkstart <= eff_date)
+                         and (pkend = ? or eff_date <= pkend) no-lock :                            
+                                                 /*tkt 33346*/
+             iss_pol = yes.
+
+             find first pt_mstr no-lock where pt_domain = global_domain
+               and pt_part = wod_part no-error.
+
+             find first ptp_det no-lock where ptp_domain = global_domain
+                 and ptp_part = wod_part and ptp_site = wo_site no-error. 
+                 
+             if available ptp_det then iss_pol = ptp_iss_pol.
+             if not available ptp_det and available pt_mstr 
+                 then iss_pol = pt_iss_pol.
+
+                                                 /*tkt 33346 end add*/
+             create detail_wkfl.
+             assign dtl_part    = mstr_part
+                   dtl_comp    = pkcomp
+                   dtl_nbr     = mstr_nbr
+                   dtl_wk      = mstr_wk_nbr
+                   dtl_line    = mstr_line
+                   dtl_op      = pkop
+                   dtl_iss_pol = iss_pol     
+                   dtl_qty_per = pkqty       
+                   dtl_qty     = pkqty       
+                   dtl_qty_oh  = pkqtyoh     
+                   dtl_qty_bal = pkqtybal    
+                   dtl_calc    = no.         
+ 
+             /*TKT20198 - begin add*/
+             scrap_pct = 0.
+             qty_dec = no.
+                     
+             run scrap_var(dtl_part, dtl_comp, input-output dtl_qty
+               , input-output scrap_pct, input-output qty_dec).
+
+             if scrap_pct > 0 then do:
+
+                 find first wo_mstr where wo_domain = global_domain
+                                     and wo_lot    = mstr_line 
+                                     no-lock no-error.
+                 if available wo_mstr and wo_mstr.wo__log01 = yes then do:
+
+                     find first pt_mstr where pt_domain = global_domain
+                                         and pt_part   = dtl_comp 
+                                         no-lock no-error.
+                     if available pt_mstr then
+                     find first com_mstr 
+                         where com_domain    = global_domain
+                           and com_comm_code = pt_comm_code no-lock no-error.
+                     
+                     if not available (com_mstr) or com_user1 = "No" 
+                       or com_user1 = ""
+                         then assign dtl_qty = dtl_qty * (100 / (100
+                                               - scrap_pct))
+                                     dtl_qty_per = dtl_qty_per * (100 / (100
+                                               - scrap_pct)).
+                     /* if com_user1 = Yes, then scrap already included */
+                 end. /* available wo_mstr & wo__log01 = yes */
+             end. /* scrap_pct > 0 */
+         end. /* FOR EACH pkdet */
+     end. /* wo status <> "a" and <> "r" */
+ end. /* FOR EACH mstr_wkfl */
+
+ for each detail_wkfl break by dtl_comp:
+     
+     if first-of(dtl_comp) then temp_rpt_req = 0.
+ 
+     temp_rpt_req = temp_rpt_req + dtl_qty.
+
+     if last-of (dtl_comp) then do:
+ 
+         /* moved up to check buyer code for "f" - remove those parts */
+         find first ptp_det  where ptp_det.ptp_domain = global_domain
+           and ptp_site = site1
+           and ptp_part = dtl_comp
+         no-lock no-error.
+ 
+         find first pt_mstr no-lock where pt_domain = global_domain
+         and pt_part = dtl_comp no-error.
+         
+         if available ptp_det then do:
+             if incl_flrstk and ptp_iss_pol = No
+               then run add_floor_wkfl.
+             
+             if not incl_flrstk and ptp_iss_pol = no then do:       
+                 run delete_detail_wkfl.       
+                 next.                         
+             end.                              
+
+             //TKT08881
+             if ptp_phantom = yes then do:
+               run delete_detail_wkfl.
+               next.
+             end.
+
+             if (molded_parts = no and ptp_buyer matches "*f*")
+                 or (molded_parts = yes and ptp_buyer = "PH19f")
+             then do:
+                 run delete_detail_wkfl.
+                 next.
+             end.
+           
+             if ptp_buyer >= comp_plnr1 and ptp_buyer <= comp_plnr2 then .
+             else do:
+                 run delete_detail_wkfl.
+                 next.
+             end.
+             
+             /* 18427*/
+             if incl_subc and ptp_pm_code = "m" 
+                    and pt_prod_line = "6200" 
+                    then.
+                    else if incl_subc = no and ptp_pm_code = "m" 
+                       and pt_prod_line = "6200"
+                       then do:
+                         run delete_detail_wkfl.
+                         next.
+                       end.
+                       else if purch_only and ptp_pm_code ne "p"
+                         and ptp_pm_code ne "d"  /*27798*/
+                         then do:
+                           run delete_detail_wkfl.
+                           next.
+                         end.
+
+                     dtl_byr = ptp_buyer.
+
+         end. 
+         else do:    /*TKT03625*/
+
+             if not available ptp_det and available pt_mstr then do:
+             if Incl_flrstk and pt_iss_pol = no 
+               then run add_floor_wkfl.                     
+             
+             if not incl_flrstk and pt_iss_pol = no         
+             then do:
+                 run delete_detail_wkfl.                    
+                 next.                                      
+             end.                                           
+             
+             //TKT08881 - TKT09021 from ptp_phantom
+             if pt_phantom = yes then do:
+               run delete_detail_wkfl.
+               next.
+             end.
+
+             if (molded_parts = no and pt_buyer matches "*f*")
+               or (molded_parts = yes and pt_buyer = "ph19f")
+             then do:
+                 run delete_detail_wkfl.
+                 next.
+             end.
+
+             if pt_buyer >= comp_plnr1 and pt_buyer <= comp_plnr2 then .
+             else do:
+                 run delete_detail_wkfl.
+                 next.
+             end.
+
+             /* 18427*/
+             if incl_subc and pt_pm_code = "m" and pt_prod_line = "6200" 
+               then.
+               else if incl_subc = no and pt_pm_code = "m" 
+                  and pt_prod_line = "6200"
+                  then do:
+                     run delete_detail_wkfl.
+                     next.
+                  end.
+                  else if purch_only and pt_pm_code ne "p"
+                      and pt_pm_code ne "d" /*27798*/
+                       then do:
+                         run delete_detail_wkfl.
+                         next.
+                       end.
+
+             dtl_byr = pt_buyer.
+         end. /*TKT03625*/ 
+     end. /* last-of (dtl_comp) */
+
+     if available pt_mstr then
+         assign dtl_abc  = pt_abc
+               dtl_rohs = pt_user1.
+
+     /*TKT03625 Separate into two queries for speed*/
+     find first code_mstr  where code_mstr.code_domain = global_domain and (
+     (code_fldname = "ptp_buyer") //TKT03625 or code_fldname = "pt_buyer") 
+     and code_value = dtl_byr ) no-lock no-error.
+
+     if available code_mstr then assign dtl_buyer = code_user1.
+
+     /*TKT03625 Begin Add*/
+     else do:
+         find first code_mstr  where code_mstr.code_domain = global_domain
+           and ((code_fldname = "pt_buyer") 
+           and code_value = dtl_byr ) no-lock no-error.
+
+         if available code_mstr then assign dtl_buyer = code_user1.
+     end.
+     /*TKT03625 End Add*/
+
+         /*TKT56428 Begin Add*/
+         find first pod_det where pod_domain = global_domain
+                             and pod_site = site1 
+                           /*  and pod_nbr = podnbr */
+                             and pod_part = detail_wkfl.dtl_comp 
+                             and not pod_sched
+                             and pod_due_date >= due
+                             and pod_due_date <= due1
+                             and (pod_status <> "c" and pod_status <> "x" ) 
+                             and pod__log01 = yes no-lock no-error.
+                             
+         if available pod_det then assign dtl_track = pod__chr06.
+         /*TKT56428 End Add*/                             
+
+         /*TKT55228*/        
+         dtl_feed = "".
+       
+         for each pod_det no-lock where pod_domain = global_domain
+                                   and pod_part = dtl_comp
+                                   and pod_site = site1
+                                   and (pod_end_eff[1] = ? or pod_end_eff[1]     
+                                   >= today),
+           each po_mstr no-lock where po_domain = global_domain
+                                   and pod_nbr = po_nbr 
+                                   and po_sched = yes
+                                   and (po_eff_to = ? or po_eff_to >= today):
+       
+             dtl_feed = "KSS".
+             Leave. /* for each pod_det */
+       
+         end. /* for each pod_det */
+           
+         if feed_parts = no and dtl_feed = "KSS" then do:
+             run delete_detail_wkfl.
+             next.
+         end. /* feed_parts = no */
+         /*TKT55228 end*/
+         
+         /*TKT53719*/
+         /*        if available code_mstr and code_user2 ne ""
+         *           then assign dtl_feed = "Y".
+         *           else assign dtl_feed = "".
+         *                                               /* jmh 11/17/08*/
+         *        find first kp_det no-lock where kp_type = "smds"
+         *          and kp_part = pt_part no-error.
+         *        if available kp_det 
+         *           then assign dtl_feed = "Y".
+         * 
+         *        if feed_parts = no and dtl_feed = "y"
+         *           then do:
+         *              run delete_detail_wkfl.
+         *              next.
+         *           end. */
+
+         /* comment by part */
+         find first cd_det where cd_domain = global_domain   
+                         and cd_ref = dtl_comp
+                         and date(cd_user1) > (today - 90)
+                         and cd_type = cmmt_site             
+                         and cd_lang = "" and cd_seq = 0
+                         no-lock no-error.
+
+         if available cd_det
+           then assign dtl_cmmt = substring(cd_cmmt[1], 1, 50).
+         else assign dtl_cmmt = "".
+
+         /* determine QOH for component */
+         find in_mstr  where in_mstr.in_domain = global_domain and  in_part =
+         dtl_comp and in_site = site1
+                       no-lock no-error.
+     
+         if available in_mstr 
+             then
+               assign avail_qty = in_qty_oh
+                     nonet_qty = in_qty_nonet.               /*srr081106*/
+             else 
+               assign avail_qty = 0
+                     nonet_qty  = 0.                         /*srr081106*/
+
+         insp_qty = 0.
+         tran_qty = 0.
+         mrb_qty = 0.            /*9/10 jmh*/
+         exp_parts = no.        /*csr 1805*/
+         expire_qty = 0.
+         ncminsp_qty = 0.       /*csr 2200*/
+         qty_flr = 0.
+         qty_oth = 0.
+         /*tkt26488 start*/
+         Fac_BF1 = 0.
+         Fac_JZ1 = 0.
+         Fac_JZ1 = 0.
+         Fac_JZ2 = 0.
+         Fac_JZ3 = 0.
+         Fac_JZ4 = 0.
+         Fac_JZ5 = 0.
+         Fac_JZ6 = 0.
+         Fac_JZ7 = 0.
+         Fac_JZ8 = 0.
+         Fac_JZ9 = 0.                                          //TKT80902
+         Fac_Other = 0.
+         /*tkt26488 end*/
+
+         for each ld_det  where ld_det.ld_domain = global_domain
+                 and  ld_site = site1
+                 and ld_part = dtl_comp
+                 and ld_qty_oh ne 0
+         no-lock break by ld_status:
+   
+             inv_facility  = "".
+             find first loc_mstr no-lock where loc_domain = global_domain
+                 and loc_loc = ld_loc
+                 and loc_site = ld_site no-error.
+             if available loc_mstr then assign inv_facility = loc_user1.
+             
+             inv_nettable = no.
+             find first is_mstr no-lock where is_domain = global_domain
+                   and is_status = ld_status no-error.
+             if available is_mstr then inv_nettable = is_nettable.
+             
+             offsite_loc = no.
+             find first code_mstr no-lock where code_domain = global_domain
+                   and code_fldname = "loc_user1"  
+                   and code_value = inv_facility
+                   no-error.
+             if available code_mstr and code_user1 = "offsite" 
+                 then offsite_loc = yes. 
+         
+
+             if ld_expire <= (today + temp_iss_days) then do:
+                 assign expire_qty = expire_qty + ld_qty_oh
+                         exp_parts = yes
+                         avail_qty = avail_qty - ld_qty_oh.
+                 assign inv_cmmt = "Expired Inv".
+                 run create_prob_record. 
+             end. /* if ld_expire <= (today + temp_iss_days) */
+             else do:            
+         
+                 if ld_status = "tran" /*or ld_status = "Inspect"  */
+                 then do:
+                     assign
+                         avail_qty = avail_qty - ld_qty_oh
+                         tran_qty = tran_qty + ld_qty_oh.
+                     assign inv_cmmt = "In Tran Inv".
+                     run Create_prob_record.
+                 end.   
+
+                 if ld_status = "inspect" 
+                 then do:
+                     assign avail_qty = avail_qty - ld_qty_oh
+                           insp_qty = insp_qty + ld_qty_oh.
+                     assign inv_cmmt = "Inspect Inv".
+                     run Create_prob_record.
+                 end.
+                 
+                 if ld_status = "ncminsp" 
+                 then do:
+                     assign avail_qty = avail_qty - ld_qty_oh
+                           ncminsp_qty = ncminsp_qty + ld_qty_oh.
+                     assign inv_cmmt = "NCMInsp Inv".
+                     run Create_prob_record.
+                 end.
+
+                 if ld_status = "mrb" then mrb_qty = mrb_qty + ld_qty_oh.
+             
+                 if ld_status = "stock" or ld_status = "inspect" 
+                 or ld_status = "tran"
+                 or ld_status = "ARR_CSGN" /*TKT03625*/
+                 then do:
+                   
+                     /*tkt26488 start*/   /*tkt 39377 fixed if then else*/
+                     if inv_facility = "BF1"
+                       then Fac_BF1 = Fac_BF1 + ld_qty_oh.
+                     else if inv_facility = "JZ1"
+                       then Fac_JZ1 = Fac_JZ1 + ld_qty_oh.     
+                     else if inv_facility = "JZ2"
+                       then Fac_JZ2 = Fac_JZ2 + ld_qty_oh.
+                     else if inv_facility = "JZ3"
+                       then Fac_JZ3 = Fac_JZ3 + ld_qty_oh.
+                     else if inv_facility = "JZ4"
+                       then Fac_JZ4 = Fac_JZ4 + ld_qty_oh.
+                     else if inv_facility = "JZ5"
+                       then Fac_JZ5 = Fac_JZ5 + ld_qty_oh.
+                     else if inv_facility = "JZ6"
+                       then Fac_JZ6 = Fac_JZ6 + ld_qty_oh.
+                     else if inv_facility = "JZ7"
+                       then Fac_JZ7 = Fac_JZ7 + ld_qty_oh.
+                     else if inv_facility = "JZ8"
+                       then Fac_JZ8 = Fac_JZ8 + ld_qty_oh.
+                     else if inv_facility = "JZ9"              //TKT80902
+                       then Fac_JZ9 = Fac_JZ9 + ld_qty_oh.     //TKT80902
+                     else /*if inv_facility = "Other"   */
+                       Fac_Other = Fac_Other + ld_qty_oh.
+                     /*tkt26488 end*/
+
+                     if kit_facility <> "" then do:
+                         if loc_user1 = kit_facility
+                             then qty_flr = qty_flr + ld_qty_oh.
+                         else do:
+                           qty_oth = qty_oth + ld_qty_oh.
+                           assign inv_cmmt = "Inv not in Kit Fac".
+                           run create_prob_record.
+                         end. /* loc_user1 = kit_facility */
+                     end. /* kit_facility <> "" */
+                     else do:          /* all facility report */
+                         if offsite_loc = no
+                             then  qty_flr = qty_flr + ld_qty_oh.
+                         else do:
+                             qty_oth = qty_oth + ld_qty_oh.
+                             assign inv_cmmt = "Offsite Inv ".
+                             run create_prob_record.
+                         end. /* offsite_loc = no */
+                     end. /* kit_facility = "" */
+                 end. /* if ld_status = "stock" */
+             end. /* else */
+         end. /* for each ld_det */
+       
+         if avail_qty < 0 then avail_qty = 0.      /*02/10/06 jmh*/
+   
+         assign temp_dtl_mrp_req = 0.          /*srr091206*/
+
+         for each mrp_det  where mrp_det.mrp_domain = global_domain 
+             and mrp_site = site1
+             and mrp_part = dtl_comp
+             and mrp_due <= purch_due             /*dsj010306*/
+             and mrp_type begins "demand"
+         no-lock:
+
+             /* fiscal wk # of due date */
+             assign i = 2.
+             if mrp_due_date <= satdte[1] then do:
+                 assign temp_wk_nbr = string(flweek[1], "99")
+                         temp_dtl_mrp_req[1] = temp_dtl_mrp_req[1] + mrp_qty.
+             end.
+             else do:
+                 do while i < 16:    /*8    *srr081709*/
+                     if mrp_due_date >= sundte[i] and mrp_due_date <= satdte[i] then do:
+                         assign
+                             temp_wk_nbr = string(flweek[i], "99")
+                             temp_dtl_mrp_req[i] = temp_dtl_mrp_req[i] + mrp_qty.
+                     end. /* if mrp_due_date */
+                     i = i + 1.
+                 end. /*i < 8*/
+             end. /*not falldown*/
+         end. /* for each mrp_det */
+
+         /* component with shortage */
+         assign detail_wkfl.dtl_qty_ohstart = avail_qty         /*srr042308*/
+                 detail_wkfl.dtl_qty_tran = tran_qty
+                 detail_wkfl.dtl_qty_insp = insp_qty               /*jmh02/08*/  
+                 detail_wkfl.dtl_qty_nonet  = nonet_qty
+                 detail_wkfl.dtl_qty_expire = expire_qty        /*csr 1805*/
+                 detail_wkfl.dtl_qty_ncm = ncminsp_qty         /*csr 2200*/
+                 detail_wkfl.dtl_qty_mrb = mrb_qty              /*jmh09/10*/
+                 detail_wkfl.dtl_qty_flr = qty_flr
+                 detail_wkfl.dtl_qty_oth = qty_oth
+                 /*tkt26488 start*/      
+                 detail_wkfl.dtl_BF1 = Fac_BF1
+                 detail_wkfl.dtl_JZ1 = Fac_JZ1
+                 detail_wkfl.dtl_JZ2 = Fac_JZ2
+                 detail_wkfl.dtl_JZ3 = Fac_JZ3
+                 detail_wkfl.dtl_JZ4 = Fac_JZ4
+                 detail_wkfl.dtl_JZ5 = Fac_JZ5
+                 detail_wkfl.dtl_JZ6 = Fac_JZ6
+                 detail_wkfl.dtl_JZ7 = Fac_JZ7
+                 detail_wkfl.dtl_JZ8 = Fac_JZ8
+                 detail_wkfl.dtl_JZ9 = Fac_JZ9                       //TKT80902
+                 detail_wkfl.dtl_Other = Fac_Other.
+                 /*tkt26488 end*/ 
+
+         /* update all rows of this component */
+         for each dtlbuff where dtlbuff.dtl_comp = detail_wkfl.dtl_comp
+             break by dtlbuff.dtl_comp by dtlbuff.dtl_wk
+         by dtlbuff.dtl_part:
+
+             assign dtlbuff.dtl_byr = detail_wkfl.dtl_byr
+                     dtlbuff.dtl_buyer = detail_wkfl.dtl_buyer
+                     dtlbuff.dtl_feed = detail_wkfl.dtl_feed       /*02/08 jmh*/
+                     dtlbuff.dtl_abc = detail_wkfl.dtl_abc
+                     dtlbuff.dtl_rohs = detail_wkfl.dtl_rohs
+                     dtlbuff.dtl_qty_tran = tran_qty
+                     dtlbuff.dtl_qty_nonet  = nonet_qty 
+                     dtlbuff.dtl_exp_parts = exp_parts     /*csr 1805*/
+                     dtlbuff.dtl_qty_expire = detail_wkfl.dtl_qty_expire
+                     dtlbuff.dtl_qty_ncm = detail_wkfl.dtl_qty_ncm /*csr 2200*/
+                     dtlbuff.dtl_qty_mrb = mrb_qty      /*09/10 jmh*/
+                     dtlbuff.dtl_cmmt = detail_wkfl.dtl_cmmt
+                     dtlbuff.dtl_qty_insp = insp_qty             /*02/08 jmh*/
+                     dtlbuff.dtl_rpt_req = temp_rpt_req
+                     dtlbuff.dtl_qty_ohstart = detail_wkfl.dtl_qty_ohstart
+                     dtlbuff.dtl_qty_short = avail_qty - temp_dtl_mrp_req[1]
+                     dtlbuff.dtl_qty_oth = detail_wkfl.dtl_qty_oth /*jmh 2/11*/
+                     dtlbuff.dtl_qty_flr = detail_wkfl.dtl_qty_flr /*jmh 2/11*/
+                     dtlbuff.dtl_mrp_req   = 0                  /*srr091206*/
+                     dtlbuff.dtl_track = detail_wkfl.dtl_track  /*TKT56428*/
+                     /*tkt26488 start*/
+                     dtlbuff.dtl_BF1 = detail_wkfl.dtl_BF1
+                     dtlbuff.dtl_JZ1 = detail_wkfl.dtl_JZ1
+                     dtlbuff.dtl_JZ2 = detail_wkfl.dtl_JZ2
+                     dtlbuff.dtl_JZ3 = detail_wkfl.dtl_JZ3
+                     dtlbuff.dtl_JZ4 = detail_wkfl.dtl_JZ4
+                     dtlbuff.dtl_JZ5 = detail_wkfl.dtl_JZ5
+                     dtlbuff.dtl_JZ6 = detail_wkfl.dtl_JZ6
+                     dtlbuff.dtl_JZ7 = detail_wkfl.dtl_JZ7
+                     dtlbuff.dtl_JZ8 = detail_wkfl.dtl_JZ8
+                     dtlbuff.dtl_JZ9 = detail_wkfl.dtl_JZ9           //TKT80902
+                     dtlbuff.dtl_Other = detail_wkfl.dtl_Other.
+                     /*tkt26488 end*/
+
+             i = 1.
+             do while i < 16:                       /*8    *srr081709*/
+                 assign dtlbuff.dtl_req[i] = temp_dtl_mrp_req[i]
+                       dtlbuff.dtl_mrp_req = dtlbuff.dtl_mrp_req + temp_dtl_mrp_req[i].
+
+                 if i > 1 and i <= short_wks then
+                     assign dtlbuff.dtl_qty_short = dtlbuff.dtl_qty_short - temp_dtl_mrp_req[i].
+
+                 i = i + 1.
+             end. /* i < 16 */
+         end. /* for each dtlbuff */
+
+         assign temp_dtl_mrp_req = 0
+                 temp_rpt_req = 0.
+
+     end. /* last-of (dtl_comp) */
+ end. /* for each detail_wkfl */
+
+
+ /********** Print shortages based on Sort By *****************/
+ if print_rpt                               /*tkt 29122*/
+   then do: 
+
+     /*** Sort by WK then Model ***/
+     if sort_order = "W" then do:
+ 
+     view frame pghdr1.                                           /*srr040506*/
+ 
+     for each mstr_wkfl no-lock,
+         each detail_wkfl where mstr_nbr  = dtl_nbr
+                       and mstr_line = dtl_line
+                       and mstr_part = dtl_part
+                       and dtl_qty_bal < 0
+                     no-lock break by mstr_wk_nbr
+                                   by mstr_rpt_date
+                                   by dtl_part
+                                   by mstr_line
+                                   by dtl_op                     /*dsj031306*/
+                                   by dtl_comp:
+ 
+             if sv_wo <> mstr_line then do:                       /*srr050406*/
+                 put skip(1).
+                 run rpt_display1_hdr.
+                 put skip(1).                                    /*srr040506*/
+                 dup_msg = no.
+             end.
+             if sum_dtl = "s" then do:
+               find first duplicate_table where dup_part =
+                           dtl_comp no-lock no-error.
+                 if not available duplicate_table
+                     then do:
+                         run rpt_display1.
+                         create duplicate_table.
+                         assign dup_part = dtl_comp.
+                     end.
+                 else
+                 if available duplicate_table and dup_msg = no
+                   then do:
+                     put "WO Contains one or more short P/N's previously listed"
+         /*'*/                       at 6.
+                     dup_msg = yes.
+                   end.
+               end.
+               else run rpt_display1.
+ 
+             sv_wo = mstr_line.                       /* from dtl_comp 050406*/
+         end. /* mstr_wkfl */
+   dup_msg = no.
+ 
+ end. /* sort_order "W" */
+ 
+ /*** Sort by Model ***/
+ if sort_order = "M" then do:
+     view frame pghdr_model.   /*2*/ /*srr112309*/              /*srr040506*/
+ 
+     for each mstr_wkfl no-lock,
+         each detail_wkfl where mstr_nbr  = dtl_nbr
+                       and mstr_line = dtl_line
+                       and mstr_part = dtl_part
+ /*srr040908*/         and dtl_qty_bal < 0
+                     no-lock break by mstr_part by mstr_line
+                                   by dtl_op                     /*dsj031306*/
+                                   by dtl_comp:
+                                     /* removed last-of(dtl_comp)    050406*/
+             if sv_wo <> mstr_line then do:                       /*srr050406*/
+                 put skip(1).
+                 dup_msg = no.
+             end.
+           if sum_dtl = "s" then do:
+ 
+               find first duplicate_table where dup_part =
+                           dtl_comp no-lock no-error.
+                 if not available duplicate_table
+                     then do:
+                         run   rpt_display_model.   /*2*/       /*srr112309*/
+                         create duplicate_table.
+                         assign dup_part = dtl_comp.
+                     end.
+                 else
+                 if available duplicate_table and dup_msg = no
+                   then do:
+                     put "WO Contains one or more short P/N's previously listed"
+               /*'*/            at 6.
+                     dup_msg = yes.
+                   end.
+               end.
+               else run rpt_display_model.   /*2*/                /*srr112309*/
+             sv_wo = mstr_line.                                   /*srr050406*/
+     end. /* mstr_wkfl */
+   dup_msg = no.
+ end. /* sort_order "M" */
+ 
+ /*** Sort By Product Line ***/
+ if sort_order = "P" then do:
+ view frame pghdr2.
+ 
+     for each mstr_wkfl no-lock,
+         each detail_wkfl where mstr_nbr  = dtl_nbr
+                       and mstr_line = dtl_line
+                       and mstr_part = dtl_part
+ /*srr040908*/         and dtl_qty_bal < 0
+                     no-lock break by mstr_prodln by mstr_part
+                                   by mstr_line
+                                   by dtl_op                     /*dsj031306*/
+                                   by dtl_comp:
+ 
+             if sv_wo <> mstr_line then do:                         /*srr050406*/
+                 put skip(1).
+                 run rpt_display1_hdr.
+                 put skip(1).                                    /*srr040506*/
+                 dup_msg = no.
+             end.
+           if sum_dtl = "s"
+             then do:
+
+                 find first duplicate_table where dup_part =
+                           dtl_comp no-lock no-error.
+                 if not available duplicate_table
+                     then do:
+                         run rpt_display2.
+                         create duplicate_table.
+                         assign dup_part = dtl_comp.
+                     end.
+                 else
+                 if available duplicate_table and dup_msg = no
+                   then do:
+                     put "WO Contains one or more short P/N's previously listed"
+                     /*'*/        at 6.
+                     dup_msg = yes.
+                   end.
+               end.
+               else run rpt_display2.
+ 
+             sv_wo = mstr_line.                                     /*srr050406*/
+     end.
+     dup_msg = no.
+ end. /* sort_order "P" */
+ 
+ /*** Sort by Buyer Name ***/
+ if sort_order = "B" then do:
+ 
+     if sum_dtl = "s" then
+       view frame pghdr2.       /*09/22/06 jmh */
+ 
+     for each mstr_wkfl no-lock,
+         each detail_wkfl where mstr_nbr = dtl_nbr
+                       and mstr_line = dtl_line
+                       and mstr_part = dtl_part
+ /*srr040908*/         and dtl_qty_bal < 0
+                     no-lock break by dtl_byr by dtl_comp
+                     by dtl_part by mstr_line:
+ 
+         if sum_dtl = "d"
+           then do:
+             run rpt_display.
+             if last-of(detail_wkfl.dtl_comp) then do:
+               if cmmts = yes then do:
+                   put dtl_cmmt at 29.
+               end. /* cmmts */
+           end.
+           end.
+         else do:
+             if sum_dtl = "s" and last-of (dtl_comp)
+               then do:
+                 dtl_qty = 0.
+                 run rpt_display2.
+               end.
+         end.
+     end. /* mstr_wkfl */
+ end. /* sort_order "B" */
+ 
+ /*** Sort By ABC by Component ***/
+ if sort_order = "A" then do:
+ 
+     if sum_dtl = "s" then view frame pghdr_abc.
+ 
+     for each mstr_wkfl no-lock,
+         each detail_wkfl where mstr_nbr = dtl_nbr
+                       and mstr_line = dtl_line
+                       and mstr_part = dtl_part
+ /*srr040908*/         and dtl_qty_bal < 0
+                     no-lock break by dtl_abc by dtl_comp
+                     by dtl_part by mstr_line:
+ 
+         if sum_dtl = "d" then do:
+             run rpt_display_abc.
+ 
+             if last-of(detail_wkfl.dtl_comp) then do:
+                 if cmmts = yes then do:
+                     put dtl_cmmt at 29.
+                 end. /* cmmts */
+             end.
+         end.
+         else do:
+             if sum_dtl = "s" and last-of (dtl_comp) then do:
+                 dtl_qty = 0.
+                 run rpt_display2.
+             end.
+         end.
+     end. /* mstr_wkfl */
+ end. /* sort_order "A" */
+ 
+ hide frame pghdr2.                                              /*srr040506*/
+ 
+ /*************************  WO with no shortages ******************/
+ 
+   down 1.
+   page.
+ 
+   display "WO with no shortages" at 1.
+ 
+   form
+   /*  priority_cd at 1   column-label "Pri"         tkt29319 */
+     mstr_nbr      at 5   column-label "W/O #" format "x(16)"
+     mstr_part     at 22  column-label "Build Part" format "x(16)"
+     mstr_demand_item at 42  column-label "MRP Demand Item" format "x(16)"
+     wo_qty_ord  at 59  column-label "Qty Ord"  format "->>>>>>"
+     wo_qty_comp at 67  column-label "Qty Comp"  Format "->>>>>>"
+     wo_qty_rjct at 75  column-label "Qty Scpd" format "->>>>>>"
+     open_ref    at 83  column-label " Open" format "->>>>>>"
+     mstr_due_date at 91  column-label "WO Due"
+     mstr_status   at 100 column-label "St"
+     wo_routing  at 103 column-label "WO Routing" format "x(16)"
+     new_bld     at 120 column-label "New"
+     mstr_rel_date   at 124 column-label "Release"
+ with frame sumonly width 132 no-box down.
+ 
+ for each mstr_wkfl no-lock,
+     each detail_wkfl where mstr_nbr = dtl_nbr
+                   and mstr_line = dtl_line
+                   and mstr_part = dtl_part
+                   and mstr_status <> "R" no-lock
+             break by mstr_rpt_date by mstr_line:
+ 
+     if dtl_qty_bal < 0 then short = yes.                       /*srr040208*/
+     if last-of(mstr_line) then do:
+         if short = no then do:
+ 
+           find first wo_mstr no-lock  where wo_mstr.wo_domain = global_domain
+           and  wo_nbr = dtl_nbr and wo_lot = dtl_line no-error.
+           
+           if available wo_mstr 
+               then do:
+                 womodel = wo_part.               /*32013*/
+                 open_ref = max(wo_qty_ord - wo_qty_comp - wo_qty_rjct,0).
+                 if wo_status = "C" then open_ref = 0.
+               end.
+               
+           find last tr_hist  where tr_hist.tr_domain = global_domain
+               and tr_part = womodel           /*32013*/
+               and tr_effdate > today - 730  /* tkt 36338 - 180 */
+               and (tr_type begins "RCT-" 
+                 or tr_type begins "ISS-")
+               /*tkt 36338 "WO-Close" */
+               no-lock no-error.
+           if available tr_hist then new_bld = "".
+                                 else new_bld = "Y".
+
+           
+           display
+         /*       priority_cd       tkt29319*/
+                 mstr_nbr
+                 mstr_part
+                 mstr_demand_item
+                 wo_mstr.wo_qty_ord  when available (wo_mstr)
+                 wo_mstr.wo_qty_comp when available (wo_mstr)
+                 wo_mstr.wo_qty_rjct when available (wo_mstr)
+                 open_ref
+                 mstr_due_date
+                 mstr_status
+                 wo_mstr.wo_routing when available (wo_mstr)
+                 new_bld
+                 mstr_rel_date
+             with frame sumonly width 132 down.
+             down 1 with frame sumonly.
+ 
+         end. /*if short=no */
+         short = no.
+     end. /*last-of */
+ end.
+ 
+ down 1.
+ page.
+ 
+ display "Inventory in Not Available Locations" at 1.
+ for each detail_wkfl where dtl_qty_bal < 0
+       and (dtl_qty_tran <> 0 or dtl_qty_insp <> 0)
+       no-lock break by dtl_comp:
+ 
+     if first-of (dtl_comp) then
+     for each   ld_det where ld_det.ld_domain = global_domain
+                           and (ld_status = "tran"               /*dsj061108*/
+                           or  ld_status = "inspect"           /*dsj061108*/
+                           or ld_status = "ncminsp")            /*csr 2200*/
+                           and ld_part = dtl_comp
+                           and ld_site = site1
+                         no-lock break by ld_part by ld_loc      /*dsj061108*/
+                                       by ld_status:
+ 
+             if first-of(ld_loc) and ld_qty_oh <> 0
+             then display ld_part ld_loc ld_lot ld_status ld_qty_oh.
+ 
+         end. /* each ld_det */
+     end. /* each mstr_wkfl */
+
+     down 1.
+ 
+     display "Inventory in Consignment Locations" at 1.
+     for each detail_wkfl where dtl_qty_bal < 0
+                         no-lock break by dtl_comp:
+ 
+         if first-of (dtl_comp) then
+         for each ld_det where ld_det.ld_domain = global_domain
+                           and ld_status = "CONSIGN"             /*srr061510*/
+                           and ld_part = dtl_comp
+                           and ld_site = site1
+                         no-lock break by ld_part by ld_loc      /*dsj061108*/
+                                       by ld_status
+                         with frame consgn width 132 down:    
+ 
+         if ld_qty_oh <> 0
+             then display ld_part ld_loc ld_lot ld_status 
+                         ld_qty_oh with frame consgn width 132.
+ 
+         end. /* each ld_det */
+     end. /* each mstr_wkfl */
+ 
+ display "Inventory Expiring or Expired" at 1.
+     for each detail_wkfl where dtl_exp_parts = yes
+                         no-lock break by dtl_comp:
+ 
+         if first-of (dtl_comp) then
+         for each ld_det where ld_det.ld_domain = global_domain
+                           and ld_part = dtl_comp
+                           and ld_site = site1
+                           and ld_expire <= (today + temp_iss_days)
+                         no-lock break by ld_part by ld_loc
+                                       by ld_status
+         with frame expired width 132 down:
+ 
+         display ld_part ld_loc ld_lot ld_status 
+             ld_qty_oh ld_expire with frame expired width 132.
+ 
+         end. /* each ld_det */
+     end. /* each mstr_wkfl */
+ 
+     down 1.
+     page.
+     display "Component Shortage Summary" at 1.
+     for each detail_wkfl where dtl_qty_bal < 0
+                     no-lock break by dtl_comp
+                     by dtl_qty_bal desc
+                     with frame cshort width 132 down:
+ 
+         if first-of(dtl_comp) then do:
+             find mstr_wkfl where mstr_nbr = dtl_nbr
+                             and mstr_line = dtl_line
+                             and mstr_part = dtl_part no-lock no-error.
+             assign req_qty     = mstr_qty
+                   demand_item = mstr_demand_item
+                   sodprice    = 0
+                   stdcost     = no.
+ 
+             for each sod_det where sod_domain = global_domain
+                               and sod_part   = demand_item
+                               and (sod_qty_ord - sod_qty_ship) > 0 no-lock
+                     break by sod_due_date:
+                 assign req_qty  = sod_qty_ord - sod_qty_ship
+                       sodprice = sod_price * req_qty.
+                 leave.
+             end.
+             if not available sod_det then
+                 for each sod_det where sod_domain = global_domain
+                                   and sod_nbr    = demand_item
+                                   and sod_part   = dtl_part
+                                   and (sod_qty_ord - sod_qty_ship) > 0 no-lock
+                     break by sod_due_date:
+                     assign demand_item = dtl_part
+                           req_qty     = sod_qty_ord - sod_qty_ship
+                           sodprice    = sod_price * req_qty.
+                     leave.
+                 end.
+             if not available sod_det then do:
+                 find first sct_det where sct_domain = global_domain
+                                     and sct_part = mstr_demand_item 
+                                     and sct_sim  = "standard"
+                                     and sct_site = site1 no-lock no-error.
+                 if available sct_det then 
+                     assign stdcost     = yes
+                           demand_item = mstr_demand_item
+                           sodprice    = sct_cst_tot * req_qty.
+             end. /*sod_det */
+ 
+         end. /*first-of(dtl_comp)*/
+ 
+         if last-of(dtl_comp) then do:
+ 
+             find first pt_mstr where pt_domain = global_domain
+                                 and pt_part    = dtl_comp no-lock no-error.
+ 
+             display "*" when (dtl_qty_tran <> 0 or dtl_qty_insp <> 0)
+                     "C" when (stdcost = yes)
+                     dtl_comp
+                     pt_desc1 format "x(15)"
+                     pt_pm_code  format "x(2)"     column-label "P/M"                      
+                     demand_item format "x(18)"    column-label "Demand Item"
+                     sodprice    format ">>>>>>9"   column-label "Revenue!Risk" 
+                     dtl_byr     format "x(3)"     column-label "B/P"
+                     dtl_feed    format "x(2)"     column-label "FD"
+                     dtl_qty_bal format "->>>>>>9"  label "Short Qty"
+                     dtl_cmmt    format "x(44)"    label "Comments"  
+             with frame cshort.
+ 
+         end. /* first-of(dtl_comp) */
+     end. /*each det_wkfl*/
+ end. /* print_rpt = yes */
+ 
+ if email_buyers then run sendBuyerEmails.                       /*srr030306*/
+ if email_mstr then run sendMstrEmails.
+ 
+ 
+ /* cleanup */
+ for each detail_wkfl:
+     delete detail_wkfl.
+ end.
+ for each mstr_wkfl:
+     delete mstr_wkfl.
+ end.
+
+ {us/mf/mfrpexit.i}
+ {us/mf/mfrtrail.i}
+
+END.  /*End Repeat Loop*/                                       /*cjw071013*/
+
+procedure add_floor_wkfl:
+for each dtlbuff where dtlbuff.dtl_comp = detail_wkfl.dtl_comp:
+  create floor_stock.
+  assign floor_part = dtlbuff.dtl_comp
+         floor_woid = dtlbuff.dtl_line
+         floor_wk = dtlbuff.dtl_wk
+         floor_qty_per = dtlbuff.dtl_qty_per
+         floor_qty = dtlbuff.dtl_qty
+         floor_wo = dtlbuff.dtl_nbr.
+         
+end.
+end procedure.
+
+procedure delete_detail_wkfl:
+for each dtlbuff where dtlbuff.dtl_comp = detail_wkfl.dtl_comp:
+  delete dtlbuff.
+end.
+end procedure.
+
+procedure rpt_display:
+/* Used by Sort By: B  */
+ form header
+     skip(1)
+     "Wk" at 1
+     "WO ID" at 4
+     "Model #" at 13 /*23*/
+     "Part #" at 34  /*44*/
+     "FD" at 53     /*63*/
+     "B/P" at 57     /*67*/
+     "Buyer" at 61   /*71*/
+     "ABC" at 70     /*80*/
+     "Op" to 77      /*87*/
+     "Tot Req" to 88 /*98*/
+     "QOH" to 99     /*109*/
+     "Not Avl" to 110   /*120*/
+     "Non-Net" to 120
+     "Short" to 131
+     "--" at 1
+     "--------" at 4
+     "------------------" at 13
+     "-" at 32
+     "------------------" at 34
+     "---" at 53
+     "---" at 57
+     "--------" at 61
+     "---" at 70
+     "---" to 77
+     "----------" to 88
+     "----------" to 99
+     "----------" to 110
+     "---------" to 120
+     "----------" to 131
+ with frame pghdr page-top down width 132 no-box no-labels.
+ view frame pghdr.
+
+ if sum_dtl = "D" then
+     put mstr_wkfl.mstr_wk_nbr at 1
+         mstr_line at 4
+         detail_wkfl.dtl_part at 13
+         mstr_wkfl.mstr_status at 32.
+
+ if mrp_requirements = yes
+    then display_req = dtl_mrp_req.
+    else display_req = dtl_rpt_req.
+
+  put
+     detail_wkfl.dtl_comp at 34
+     detail_wkfl.dtl_feed format "x(3)" at 53
+     dtl_byr format "x(04)" at 57
+     dtl_buyer format "x(8)" at 61
+     dtl_abc format "x(01)" at 71
+     dtl_op to 77  format ">>9"
+     display_req format "->>>>>9.99" to 88
+     dtl_qty_oh format "->>>>>>9.99" to 99
+     (dtl_qty_tran + dtl_qty_insp + dtl_qty_expire
+         + dtl_qty_ncm )  format "->>>>>9" to 110  
+     dtl_qty_nonet  format "->>>>>9" to 120                /*srr081106*/
+     dtl_qty_bal format "->>>>>9.99" to 131.             /*srr041508*/
+
+ if dtl_qty_expire > 0 then
+    put "*** Expired Inventory exists - please review " at 10.
+
+end procedure. /* rpt_display */
+
+procedure rpt_display1_hdr:
+/* Used by Sort By:  W & P (not M, as of 112309)*/
+
+ find first wo_mstr  where wo_mstr.wo_domain = global_domain 
+    and  wo_nbr = mstr_wkfl.mstr_nbr
+    and wo_lot = mstr_wkfl.mstr_line no-lock no-error.
+
+                                                   /*tkt35788 begin add*/
+  find first pt_mstr where pt_domain = global_domain
+                       and pt_part = detail_wkfl.dtl_part
+                       no-lock no-error.
+     if available pt_mstr then                  
+     find qad_wkfl where qad_wkfl.qad_domain = global_domain 
+                          and qad_key1 = "PT_STATUS" 
+                          and qad_key2 = pt_status
+                          no-error.
+        if available qad_wkfl then stat_det = qad_charfld[1].    
+                                                   /*tkt35788 end add*/
+ put mstr_wkfl.mstr_wk_nbr  at 1
+     mstr_wkfl.mstr_status  at 4
+     mstr_line              at 6
+         "P/N: " at 22               /* WO P/N srr050306*/
+         detail_wkfl.dtl_part     at 27
+         "ST: " at 47                    /*tkt35788*/
+         stat_det at 51                  /*tkt35788*/
+         "Demand: " at 55    /*47 tkt35788*/
+         mstr_demand_item         at 65    /*57 tkt35788*/
+         "IOS: " at 84                /*76 tkt35788*/ /*tkt35788 was cust*/
+         mstr_ios  at 90    /*82 tkt35788*/           /*tkt35788 was cust*/
+         "Qty: " at  98    
+         mstr_qty              to  110 format "->>>>>9"      
+         "Due: " at 112
+         string(wo_due_date,"99/99/99") format "x(5)" at 117
+         "Rel: " at 123
+         string(wo_rel_date,"99/99/99") format "x(5)" at 128.
+
+end procedure. /* rpt_display1_hdr */
+
+procedure rpt_display_hdr_model:
+/* Used by Sort By:  M */
+
+ find first wo_mstr  where wo_mstr.wo_domain = global_domain 
+   and  wo_nbr = mstr_wkfl.mstr_nbr
+   and wo_lot = mstr_wkfl.mstr_line no-lock no-error.
+
+ put mstr_wkfl.mstr_wk_nbr  at 1
+     mstr_wkfl.mstr_status  at 4
+     mstr_line              at 6
+         "P/N: " at 22               /* WO P/N srr050306*/
+         detail_wkfl.dtl_part     at 27
+         "Cust: " at 76
+         mstr_cust            at 82     format "x(15)"  /* was 19 */
+         "Qty: " at  98
+         mstr_qty              to  110 format "->>>>>9"
+         "Due: " at 112
+         string(wo_due_date,"99/99/99") format "x(5)" at 117.
+
+end procedure. /* rpt_display_hdr_model */
+
+procedure rpt_display1:
+ /* Used by Sort By:  W  */
+
+ if mrp_requirements = yes then
+      display_req = detail_wkfl.dtl_mrp_req.
+ else display_req = detail_wkfl.dtl_rpt_req.
+
+ find first pt_mstr where pt_domain = global_domain
+    and pt_part = dtl_comp no-lock no-error.
+       find first pod_det no-lock where pod_domain = global_domain 
+              and pod_part = detail_wkfl.dtl_comp 
+              and (pod_site = site1 or site1 = "")
+              and not pod_sched
+              and (pod_status <> "c" and pod_status <> "x" ) 
+              use-index pod_partdue no-error.            /*srr041008*/
+
+    if available pod_det 
+      then do:
+         find first po_mstr no-lock where po_domain = global_domain
+             and po_nbr = pod_nbr no-error.
+
+           assign zdue_date = pod_due_date
+                  zopen_ref = pod_qty_ord - pod_qty_rcvd
+                  zsupplier = po_vend when available(po_mstr).
+      end.
+    else do:
+         assign zdue_date = ?
+                zopen_ref = 0.
+      end.
+
+
+ 
+ put dtl_abc at 4 format "x(1)"
+     detail_wkfl.dtl_comp at 6
+     pt_desc1        at 26 format "x(12)"
+     dtl_byr         at 39 format "x(3)"
+     dtl_feed        at 43 format "x(3)"
+     dtl_op          at 46 format ">>9"
+     dtl_qty         at 51 format "->>>>>9"
+     display_req     at 60 format "->>>>>9".
+
+ if sum_dtl = "s" then put                                   /*srr042608*/
+     dtl_qty_ohstart      at 69 format "->>>>>9"             /* jmh 02/08 */
+     (dtl_qty_tran + dtl_qty_insp + dtl_qty_expire
+        + dtl_qty_ncm )      /*csr 1805 & csr 2200*/
+          at 78 format "->>>>>9"    /* jmh 02/08 */
+     dtl_qty_short   at 86 format "->>>>>9".                 /* jmh 02/08 */
+ else put                                                    /*srr042608*/
+     dtl_qty_oh      at 69 format "->>>>>9"                  /* jmh 02/08 */
+     (dtl_qty_tran + dtl_qty_insp + dtl_qty_expire
+        + dtl_qty_ncm ) /*csr 1805 & csr 2200*/
+        at 78 format "->>>>>9"    /* jmh 02/08 */
+     dtl_qty_bal at 86 format "->>>>>>9".                     /*srr041508*/
+
+ if cmmts = yes then do:
+         put dtl_cmmt at 94 format "x(38)".     /*02/08 jmh*/
+       
+   if zopen_ref > 0 then 
+   put "PO Due: " at 10 
+       zdue_date at 19
+        "Open Qty: " at 30
+       zopen_ref at 40
+        "Supplier: " at 55
+       zsupplier at 65.
+   
+ end. /* cmmts */
+
+                                                    /*csr 1805*/
+  if dtl_qty_expire > 0 then
+    put "*** Expired Inventory exists - please review " at 10.
+
+  run showPCO.
+
+end procedure. /* rpt_display1 */
+
+
+procedure rpt_display2:
+/*  Used by Sort By:  P, B (not M, as of 112309) */
+ if mrp_requirements = yes
+    then display_req = detail_wkfl.dtl_mrp_req.
+    else display_req = detail_wkfl.dtl_rpt_req.
+
+ find first pt_mstr  where pt_mstr.pt_domain = global_domain and  pt_part =
+ dtl_comp no-lock no-error.
+
+ find first sct_det  where sct_det.sct_domain = global_domain 
+    and  sct_part = dtl_comp     
+    and sct_sim = "standard"
+    and sct_site = site1 no-lock no-error.   /*srr042608*/
+ 
+ if available sct_det then do:                                 /*srr042608*/
+    if sum_dtl = "s" then
+       short_cost = (dtl_qty_short * sct_cst_tot)  * -1.
+    else
+       short_cost = (dtl_qty_bal * sct_cst_tot)    * -1.
+ end.
+ else short_cost = 0.
+
+ if sort_order = "A" then put detail_wkfl.dtl_abc at 1.        /*dsj102406*/
+                     else put detail_wkfl.dtl_abc at 4 format "x(1)".
+ put
+
+     detail_wkfl.dtl_comp     at 6
+     pt_desc1            at 26 format "x(12)"
+     dtl_byr             at 39 format "x(3)"
+     dtl_feed            at 43 format "x(3)"
+     display_req         at 47  format "->>>>>9"
+                                                             /*02/08 jmh*/
+     (dtl_qty_tran + dtl_qty_insp + dtl_qty_expire
+      + dtl_qty_ncm) /*csr 1805 & csr 2200*/
+         at 56 format "->>>>>9".    /*srr100306*/
+
+ if sum_dtl = "s" then put                                   /*srr042608*/
+     dtl_qty_short   at 65 format "->>>>>9"                  /*srr041508*/
+         short_cost      at 72 format "->>>>>9.99".   /*09/22/06 jmh */
+ else put                                                    /*srr042608*/
+     dtl_qty_bal   at 65 format "->>>>>9"                    /*srr041508*/
+         short_cost      at 72 format "->>>>>9.99".   /*09/22/06 jmh */
+
+ if cmmts = yes then do:
+      put dtl_cmmt at 86 format "x(47)".            /*srr040506*/
+
+ end. /* cmmts */
+
+                                                    /*csr 1805*/
+ if dtl_qty_expire > 0 then
+    put "*** Expired Inventory exists - please review " at 10.
+
+  run showPCO.                                             /*srr050206*/
+
+end procedure. /* rpt_display2 */
+
+procedure rpt_display_model:
+/* Used by Sort By:  M */
+
+ find first wo_mstr  where wo_mstr.wo_domain = global_domain 
+    and  wo_nbr = mstr_wkfl.mstr_nbr
+    and wo_lot = mstr_wkfl.mstr_line no-lock no-error.
+
+ if mrp_requirements = yes
+    then display_req = detail_wkfl.dtl_mrp_req.
+    else display_req = detail_wkfl.dtl_rpt_req.
+
+ find first pt_mstr  where pt_mstr.pt_domain = global_domain 
+    and  pt_part = dtl_comp no-lock no-error.
+
+
+ put mstr_wkfl.mstr_wk_nbr  at 1
+     mstr_wkfl.mstr_status  at 4
+     mstr_line              at 6
+     detail_wkfl.dtl_part   at 16
+     mstr_cust              at 34     format "x(15)"  /* was 19 */
+     mstr_qty               to 56 format "->>>>>9"
+     string(wo_due_date,"99/99/99") format "x(5)" at 58
+     detail_wkfl.dtl_comp   at 64
+     pt_desc1               at 74 format "x(24)"
+     display_req            to 120  format "->>>>>9".
+
+end. /* rpt_display_model */
+
+procedure rpt_display_abc:
+/* Used by Sort By:  A */
+
+ form header
+     "ABC"       at 1
+     "WO ID"     at 5
+     "Model #"   at 14
+     "Part #"    at 35
+     "Feed"      at 54
+     "B/P"       at 59
+     "Buyer"     at 63
+     "Op"        to 74
+     "Tot Req"   to 85
+     "QOH"       to 96
+     "Not Avl"      to 107
+     "Non-Net"   to 117
+     "Short"     to 128
+     "---"                   at 1
+     "--------"              at 5
+     "------------------"    at 14
+     "-"                     at 33
+     "------------------"    at 35
+     "----"                  at 54
+     "---"                   at 59
+     "--------"              at 63
+     "---"                   to 74
+     "----------"            to 85
+     "----------"            to 96
+     "----------"            to 107
+     "---------"             to 117
+     "----------"            to 128
+ with frame pghdr page-top down width 132 no-box no-labels.
+ view frame pghdr.
+
+ if sum_dtl = "D" then
+     put detail_wkfl.dtl_abc      at 2 format "x(1)"
+         mstr_wkfl.mstr_line    at 5
+         detail_wkfl.dtl_part     at 14
+         mstr_wkfl.mstr_status  at 33.
+
+ if mrp_requirements = yes then
+      display_req = dtl_mrp_req.
+ else display_req = dtl_rpt_req.
+
+ put detail_wkfl.dtl_comp at 35
+     detail_wkfl.dtl_feed at 54  format "x(3)"        /*cjw072911*/
+     dtl_byr         at 59  format "x(4)"
+     dtl_buyer       at 63  format "x(8)"
+     dtl_op          to 74  format ">>9"
+     display_req     to 85  format "->>>>>9.99"
+     dtl_qty_oh      to 96  format "->>>>>>9.99"
+     (dtl_qty_tran + dtl_qty_insp + dtl_qty_expire
+       + dtl_qty_ncm ) /* csr 1805 & csr 2200*/
+         to 107 format "->>>>>9"  /*02/08 jmh*/
+     dtl_qty_nonet     to 117 format "->>>>>9"
+     dtl_qty_bal     to 128 format "->>>>>>9.99".    /*srr041508 *short*/
+
+end procedure. /* rpt_display_abc */
+
+procedure sendBuyerEmails:
+
+ def var rpt_userid as char.
+ def var buyer_email as char.
+ def var subject as char.
+ def var tab as char.
+
+ def var sendaddress like eaddress.
+ def var bodyfile as char init "body.txt".
+ def var attachfile as char.
+ def var strdir as char.
+
+ tab = chr(9).
+ strdir = "/users/" + global_userid + "/".
+
+ if batchrun
+   then do:
+
+         rpt_userid = trim(report_userid).
+         strdir = "/users/ktcbatch/".
+    end.
+ else rpt_userid = trim(global_userid).
+
+ eaddress = trim(rpt_userid) + "@keytronic.com".
+ bodyfile = strdir + bodyfile.
+
+ for each detail_wkfl where
+                 dtl_qty_bal < 0                   /*srr041508 *short*/
+                 no-lock break
+                   by dtl_buyer
+                   by dtl_comp
+                   by dtl_qty_bal:    /*srr072908* by dtl_wk by dtl_part */ 
+
+     date_code = string(year(today)) + string(month(today), "99") +
+                 string(day(today), "99").
+
+     buyer_email = trim(dtl_buyer) + "@keytronic.com".
+     if trim(dtl_buyer) = "" then do:
+         attachfile = strdir + "unknownbuyer" + date_code + ".txt".
+     end.
+     else do:
+         attachfile = strdir + trim(dtl_buyer) + date_code + ".txt".
+     end.
+
+     subject = "~"" + esubject + trim(dtl_buyer) +
+               " on " + string(today) + "~"".
+
+     /* Create email attachment */
+     if first-of(dtl_buyer) then do:
+             output to value(bodyfile + ".temp").
+             put skip(1)
+                 "Parts issues report contains parts that are past due"
+                 " for kit week and may contain parts that are due the"
+                 " current week."
+                 skip(1)
+              "Report is generated for Buyer Name then Buyer/Plnr"
+              " code.  If you receive a Buyer/Plnr code that you"
+              " do not manage, please contact purchasing admin immediately."
+                 skip(1)
+                 "Please review then update comments in 23.23.23"
+                 skip(1).
+
+             Put unformatted
+                 "See the attached file." skip(1).
+             output close.
+             output to value(attachfile + ".temp").
+
+             put unformatted
+                 skip
+                 "Part #" ztab /*at 1*/
+                 "Desc" ztab     /*srr072908*/
+                 "B/P" ztab /*at 24*/
+                 "Buyer" ztab /*at 28*/
+                 "Short Qty" ztab     /*srr072908*/
+                 "Tran" ztab
+                 "Insp" ztab
+                 "Non Net" ztab
+                 "Comments" ztab     /*srr072908*/
+                 "Expire Qty" ztab  /*csr 1805*/
+                 "NCM Insp" ztab  /*csr 2200*/
+                 skip.
+
+     end. /* first-of(dtl_buyer) */
+
+ if first-of(dtl_comp)
+  then do:
+
+         find first pt_mstr where pt_domain = global_domain
+                             and pt_part    = dtl_comp no-lock no-error.
+
+         put unformatted 
+                 detail_wkfl.dtl_comp ztab /*at 1*/
+                 pt_desc1          ztab
+                 dtl_byr           ztab /*at 24*/
+                 dtl_buyer         ztab /*at 28*/
+                 int(dtl_qty_bal)  ztab
+                 int(dtl_qty_tran) ztab 
+                 int(dtl_qty_insp) ztab 
+                 int(dtl_qty_nonet)  ztab 
+                 dtl_cmmt format "x(50)" ztab
+                 int(dtl_qty_expire) ztab        /*csr 1805*/
+                 int(dtl_qty_insp) ztab       /*csr 2200*/
+                 skip.
+
+ end.
+
+ if last-of(dtl_buyer) then do:
+     output close. /* close output file */
+
+         /* Convert bodyfile to DOS format */
+         /* set ux2dos on one line                           **cjw082112*/
+         unix silent unix2dos -q -n value(bodyfile + ".temp")  
+            value(bodyfile).
+         unix silent rm value(bodyfile + ".temp").
+
+         /* Convert attachfile to DOS format */
+         /* set ux2dos on one line                           **cjw082112*/
+         unix silent unix2dos -q -n value(attachfile + ".temp") 
+            value(attachfile).
+         unix silent rm value(attachfile + ".temp").
+
+         /* Send email if valid */                   /*04/06 jmh*/
+         if evalemail(buyer_email) = yes then
+             sendaddress = buyer_email.
+         else
+             sendaddress = eaddress.
+
+/*testing!*
+*       subject = "~"Parts Issues Report for " + sendaddress + "~"".
+*       sendaddress = "srobinso@keytronic.com".
+*/ 
+         unix silent value("/apps/job/sendMail.p")
+                     value(eaddress)
+                     value(sendaddress) value(subject)
+                     value(bodyfile) value(attachfile).
+         /*Delete the files*/
+         os-delete value(bodyfile).
+         os-delete value(attachfile).
+
+     end. /* last-of(dtl_buyer)  */
+
+ end. /* for each */
+
+end procedure. /* sendBuyerEmails */
+
+procedure sendMstrEmails:
+
+ def var rpt_userid as char.
+ def var buyer_email as char.
+ def var subject as char.
+ def var tab as char.
+
+ def var sendaddress like eaddress.
+ def var bodyfile as char init "body.txt".
+ def var attachfile as char.
+ def var attachfile2 as char.                             /*srr040108*/
+ def var attachfile3 as char.
+ def var attachfile4 as char.
+ def var attachfile5 as char.
+ def var attachfile6 as char.
+ def var attachfile7 as char.
+ def var strdir as char.
+
+  //TKT12579 add dropbox dir
+  def var dropboxfile2 as char.
+  def var dropboxdir as char.
+  dropboxdir = "/dropbox/" + global_userid + "/".
+ 
+//TKT08328// def var dropboxdir as char. //srr0515
+
+ tab = chr(9).
+ strdir = "/users/" + global_userid + "/".
+ //TKT08328// dropboxdir = "/dropbox/" + global_userid + "/".    //srr0515
+
+ if batchrun
+   then do:
+         rpt_userid = trim(report_userid).
+         strdir = "/users/ktcbatch/".
+         //TKT08328 //TKT15727 send to users dropbox
+         dropboxdir = "/dropbox/" + rpt_userid + "/".    //srr0515
+    end.
+ else rpt_userid = trim(global_userid).
+
+ eaddress = trim(rpt_userid) + "@keytronic.com".
+ bodyfile = strdir + bodyfile.
+
+ /*TKT03625 Begin Add*/
+ for each mstr_wkfl exclusive-lock where can-find(first detail_wkfl where dtl_line = mstr_line
+    and dtl_nbr = mstr_nbr and dtl_qty_bal < 0)
+ break by mstr_demand_item:
+     if first-of(mstr_demand_item) then do:
+         demand_item = ''.
+         find first mrp_det no-lock where mrp_domain = global_domain
+             and mrp_nbr = mstr_demand_item 
+             //and mrp_site = site1 
+             no-error.
+         if available mrp_det then
+             assign mstr_model = mrp_part
+                    demand_item = mrp_part.
+         else assign mstr_model = mstr_demand_item
+                     demand_item = mstr_demand_item.
+     end.
+     else assign mstr_model = demand_item.
+   end.
+ /*TKT03625 End Add*/
+
+ //srr0515 move from within for each loop below srr0904    
+ date_code = string(year(today)) + string(month(today), "99") +
+             string(day(today), "99").
+//srr0515
+//TKT08328// + "_" + string(time, "99999").
+
+ for each detail_wkfl where
+                 dtl_qty_bal < 0                /*srr041508   *short*/
+                 no-lock break
+                   by dtl_comp
+                   by dtl_qty_bal desc:                      /*srr081709*/
+
+     buyer_email = trim(rpt_userid) + "@keytronic.com".
+     attachfile = strdir + "buyersummary" + date_code + ".txt".
+     attachfile2 = strdir + "planner" + date_code + ".txt".  /*srr040108*/
+     attachfile3 = strdir + "MaterialPull" + date_code + ".txt".
+     attachfile4 = strdir + "PartLocIssues" + date_code + ".txt".
+     attachfile5 = strdir + "RevenueRisk" + date_code + ".txt".
+     attachfile6 = strdir + "OKToKitWO" + date_code + ".txt".
+     attachfile7 = strdir + "FloorStk" + date_code + ".txt".  /*tkt29122*/
+
+
+     subject = "~"" + esubject + " All Buyers"  +
+               " on " + string(today) + "~"".
+
+     /* Create email attachment */
+     if first (dtl_comp) 
+       then do:
+             output to value(bodyfile + ".temp").
+             put skip(1)
+                "This is a master parts issues report. It contains parts"
+                 " that are past due for WO's within the parameters run." 
+     /*'*/       skip(1)
+                 skip(1)
+                 "Please review then update comments in 23.23.23"
+                 skip(1).
+
+             Put unformatted
+                 "See the attached files." skip(1).
+             output close.
+             output to value(attachfile + ".temp").
+
+             put unformatted
+                 skip
+                 "ABC" ztab
+                 "Part #" ztab
+                 "RHS" ztab
+                 "Desc" ztab 
+                 "B/P" ztab
+                 "Buyer" ztab
+                 "Feed"  ztab
+                 "Cust"  ztab
+                 "Model" ztab
+                 "Tot Req" ztab
+                 "QOH" ztab
+                 "Short" ztab
+                 "Tran" ztab
+                 "Insp" ztab
+                 "Non Net" ztab
+                 "Supplier Name" ztab
+                 "Rcp Date" ztab
+                 "Rcp Qty" ztab
+                 "PO Due" ztab
+                 "Qty Open" ztab
+                 "Comments" ztab
+                 "  WK " + string(flweek[1], "99") ztab
+                 "  WK " + string(flweek[2], "99") ztab
+                 "  WK " + string(flweek[3], "99") ztab
+                 "Feed Qty" ztab
+                 "Feed Date" ztab
+                 "Expire Qty" ztab         /*csr 1805*/
+                 "NCM Insp" ztab           /*csr 2200*/
+                 "Substitute Part(s)" ztab                   /*TKT53716*/
+                 "Tracking Info" ztab                        /*TKT56428*/
+                 skip.
+     end. /* first(dtl_comp) */
+
+    if last-of(dtl_comp)  
+    then do:
+
+       if mrp_requirements = yes
+         then display_req = dtl_mrp_req.
+         else display_req = dtl_rpt_req.
+
+      find first pt_mstr where pt_domain = global_domain and 
+            pt_part = dtl_comp no-lock no-error.
+
+      find last prh_hist no-lock where prh_domain = global_domain 
+             and prh_part   = detail_wkfl.dtl_comp no-error.
+
+      if available prh_hist 
+         then assign zrcp_date = prh_rcp_date
+                     zrcp_qty  = prh_rcvd * prh_um_conv
+                     zsupplier = prh_vend.
+         else assign zrcp_date = ?
+                     zrcp_qty  = 0
+                     zsupplier = "". 
+                                           /*srr041008* last*/
+      find first pod_det no-lock where pod_domain = global_domain 
+              and pod_part = detail_wkfl.dtl_comp 
+              and (pod_site = site1 or site1 = "")
+              and not pod_sched
+              and (pod_status <> "c" and pod_status <> "x" ) 
+              use-index pod_partdue no-error.            /*srr041008*/
+
+    if available pod_det 
+      then do:
+         find first po_mstr no-lock where po_domain = global_domain
+             and po_nbr = pod_nbr no-error.
+
+           assign zdue_date = pod_due_date
+                  zopen_ref = pod_qty_ord - pod_qty_rcvd
+                  zsupplier = po_vend when available(po_mstr).
+      end.
+    else do:
+         assign zdue_date = ?
+                zopen_ref = 0.
+      end.
+
+     find first ad_mstr no-lock where ad_domain = global_domain 
+           and ad_addr = zsupplier no-error.
+
+     assign zsupp_name = ad_name when available(ad_mstr).
+ 
+     find first mstr_wkfl no-lock where mstr_line = dtl_line
+        and dtl_nbr = mstr_nbr no-error.
+
+     /*TKT53719*/
+/*        find first usrw_wkfl where usrw_domain = global_domain
+*          and usrw_key1 = "feed_audit"
+*          and usrw_key4 = dtl_comp no-lock no-error.   */
+
+/*TKT03625 moved outside this loop *
+*       find first mrp_det where mrp_domain = global_domain
+*                            and mrp_nbr = mstr_demand_item
+*                no-lock no-error.
+*       if available mrp_det then demand_item = mrp_part.
+*                            else demand_item = mstr_demand_item.
+*/
+
+/*TKT53716 - begin add*/
+     sub_parts = "".
+     for each pts_det no-lock where pts_domain = global_domain /*TKT03625 add no-lock*/
+                        and pts_part = detail_wkfl.dtl_comp
+                        and (pts_par = "" or pts_par = demand_item)
+     break by pts_sub_part:
+
+         if first(pts_sub_part) then sub_parts = pts_sub_part.
+         else sub_parts = sub_parts + ", " + pts_sub_part.
+
+     end. /* each pts_det */ 
+/*TKT53716 - end add*/ 
+
+     put unformatted
+         pt_abc ztab 
+         detail_wkfl.dtl_comp ztab 
+         detail_wkfl.dtl_rohs ztab 
+         pt_desc1 ztab 
+         dtl_byr ztab 
+         dtl_buyer ztab
+         dtl_feed ztab 
+         /* mstr_cust*/  mstr_ios ztab    /*46728*/
+         mstr_model  ztab  /*TKT03625 demand_item*/              
+         int(display_req)  ztab
+         int(dtl_qty_ohstart)   ztab 
+         int(dtl_qty_bal) ztab 
+         int(dtl_qty_tran)  ztab 
+         int(dtl_qty_insp) ztab 
+         int(dtl_qty_nonet)   ztab 
+         zsupp_name ztab 
+         zrcp_date  ztab 
+         int(zrcp_qty)  ztab 
+         zdue_date  ztab 
+         int(zopen_ref)  ztab  
+         dtl_cmmt ztAB
+         int(dtl_req[1]) ztab
+         int(dtl_req[2]) ztab       
+         int(dtl_req[3]) ztab.
+
+     /*TKT53719*/
+/*        if available usrw_wkfl then put unformatted
+*           usrw_decfld[1]  ztab
+*           usrw_datefld[1] ztab
+*           dtl_qty_expire ztab   /*csr 1805*/
+*           dtl_qty_ncm ztab      /*csr 2200*/
+*           sub_parts ztab                              /*TKT53716*/
+*           skip. 
+*       else */ put unformatted 
+            ztab ztab                   /*csr 1805*/
+            dtl_qty_expire ztab
+            dtl_qty_ncm  ztab           /*csr 2200*/
+            sub_parts ztab                           /*TKT53716*/
+            dtl_track ztab                           /*TKT56428*/
+            skip.
+
+ end.
+
+
+ if last (dtl_comp) 
+   then do:
+         output close. /* close output file */
+
+          unix silent unix2dos -q -n value(bodyfile + ".temp")  
+             value(bodyfile).
+          unix silent rm value(bodyfile + ".temp").
+
+         unix silent unix2dos -q -n value(attachfile + ".temp")  
+            value(attachfile).
+      /*   unix silent rm value(attachfile + ".temp").    */
+     
+         run PlannerFile( attachfile2 ).        /*srr040108*/
+         unix silent unix2dos -q -n value(attachfile2 + ".temp")  
+             value(attachfile2).
+         unix silent rm value(attachfile2 + ".temp").
+
+
+         run PullPartsFile( attachfile3 ).        /*srr040108*/
+         unix silent unix2dos -q -n value(attachfile3 + ".temp") 
+          value(attachfile3).
+         unix silent rm value(attachfile3 + ".temp").
+
+
+       run ProbPartsFile( attachfile4 ). 
+         unix silent unix2dos -q -n value(attachfile4 + ".temp")  
+          value(attachfile4).
+         unix silent rm value(attachfile4 + ".temp").
+
+        run RevenueRiskFile( attachfile5 ). 
+         unix silent unix2dos -q -n value(attachfile5 + ".temp")  
+          value(attachfile5).
+         unix silent rm value(attachfile5 + ".temp").
+
+         run OkToKitFile( attachfile6 ). 
+         unix silent unix2dos -q -n value(attachfile6 + ".temp")  
+          value(attachfile6).
+         unix silent rm value(attachfile6 + ".temp").
+
+                                         /* tkt 29122*/
+        run floorstkFile( attachfile7 ). 
+          unix silent unix2dos -q -n value(attachfile7 + ".temp")  
+          value(attachfile7).
+         unix silent rm value(attachfile7 + ".temp").
+
+         /* Send email if valid */                   /*04/06 jmh*/
+         if evalemail(buyer_email) = yes then
+             sendaddress = buyer_email.
+         else
+             sendaddress = eaddress.
+
+/*testing!*/
+
+/*      subject = "~"Parts Issues Report for " + sendaddress + "~"".
+     sendaddress = "cwells@keytronic.com". */
+
+
+         unix silent value("/apps/job/sendMail.p")
+                     value(eaddress)
+                     value(sendaddress) value(subject)
+                     value(bodyfile) value(attachfile)
+                     value(attachfile2)
+                     value(attachfile3)                     /*srr040108*/
+                     value(attachfile4)
+                     value(attachfile5)
+                     value(attachfile6)
+                     value(attachfile7).         /*tkt35743*/
+
+        //TKT12579 begin add
+        //TKT15727 if not batchrun then do:
+          dropboxfile2 = replace(attachfile2, strdir, dropboxdir).
+          unix silent cp value(attachfile2) value(dropboxfile2).
+        //TKT15727 end.
+        //TKT12579 end add
+
+         /*Delete the files*/
+         os-delete value(bodyfile).
+/*         os-delete value(attachfile).            */
+/*srr0515 *TKT08328 */
+         os-delete value(attachfile2).  
+         os-delete value(attachfile3).   
+         os-delete value(attachfile4).   
+         os-delete value(attachfile5).   
+         os-delete value(attachfile6).   
+         os-delete value(attachfile7).
+       
+
+/*TKT08328
+//srr0515
+def var dropboxfile as char.
+ def var dropboxfile2 as char.                             /*srr040108*/
+ def var dropboxfile3 as char.
+ def var dropboxfile4 as char.
+ def var dropboxfile5 as char.
+ def var dropboxfile6 as char.
+ def var dropboxfile7 as char.
+ assign dropboxfile = replace(attachfile, strdir, dropboxdir)
+     dropboxfile2 = replace(attachfile2, strdir, dropboxdir)
+     dropboxfile3 = replace(attachfile3, strdir, dropboxdir)
+     dropboxfile4 = replace(attachfile4, strdir, dropboxdir)
+     dropboxfile5 = replace(attachfile5, strdir, dropboxdir)
+     dropboxfile6 = replace(attachfile6, strdir, dropboxdir)
+     dropboxfile7 = replace(attachfile7, strdir, dropboxdir).
+
+
+         unix silent cp value(attachfile) value(dropboxfile).
+         unix silent cp value(attachfile2) value(dropboxfile2).
+         unix silent cp value(attachfile3) value(dropboxfile3).
+         unix silent cp value(attachfile4) value(dropboxfile4).
+         unix silent cp value(attachfile5) value(dropboxfile5).
+         unix silent cp value(attachfile6) value(dropboxfile6).
+         unix silent cp value(attachfile7) value(dropboxfile7).
+
+//srr0515
+         os-delete value(attachfile2).
+         os-delete value(attachfile3).
+         os-delete value(attachfile4).
+         os-delete value(attachfile5).
+         os-delete value(attachfile6).
+         os-delete value(attachfile7).
+
+*/
+
+
+
+     end. /* last(dtl_comp)  */
+
+ end. /* for each */
+
+end procedure. /* sendMstrEmails */
+
+
+
+function evalemail returns logical (input addr as char):
+ def var atsym as int.
+ def var period as int.
+
+ if addr = "" then do:
+     return false.
+ end.
+
+ atsym = index(addr, "@", 2).
+ period = index(addr, ".", atsym + 2).
+
+ if atsym > 1 and period > 3 then
+     return true.
+ else
+     return false.
+
+end function.
+
+procedure showPCO:
+ def var req like dtl_mrp_req.
+ def var temp_req like temp_dtl_mrp_req.
+ def var pco_req like dtl_mrp_req.
+ def var pco_short like dtl_qty_short.
+ def var pco_avail like avail_qty.
+
+for each kpco_det where kpco_site = global_domain    /*srr111209*/
+    and kpco_comp = detail_wkfl.dtl_comp
+    and kpco__chr01 <> ""
+    and kpco_eff_date <= mstr_wkfl.mstr_rpt_date
+    and (kpco_end_date >= mstr_rpt_date or kpco_end_date = ?)
+          no-lock
+        break by kpco_nbr by kpco__chr01:
+
+ if first-of(kpco__chr01) then do:
+   put "*** PCO# " at 10
+       kpco_nbr " - Use " kpco__chr01 format "x(18)".
+
+   /* determine QOH for substitute component */
+   find in_mstr where in_domain = global_domain              /*dsj090407*/
+                  and in_part = kpco__chr01 and in_site = site1
+                                           no-lock no-error.
+   if available in_mstr then
+        pco_avail = in_qty_oh.
+   else pco_avail = 0.
+
+   for each ld_det where ld_domain = global_domain           /*dsj090407*/
+                     and ld_site = site1
+                     and ld_part = kpco__chr01
+                          no-lock break by ld_status:
+
+        if ld_status = "tran" or ld_status = "Inspect"
+           or ld_status = "ncminsp"          /*csr 2200*/
+             then pco_avail = pco_avail - ld_qty_oh.
+   end.
+
+   if pco_avail < 0 then pco_avail = 0.      /*02/10/06 jmh*/
+
+   temp_req = 0.
+   for each mrp_det where mrp_domain = global_domain         /*dsj090407*/
+                      and mrp_site = site1
+                      and mrp_part = kpco__chr01
+                      and mrp_due <= purch_due             /*dsj010306*/
+                      and mrp_type begins "demand" no-lock:
+
+        if mrp_due_date <= satdte[1] then
+             temp_req[1] = temp_req[1] + mrp_qty.
+        else do:
+             i = 2.
+             do while i < 16:                 /*8    *srr081709*/
+                if mrp_due_date >= sundte[i] and mrp_due_date <= satdte[i]
+                  then assign temp_req[i] = temp_req[i] + mrp_qty.
+                i = i + 1.
+             end. /* i < 16 */
+        end.
+   end. /* each mrp_det */
+
+     i = 1.
+     assign pco_req = 0.
+     do while i < 16:                        /*8    *srr081709*/
+         if flweek[i] <= int(detail_wkfl.dtl_wk) then
+            assign pco_req = pco_req + temp_req[i].
+         i = i + 1.
+     end. /* i < 16 */
+
+   assign            pco_short = pco_avail - pco_req.
+
+   put   pco_req at 60 format "->>>>>9"
+         pco_avail at 69 format "->>>>>9".
+
+ end.    /*first-of*/
+end. /* for each */
+
+end procedure.
+
+
+/*srr071806*/
+procedure showHours:
+
+define variable open_ref like wo_qty_ord label "Qty Open".
+define variable wrsetup like wr_setup label "Std Setup".
+define variable runtime like wr_run label "Std Run" format ">>>,>>9.999".
+assign runtime = 0.
+
+ find first wo_mstr where wo_domain = global_domain          /*dsj090407*/
+                      and wo_nbr = mstr_wkfl.mstr_nbr
+                      and wo_lot = mstr_wkfl.mstr_line no-lock no-error.
+
+ for each wr_route where wr_domain = global_domain           /*dsj090407*/
+                     and wr_lot = mstr_wkfl.mstr_line
+                              and wr_run > 0  no-lock by wr_op:
+
+            if wr_qty_ord >= 0
+            then open_ref = max(wr_qty_ord - (wr_qty_comp + wr_sub_comp),0).
+            else open_ref = min(wr_qty_ord - (wr_qty_comp + wr_sub_comp),0).
+
+            if wo_status = "C" or wr_status = "C" then open_ref = 0.
+
+            wrsetup = 0.
+            if index("rc",wr_status) = 0 and wr_act_run = 0
+                                         and wr_qty_comp = 0
+            then wrsetup = wr_setup.
+
+            runtime = runtime + (open_ref * wr_run).
+
+ end.
+ put unformatted 
+   "W/O Nbr: " + string(mstr_wkfl.mstr_nbr) + 
+ "    Hrs to go: " + string(runtime) at 8.
+end procedure.
+
+
+
+/*srr040108 - begin add*/
+procedure PlannerFile:
+
+ define input parameter attachfile2 as char.
+
+ output to value(attachfile2 + ".temp").
+                            
+        put unformatted
+                 skip
+                 "Cust"  ztab
+                 "Model" ztab
+                 "Comp" ztab
+                 "Desc" ztab 
+                 "Buyer" ztab
+                 "Due" ztab
+                 "Rel" ztab
+                 "WO" ztab
+                 "ID" ztab
+                 "Feed"  ztab
+                 "Short" ztab
+                 "Comments" ztab
+                 "WO Bld" ztab
+                 "Bld Qty" ztab
+                 "ABC" ztab
+                 "Status" ztab
+                 "Op" ztab
+                 "B/P" ztab
+                 "PO Qty" ztab
+                 "Req" ztab
+                 "Tot Req" ztab
+                 "QOH" ztab
+                 "Tran" ztab
+                 "Insp" ztab
+                 "Non Net" ztab
+                 "MRB " ztab          /*09/10 jmh*/
+                 "Plant Stk" ztab
+                 "Other Stk" ztab
+                 "Wk Nbr" ztab             /*11/10 jmh*/
+                 "Expire Qty" ztab      /*csr 1805*/
+                 "NCM Insp"  ztab       /*csr 2200*/
+                 "PO Nbr" ztab
+                 "PO Due" ztab
+                 "PO Qty" ztab
+                 "PO Conf" ztab
+                 "PO Byr" ztab
+                 "ECN" ztab                                   /*tkt26455*/
+                 "MDL St" ztab     /*32622*/ 
+                 "Substitute Part(s)" ztab                   /*TKT53716*/
+                 "Tracking Info" ztab                        /*TKT56428*/
+                 "WO Routing" ztab                           /*tkt58584*/
+                 "WO ALT BoM" ztab                           /*tkt58584*/
+                  skip.
+
+
+ for each mstr_wkfl no-lock,
+     each detail_wkfl where mstr_nbr  = dtl_nbr
+                   and mstr_line = dtl_line
+                   and mstr_part = dtl_part
+                   and dtl_qty_bal < 0              /*srr041508*  short*/
+                 no-lock break by mstr_wk_nbr 
+                               by mstr_rpt_date
+                               by dtl_part
+                               by mstr_line
+                               by dtl_op                     /*dsj031306*/
+                               by dtl_comp:
+
+
+ find first wo_mstr  where wo_mstr.wo_domain = global_domain 
+                      and wo_nbr = mstr_wkfl.mstr_nbr
+                      and wo_lot = mstr_wkfl.mstr_line no-lock no-error.
+
+ find first pt_mstr  where pt_mstr.pt_domain = global_domain 
+                      and pt_part = dtl_comp no-lock no-error.
+
+
+ zopen_ref = 0.
+ podnbr = "".
+ podqty = 0.
+ pobyr = "".
+ pocfm = no.
+ poddue = ?.
+ podtrack = "".                                             /*TKT56428*/
+ 
+ for each pod_det where pod_det.pod_domain = global_domain 
+                   and pod_part = detail_wkfl.dtl_comp 
+                   and pod_site = site1
+                   and not pod_sched
+                   and pod_due_date >= due
+                   and pod_due_date <= due1
+                   and (pod_status <> "c" and pod_status <> "x" ) 
+                   and pod__log01 = yes no-lock
+                   break by pod_due_date:
+
+       assign zopen_ref = zopen_ref + (pod_qty_ord - pod_qty_rcvd).
+     end.
+                                              /*43514*/
+    find first pod_det where pod_det.pod_domain = global_domain 
+                   and pod_part = detail_wkfl.dtl_comp 
+                   and pod_site = site1
+                   and not pod_sched
+                   and pod_due_date >= due
+                   and pod_due_date <= due1
+                   and (pod_status <> "c" and pod_status <> "x" ) 
+                   and pod__log01 = yes no-lock no-error.
+
+    if available pod_det 
+      then
+       assign podnbr = pod_nbr
+              podqty = (pod_qty_ord - pod_qty_rcvd)
+              podtrack = pod__chr06                           /*TKT56428*/
+              poddue = pod_due_date.
+
+
+ find first po_mstr no-lock where po_domain = global_domain
+   and po_nbr = podnbr no-error.
+
+ if available po_mstr 
+   then
+      assign pobyr = po_buyer 
+             pocfm = po_confirm.
+
+
+ if mrp_requirements = yes
+    then display_req = dtl_mrp_req.
+    else display_req = dtl_rpt_req.
+
+/*TKT53716 - begin add*/
+     sub_parts = "".
+     for each pts_det no-lock where pts_domain = global_domain /*TKT03625 add no-lock*/
+                        and pts_part = dtl_comp
+                        and (pts_par = "" or pts_par = mstr_demand_item)
+     break by pts_sub_part:
+
+         if first(pts_sub_part) then sub_parts = pts_sub_part.
+         else sub_parts = sub_parts + ", " + pts_sub_part.
+
+     end. /* each pts_det */
+/*TKT53716 - end add*/ 
+
+     put unformatted
+         /*mstr_cust*/  mstr_ios  ztab      /*46728*/
+         mstr_demand_item  ztab 
+         dtl_comp ztab 
+         pt_desc1 ztab 
+         dtl_buyer ztab
+         wo_due_date ztab
+         wo_rel_date ztab
+         detail_wkfl.dtl_nbr ztab
+         detail_wkfl.dtl_line ztab
+         dtl_feed ztab 
+         int(dtl_qty_bal) ztab 
+         dtl_cmmt ztab
+         dtl_part ztab
+         int(mstr_qty) ztab 
+         pt_abc ztab 
+         mstr_wkfl.mstr_status ztab
+         dtl_op ztab
+         dtl_byr ztab
+         int(zopen_ref) ztab 
+         int(dtl_qty) ztab
+         int(display_req)  ztab
+         int(dtl_qty_oh)   ztab 
+         int(dtl_qty_tran)  ztab 
+         int(dtl_qty_insp) ztab 
+         int(dtl_qty_nonet)   ztab 
+         int(dtl_qty_mrb) ztab           /*09/10 jmh*/
+         int(dtl_qty_flr) ztab
+         int(dtl_qty_oth) ztab
+         mstr_wkfl.mstr_wk_nbr ztab   /*11/10 jmh*/
+         int(dtl_qty_expire) ztab    /*csr 1805*/
+         int(dtl_qty_ncm) ztab    /*csr 2200*/
+         podnbr ztab
+         poddue ztab
+         podqty ztab
+         pocfm ztab
+         pobyr ztab
+         mstr_ecn_note ztab               /*tkt26455*/
+         mstr_pt_st ztab   /*tkt 32622*/
+         sub_parts ztab                   /*TKT53716*/
+         podtrack ztab                    /*TKT56428*/
+         mstr_routing ztab                /*tkt58584*/
+         mstr_alt_bom ztab                /*tkt58584*/
+         skip. 
+
+/*srr041508 changed from dtl_qty_short to dtl_qty_bal above */
+
+ end. /* each mstr_wkfl */
+
+ output close.
+
+end procedure. /* PlannerFile */
+
+
+/*11/17/10  jmh*/
+procedure PullPartsFile:
+
+ define input parameter attachfile3 as char.
+
+ output to value(attachfile3 + ".temp").
+
+        put unformatted
+                 skip
+                 "Wk Nbr" ztab
+                 "Model" ztab
+                 "Comp" ztab
+                 "Desc" ztab 
+                 "Buyer" ztab
+                 "Due" ztab
+                 "Rel" ztab
+                 "WO" ztab
+                 "ID" ztab
+                 "Feed"  ztab
+                 "Short" ztab
+                 "WO Bld" ztab
+                 "Bld Qty" ztab
+                 "PO Qty" ztab
+                 "Req" ztab
+                 "Tot Req" ztab
+                 "QOH" ztab
+                 "Container Qty" ztab                        /*TKT06948*/
+                 "Tran" ztab
+                 "Insp" ztab
+                 "Non Net" ztab
+                 "MRB" ztab          /*09/10 jmh*/
+                 "Plant Stk" ztab
+                 "Other Stk" ztab
+                 "Expire Qty" ztab        /*csr 1805*/
+                 "NCM Insp" ztab         /*csr 2200*/
+                 "WO ID Status" ztab /*tkt26488 start*/
+                 "BF1" ztab
+                 "JZ1" ztab
+                 "JZ2" ztab
+                 "JZ3" ztab
+                 "JZ4" ztab
+                 "JZ5" ztab
+                 "JZ6" ztab
+                 "JZ7" ztab
+                 "JZ8" ztab
+                 "JZ9" ztab                                     //TKT80902
+                 "Other" ztab        /*tkt26488 end*/
+                 "Comp B/P" ztab  /*32622*/ 
+                 "Substitute Part(s)" ztab                   /*TKT53716*/
+                 "Tracking Info" ztab                        /*TKT56428*/
+                  skip.
+
+ for each mstr_wkfl no-lock,
+     each detail_wkfl where mstr_nbr  = dtl_nbr
+                   and mstr_line = dtl_line
+                   and mstr_part = dtl_part
+                   and dtl_mrp_req > dtl_qty_flr
+                   and dtl_qty_oth > 0
+
+                 no-lock break by mstr_wk_nbr 
+                               by mstr_rpt_date
+                               by dtl_part
+                               by mstr_line
+                               by dtl_op                     /*dsj031306*/
+                               by dtl_comp:
+
+
+ find first wo_mstr  where wo_mstr.wo_domain = global_domain 
+                      and wo_nbr = mstr_wkfl.mstr_nbr
+                      and wo_lot = mstr_wkfl.mstr_line no-lock no-error.
+
+ find first pt_mstr  where pt_mstr.pt_domain = global_domain 
+                      and pt_part = dtl_comp no-lock no-error.
+
+/*srr042808 - begin*/
+ zopen_ref = 0.
+ for each pod_det where pod_det.pod_domain = global_domain 
+                   and pod_part = detail_wkfl.dtl_comp 
+                   and pod_site = site1
+                   and not pod_sched
+                   and pod_due_date >= due
+                   and pod_due_date <= due1
+                   and (pod_status <> "c" and pod_status <> "x" ) 
+                   and pod__log01 = yes no-lock:
+
+       assign zopen_ref = zopen_ref + (pod_qty_ord - pod_qty_rcvd).
+
+ end.
+/*srr042808 - end*/
+
+/*TKT53716 - begin add*/
+     sub_parts = "".
+     for each pts_det no-lock where pts_domain = global_domain /*TKT03625 add no-lock*/
+                        and pts_part = dtl_comp
+                        and (pts_par = "" or pts_par = mstr_demand_item)
+     break by pts_sub_part:
+
+         if first(pts_sub_part) then sub_parts = pts_sub_part.
+         else sub_parts = sub_parts + ", " + pts_sub_part.
+
+     end. /* each pts_det */
+/*TKT53716 - end add*/ 
+
+ if mrp_requirements = yes
+    then display_req = dtl_mrp_req.
+    else display_req = dtl_rpt_req.
+
+    /*TKT06948 Begin Add*/
+  find first snc_ctrl no-lock where snc_key1 = 'ContainerInfo'
+   and snc_key2 = global_domain
+   and snc_key3 = dtl_comp
+ no-error.
+
+ if available snc_ctrl then 
+   assign containerQty = snc_dec1.
+ else containerQty = 0.
+  /*TKT06948 End Add*/
+
+     put unformatted
+         mstr_wkfl.mstr_wk_nbr ztab  
+         mstr_demand_item  ztab 
+         dtl_comp ztab 
+         pt_desc1 ztab 
+         dtl_buyer ztab
+         wo_due_date ztab
+         wo_rel_date ztab
+         detail_wkfl.dtl_nbr ztab
+         detail_wkfl.dtl_line ztab
+         dtl_feed ztab 
+         int(dtl_qty_bal) ztab 
+         dtl_part ztab
+         int(mstr_qty) ztab 
+         int(zopen_ref) ztab 
+         int(dtl_qty) ztab
+         int(display_req)  ztab
+         int(dtl_qty_oh)   ztab 
+         containerQty ztab                               /*TKT06948*/
+         int(dtl_qty_tran)  ztab 
+         int(dtl_qty_insp) ztab 
+         int(dtl_qty_nonet)   ztab 
+         int(dtl_qty_mrb) ztab           /*09/10 jmh*/
+         int(dtl_qty_flr) ztab
+         int(dtl_qty_oth) ztab
+         int(dtl_qty_expire) ztab    /*csr 1805*/
+         int(dtl_qty_ncm) ztab       /*csr 2200*/
+         mstr_status ztab /*tkt26488 start*/
+         int(dtl_BF1) ztab
+         int(dtl_JZ1) ztab
+         int(dtl_JZ2) ztab
+         int(dtl_JZ3) ztab
+         int(dtl_JZ4) ztab
+         int(dtl_JZ5) ztab
+         int(dtl_JZ6) ztab
+         int(dtl_JZ7) ztab
+         int(dtl_JZ8) ztab
+         int(dtl_JZ9) ztab                                      //TKT80902
+         int(dtl_Other) ztab /*tkt26488 end*/
+         pt_buyer ztab   /*32622*/
+         sub_parts ztab                                  /*TKT53716*/
+         dtl_track ztab                                  /*TKT56428*/
+         skip. 
+
+
+/*srr041508 changed from dtl_qty_short to dtl_qty_bal above */
+
+ end. /* each mstr_wkfl */
+  
+ output close.
+
+end procedure. /* Pull Parts File */
+
+procedure ProbPartsFile:
+
+ define input parameter attachfile4 as char.
+
+ output to value(attachfile4 + ".temp").
+
+        put unformatted
+                 skip
+                 "Comp" ztab
+                 "Desc" ztab 
+                 "Buyer" ztab
+                 "Feed"  ztab
+                 "Short" ztab
+                 "PO Qty" ztab
+                 "Reqmts" ztab
+                 "QOH" ztab
+                 "Tran" ztab
+                 "Insp" ztab
+                 "Non Net" ztab
+                 "MRB" ztab          /*09/10 jmh*/
+                 "Plant Stk" ztab
+                 "Other Stk" ztab
+                 "Expire Qty" ztab        /*csr 1805*/
+                 "NCM Insp" ztab         /*csr 2200*/
+                 "Location" ztab
+                 "Facility" ztab
+                 "Lot/Serial" ztab
+                 "Qty In Loc" ztab
+                 "Prob/Cmmt" ztab
+                 "Substitute Part(s)" ztab                   /*TKT53716*/
+                 "Tracking Info" ztab                        /*TKT56428*/
+                  skip.
+
+ /*TKT03625 Separated for each into two separate loops*/
+ for each part_loc_prob no-lock: /*TKT03625 removed comma and added for below*/
+
+     for each detail_wkfl no-lock where dtl_comp = prob_part 
+                 break by prob_part
+                 by dtl_wk by dtl_qty_oh desc by dtl_qty_bal desc by prob_lot_serial by prob_cmmt: /*TKT03625*/
+
+
+ find first pt_mstr  where pt_mstr.pt_domain = global_domain 
+                      and pt_part = dtl_comp no-lock no-error.
+
+/*srr042808 - begin*/
+ zopen_ref = 0.
+ for each pod_det where pod_det.pod_domain = global_domain 
+                   and pod_part = detail_wkfl.dtl_comp 
+                   and pod_site = site1
+                   and not pod_sched
+                   and pod_due_date >= due
+                   and pod_due_date <= due1
+                   and (pod_status <> "c" and pod_status <> "x" ) 
+                   and pod__log01 = yes no-lock:
+
+       assign zopen_ref = zopen_ref + (pod_qty_ord - pod_qty_rcvd).
+
+ end.
+/*srr042808 - end*/
+
+/*TKT53716 - begin add*/
+     sub_parts = "".
+     for each pts_det no-lock where pts_domain = global_domain /*TKT03625 added no-lock*/
+                        and pts_part = dtl_comp
+                        and (pts_par = "" or pts_par = dtl_part)
+     break by pts_sub_part:
+
+         if first(pts_sub_part) then sub_parts = pts_sub_part.
+         else sub_parts = sub_parts + ", " + pts_sub_part.
+
+     end. /* each pts_det */
+/*TKT53716 - end add*/ 
+
+ if mrp_requirements = yes
+    then display_req = dtl_mrp_req.
+    else display_req = dtl_rpt_req.
+
+     put unformatted
+         dtl_comp ztab 
+         pt_desc1 ztab 
+         dtl_buyer ztab
+         dtl_feed ztab 
+         int(dtl_qty_bal) ztab 
+         int(zopen_ref) ztab 
+         int(display_req)  ztab
+         int(dtl_qty_oh)   ztab 
+         int(dtl_qty_tran)  ztab 
+         int(dtl_qty_insp) ztab 
+         int(dtl_qty_nonet)   ztab 
+         int(dtl_qty_mrb) ztab           /*09/10 jmh*/
+         int(dtl_qty_flr) ztab
+         int(dtl_qty_oth) ztab
+         int(dtl_qty_expire) ztab    /*csr 1805*/
+         int(dtl_qty_ncm) ztab       /*csr 2200*/
+         prob_loc ztab
+         prob_facility ztab
+         prob_lot_serial ztab
+         prob_qoh ztab
+         prob_cmmt ztab
+         sub_parts ztab                   /*TKT53716*/
+         dtl_track ztab                   /*TKT56428*/
+         skip. 
+
+     leave. /*TKT03625*/
+
+/*srr041508 changed from dtl_qty_short to dtl_qty_bal above */
+     end. /*TKT03625*/
+ end. /* each part_loc_prob */
+  
+ output close.
+
+end procedure. /* Problen Part/Location file */
+
+
+
+procedure RevenueRiskFile:
+
+ define input parameter attachfile5 as char.
+
+ output to value(attachfile5 + ".temp").
+
+ put unformatted 
+    "Comp Short" ztab
+    "Desc"  ztab
+    "P/M"   ztab      
+    "Demand Item" ztab
+    "Revenue!Risk" ztab
+    "B/P"  ztab
+    "FD"   ztab
+   "Short Qty"  ztab
+    "Comments"  ztab 
+    "Tracking Info" ztab                                /*TKT56428*/
+    skip.  
+
+ 
+ 
+ for each detail_wkfl where dtl_qty_bal < 0
+                 no-lock break by dtl_comp
+                 by dtl_qty_bal :
+
+
+     if first-of(dtl_comp) 
+       then do:
+         find mstr_wkfl where mstr_nbr = dtl_nbr
+                         and mstr_line = dtl_line
+                         and mstr_part = dtl_part no-lock no-error.
+         assign req_qty     = mstr_qty
+                demand_item = mstr_demand_item
+                sodprice    = 0
+                stdcost     = no.
+
+         for each sod_det where sod_domain = global_domain
+                            and sod_part   = demand_item
+                            and (sod_qty_ord - sod_qty_ship) > 0 no-lock
+                 break by sod_due_date:
+             assign req_qty  = sod_qty_ord - sod_qty_ship
+                    sodprice = sod_price.
+             leave.
+         end.
+
+         if not available sod_det then
+             for each sod_det where sod_domain = global_domain
+                                and sod_nbr    = demand_item
+                                and sod_part   = dtl_part
+                                and (sod_qty_ord - sod_qty_ship) > 0 no-lock
+                 break by sod_due_date:
+                 assign demand_item = dtl_part
+                        req_qty     = sod_qty_ord - sod_qty_ship
+                        sodprice    = sod_price .
+                 leave.
+             end.
+         if not available sod_det then do:
+             find first sct_det where sct_domain = global_domain
+                            and sct_part = mstr_demand_item 
+                                  and sct_sim  = "standard"
+                                  and sct_site = site1 no-lock no-error.
+             if available sct_det then 
+                 assign stdcost     = yes
+                        demand_item = mstr_demand_item
+                        sodprice    = sct_cst_tot .
+         end. /*sod_det */
+
+     end. /*first-of(dtl_comp)*/
+
+     if last-of(dtl_comp) then do:
+
+         find first pt_mstr where pt_domain = global_domain
+                             and pt_part    = dtl_comp no-lock no-error.
+
+         put unformatted
+            dtl_comp ztab
+            pt_desc1 ztab
+            pt_pm_code ztab
+            demand_item ztab
+            sodprice * req_qty ztab                          /*TKT18427*/
+            dtl_byr ztab
+            dtl_feed ztab
+            dtl_qty_bal ztab
+            dtl_cmmt ztab
+            dtl_track ztab                                    /*TKT56428*/
+            skip.
+         
+     end. /* first-of(dtl_comp) */
+ end. /*each det_wkfl*/
+  
+ output close.
+
+end procedure. /* Revenue Risk file */
+
+
+procedure OkToKitFile:
+
+ define input parameter attachfile6 as char.
+                   
+ output to value(attachfile6 + ".temp").
+
+form
+ /*   priority_cd      at 1   column-label "Pri"       tkt29319*/
+ mstr_nbr         at 5   column-label "W/O #" format "x(10)"
+ mstr_part        at 16  column-label "Build Part" format "x(16)"
+ mstr_demand_item at 36  column-label "MRP Demand Item" format "x(16)"
+ wo_qty_ord       at 53  column-label "Qty Ord"  format "->>>>>"
+ wo_qty_comp      at 61  column-label "Qty Comp"  Format "->>>>>>"
+ wo_qty_rjct      at 71  column-label "Qty Scpd" format "->>>>>>"
+ open_ref         at 80  column-label "Open" format "->>>>>>"
+ mstr_due_date    at 90  column-label "WO Due"
+ mstr_status      at 100  column-label "St"
+ wo_routing       at 105  column-label "WO Routing" format "x(16)"
+ new_bld          at 125 column-label "New"
+ mstr_rel_date    at 130 column-label "Release"
+ IOS              at 140 column-label "IOS"                     /*TKT23889*/
+ wo_lot           at 150 column-label "WO ID"                   /*TKT23889*/
+ mstr_ecn_note    at 165 column-label "ECN"                     /*tkt26455*/
+ dtl_track        at 175 column-label "Tracking Info"           /*TKT56428*/
+with frame sumonly width 195 no-box down.                 /*tkt26455 was 185*/
+
+for each mstr_wkfl no-lock, /*TKT03625 added no-lock*/
+ each detail_wkfl where mstr_nbr = dtl_nbr
+               and mstr_line = dtl_line
+               and mstr_part = dtl_part
+               and mstr_status <> "R" no-lock
+          break by mstr_rpt_date by mstr_line:
+
+ if dtl_qty_bal < 0 then short = yes.                       /*srr040208*/
+ if last-of(mstr_line) then do:
+     if short = no then do:
+
+        find first wo_mstr no-lock  where wo_mstr.wo_domain = global_domain
+        and  wo_nbr = dtl_nbr and wo_lot = dtl_line no-error.
+        open_ref = max(wo_qty_ord - wo_qty_comp - wo_qty_rjct,0).
+        if wo_status = "C" then open_ref = 0.
+
+    /*    priority_cd = wo_mstr.wo__dec04.       tkt29319*/
+
+
+        find last tr_hist  where tr_hist.tr_domain = global_domain 
+          and tr_part = wo_part
+          and tr_effdate > today - 730  /*tkt 36338  180*/
+          and (tr_type begins "RCT-" 
+           or tr_type begins "ISS-")
+           /*tkt 36338 "WO-Close" */
+          no-lock no-error.
+        if available tr_hist then new_bld = "".
+                             else new_bld = "Y".
+ 
+    
+    /*TKT23889 ADD*/
+ 
+        find first pt_mstr where pt_mstr.pt_domain = global_domain          ~           and pt_part = mstr_part
+        no-lock no-error.  
+
+       if available pt_mstr then IOS = pt_warr_cd.
+          else IOS = "".
+          
+   /*TKT23889 END ADD*/       
+ 
+        display
+          /*   priority_cd       tkt29319 */
+             mstr_nbr
+             mstr_part
+             mstr_demand_item
+             wo_mstr.wo_qty_ord
+             wo_mstr.wo_qty_comp
+             wo_mstr.wo_qty_rjct
+             open_ref
+             mstr_due_date
+             mstr_status
+             wo_mstr.wo_routing
+             new_bld
+             mstr_rel_date
+             IOS                                              /*TKT23889*/
+             wo_mstr.wo_lot                                  /*TKT23889*/
+             mstr_ecn_note                                   /*tkt26455*/
+             dtl_track                                       /*TKT56428*/
+         with frame sumonly width 195 down. /*tkt26455 was 175*//*185*/
+         down 1 with frame sumonly.
+
+     end. /*if short=no */
+     short = no.
+ end. /*last-of */
+end.
+  
+output close.
+
+end procedure. /* OKTOKit */
+
+
+procedure FloorstkFile:
+
+ define input parameter attachfile7 as char.
+ define var floor_part_qty like wod_qty_req.
+
+ output to value(attachfile7 + ".temp").
+
+        put unformatted
+                 skip
+                 "Comp" ztab
+                 "Desc" ztab 
+                 "IOS " ztab
+                 "Buyer" ztab
+                 "Qty Per" ztaB
+                 "WK #" ztab
+                 "Qty Req for WK" ztab
+                 "Open PO Qty" ztab
+                 "Qty On Hand" ztab 
+                 /*tkt30258 start*/
+                 "BF1" ztab
+                 "JZ1" ztab
+                 "JZ2" ztab
+                 "JZ3" ztab
+                 "JZ4" ztab
+                 "JZ5" ztab
+                 "JZ6" ztab
+                 "JZ7" ztab
+                 "JZ8" ztab
+                 "JZ9" ztab                                     //TKT80902
+                 "Other" ztab        /*tkt30258 end*/
+                 "Tracking Info" ztab                   /*TKT56428*/
+                 skip.
+
+for each floor_stock no-lock break by floor_part by floor_wk:
+   floor_part_qty = floor_part_qty + floor_qty.
+
+
+ /*tkt 30258 start*/
+      Fac_BF1 = 0.
+     Fac_JZ1 = 0.
+     Fac_JZ1 = 0.
+     Fac_JZ2 = 0.
+     Fac_JZ3 = 0.
+     Fac_JZ4 = 0.
+     Fac_JZ5 = 0.
+     Fac_JZ6 = 0.
+     Fac_JZ7 = 0.
+     Fac_JZ8 = 0.
+     Fac_JZ9 = 0.                                               //TKT80902
+     Fac_Other = 0.
+
+ /*tkt 30258 end*/
+   
+if last-of(floor_wk) then do:   
+
+   find first pt_mstr  where pt_mstr.pt_domain = global_domain 
+                      and pt_part = floor_part no-lock no-error.
+
+   
+   /*TKT56428 Begin Add*/
+   find first pod_det where pod_domain = global_domain
+                        and pod_site = site1 
+                      /*  and pod_nbr = podnbr */
+                        and pod_part = floor_part 
+                        and not pod_sched
+                        and pod_due_date >= due
+                        and pod_due_date <= due1
+                        and (pod_status <> "c" and pod_status <> "x" ) 
+                        and pod__log01 = yes no-lock no-error.
+                          
+    if available pod_det then assign detail_wkfl.dtl_track = pod__chr06.
+    /*TKT56428 End Add*/                             
+
+   zopen_ref = 0.
+   for each pod_det where pod_det.pod_domain = global_domain 
+                   and pod_part = floor_part 
+                   and pod_site = site1
+                   and not pod_sched
+                   and pod_due_date >= due
+                   and pod_due_date <= due1
+                   and (pod_status <> "c" and pod_status <> "x" ) 
+                   and pod__log01 = yes no-lock:
+
+       assign zopen_ref = zopen_ref + (pod_qty_ord - pod_qty_rcvd).
+    end.
+
+   /* determine QOH for floorstock component */
+   find in_mstr where in_domain = global_domain              /*dsj090407*/
+     and in_part = floor_part and in_site = site1 no-lock no-error.
+     
+   if available in_mstr 
+       then floor_avail = in_qty_oh.
+       else floor_avail = 0.
+
+   for each ld_det where ld_domain = global_domain           /*dsj090407*/
+                     and ld_site = site1
+                     and ld_part = floor_part
+                          no-lock break by ld_status:
+
+         /*tkt 30258 start*/
+         inv_facility = "".
+
+         find first loc_mstr no-lock where loc_domain = global_domain
+            and loc_loc = ld_loc
+            and loc_site = ld_site no-error.
+
+         if available loc_mstr then assign inv_facility = loc_user1.
+
+            if inv_facility = "BF1"  /*tkt 39377 fixed if...then...else*/
+               then floor_BF1 = floor_BF1 + ld_qty_oh.
+             else if inv_facility = "JZ1"
+               then floor_JZ1 = floor_JZ1 + ld_qty_oh.     
+             else if inv_facility = "JZ2"
+               then floor_JZ2 = floor_JZ2 + ld_qty_oh.
+             else if inv_facility = "JZ3"
+               then floor_JZ3 = floor_JZ3 + ld_qty_oh.
+             else if inv_facility = "JZ4"
+               then floor_JZ4 = floor_JZ4 + ld_qty_oh.
+             else if inv_facility = "JZ5"
+               then floor_JZ5 = floor_JZ5 + ld_qty_oh.
+             else if inv_facility = "JZ6"
+               then floor_JZ6 = floor_JZ6 + ld_qty_oh.
+             else if inv_facility = "JZ7"
+               then floor_JZ7 = floor_JZ7 + ld_qty_oh.
+             else if inv_facility = "JZ8"
+               then floor_JZ8 = floor_JZ8 + ld_qty_oh.
+             else if inv_facility = "JZ9"                       //TKT80902
+               then floor_JZ9 = floor_JZ9 + ld_qty_oh.          //TKT80902
+             else  /* if inv_facility = "Other" then */
+                Fac_Other = Fac_Other + ld_qty_oh.
+
+         /*tkt 30258 end*/
+
+        if ld_status = "tran" or ld_status = "Inspect"
+           or ld_status = "ncminsp"          /*csr 2200*/
+             then floor_avail = floor_avail - ld_qty_oh.
+     end.
+
+   put unformatted
+       floor_part ztab 
+       pt_desc1 ztab 
+       pt_warr_cd ztab
+       pt_buyer ztab
+       floor_qty_per ztab
+       floor_wk ztab
+       floor_part_qty ztab
+       int(zopen_ref) ztab 
+       floor_avail ztab
+        /*tkt30258 start*/
+         int(floor_BF1) ztab
+         int(floor_JZ1) ztab
+         int(floor_JZ2) ztab
+         int(floor_JZ3) ztab
+         int(floor_JZ4) ztab
+         int(floor_JZ5) ztab
+         int(floor_JZ6) ztab
+         int(floor_JZ7) ztab
+         int(floor_JZ8) ztab
+         int(floor_JZ9) ztab                                    //TKT80902
+         int(floor_Other) ztab /*tkt30258 end*/
+         dtl_track ztab                           /*TKT56428*/
+       skip. 
+
+     floor_avail = 0.
+     floor_part_qty = 0.
+
+ end. /* each floorstk_wkfl */
+ 
+ end. /*each mstr_wkfl*/
+output close.
+
+end procedure. /* floorstk file */
+
+
+
+procedure create_prob_record.
+
+ find first part_loc_prob where 
+   prob_part  = ld_det.ld_part  and
+   prob_loc = ld_loc   and
+   prob_facility = inv_facility  and
+   prob_lot_serial = ld_lot no-error.
+ 
+ if not available (part_loc_prob) then do: 
+
+     Create part_loc_prob.
+     assign 
+         prob_part  = ld_part 
+         prob_loc = ld_loc   
+         prob_facility = inv_facility 
+         prob_lot_serial = ld_lot
+         prob_inv_status = ld_status
+         prob_qoh = ld_qty_oh
+         prob_expiration = ld_expire
+         prob_cmmt = inv_cmmt.  
+ end. 
+ else do:
+     assign prob_cmmt = prob_cmmt + "/" + inv_cmmt.
+ end.
+end.  /*procedure*/
+
+/*tkt26455 begin add*/
+procedure find_ecn:
+
+ /*TKT03625 Begin Add*/
+ for each ps_mstr no-lock where ps_domain = global_domain
+   and (ps_par = pt_mstr.pt_part)
+   and (can-find(first ecm_mstr where ecm_domain = global_domain and ecm_nbr = ps_start_ecn and ecm_eff_date >= twowkdate)
+   or can-find(first ecm_mstr where ecm_domain = global_domain and ecm_nbr = ps_end_ecn and ecm_eff_date >= twowkdate)):
+
+     find first ecm_mstr where ecm_domain = global_domain
+       and (ecm_nbr = ps_start_ecn or ecm_nbr = ps_end_ecn)
+       and ecm_eff_date >= twowkdate no-lock no-error.
+
+     if available ecm_mstr then do:
+         if ecm_eff_date >= today then
+             ecn_note = "  ** ECN **   ".
+         else ecn_note = "* CLOSED ECN *".              
+         return.
+     end.
+ end.
+
+ for each ps_mstr no-lock where ps_domain = global_domain
+   and (ps_comp = pt_part) 
+   and (can-find(first ecm_mstr where ecm_domain = global_domain and ecm_nbr = ps_start_ecn and ecm_eff_date >= twowkdate)
+   or can-find(first ecm_mstr where ecm_domain = global_domain and ecm_nbr = ps_end_ecn and ecm_eff_date >= twowkdate)):
+
+     find first ecm_mstr where ecm_domain = global_domain
+       and (ecm_nbr = ps_start_ecn or ecm_nbr = ps_end_ecn)
+       and ecm_eff_date >= twowkdate no-lock no-error.
+
+     if available ecm_mstr then do:
+         if ecm_eff_date >= today then
+             ecn_note = "  ** ECN **   ".
+         else ecn_note = "* CLOSED ECN *".              
+         return.
+     end.
+
+ end. /* each ps_mstr */
+
+ for each ktecd_det no-lock where ktecd_domain = global_domain
+                        and (ktecd_part  = pt_mstr.pt_part),
+     first ecm_mstr where ecm_domain = global_domain
+                        and (ecm_nbr = ktecd_nbr)
+                        and (ecm_eff_date >= twowkdate  
+                            or ecm_eff_date = ?)         
+                      no-lock:
+         if ecm_eff_date >= today then                  
+              ecn_note = "  ** USE-UP **   ".
+         else if ecm_eff_date = ? then                   
+              ecn_note = "* PENDING USE-UP *".           
+         else ecn_note = "* CLOSED USE-UP *".         
+         return.
+
+ end. /* each ktecd_det */
+                       
+ for each ecm_mstr no-lock where ecm_domain = global_domain
+   and ecm_doc_type = 'PCO'
+   and ecm_eff_date = ?
+   and (can-find(first ecd1_det where ecd1_domain = global_domain and ecd1_nbr = ecm_nbr and ecd1_par = pt_part)
+   or can-find(first ecd1_det where ecd1_domain = global_domain and ecd1_nbr = ecm_nbr and ecd1_comp = pt_part)):
+   
+     ecn_note = "* PENDING ECN *".
+     return.
+
+ end.
+ /*TKT03625 End Add*/
+                         
+ /*TKT03625 Get rid of old logic
+ /* parent on start ecn */
+ for each ps_mstr where ps_domain = global_domain
+                        and (ps_par  = pt_mstr.pt_part) no-lock,
+     first ecm_mstr where ecm_domain = global_domain
+                        and (ecm_nbr = ps_start_ecn)
+                        and ecm_eff_date >= twowkdate 
+                      no-lock:
+         if ecm_eff_date >= today then
+              ecn_note = "  ** ECN **   ".
+         else ecn_note = "* CLOSED ECN *".              
+         return.
+         end.
+
+ /* parent on end ecn */
+ for each ps_mstr where ps_domain = global_domain
+                        and (ps_par  = pt_part) no-lock,
+     first ecm_mstr where ecm_domain = global_domain
+                        and ecm_nbr = ps_end_ecn
+                        and ecm_eff_date >= twowkdate  
+                      no-lock:
+         if ecm_eff_date >= today then                  
+              ecn_note = "  ** ECN **   ".
+         else ecn_note = "* CLOSED ECN *".              
+         return.
+
+ end. /* each ps_mstr */
+
+ /* component on start ecn */
+ for each ps_mstr where ps_domain = global_domain
+                        and (ps_comp = pt_part) no-lock,
+     first ecm_mstr where ecm_domain = global_domain
+                        and ecm_nbr = ps_start_ecn
+                        and ecm_eff_date >= twowkdate  
+                      no-lock:
+             if ecm_eff_date >= today then                  
+                  ecn_note = "  ** ECN **   ".
+             else ecn_note = "* CLOSED ECN *".              
+         return.
+
+ end. /* each ps_mstr */
+
+ /* component on end ecn */
+ for each ps_mstr where ps_domain = global_domain
+                        and (ps_comp = pt_part) no-lock,
+     first ecm_mstr where ecm_domain = global_domain
+                        and ecm_nbr = ps_end_ecn
+                        and ecm_eff_date >= twowkdate  
+                      no-lock:
+         if ecm_eff_date >= today then                  
+              ecn_note = "  ** ECN **   ".
+         else ecn_note = "* CLOSED ECN *".              
+         return.
+
+ end. /* each ps_mstr */
+
+/*srr020708 - add for useups that are planner controlled */
+
+ for each ktecd_det where ktecd_domain = global_domain
+                        and (ktecd_part  = pt_mstr.pt_part) no-lock,
+     first ecm_mstr where ecm_domain = global_domain
+                        and (ecm_nbr = ktecd_nbr)
+                        and (ecm_eff_date >= twowkdate  
+                            or ecm_eff_date = ?)         
+                      no-lock:
+         if ecm_eff_date >= today then                  
+              ecn_note = "  ** USE-UP **   ".
+         else if ecm_eff_date = ? then                   
+              ecn_note = "* PENDING USE-UP *".           
+         else ecn_note = "* CLOSED USE-UP *".         
+         return.
+
+ end. /* each ktecd_det */
+
+ /*TKT13357* pending ECN''s */
+ for each ecd1_det where ecd1_domain = global_domain
+                      and (ecd1_par = pt_part) no-lock,
+     first ecm_mstr where ecm_domain = global_domain
+                        and ecm_nbr = ecd1_nbr
+                        and ecm_doc_type = "PCO"
+                        and ecm_eff_date = ?
+                      no-lock:
+         ecn_note = "* PENDING ECN *".
+         return.
+
+ end. /* each ecd1_det (parent) */
+
+ for each ecd1_det where ecd1_domain = global_domain
+                      and (ecd1_comp = pt_part) no-lock,
+     first ecm_mstr where ecm_domain = global_domain
+                        and ecm_nbr = ecd1_nbr
+                        and ecm_doc_type = "PCO"        
+                        and ecm_eff_date = ?
+                      no-lock:
+         ecn_note = "* PENDING ECN *".
+         return.
+
+ end. /* each ecd1_det (component) */
+*/
+end procedure. /* find_ecn */
+/*tkt26455 end add*/

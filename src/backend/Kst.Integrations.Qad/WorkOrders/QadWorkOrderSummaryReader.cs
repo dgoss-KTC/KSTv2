@@ -160,7 +160,7 @@ public sealed class QadWorkOrderSummaryReader
             WHERE wo.wo_domain = @Domain
               AND wo.wo_site = @Site
               AND wo.wo_part = @ParentPart
-              AND wo.wo_status <> 'C'
+               AND UPPER(wo.wo_status) <> 'C'
               AND ISNULL(wo.wo_bom_code, '') <> 'RMABOM'
               AND {predicate}
             ORDER BY
@@ -192,7 +192,7 @@ public sealed class QadWorkOrderSummaryReader
             WHERE wo.wo_domain = @Domain
               AND wo.wo_site = @Site
               AND wo.wo_lot = @Woid
-              AND wo.wo_status <> 'C'
+               AND UPPER(wo.wo_status) <> 'C'
               AND ISNULL(wo.wo_bom_code, '') <> 'RMABOM';
             """;
 
@@ -211,8 +211,10 @@ public sealed class QadWorkOrderSummaryReader
                 wo.wo_rel_date      AS ReleaseDate,
                 wo.wo_due_date      AS DueDate,
                 ISNULL(kit.ApplicableLineCount, 0)  AS ApplicableLineCount,
-                ISNULL(kit.FullyIssuedLineCount, 0) AS FullyIssuedLineCount,
-                wo.wo_so_job        AS SalesOrder
+                 ISNULL(kit.FullyIssuedLineCount, 0) AS FullyIssuedLineCount,
+                wo.wo_so_job        AS SalesOrder,
+                wo.wo_type          AS WorkOrderType,
+                wo.wo_qty_rjct      AS RejectedQuantity
         """;
 
     /// <summary>
@@ -244,7 +246,9 @@ public sealed class QadWorkOrderSummaryReader
         ReleaseDate: raw.ReleaseDate.HasValue ? DateOnly.FromDateTime(raw.ReleaseDate.Value) : null,
         DueDate: raw.DueDate.HasValue ? DateOnly.FromDateTime(raw.DueDate.Value) : null,
         Kitting: KittingSummary.Calculate(raw.ApplicableLineCount, raw.FullyIssuedLineCount),
-        SalesOrder: string.IsNullOrWhiteSpace(raw.SalesOrder) ? null : raw.SalesOrder.Trim());
+        SalesOrder: string.IsNullOrWhiteSpace(raw.SalesOrder) ? null : raw.SalesOrder.Trim(),
+        WorkOrderType: string.IsNullOrWhiteSpace(raw.WorkOrderType) ? null : raw.WorkOrderType.Trim(),
+        RejectedQuantity: raw.RejectedQuantity);
 
     /// <summary>
     /// Normalizes a planning-window / single-WOID status: any non-closed raw code passes through
@@ -266,5 +270,7 @@ public sealed record QadWorkOrderSummaryRawRow(
     DateTime? DueDate,
     int ApplicableLineCount,
     int FullyIssuedLineCount,
-    string? SalesOrder = null
+    string? SalesOrder = null,
+    string? WorkOrderType = null,
+    decimal RejectedQuantity = 0m
 );

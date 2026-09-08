@@ -67,7 +67,8 @@ public sealed class QadWorkOrderMaterialReader
                 pt.pt_desc1      AS ComponentDescription,
                 wod.wod_qty_req  AS RequiredQuantity,
                 wod.wod_qty_iss  AS IssuedQuantity,
-                pt.pt_pm_code    AS ComponentPmCode
+                pt.pt_pm_code    AS ComponentPmCode,
+                pt.pt_um         AS UnitOfMeasure
             FROM qadpro2.dbo.wo_mstr AS wo
             INNER JOIN qadpro2.dbo.wod_det AS wod
                 ON wod.wod_domain = wo.wo_domain
@@ -85,12 +86,18 @@ public sealed class QadWorkOrderMaterialReader
         return (sql, parameters);
     }
 
-    public static WorkOrderMaterialLine Normalize(QadWorkOrderMaterialRawRow raw) => new(
-        ComponentPart: raw.ComponentPart,
-        ComponentDescription: raw.ComponentDescription,
-        RequiredQuantity: raw.RequiredQuantity,
-        IssuedQuantity: raw.IssuedQuantity,
-        IsManufactured: string.Equals(raw.ComponentPmCode?.Trim(), "M", StringComparison.OrdinalIgnoreCase));
+    public static WorkOrderMaterialLine Normalize(QadWorkOrderMaterialRawRow raw)
+    {
+        var masterPmCode = raw.ComponentPmCode?.Trim();
+        return new WorkOrderMaterialLine(
+            ComponentPart: raw.ComponentPart,
+            ComponentDescription: raw.ComponentDescription,
+            RequiredQuantity: raw.RequiredQuantity,
+            IssuedQuantity: raw.IssuedQuantity,
+            IsManufactured: string.Equals(masterPmCode, "M", StringComparison.OrdinalIgnoreCase),
+            UnitOfMeasure: string.IsNullOrWhiteSpace(raw.UnitOfMeasure) ? null : raw.UnitOfMeasure.Trim(),
+            IsMasterPmCodeReliable: !string.IsNullOrEmpty(masterPmCode));
+    }
 }
 
 /// <summary>QAD-shaped raw Dapper result row. Does not travel past this integration boundary.</summary>
@@ -99,5 +106,6 @@ public sealed record QadWorkOrderMaterialRawRow(
     string? ComponentDescription,
     decimal RequiredQuantity,
     decimal IssuedQuantity,
-    string? ComponentPmCode
+    string? ComponentPmCode,
+    string? UnitOfMeasure = null
 );

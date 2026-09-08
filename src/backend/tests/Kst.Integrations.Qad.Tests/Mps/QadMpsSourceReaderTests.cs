@@ -33,7 +33,7 @@ public sealed class QadMpsSourceReaderTests
     {
         var (sql, _) = QadMpsSourceReader.BuildBatchQuery("KTC", "SW", ["ABC100"]);
 
-        Assert.Contains("wo.wo_status <> 'C'", sql);
+        Assert.Contains("UPPER(wo.wo_status) <> 'C'", sql);
         Assert.Contains("ISNULL(wo.wo_bom_code, '') <> 'RMABOM'", sql);
         Assert.Contains("mrp.mrp_dataset = 'wo_mstr'", sql);
         Assert.DoesNotContain("DISTINCT", sql, StringComparison.OrdinalIgnoreCase);

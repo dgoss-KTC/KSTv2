@@ -80,7 +80,7 @@ public sealed class QadWorkOrderSummaryReaderTests
         var (sql, _) = QadWorkOrderSummaryReader.BuildPlanningWindowQuery(
             "KTC", "SW", "ABC100", MpsDateBasis.DueDate, WeekStart, WindowEnd, bucketKind: null, bucketWeekStart: null);
 
-        Assert.Contains("wo.wo_status <> 'C'", sql);
+        Assert.Contains("UPPER(wo.wo_status) <> 'C'", sql);
         Assert.Contains("ISNULL(wo.wo_bom_code, '') <> 'RMABOM'", sql);
         // The top-level planning population is not limited to A/F/R.
         Assert.DoesNotContain("wo.wo_status IN ('A', 'F', 'R')", sql);
@@ -184,6 +184,8 @@ public sealed class QadWorkOrderSummaryReaderTests
         Assert.Contains("wo.wo_rel_date      AS ReleaseDate", sql);
         Assert.Contains("wo.wo_due_date      AS DueDate", sql);
         Assert.Contains("wo.wo_so_job        AS SalesOrder", sql);
+        Assert.Contains("wo.wo_type          AS WorkOrderType", sql);
+        Assert.Contains("wo.wo_qty_rjct      AS RejectedQuantity", sql);
         Assert.DoesNotContain("wo_nbr", sql);
         Assert.DoesNotContain("wo_start", sql);
         Assert.DoesNotContain("wo_line", sql);
@@ -210,7 +212,7 @@ public sealed class QadWorkOrderSummaryReaderTests
     {
         var (sql, _) = QadWorkOrderSummaryReader.BuildByWoidQuery("KTC", "SW", "1001");
 
-        Assert.Contains("wo.wo_status <> 'C'", sql);
+        Assert.Contains("UPPER(wo.wo_status) <> 'C'", sql);
         Assert.Contains("ISNULL(wo.wo_bom_code, '') <> 'RMABOM'", sql);
         // A planning-window parent may carry any non-closed status.
         Assert.DoesNotContain("wo.wo_status IN ('A', 'F', 'R')", sql);
@@ -236,7 +238,9 @@ public sealed class QadWorkOrderSummaryReaderTests
         DateTime? dueDate = null,
         int applicableLineCount = 4,
         int fullyIssuedLineCount = 2,
-        string? salesOrder = null) => new(
+        string? salesOrder = null,
+        string? workOrderType = null,
+        decimal rejectedQuantity = 0m) => new(
         PartNumber: partNumber,
         Woid: woid,
         Status: status,
@@ -246,7 +250,9 @@ public sealed class QadWorkOrderSummaryReaderTests
         DueDate: dueDate,
         ApplicableLineCount: applicableLineCount,
         FullyIssuedLineCount: fullyIssuedLineCount,
-        SalesOrder: salesOrder);
+        SalesOrder: salesOrder,
+        WorkOrderType: workOrderType,
+        RejectedQuantity: rejectedQuantity);
 
     // -- Status normalization ------------------------------------------------
 
@@ -275,7 +281,9 @@ public sealed class QadWorkOrderSummaryReaderTests
             dueDate: new DateTime(2026, 8, 15),
             applicableLineCount: 4,
             fullyIssuedLineCount: 2,
-            salesOrder: "SO-4521");
+            salesOrder: "SO-4521",
+            workOrderType: " F ",
+            rejectedQuantity: 3m);
 
         var normalized = QadWorkOrderSummaryReader.NormalizePlanningWindow(raw);
 
@@ -288,6 +296,8 @@ public sealed class QadWorkOrderSummaryReaderTests
         Assert.Equal(new DateOnly(2026, 8, 3), normalized.ReleaseDate);
         Assert.Equal(new DateOnly(2026, 8, 15), normalized.DueDate);
         Assert.Equal("SO-4521", normalized.SalesOrder);
+        Assert.Equal("F", normalized.WorkOrderType);
+        Assert.Equal(3m, normalized.RejectedQuantity);
         Assert.Equal(4, normalized.Kitting.ApplicableLineCount);
         Assert.Equal(2, normalized.Kitting.FullyIssuedLineCount);
         Assert.Equal(50m, normalized.Kitting.KittingPercent);

@@ -877,6 +877,193 @@
         }
       }
     },
+    "/api/v1/workspaces/{assignmentId}/work-orders/{woid}/immediate-material": {
+      "get": {
+        "tags": [
+          "WorkOrders"
+        ],
+        "summary": "Returns the Stage 9 immediate material analysis for one work order.",
+        "operationId": "GetWorkOrderImmediateMaterial",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "woid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "snapshotId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateBasis",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderImmediateMaterialAnalysisResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/work-orders/immediate-material-summary": {
+      "get": {
+        "tags": [
+          "WorkOrders"
+        ],
+        "summary": "Returns Stage 9 immediate-material summary indicators for the parent-scoped four-week planning window.",
+        "operationId": "GetWorkOrderImmediateMaterialSummary",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "snapshotId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parentPart",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateBasis",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderImmediateMaterialSummaryResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{assignmentId}/work-orders/candidates": {
       "get": {
         "tags": [
@@ -2278,6 +2465,459 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WorkOrderSummaryDto"
+            }
+          }
+        }
+      },
+      "WorkOrderImmediateMaterialAnalysisResponseDto": {
+        "required": [
+          "snapshotId",
+          "workOrder",
+          "components",
+          "diagnostic"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "workOrder": {
+            "$ref": "#/components/schemas/WorkOrderImmediateMaterialContextDto"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkOrderImmediateMaterialComponentDto"
+            }
+          },
+          "diagnostic": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "WorkOrderImmediateMaterialComponentDto": {
+        "required": [
+          "componentPart",
+          "description",
+          "isManufactured",
+          "unitOfMeasure",
+          "requirementSource",
+          "materialStatus",
+          "allocationMode",
+          "requiredQuantity",
+          "issuedQuantity",
+          "varianceQuantity",
+          "issuedPercent",
+          "remainingRequirement",
+          "usableHardAllocationToThisWoComponent",
+          "ownHardCoverage",
+          "uncoveredRequirement",
+          "availableQuantityAtEvaluation",
+          "allocatedQuantity",
+          "usableOnHand",
+          "shortQuantity",
+          "isFloorStockOrNonIssued",
+          "isOverIssued",
+          "inventoryActivity",
+          "incoming",
+          "diagnostic"
+        ],
+        "type": "object",
+        "properties": {
+          "componentPart": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isManufactured": {
+            "type": "boolean"
+          },
+          "unitOfMeasure": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "requirementSource": {
+            "type": "string"
+          },
+          "materialStatus": {
+            "type": "string"
+          },
+          "allocationMode": {
+            "type": "string"
+          },
+          "requiredQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "issuedQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "varianceQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "issuedPercent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "remainingRequirement": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "usableHardAllocationToThisWoComponent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "ownHardCoverage": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "uncoveredRequirement": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "availableQuantityAtEvaluation": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "allocatedQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "usableOnHand": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "shortQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "isFloorStockOrNonIssued": {
+            "type": "boolean"
+          },
+          "isOverIssued": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "inventoryActivity": {
+            "$ref": "#/components/schemas/WorkOrderImmediateMaterialInventoryActivityDto"
+          },
+          "incoming": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WorkOrderImmediateMaterialIncomingContextDto"
+              }
+            ]
+          },
+          "diagnostic": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "WorkOrderImmediateMaterialContextDto": {
+        "required": [
+          "woid",
+          "buildPart",
+          "status",
+          "workOrderType",
+          "materialBuildQuantity",
+          "dueDate",
+          "releaseDate",
+          "planningBucketContext"
+        ],
+        "type": "object",
+        "properties": {
+          "woid": {
+            "type": "string"
+          },
+          "buildPart": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "workOrderType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "materialBuildQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "dueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "releaseDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "planningBucketContext": {
+            "type": "string"
+          }
+        }
+      },
+      "WorkOrderImmediateMaterialIncomingContextDto": {
+        "required": [
+          "isKss",
+          "poState",
+          "poNumber",
+          "poDueDate",
+          "poOpenQuantity",
+          "poConfirmed",
+          "trackingInfo"
+        ],
+        "type": "object",
+        "properties": {
+          "isKss": {
+            "type": "boolean"
+          },
+          "poState": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "poNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "poDueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "poOpenQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "poConfirmed": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "trackingInfo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "WorkOrderImmediateMaterialInventoryActivityDto": {
+        "required": [
+          "transit",
+          "inspection",
+          "nonNet",
+          "mrb",
+          "ncmInspection",
+          "expiredExpiring"
+        ],
+        "type": "object",
+        "properties": {
+          "transit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "inspection": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "nonNet": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "mrb": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "ncmInspection": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "expiredExpiring": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "WorkOrderImmediateMaterialSummaryDto": {
+        "required": [
+          "woid",
+          "buildPart",
+          "planningBucketContext",
+          "dueDate",
+          "releaseDate",
+          "hasShortage",
+          "hasDataIssue"
+        ],
+        "type": "object",
+        "properties": {
+          "woid": {
+            "type": "string"
+          },
+          "buildPart": {
+            "type": "string"
+          },
+          "planningBucketContext": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "releaseDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "hasShortage": {
+            "type": "boolean"
+          },
+          "hasDataIssue": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WorkOrderImmediateMaterialSummaryResponseDto": {
+        "required": [
+          "snapshotId",
+          "workOrders"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "workOrders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkOrderImmediateMaterialSummaryDto"
             }
           }
         }
