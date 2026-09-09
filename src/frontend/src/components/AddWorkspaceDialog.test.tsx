@@ -99,7 +99,7 @@ describe('AddWorkspaceDialog', () => {
 
   async function waitForConnected() {
     await waitFor(() => {
-      expect(screen.getByText(/backend connected/i)).toBeInTheDocument();
+      expect(screen.getByText('Backend:')).toHaveTextContent('Backend: Connected');
     });
   }
 

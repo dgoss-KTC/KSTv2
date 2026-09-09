@@ -120,7 +120,7 @@ describe('Workspace lifecycle (edit / archive / restore / delete / reset)', () =
 
   async function waitForConnected() {
     await waitFor(() => {
-      expect(screen.getByText(/backend connected/i)).toBeInTheDocument();
+      expect(screen.getByText('Backend:')).toHaveTextContent('Backend: Connected');
     });
   }
 

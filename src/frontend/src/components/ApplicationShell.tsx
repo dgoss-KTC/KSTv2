@@ -11,7 +11,7 @@ import { AddWorkspaceDialog } from './AddWorkspaceDialog';
 import { ManageWorkspacesDialog } from './ManageWorkspacesDialog';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ToastStack } from './ToastStack';
-import { MpsWorkspace } from './MpsWorkspace';
+import { CustomerWorkspace } from './CustomerWorkspace';
 import { GeneralWorkspace } from './GeneralWorkspace';
 import { BottomStatusBar } from './BottomStatusBar';
 import './ApplicationShell.css';
@@ -320,8 +320,6 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
     >
       <TopApplicationBar
         version={version}
-        connectionState={connectionState}
-        configurationWarning={workspacesState.configurationWarning}
       />
 
       <WorkspaceTabBar
@@ -354,15 +352,13 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
         ) : activeWorkspaces.length === 0 ? (
           <EmptyWorkspace />
         ) : activeWorkspace ? (
-          <MpsWorkspace workspace={activeWorkspace} />
+          <CustomerWorkspace workspace={activeWorkspace} />
         ) : null}
       </main>
 
       <BottomStatusBar
         connectionState={connectionState}
-        status={status}
-        onRefresh={handleRefresh}
-        isRefreshing={isRefreshing}
+        configurationWarning={workspacesState.configurationWarning}
       />
 
       {(showAddDialog || editingWorkspace) && (

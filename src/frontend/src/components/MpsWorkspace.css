@@ -16,25 +16,6 @@
   flex-shrink: 0;
 }
 
-.mps-workspace__title-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.mps-workspace__title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--tx);
-}
-
-.mps-workspace__meta {
-  font-size: 11px;
-  color: var(--tx3);
-  font-variant-numeric: tabular-nums;
-}
-
 .mps-workspace__controls {
   display: flex;
   align-items: center;

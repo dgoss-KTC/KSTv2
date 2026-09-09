@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { WorkspaceAssignmentDto, WorkOrderImmediateMaterialComponentDto } from '../api/client';
+import type { MpsDashboardResponseDto, WorkOrderImmediateMaterialComponentDto } from '../api/client';
 import { useFiscalCalendarSettings } from '../hooks/useFiscalCalendarSettings';
 import {
   MAX_MPS_HORIZON_WEEKS,
   MIN_MPS_HORIZON_WEEKS,
-  useMpsDashboard,
 } from '../hooks/useMpsDashboard';
+import type { MpsApiError, MpsDateBasis } from '../api/mpsApi';
 import { usePartDetail } from '../hooks/usePartDetail';
 import { usePlanningWindowWorkOrders } from '../hooks/usePlanningWindowWorkOrders';
 import { useBom } from '../hooks/useBom';
@@ -36,38 +36,22 @@ import {
 import './MpsWorkspace.css';
 
 interface MpsWorkspaceProps {
-  workspace: WorkspaceAssignmentDto;
+  assignmentId: string;
+  dashboard: MpsDashboardResponseDto | null;
+  dateBasis: MpsDateBasis;
+  horizonWeeks: number;
+  isLoading: boolean;
+  isRefreshing: boolean;
+  error: MpsApiError | null;
+  setDateBasis: (dateBasis: MpsDateBasis) => void;
+  setHorizonWeeks: (horizonWeeks: number) => void;
+  reload: () => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
-const SNAPSHOT_STATUS_LABELS: Record<string, string> = {
-  notLoaded: 'Not loaded',
-  loading: 'Loading',
-  current: 'Current',
-  stale: 'Stale',
-  partial: 'Partial',
-  failed: 'Failed',
-};
-
-function formatTimestamp(value: string | null | undefined): string {
-  if (!value) return 'Never';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Never';
-  return date.toLocaleString();
-}
-
-export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
-  const {
-    dashboard,
-    dateBasis,
-    horizonWeeks,
-    isLoading,
-    isRefreshing,
-    error,
-    setDateBasis,
-    setHorizonWeeks,
-    reload,
-    refresh,
-  } = useMpsDashboard(workspace.assignmentId);
+export function MpsWorkspace({
+  assignmentId, dashboard, dateBasis, horizonWeeks, isLoading, isRefreshing, error, setDateBasis, setHorizonWeeks, reload, refresh,
+}: MpsWorkspaceProps) {
   const { settings: fiscalSettings } = useFiscalCalendarSettings();
 
   // Parent/bucket selection and the active detail tab are transient UI state, not persisted
@@ -121,7 +105,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
       setInspectedComponent(null);
     }, 0);
     return () => clearTimeout(id);
-  }, [workspace.assignmentId]);
+  }, [assignmentId]);
 
   // A successful workspace refresh atomically replaces the MPS snapshot; prior Stage 7 drill-down
   // context (selected bucket, Work Orders tab, and every nested WO/material/candidate expansion it
@@ -145,7 +129,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   }, [dashboard?.snapshot.snapshotId]);
 
   const { detail: partDetail, isLoading: isPartDetailLoading, error: partDetailError, retry: retryPartDetail } =
-    usePartDetail(workspace.assignmentId, selectedParent);
+    usePartDetail(assignmentId, selectedParent);
 
   // Stage 7R: the Work Orders population is the parent-scoped four-week planning window, sourced
   // from the same capability for both the parent-level view (selectedBucket null) and the
@@ -156,7 +140,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     error: planningWindowError,
     retry: retryPlanningWindow,
   } = usePlanningWindowWorkOrders(
-    workspace.assignmentId,
+    assignmentId,
     dashboard?.snapshot.snapshotId ?? null,
     selectedParent,
     dateBasis,
@@ -170,7 +154,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   // activation re-requests; a failed refresh leaves the snapshot id — and the displayed BOM —
   // untouched. Obsolete in-flight responses never commit to state (useBom).
   const { bom, isLoading: isBomLoading, error: bomError, activate: activateBom, retry: retryBom } = useBom(
-    workspace.assignmentId,
+    assignmentId,
     selectedParent,
     dashboard?.snapshot.snapshotId ?? null,
   );
@@ -184,7 +168,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     isLoading: isComponentDetailLoading,
     error: componentDetailError,
     retry: retryComponentDetail,
-  } = useComponentDetail(workspace.assignmentId, inspectedComponent?.componentPart ?? null);
+  } = useComponentDetail(assignmentId, inspectedComponent?.componentPart ?? null);
 
   // Approved Vendors (Stage 8D.7) is independently lazy: no request until the modal's AVL section
   // is explicitly expanded. Owned at this level (mirroring Component Detail) so the modal itself
@@ -195,13 +179,13 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     error: approvedVendorsError,
     activate: activateApprovedVendors,
     retry: retryApprovedVendors,
-  } = useApprovedVendors(workspace.assignmentId, inspectedComponent?.componentPart ?? null);
+  } = useApprovedVendors(assignmentId, inspectedComponent?.componentPart ?? null);
 
   const { analysis: immediateMaterialAnalysis, isLoading: isImmediateMaterialLoading, error: immediateMaterialError, retry: retryImmediateMaterial } = useWorkOrderImmediateMaterial(
-    workspace.assignmentId, dashboard?.snapshot.snapshotId ?? null, selectedWoid, dateBasis, (activeTab === 'workOrders' || activeTab === 'shortages') && selectedWoid !== null,
+    assignmentId, dashboard?.snapshot.snapshotId ?? null, selectedWoid, dateBasis, (activeTab === 'workOrders' || activeTab === 'shortages') && selectedWoid !== null,
   );
   const { summary: immediateMaterialSummary, error: immediateMaterialSummaryError } = useWorkOrderImmediateMaterialSummary(
-    workspace.assignmentId, dashboard?.snapshot.snapshotId ?? null, dateBasis,
+    assignmentId, dashboard?.snapshot.snapshotId ?? null, dateBasis,
   );
 
   function handleSelectComponent(componentPart: string, rowElement: HTMLElement) {
@@ -317,7 +301,6 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
     setInspectedShortage(null);
   }
 
-  const title = workspace.displayName ?? workspace.site;
   const allParts = dashboard?.parts ?? [];
   const parts = selectedParent ? allParts.filter((p) => p.parentPart === selectedParent) : allParts;
   const weeklyBuckets = allParts[0]?.buckets.slice(1) ?? [];
@@ -344,19 +327,6 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
   return (
     <div className="mps-workspace">
       <header className="mps-workspace__header">
-        <div className="mps-workspace__title-group">
-          <h2 className="mps-workspace__title">{title}</h2>
-          {dashboard && (
-            <span className="mps-workspace__meta">
-              {SNAPSHOT_STATUS_LABELS[dashboard.snapshot.status] ?? dashboard.snapshot.status}
-              {' \u00b7 Last refresh: '}
-              {formatTimestamp(dashboard.snapshot.lastSuccessfulRefreshAtUtc)}
-              {' \u00b7 '}
-              {dashboard.snapshot.resolvedParentPartCount} parts
-            </span>
-          )}
-        </div>
-
         <div className="mps-workspace__controls">
           <div className="segmented" role="group" aria-label="Date basis">
             {(['dueDate', 'releaseDate'] as const).map((option) => (
@@ -646,7 +616,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
               <WorkOrdersPanel
                 parentPart={selectedParent}
                 bucketLabel={selectedBucket ? describeBucketSelection(selectedBucket) : 'Planning window'}
-                assignmentId={workspace.assignmentId}
+                assignmentId={assignmentId}
                 snapshotId={dashboard?.snapshot.snapshotId ?? null}
                 workOrders={planningWindowWorkOrders}
                 isLoading={isPlanningWindowLoading}
@@ -680,7 +650,7 @@ export function MpsWorkspace({ workspace }: MpsWorkspaceProps) {
                 onCloseDetail={handleCloseShortageDetail}
                 onCloseAnalysis={() => handleOpenMaterialLines(null)}
                 registerSelectedWoidEscape
-                assignmentId={workspace.assignmentId}
+                assignmentId={assignmentId}
                 snapshotId={dashboard?.snapshot.snapshotId ?? null}
                 dateBasis={dateBasis}
               />

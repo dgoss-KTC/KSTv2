@@ -1213,6 +1213,26 @@ are not renumbered.
 
 **Completion gate:** PASS. Stage 9 is **COMPLETE / ACCEPTED / LOCKED**. A scheduler can identify immediate purchased-material shortages for near-term WOs using authoritative requirements, usable-now inventory, hybrid allocation, and informational PO/KSS context. `po_mstr.po_stat` remains a deferred evidence item and does not block Stage 9 acceptance.
 
+### Accepted inter-stage UI foundation
+
+**Status:** **COMPLETE / ACCEPTED**. This is an inter-stage frontend/UI-shell update, not a numbered
+Stage 10 checkpoint. Current authority:
+`docs/implementation/KST_v2_PRE_STAGE_10_UI_FOUNDATION_CLOSEOUT.md`.
+
+- [x] Customer/workspace header below workspace tabs with display name and Active Parts from the
+      active workspace MPS snapshot's `resolvedParentPartCount`.
+- [x] Customer-level Dashboard, Planning, Component Orders, and Finished Goods module navigation;
+      future modules are intentional unavailable surfaces without invented data or rules.
+- [x] Dashboard MPS, selected-part, Work Orders, Shortages, selected Work Order, Escape, and focus
+      behavior preserved while the shared workspace snapshot supplies the header count.
+- [x] Bottom status bar is the sole backend connection-status location, with the state-colored dot
+      and configuration-warning visibility; duplicate top-bar status and unrelated global Refresh,
+      Snapshot, and Last successful refresh controls remain removed.
+- [x] Frontend typecheck, lint, full tests, production build, and diff-whitespace validation passed.
+
+Stage 10 field discovery, purchase-order rules, API contracts, QAD mappings, and Component Orders
+data population remain unstarted and require separate authorization.
+
 
 ## Stage 10 — Phase 7: Purchase-Order Drill-Down
 

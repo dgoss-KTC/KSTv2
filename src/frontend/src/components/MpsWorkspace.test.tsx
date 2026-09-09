@@ -402,7 +402,7 @@ describe('MpsWorkspace', () => {
 
   async function waitForConnected() {
     await waitFor(() => {
-      expect(screen.getByText(/backend connected/i)).toBeInTheDocument();
+      expect(screen.getByText('Backend:')).toHaveTextContent('Backend: Connected');
     });
   }
 
@@ -422,6 +422,74 @@ describe('MpsWorkspace', () => {
     expect(screen.getByText('Jul 21')).toBeInTheDocument();
     expect(screen.getByText('100')).toBeInTheDocument();
     expect(screen.getByText('300')).toBeInTheDocument();
+  });
+
+  it('keeps the Dashboard state loaded while customer modules are switched', async () => {
+    const secondWorkspace = makeWorkspace({ assignmentId: 'ws-2', displayName: 'Line 2', site: 'NE' });
+    setupBackend(
+      {
+        onGetMps: (url) => ({
+          ok: true,
+          json: async () =>
+            makeDashboard({
+              snapshot: {
+                ...makeDashboard().snapshot,
+                workspaceId: url.includes('/ws-2/') ? 'ws-2' : 'ws-1',
+                resolvedParentPartCount: url.includes('/ws-2/') ? 2 : 1,
+              },
+            }),
+        }),
+      },
+      { workspaces: [makeWorkspace(), secondWorkspace], configurationWarning: null },
+    );
+    render(<App />);
+    await waitForConnected();
+    await screen.findByText('ABC100');
+    await waitFor(() => {
+      expect(screen.getByTestId('active-parts-count')).toHaveTextContent('1');
+    });
+    await user.click(screen.getByRole('tab', { name: 'Line 2' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('active-parts-count')).toHaveTextContent('2');
+    });
+
+    await screen.findByText('ABC100');
+    await user.click(screen.getByText('ABC100'));
+    await screen.findByRole('heading', { name: /part info/i });
+    fetchMock.mockClear();
+
+    await user.click(screen.getByRole('tab', { name: 'Component Orders' }));
+    expect(screen.getByRole('heading', { name: 'Component Orders' })).toBeInTheDocument();
+    expect(screen.getByText(/stage 10 workspace surface/i)).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/mps'))).toBe(false);
+
+    await user.click(screen.getByRole('tab', { name: 'Dashboard' }));
+    expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
+  });
+
+  it('updates Active Parts from the refreshed Dashboard snapshot and keeps the bottom bar connection-only', async () => {
+    setupBackend({
+      onRefreshMps: () => ({
+        ok: true,
+        json: async () => makeDashboard({ snapshot: { ...makeDashboard().snapshot, resolvedParentPartCount: 3 } }),
+      }),
+    });
+    render(<App />);
+    await waitForConnected();
+    await screen.findByText('ABC100');
+    await waitFor(() => {
+      expect(screen.getByTestId('active-parts-count')).toHaveTextContent('1');
+    });
+
+    await user.click(within(screen.getByRole('main')).getByRole('button', { name: /^refresh$/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId('active-parts-count')).toHaveTextContent('3');
+    });
+
+    const bottomBar = document.querySelector('.bottom-bar');
+    expect(bottomBar).toHaveTextContent('Backend: Connected');
+    expect(bottomBar).not.toHaveTextContent(/snapshot|last successful refresh|never/i);
+    expect(within(bottomBar as HTMLElement).queryByRole('button', { name: /refresh/i })).not.toBeInTheDocument();
   });
 
   it('shows a message when the workspace resolves to zero parts', async () => {

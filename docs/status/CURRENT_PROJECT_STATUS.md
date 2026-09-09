@@ -80,6 +80,8 @@ permission verification — COMPLETE / ACCEPTED — 2026-08-28, S0.3-G010 Covere
 S0.7-F002 RETIRED);
 S0.8 is now COMPLETE / ACCEPTED — 2026-08-31. S0 is now COMPLETE / ACCEPTED — 2026-08-31.
 Stage 9: **COMPLETE / ACCEPTED / LOCKED — 2026-09-08**
+Pre-Stage-10 customer-workspace UI foundation: **COMPLETE / ACCEPTED** (inter-stage UI update;
+not a Stage 10 checkpoint; see `docs/implementation/KST_v2_PRE_STAGE_10_UI_FOUNDATION_CLOSEOUT.md`)
 Stage 7 status: **COMPLETE / ACCEPTED - 2026-08-13; reopened, amended, and closed by Stage 7R (Four-Week Work Order Planning Window) - 2026-09-01** - see [Stage 7R Amendment](#stage-7r-amendment-four-week-work-order-planning-window) below
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
 Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versioning-foundation) below)
@@ -560,4 +562,6 @@ complete and accepted.
 
 Stage 9 is **COMPLETE / ACCEPTED / LOCKED**. Technical, regression, and live-QAD evidence is
 complete. `po_mstr.po_stat` remains a deferred evidence item and does not block the accepted Stage 9
-closeout. Do not reopen Stage 9 business rules or begin Stage 10 without separate authorization.
+closeout. The pre-Stage-10 customer-workspace UI foundation is **COMPLETE / ACCEPTED**; it is an
+inter-stage frontend update, not a Stage 10 checkpoint. Do not reopen Stage 9 business rules or
+begin Stage 10 without separate authorization.
