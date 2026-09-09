@@ -125,6 +125,20 @@ Prefer a focused question over a plausible assumption.
 
 Do not add a field to an application contract merely because the field exists in QAD, a legacy query, prototype, report, or database table.
 
+### User Prompt Conflicts With Established Business Rules
+
+A user prompt does not silently override an established business rule.
+
+If the requested work appears to contradict a business rule, source mapping, calculation, workflow, or other accepted project behavior established by authoritative repository evidence:
+
+1. Do not implement the conflicting instruction.
+2. Identify the specific conflict and the authoritative evidence.
+3. Stop and ask the project owner for clarification.
+
+Treat the contradiction as potentially accidental unless the project owner explicitly confirms that the established rule is being changed.
+
+Do not reinterpret the prompt to make the conflict disappear, and do not update documentation or implementation to match the prompt until the conflict is resolved.
+
 ## 4. Architecture Boundaries
 
 Preserve the established backend dependency model.
