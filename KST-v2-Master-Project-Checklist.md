@@ -1231,50 +1231,52 @@ Stage 10 checkpoint. Current authority:
 - [x] Frontend typecheck, lint, full tests, production build, and diff-whitespace validation passed.
 
 Stage 10 field discovery, purchase-order rules, API contracts, QAD mappings, and Component Orders
-data population remain unstarted and require separate authorization.
+data population are superseded by the accepted Stage 10 closeout below.
 
 
 ## Stage 10 — Phase 7: Purchase-Order Drill-Down
 
-### 10.1 Field discovery
+**Status:** **COMPLETE / ACCEPTED / LOCKED — 2026-09-14**. Current authority:
+`docs/implementation/KST_v2_STAGE_10_COMPONENT_ORDERS_CLOSEOUT.md`.
 
-- [ ] Map PO number
-- [ ] Map vendor
-- [ ] Map ordered quantity
-- [ ] Map open quantity
-- [ ] Map due date
-- [ ] Map confirmed or scheduled status
-- [ ] Map buyer
-- [ ] Define PO coverage
-- [ ] Map shortage comment
-- [ ] Map supplier credit-hold flag
-- [ ] Map CIA flag
-- [ ] Confirm multiple-PO ordering
-### 10.2 Buyer-note decision
+- [x] Active-workspace Component Orders scope: current-effective multi-level BOM components from
+      the resolved MPS parents of the current snapshot.
+- [x] QAD conventional-open-PO population: raw `pod_qty_ord - pod_qty_rcvd > 0` and
+      case-insensitive `pod_status` exclusion of C/X; no UOM conversion and no `po_stat` predicate.
+- [x] Component grouping and ordering: earliest due PO collapsed row; expanded rows in due-date,
+      PO, then line order; missing due dates are yellow exceptions and dates on/before the applicable
+      Friday cutoff are red/late.
+- [x] Delivered QAD context: description/master-data fallback, weeks lead time, PO/line/due/open
+      quantity, line confirmation, supplier, workspace-domain buyer, manufacturer item, tracking,
+      and independent effective KSS indicator.
+- [x] Read-only Shortages enrichment: latest active exact site/component Current Comments, Credit
+      Hold, and CIA. Source failure keeps QAD rows visible with enrichment unavailable; multiline
+      comments are available in an accessible dialog.
+- [x] Supplier risk: exact supplier-display-name lookup to `PreferredSuppliers.[Supplier Name]`,
+      with `Date DESC, ID DESC` duplicate precedence. Historical `po_vend`/Supplier-Nbr evidence is
+      retained but is not the runtime rule.
+- [x] API/OpenAPI/generated TypeScript contract, frontend Component Orders panel, focused tests,
+      backend solution build, production frontend build, and owner live UAT.
+- [x] Owner acceptance recorded 2026-09-14.
 
-- [ ] Confirm authoritative note source
-- [ ] Determine whether KST may update ShortageMaster
-- [ ] If writes are prohibited, define read-only behavior
-- [ ] Evaluate local-only note storage
-- [ ] Evaluate export-based note updates
-- [ ] Define conflict and refresh behavior
-- [ ] Document final persistence decision
-### 10.3 Backend and frontend
+### Intentional Stage 10 exclusions
 
-- [ ] Create PO adapter
-- [ ] Create vendor adapter
-- [ ] Create supplier-risk adapter
-- [ ] Create note adapter
-- [ ] Define ComponentPurchaseOrder
-- [ ] Create PO-coverage service
-- [ ] Create PO-detail endpoint
-- [ ] Build Component PO Drill card
-- [ ] Build previous/next PO navigation
-- [ ] Build buyer-note interaction
-- [ ] Build no-open-PO state
-- [ ] Validate with current shortage output
-- [ ] Owner acceptance
-Phase 7 completion gate: A scheduler can trace a component shortage to its open purchase orders, vendor, coverage, and current buyer information.
+- [~] PO coverage, projection, netting, and projected clear-date calculations are intentionally
+      deferred to Stage 11; Stage 10 is informational only.
+- [~] Current Comments are read-only. No ShortageMaster write, local note persistence, or
+      export-note update was authorized or delivered.
+- [ ] Separate PO drill card and previous/next PO navigation are not part of the accepted
+      informational Component Orders scope.
+- [ ] Write-capable buyer notes are not part of the accepted informational Component Orders scope.
+- [ ] A no-open-PO detail is not part of the accepted informational Component Orders scope; the
+      delivered empty state truthfully reports no qualifying open PO lines.
+- [~] `PERF-001`: defer tuning until a normal shared QAD/MPS baseline and DBA-reviewed plan/index
+      evidence are available. The initial cache-miss profile found QAD PO reads dominant; the
+      reader-local 500-to-250 batch experiment was only modestly faster.
+
+**Completion gate:** PASS. A scheduler can inspect qualifying open PO supply and read-only current
+supplier/comment context for components in the active workspace. Stage 10 makes no coverage or
+shortage-clearance claim.
 
 
 ## Stage 11 — Phase 8: Future Shortages and Component MRP

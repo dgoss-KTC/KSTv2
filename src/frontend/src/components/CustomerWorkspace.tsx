@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { WorkspaceAssignmentDto } from '../api/client';
 import { useMpsDashboard } from '../hooks/useMpsDashboard';
+import { ComponentOrdersPanel } from './ComponentOrdersPanel';
 import { MpsWorkspace } from './MpsWorkspace';
 import './CustomerWorkspace.css';
 
@@ -76,11 +77,14 @@ export function CustomerWorkspace({ workspace }: { workspace: WorkspaceAssignmen
             refresh={mps.refresh}
           />
         </div>
-        {activeModule !== 'dashboard' && (
+        {activeModule !== 'dashboard' && activeModule !== 'componentOrders' && (
           <section className="customer-workspace__unavailable" aria-labelledby={`${activeModule}-heading`}>
             <h3 id={`${activeModule}-heading`}>{modules.find((module) => module.id === activeModule)?.label}</h3>
             <p>{unavailableCopy[activeModule]}</p>
           </section>
+        )}
+        {activeModule === 'componentOrders' && (
+          <ComponentOrdersPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null} />
         )}
       </div>
     </div>

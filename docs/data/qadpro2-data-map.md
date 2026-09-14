@@ -6,9 +6,9 @@ Generated from `DataMap.xlsx`.
 
 - Source file: `DataMap.xlsx`
 - Generated UTC: `2026-08-06T23:23:17+00:00`
-- Tables: `28` (24 from `DataMap.xlsx` + `sct_det` [added Stage 8D.5] + `loc_mstr` [added R0.6 — see that table's entry] + `icc_ctrl` [added Stage 9.1] + `lad_det` [added Stage 9.1])
-- Fields: `574` (548 from `DataMap.xlsx` + 6 `sct_det` fields + 1 `in_price.inp_source` field [added R0.6] + 4 `loc_mstr` fields [added R0.6] + 3 `icc_ctrl` fields [added Stage 9.1] + 10 `lad_det` fields [added Stage 9.1] + 2 KSS effectivity fields [added Stage 9.8])
-- Validated fields: `571`
+- Tables: `30` (24 from `DataMap.xlsx` + `sct_det` [added Stage 8D.5] + `loc_mstr` [added R0.6 — see that table's entry] + `icc_ctrl` [added Stage 9.1] + `lad_det` [added Stage 9.1] + `code_mstr` [added Stage 10.1] + `vd_mstr` [added Stage 10.1])
+- Fields: `581` (548 from `DataMap.xlsx` + 6 `sct_det` fields + 1 `in_price.inp_source` field [added R0.6] + 4 `loc_mstr` fields [added R0.6] + 3 `icc_ctrl` fields [added Stage 9.1] + 10 `lad_det` fields [added Stage 9.1] + 2 KSS effectivity fields [added Stage 9.8] + 4 `code_mstr` fields [added Stage 10.1] + 3 `vd_mstr` fields [added Stage 10.1])
+- Validated fields: `578`
 
 ## Agent Usage Rules
 
@@ -80,6 +80,19 @@ Generated from `DataMap.xlsx`.
 | `cmt_indx` | Comment Index | Yes |
 | `cmt_ref` | Comment Reference | Yes |
 | `cmt_seq` | Comment Sequence/Page Number | Yes |
+
+### Table: `code_mstr`
+
+- **Business name:** Code Master
+- **Source sheet:** `QADPRO2`
+- **Fields:** 4
+
+| Field | Description | Validated |
+|---|---|---:|
+| `code_domain` | Domain — lookup partition; identical codes may resolve to different users per domain (Stage 10.1 buyer resolution is domain-scoped, no cross-domain fallback) | Yes |
+| `code_fldname` | Source-field discriminator identifying which field's code this row resolves (e.g., `ptp_buyer`, `pt_buyer`) | Yes |
+| `code_value` | Code value as stored on the source row | Yes |
+| `code_user1` | Resolved display user/value for the code | Yes |
 
 ### Table: `icc_ctrl`
 
@@ -738,6 +751,18 @@ Generated from `DataMap.xlsx`.
 | `tr_userid` | Transaction conducted by | Yes |
 | `tr_vend_lot` | Supplier Lot Number | Yes |
 | `tr_wod_op` | Operation | Yes |
+
+### Table: `vd_mstr`
+
+- **Business name:** Vendor Master
+- **Source sheet:** `QADPRO2`
+- **Fields:** 3
+
+| Field | Description | Validated |
+|---|---|---:|
+| `vd_addr` | Vendor address/code — join key for `po_mstr.po_vend`, disambiguated by domain; `(vd_addr, vd_domain)` is unique in this mirror (Stage 10.1) | Yes |
+| `vd_domain` | Domain of the vendor row | Yes |
+| `vd_sort` | Vendor display name (nvarchar(30)); no blank values observed among KTC vendor rows (Stage 10.1) | Yes |
 
 ### Table: `vp_mstr`
 

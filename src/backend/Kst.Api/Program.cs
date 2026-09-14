@@ -6,6 +6,7 @@ using Serilog.Events;
 using Kst.Api.Endpoints;
 using Kst.Application.ApprovedVendors;
 using Kst.Application.Bom;
+using Kst.Application.ComponentOrders;
 using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
 using Kst.Application.Mps;
@@ -20,6 +21,7 @@ using Kst.Application.Snapshots;
 using Kst.Application.Shortages;
 using Kst.Infrastructure;
 using Kst.Infrastructure.Bom;
+using Kst.Infrastructure.ComponentOrders;
 using Kst.Infrastructure.ComponentDetail;
 using Kst.Infrastructure.Configuration;
 using Kst.Infrastructure.Identity;
@@ -30,6 +32,7 @@ using Kst.Infrastructure.Shortages;
 using Kst.Infrastructure.WorkOrders;
 using Kst.Integrations.Qad.ApprovedVendors;
 using Kst.Integrations.Qad.Bom;
+using Kst.Integrations.Qad.ComponentOrders;
 using Kst.Integrations.Qad.ComponentDetail;
 using Kst.Integrations.Qad.Connectivity;
 using Kst.Integrations.Qad.Inventory;
@@ -40,6 +43,7 @@ using Kst.Integrations.Qad.Shortages;
 using Kst.Integrations.Qad.WorkOrders;
 using Kst.Integrations.Shortages.Connectivity;
 using Kst.Integrations.Shortages.Options;
+using Kst.Integrations.Shortages.ComponentOrders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -95,9 +99,8 @@ var qadOptions = builder.Configuration
     .GetSection(QadConnectionOptions.SectionName)
     .Get<QadConnectionOptions>() ?? new QadConnectionOptions();
 
-var shortagesOptions = builder.Configuration
-    .GetSection(ShortagesConnectionOptions.SectionName)
-    .Get<ShortagesConnectionOptions>() ?? new ShortagesConnectionOptions();
+var shortagesSecretFileLoader = new ShortagesSecretFileLoader();
+var shortagesOptions = new ShortagesConnectionOptions(shortagesSecretFileLoader.TryLoad(out _));
 
 // -- Services ------------------------------------------------------------------
 builder.Services.AddInfrastructure();
@@ -108,6 +111,7 @@ if (qadOptions.IsConfigured)
 else
     builder.Services.AddSingleton<IQadConnectivityCheck, DisabledQadConnectivityCheck>();
 builder.Services.AddSingleton(shortagesOptions);
+builder.Services.AddSingleton(shortagesSecretFileLoader);
 builder.Services.AddSingleton<IShortagesConnectivityCheck, DisabledShortagesConnectivityCheck>();
 
 // Authoritative version source: assembly InformationalVersion, derived at build time from
@@ -300,6 +304,27 @@ else
 
 builder.Services.AddSingleton<ApprovedVendorService>();
 
+// -- Component Orders (Stage 10.2) --------------------------------------------------
+builder.Services.AddSingleton<IComponentOrdersCacheStore, InMemoryComponentOrdersCacheStore>();
+builder.Services.AddSingleton<ShortagesComponentOrderEnrichmentReader>();
+builder.Services.AddSingleton<IComponentOrderEnrichmentReader>(sp => sp.GetRequiredService<ShortagesComponentOrderEnrichmentReader>());
+
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadComponentOrderReader>();
+    builder.Services.AddSingleton<IComponentOrderSourceReader>(sp => new DelegateComponentOrderSourceReader(
+        (site, componentParts, today, ct) =>
+            sp.GetRequiredService<QadComponentOrderReader>().ReadAsync(site, componentParts, today, ct)));
+}
+else
+{
+    const string notConfiguredMessage = "QAD connection is not configured.";
+    builder.Services.AddSingleton<IComponentOrderSourceReader>(_ => new DelegateComponentOrderSourceReader(
+        (_, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+}
+
+builder.Services.AddSingleton<ComponentOrdersService>();
+
 // -- Immediate Material Analysis (Stage 9.4; no HTTP endpoint until Stage 9.5) -------------
 builder.Services.AddSingleton<IWorkOrderImmediateMaterialCacheStore, InMemoryWorkOrderImmediateMaterialCacheStore>();
 
@@ -394,6 +419,7 @@ app.MapWorkOrderEndpoints();
 app.MapBomEndpoints();
 app.MapComponentDetailEndpoints();
 app.MapApprovedVendorEndpoints();
+app.MapComponentOrderEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------
 // Writes a JSON line to stdout once the server is bound so Tauri can read the port.

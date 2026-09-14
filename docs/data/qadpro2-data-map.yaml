@@ -1,9 +1,9 @@
 metadata:
   source_file: DataMap.xlsx
   generated_utc: '2026-08-06T23:23:17+00:00'
-  table_count: 28
-  field_count: 574
-  validated_field_count: 571
+  table_count: 30
+  field_count: 581
+  validated_field_count: 578
   notes:
   - Generated from the KST v2 DataMap workbook.
   - Validated is true when the source workbook contained x/yes/y/true/1.
@@ -12,6 +12,7 @@ metadata:
   - R0.6 (Data / QAD Reconciliation) added the loc_mstr table (4 fields) and the in_price.inp_source field, both confirmed directly against implemented QAD adapter queries rather than the original workbook.
   - Stage 9.1 (Immediate Work-Order Shortages source-mapping reconciliation) added the icc_ctrl table (3 fields: icc_domain, icc_iss_days, icc_site) and the lad_det table (10 fields), both confirmed directly against live QADPRO2 schema/data. icc_iss_days is the QAD issue-days source used by the legacy shortage logic (ktshrtge11) and the accepted Stage 9 Expired/Expiring rule. lad_det is the firm/detail inventory allocation table (hard allocation); see the Stage 9 source-mapping document for the allocation-authority conflict with the accepted Stage 9 reconstructed allocation.
   - Stage 9.8 KSS blocker correction added po_mstr.po_eff_to and pod_det.pod_end_eff##1, confirmed directly against the live SQL Server QADPRO2 mirror. pod_end_eff##1 is the SQL Server column name for Progress pod_end_eff[1]; together with po_sched they establish effective KSS supplier-schedule classification independently of conventional PO availability.
+  - Stage 10.1 (Component Orders source validation) added the code_mstr table (4 fields — code_domain, code_fldname, code_value, code_user1) and the vd_mstr table (3 fields — vd_addr, vd_domain, vd_sort), both confirmed directly against live QADPRO2 schema/data on KNWVM13. Buyer-code resolution is domain-scoped via the code_fldname discriminator ('ptp_buyer' for ptp_det.ptp_buyer, 'pt_buyer' for pt_mstr.pt_buyer) with display value code_user1; vendor display joins po_mstr.po_vend to vd_mstr.vd_addr disambiguated by domain with display value vd_sort. See the Stage 10 source-mapping document.
 databases:
   QADPRO2:
     ad_mstr:
@@ -150,6 +151,22 @@ databases:
           validated: true
         cmt_seq:
           description: Comment Sequence/Page Number
+          validated: true
+    code_mstr:
+      business_name: Code Master
+      source_sheet: QADPRO2
+      fields:
+        code_domain:
+          description: Domain - lookup partition; identical codes may resolve to different users per domain (Stage 10.1 buyer resolution is domain-scoped, no cross-domain fallback)
+          validated: true
+        code_fldname:
+          description: Source-field discriminator identifying which field's code this row resolves (e.g., ptp_buyer, pt_buyer)
+          validated: true
+        code_value:
+          description: Code value as stored on the source row
+          validated: true
+        code_user1:
+          description: Resolved display user/value for the code
           validated: true
     icc_ctrl:
       business_name: Inventory Control
@@ -1581,6 +1598,19 @@ databases:
           validated: true
         tr_wod_op:
           description: Operation
+          validated: true
+    vd_mstr:
+      business_name: Vendor Master
+      source_sheet: QADPRO2
+      fields:
+        vd_addr:
+          description: Vendor address/code - join key for po_mstr.po_vend, disambiguated by domain; (vd_addr, vd_domain) is unique in this mirror (Stage 10.1)
+          validated: true
+        vd_domain:
+          description: Domain of the vendor row
+          validated: true
+        vd_sort:
+          description: Vendor display name (nvarchar(30)); no blank values observed among KTC vendor rows (Stage 10.1)
           validated: true
     vp_mstr:
       business_name: Supplier Item Master

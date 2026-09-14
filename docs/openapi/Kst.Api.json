@@ -1408,6 +1408,85 @@
           }
         }
       }
+    },
+    "/api/v1/workspaces/{assignmentId}/component-orders": {
+      "get": {
+        "tags": [
+          "ComponentOrders"
+        ],
+        "summary": "Returns the active workspace's component-grouped conventional open PO lines for its MPS snapshot's BOM-derived component scope.",
+        "operationId": "GetComponentOrders",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "snapshotId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentOrdersResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1748,6 +1827,168 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ComponentOrderGroupDto": {
+        "required": [
+          "componentPart",
+          "displayLine",
+          "additionalLines"
+        ],
+        "type": "object",
+        "properties": {
+          "componentPart": {
+            "type": "string"
+          },
+          "displayLine": {
+            "$ref": "#/components/schemas/ComponentOrderLineDto"
+          },
+          "additionalLines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComponentOrderLineDto"
+            }
+          }
+        }
+      },
+      "ComponentOrderLineDto": {
+        "required": [
+          "componentPart",
+          "description",
+          "leadTimeDays",
+          "poNumber",
+          "poLine",
+          "dueDate",
+          "openQuantity",
+          "confirmed",
+          "supplierDisplay",
+          "buyerDisplay",
+          "manufacturerItem",
+          "isKss",
+          "trackingInfo",
+          "isCreditHold",
+          "isCia",
+          "currentComments"
+        ],
+        "type": "object",
+        "properties": {
+          "componentPart": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "leadTimeDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "poNumber": {
+            "type": "string"
+          },
+          "poLine": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "openQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "confirmed": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "supplierDisplay": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "buyerDisplay": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "manufacturerItem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isKss": {
+            "type": "boolean"
+          },
+          "trackingInfo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isCreditHold": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "isCia": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "currentComments": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ComponentOrdersResponseDto": {
+        "required": [
+          "snapshotId",
+          "enrichmentAvailability",
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "enrichmentAvailability": {
+            "type": "string"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComponentOrderGroupDto"
+            }
           }
         }
       },
@@ -3231,6 +3472,9 @@
     },
     {
       "name": "ApprovedVendors"
+    },
+    {
+      "name": "ComponentOrders"
     }
   ]
 }

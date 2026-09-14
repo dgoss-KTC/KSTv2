@@ -12,8 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Kst.Application\Kst.Application.csproj" />
     <ProjectReference Include="..\..\Kst.Domain\Kst.Domain.csproj" />
     <ProjectReference Include="..\..\Kst.Integrations.Qad\Kst.Integrations.Qad.csproj" />
+    <ProjectReference Include="..\..\Kst.Integrations.Shortages\Kst.Integrations.Shortages.csproj" />
   </ItemGroup>
 
   <ItemGroup>

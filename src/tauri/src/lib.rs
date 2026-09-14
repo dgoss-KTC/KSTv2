@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, path::BaseDirectory};
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent, TerminatedPayload};
 use serde::{Deserialize, Serialize};
@@ -17,6 +17,8 @@ const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
 /// external executable the KST Tauri host launches. See
 /// `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`.
 const BACKEND_SIDECAR_NAME: &str = "Kst.Api";
+const SHORTAGES_SECRETS_RESOURCE: &str = "resources/secrets.json";
+const SHORTAGES_SECRETS_ENVIRONMENT_VARIABLE: &str = "KST_SECRETS_FILE";
 
 type SharedBackendState = Arc<Mutex<BackendRuntimeState>>;
 
@@ -226,6 +228,21 @@ async fn launch_backend(app: AppHandle, state: SharedBackendState) {
         }
     };
 
+    // The sidecar receives only a readable file path. In development the file is optional; the
+    // release-only overlay declares it so a package build fails when the operator has not supplied it.
+    let secret_path = if cfg!(debug_assertions) {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SHORTAGES_SECRETS_RESOURCE)
+    } else {
+        match app.path().resolve(SHORTAGES_SECRETS_RESOURCE, BaseDirectory::Resource) {
+            Ok(path) => path,
+            Err(_) => std::path::PathBuf::new(),
+        }
+    };
+    let sidecar = match sidecar_secrets_environment(&secret_path) {
+        Some((name, value)) => sidecar.env(name, value),
+        None => sidecar,
+    };
+
     let (mut rx, child) = match sidecar.spawn() {
         Ok(pair) => pair,
         Err(e) => {
@@ -422,6 +439,12 @@ async fn launch_backend(app: AppHandle, state: SharedBackendState) {
 async fn clear_launch_flag(state: SharedBackendState) {
     let mut runtime = state.lock().await;
     runtime.launch_in_progress = false;
+}
+
+fn sidecar_secrets_environment(path: &std::path::Path) -> Option<(&'static str, String)> {
+    std::fs::File::open(path)
+        .ok()
+        .map(|_| (SHORTAGES_SECRETS_ENVIRONMENT_VARIABLE, path.to_string_lossy().to_string()))
 }
 
 async fn shutdown_active_backend(
@@ -663,7 +686,7 @@ mod capability_guard {
     //! by the `bundle.externalBin` declaration plus the constant the launch path
     //! uses.
 
-    use super::BACKEND_SIDECAR_NAME;
+    use super::{BACKEND_SIDECAR_NAME, SHORTAGES_SECRETS_ENVIRONMENT_VARIABLE, SHORTAGES_SECRETS_RESOURCE, sidecar_secrets_environment};
     use serde_json::Value;
 
     fn read_manifest_file(name: &str) -> Value {
@@ -753,6 +776,67 @@ mod capability_guard {
         assert_eq!(
             declared, BACKEND_SIDECAR_NAME,
             "runtime sidecar name (BACKEND_SIDECAR_NAME) must match bundle.externalBin"
+        );
+    }
+
+    #[test]
+    fn bundled_shortages_secret_resource_is_release_only_and_path_only_injected() {
+        let base_config = read_manifest_file("tauri.conf.json");
+        let base_resources = base_config
+            .pointer("/bundle/resources")
+            .and_then(Value::as_array)
+            .expect("tauri.conf.json bundle.resources must be a JSON array");
+        assert!(
+            !base_resources.iter().any(|entry| entry.as_str() == Some(SHORTAGES_SECRETS_RESOURCE)),
+            "base Tauri configuration must not require the untracked Shortages resource"
+        );
+
+        let release_config = read_manifest_file("tauri.release.conf.json");
+        let release_resources = release_config
+            .pointer("/bundle/resources")
+            .and_then(Value::as_array)
+            .expect("tauri.release.conf.json bundle.resources must be a JSON array");
+
+        assert!(
+            release_resources.iter().any(|entry| entry.as_str() == Some(SHORTAGES_SECRETS_RESOURCE)),
+            "release overlay must require the Shortages resource so packaging fails when it is absent"
+        );
+        assert!(
+            release_resources.iter().any(|entry| entry.as_str() == Some("binaries/appsettings.json"))
+                && release_resources.iter().any(|entry| entry.as_str() == Some("binaries/appsettings.Development.json")),
+            "release overlay must retain base resources because Tauri configuration merging replaces arrays"
+        );
+
+        let missing = std::env::temp_dir().join("kst-missing-shortages-resource.json");
+        assert!(
+            sidecar_secrets_environment(&missing).is_none(),
+            "a missing development resource must omit KST_SECRETS_FILE"
+        );
+
+        let fake_path = std::env::temp_dir().join(format!("kst-shortages-resource-{}.json", std::process::id()));
+        std::fs::write(&fake_path, "placeholder-only test resource").expect("failed to create fake resource");
+        let environment = sidecar_secrets_environment(&fake_path);
+        let _ = std::fs::remove_file(&fake_path);
+        assert_eq!(
+            environment,
+            Some((SHORTAGES_SECRETS_ENVIRONMENT_VARIABLE, fake_path.to_string_lossy().to_string())),
+            "a readable resource must pass only its path to the sidecar"
+        );
+
+        let source = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/lib.rs"),
+        )
+        .expect("failed to read Tauri sidecar launcher source");
+        assert!(
+            source.contains("BaseDirectory::Resource")
+                && source.contains("SHORTAGES_SECRETS_ENVIRONMENT_VARIABLE")
+                && source.contains("sidecar.env(name, value)"),
+            "sidecar launcher must resolve the bundled resource and pass its path only via KST_SECRETS_FILE"
+        );
+        assert!(
+            !source.contains("KST_SECRETS_FILE\", include_str!")
+                && !source.contains("KST_SECRETS_FILE\", std::fs::read_to_string"),
+            "sidecar launcher must not load and pass secret contents"
         );
     }
 }

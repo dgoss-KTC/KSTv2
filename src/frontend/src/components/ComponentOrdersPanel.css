@@ -1,0 +1,265 @@
+.component-orders {
+  flex-shrink: 0;
+  margin: 0 20px 14px;
+  padding: 14px 18px;
+  background: var(--grid);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+}
+
+.component-orders__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.component-orders__toolbar h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--tx);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.component-orders__filters {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.component-orders__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tx3);
+}
+
+.component-orders__filter input[type='search'] {
+  height: var(--density-control-height);
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--bd);
+  background: var(--panel2);
+  color: var(--tx);
+  font-family: inherit;
+  font-size: 12px;
+  min-width: 180px;
+}
+
+.component-orders__filter input[type='search']:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 1px;
+}
+
+.component-orders__filter--checkbox {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 12px;
+  color: var(--tx2);
+  cursor: pointer;
+}
+
+.component-orders__filter input:disabled {
+  cursor: not-allowed;
+}
+
+.component-orders__enrichment-notice {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--a-tx);
+  background: var(--a-bg);
+  color: var(--a-tx);
+  font-size: 12px;
+}
+
+.component-orders__state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 4px;
+  color: var(--tx3);
+  font-size: 12.5px;
+}
+
+.component-orders__state--error {
+  color: var(--danger-tx);
+}
+
+.component-orders__state button {
+  height: var(--density-control-height);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 0 14px;
+  cursor: pointer;
+  background: var(--accent-solid);
+  border: 1px solid var(--accent-solid);
+  color: #0c1118;
+}
+
+.component-orders__scroll {
+  overflow: auto;
+  max-height: calc(100vh - 240px);
+}
+
+.component-orders table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.component-orders th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tx3);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--bd-soft);
+  background: var(--sticky);
+  white-space: nowrap;
+}
+
+.component-orders td {
+  padding: 4px 8px;
+  color: var(--tx);
+  border-bottom: 1px solid var(--bd-soft);
+  white-space: nowrap;
+}
+
+.component-orders__row:hover {
+  background: var(--row-hover);
+}
+
+.component-orders__comp {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* Child rows repeat the component number, indented under their collapsed group row. */
+.component-orders__row--child .component-orders__comp {
+  padding-left: 22px;
+  color: var(--tx2);
+}
+
+.component-orders__num {
+  text-align: right;
+}
+
+/* PO due-date presentation states: missing = yellow exception, on/before Friday cutoff = red. */
+.component-orders__due--missing {
+  background: var(--a-bg);
+  color: var(--a-tx);
+}
+
+.component-orders__due--late {
+  background: var(--danger-bg);
+  color: var(--danger-tx);
+}
+
+.component-orders__kss {
+  font-weight: 600;
+  color: var(--f-tx);
+}
+
+.component-orders__risk {
+  text-align: center;
+  font-weight: 700;
+}
+
+.component-orders__comments {
+  min-width: 180px;
+  max-width: 280px;
+  white-space: normal;
+}
+
+.component-orders__comments button {
+  display: -webkit-box;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.component-orders__comment-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 121;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.component-orders__comment-dialog {
+  width: 620px;
+  max-width: 100%;
+  max-height: 85vh;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.component-orders__comment-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--bd-soft);
+}
+
+.component-orders__comment-dialog h2 { margin: 0; font-size: 15px; color: var(--tx); }
+.component-orders__comment-dialog header button { border: 0; background: transparent; color: var(--tx2); cursor: pointer; font: inherit; }
+.component-orders__comment-dialog pre { margin: 0; padding: 18px 20px; color: var(--tx); font: inherit; white-space: pre-wrap; }
+
+.component-orders__expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.component-orders__expand:hover {
+  color: var(--accent-text);
+}
+
+.component-orders__chevron {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid currentColor;
+  transition: transform 120ms ease;
+}
+
+.component-orders__expand--open .component-orders__chevron {
+  transform: rotate(90deg);
+}

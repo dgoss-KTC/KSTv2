@@ -365,6 +365,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{assignmentId}/component-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the active workspace's component-grouped conventional open PO lines for its MPS snapshot's BOM-derived component scope. */
+        get: operations["GetComponentOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -439,6 +456,38 @@ export interface components {
             loadedAtUtc: string;
             isStale: boolean;
             warning: null | string;
+        };
+        ComponentOrderGroupDto: {
+            componentPart: string;
+            displayLine: components["schemas"]["ComponentOrderLineDto"];
+            additionalLines: components["schemas"]["ComponentOrderLineDto"][];
+        };
+        ComponentOrderLineDto: {
+            componentPart: string;
+            description: null | string;
+            /** Format: int32 */
+            leadTimeDays: null | number | string;
+            poNumber: string;
+            /** Format: int32 */
+            poLine: number | string;
+            /** Format: date */
+            dueDate: null | string;
+            /** Format: double */
+            openQuantity: number | string;
+            confirmed: null | boolean;
+            supplierDisplay: null | string;
+            buyerDisplay: null | string;
+            manufacturerItem: null | string;
+            isKss: boolean;
+            trackingInfo: null | string;
+            isCreditHold: null | boolean;
+            isCia: null | boolean;
+            currentComments: null | string;
+        };
+        ComponentOrdersResponseDto: {
+            snapshotId: string;
+            enrichmentAvailability: string;
+            groups: components["schemas"]["ComponentOrderGroupDto"][];
         };
         CreateWorkspaceRequestDto: {
             displayName: null | string;
@@ -1769,6 +1818,66 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetComponentOrders: {
+        parameters: {
+            query?: {
+                snapshotId?: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComponentOrdersResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

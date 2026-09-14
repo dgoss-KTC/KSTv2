@@ -5,6 +5,11 @@
   -->
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kst.Application\Kst.Application.csproj" />
     <ProjectReference Include="..\Kst.Domain\Kst.Domain.csproj" />
   </ItemGroup>
 </Project>

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Kst.Application.ApprovedVendors;
 using Kst.Application.Bom;
+using Kst.Application.ComponentOrders;
 using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
 using Kst.Application.Preferences;
@@ -49,6 +50,12 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
     public IKssScheduleReader? KssScheduleReader { get; set; }
     public IWorkOrderSummaryReader? WorkOrderSummaryReader { get; set; }
     public IWorkOrderMaterialReader? WorkOrderMaterialReader { get; set; }
+
+    /// <summary>Optional deterministic <see cref="IComponentOrderSourceReader"/> override (Stage 10.2).</summary>
+    public IComponentOrderSourceReader? ComponentOrderSourceReader { get; set; }
+
+    /// <summary>Optional deterministic enrichment reader override for Component Orders endpoint tests.</summary>
+    public IComponentOrderEnrichmentReader? ComponentOrderEnrichmentReader { get; set; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -132,6 +139,8 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
             ReplaceIfProvided(services, KssScheduleReader);
             ReplaceIfProvided(services, WorkOrderSummaryReader);
             ReplaceIfProvided(services, WorkOrderMaterialReader);
+            ReplaceIfProvided(services, ComponentOrderSourceReader);
+            ReplaceIfProvided(services, ComponentOrderEnrichmentReader);
         });
 
         builder.ConfigureLogging(logging =>

@@ -1,8 +1,8 @@
 # Current Project Status
 
-Date: 2026-09-08
+Date: 2026-09-14
 Workstation: Windows (`C:\Dev\kst_v2`)
-Current stage: **Stage 9 — Immediate Work-Order Shortages — COMPLETE / ACCEPTED / LOCKED — 2026-09-08**
+Current stage: **Stage 10 — Purchase-Order Drill-Down / Component Orders — COMPLETE / ACCEPTED / LOCKED — 2026-09-14**
 UI Navigation & Keyboard Ergonomics A: **COMPLETE / ACCEPTED — 2026-08-21**
 Active cross-cutting effort: **R0 — Repository / Documentation Reconciliation — COMPLETE /
 ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation Status` below and
@@ -80,6 +80,7 @@ permission verification — COMPLETE / ACCEPTED — 2026-08-28, S0.3-G010 Covere
 S0.7-F002 RETIRED);
 S0.8 is now COMPLETE / ACCEPTED — 2026-08-31. S0 is now COMPLETE / ACCEPTED — 2026-08-31.
 Stage 9: **COMPLETE / ACCEPTED / LOCKED — 2026-09-08**
+Stage 10: **COMPLETE / ACCEPTED / LOCKED — 2026-09-14**
 Pre-Stage-10 customer-workspace UI foundation: **COMPLETE / ACCEPTED** (inter-stage UI update;
 not a Stage 10 checkpoint; see `docs/implementation/KST_v2_PRE_STAGE_10_UI_FOUNDATION_CLOSEOUT.md`)
 Stage 7 status: **COMPLETE / ACCEPTED - 2026-08-13; reopened, amended, and closed by Stage 7R (Four-Week Work Order Planning Window) - 2026-09-01** - see [Stage 7R Amendment](#stage-7r-amendment-four-week-work-order-planning-window) below
@@ -414,6 +415,34 @@ MPS-grid shortage marker.
 The Stage 9 plan preserves planning history. The audit, live-QAD validation, regression record,
 source mapping, and closeout provide the current accepted evidence and disposition.
 
+## Stage 10 — Purchase-Order Drill-Down / Component Orders
+
+**Status:** **COMPLETE / ACCEPTED / LOCKED — 2026-09-14**. Current closeout authority:
+`docs/implementation/KST_v2_STAGE_10_COMPONENT_ORDERS_CLOSEOUT.md`.
+
+Stage 10 provides the active workspace's **informational-only** Component Orders surface. Its
+population is the current-effective multi-level BOM components of the workspace MPS snapshot's
+resolved parents, restricted to conventional QAD PO lines whose raw ordered-minus-received quantity
+is positive and whose `pod_status` is not C/X case-insensitively. It groups components by their
+earliest due PO and preserves due-date, PO, then line ordering when expanded. Missing due dates are
+yellow exceptions; dates on or before the applicable Friday cutoff are red/late.
+
+QAD-delivered context includes master-data fallback, weeks lead time, PO/line/due/open quantity,
+line confirmation, supplier, workspace-domain buyer, manufacturer item, tracking, and an
+independent effective KSS indicator. Read-only Shortages enrichment supplies latest-active exact
+site/component Current Comments plus Credit Hold and CIA. An enrichment failure leaves QAD PO rows
+visible and marks enrichment unavailable; it does not manufacture blank enriched data. Supplier
+risk uses the accepted exact supplier-display-name lookup with `Date DESC, ID DESC` precedence.
+
+Component Orders does **not** assert PO coverage, reservation, shortage clearance, projection,
+netting, or a clear date. Those calculations are intentionally deferred to Stage 11. Current
+Comments are read-only: no ShortageMaster write, local note persistence, or export-note update was
+authorized or delivered. Stage 9 remains complete, accepted, locked, and unmodified.
+
+`PERF-001` remains deferred. A cache-miss profile identified QAD PO reads as the dominant phase and
+a reader-local 500-to-250 batch experiment was only modestly faster. Do not tune further until a
+normal shared QAD/MPS baseline and DBA-reviewed plan/index evidence are available.
+
 ## UI Navigation & Keyboard Ergonomics A
 
 **Status:** COMPLETE / ACCEPTED — owner manual validation PASS, 2026-08-21
@@ -560,8 +589,7 @@ S0 — Security Foundation Integration is **COMPLETE / ACCEPTED — 2026-08-31**
 UI Navigation & Keyboard Ergonomics A, and R0 — Repository / Documentation Reconciliation are
 complete and accepted.
 
-Stage 9 is **COMPLETE / ACCEPTED / LOCKED**. Technical, regression, and live-QAD evidence is
-complete. `po_mstr.po_stat` remains a deferred evidence item and does not block the accepted Stage 9
-closeout. The pre-Stage-10 customer-workspace UI foundation is **COMPLETE / ACCEPTED**; it is an
-inter-stage frontend update, not a Stage 10 checkpoint. Do not reopen Stage 9 business rules or
-begin Stage 10 without separate authorization.
+Stage 9 is **COMPLETE / ACCEPTED / LOCKED** and was not modified. Stage 10 is **COMPLETE /
+ACCEPTED / LOCKED**. Component Orders is informational only; PO coverage, projection, netting, and
+clear-date logic remain intentionally deferred to Stage 11. The next authorized stage is **Stage 11
+— Future Shortages and Component MRP**.

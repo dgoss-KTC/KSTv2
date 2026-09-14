@@ -33,6 +33,7 @@ export type BomLineDto = components['schemas']['BomLineDto'];
 export type BomResponseDto = components['schemas']['BomResponseDto'];
 export type ComponentDetailResponseDto = components['schemas']['ComponentDetailResponseDto'];
 export type ApprovedVendorDto = components['schemas']['ApprovedVendorDto'];
+export type ComponentOrdersResponseDto = components['schemas']['ComponentOrdersResponseDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -226,6 +227,16 @@ export class ApiClient {
       `&targetDepth=${targetDepth}` +
       `&dateBasis=${encodeURIComponent(dateBasis)}`;
     return this.get<WorkOrderCandidateResponseDto>(`/api/v1/workspaces/${assignmentId}/work-orders/candidates${query}`);
+  }
+
+  async getComponentOrders(
+    assignmentId: string,
+    snapshotId: string,
+  ): Promise<ComponentOrdersResponseDto> {
+    const query = `?snapshotId=${encodeURIComponent(snapshotId)}`;
+    return this.get<ComponentOrdersResponseDto>(
+      `/api/v1/workspaces/${assignmentId}/component-orders${query}`,
+    );
   }
 
   private async get<T>(path: string): Promise<T> {

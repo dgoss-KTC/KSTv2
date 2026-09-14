@@ -1,0 +1,9 @@
+{
+  "bundle": {
+    "resources": [
+      "binaries/appsettings.json",
+      "binaries/appsettings.Development.json",
+      "resources/secrets.json"
+    ]
+  }
+}
