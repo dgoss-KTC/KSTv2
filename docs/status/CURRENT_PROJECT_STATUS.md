@@ -81,6 +81,7 @@ S0.7-F002 RETIRED);
 S0.8 is now COMPLETE / ACCEPTED — 2026-08-31. S0 is now COMPLETE / ACCEPTED — 2026-08-31.
 Stage 9: **COMPLETE / ACCEPTED / LOCKED — 2026-09-08**
 Stage 10: **COMPLETE / ACCEPTED / LOCKED — 2026-09-14**
+Stage 11-A — Long-Term Shortages: **IMPLEMENTED / OWNER REVIEW PENDING — 2026-09-16** (backend, generated-contract, typecheck, frontend build, and Tauri verification pass; approved report-population defaults Include Manufactured Parts = off and Include Phantoms = off are applied before projection source retrieval and are part of the cache/export identity; repository-wide frontend test/lint baselines remain blocked by pre-existing locked Stage 10 failures)
 Pre-Stage-10 customer-workspace UI foundation: **COMPLETE / ACCEPTED** (inter-stage UI update;
 not a Stage 10 checkpoint; see `docs/implementation/KST_v2_PRE_STAGE_10_UI_FOUNDATION_CLOSEOUT.md`)
 Stage 7 status: **COMPLETE / ACCEPTED - 2026-08-13; reopened, amended, and closed by Stage 7R (Four-Week Work Order Planning Window) - 2026-09-01** - see [Stage 7R Amendment](#stage-7r-amendment-four-week-work-order-planning-window) below
@@ -590,6 +591,8 @@ UI Navigation & Keyboard Ergonomics A, and R0 — Repository / Documentation Rec
 complete and accepted.
 
 Stage 9 is **COMPLETE / ACCEPTED / LOCKED** and was not modified. Stage 10 is **COMPLETE /
-ACCEPTED / LOCKED**. Component Orders is informational only; PO coverage, projection, netting, and
-clear-date logic remain intentionally deferred to Stage 11. The next authorized stage is **Stage 11
-— Future Shortages and Component MRP**.
+ACCEPTED / LOCKED**. Component Orders remains informational only. Stage 11-A Long-Term Shortages is
+**IMPLEMENTED / OWNER REVIEW PENDING (2026-09-16)**: it adds a separate 24-week, date-only,
+site-wide component projection with a filtered human-reviewable `.xlsx` export. It does not alter
+Stage 9 or Stage 10 behavior. Stage 11-B Single-Part MRP remains unstarted and requires separate
+authorization.
