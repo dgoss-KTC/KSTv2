@@ -1,0 +1,185 @@
+alter PROCEDURE dbo.sp_shortageFinder
+@customer VARCHAR (MAX)='', @site CHAR (2)='', @days INT=21
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @domain AS CHAR (3) = (SELECT si_domain
+                                   FROM   qadpro2.dbo.si_mstr WITH (NOLOCK)
+                                   WHERE  si_site = @site);
+    WITH     firm_allocated_inventory
+    AS       (SELECT   lad_domain,
+                       lad_site,
+                       lad_part,
+                       lad_lot,
+                       lad_loc,
+                       lad_ref,
+                       sum(lad_qty_all) AS [lad_qty_all]
+              FROM     qadpro2.dbo.lad_det
+              GROUP BY lad_domain, lad_site, lad_lot, lad_loc, lad_ref, lad_part),
+             firm_allocated_orders
+    AS       (SELECT   lad_nbr,
+                       lad_line,
+                       lad_domain,
+                       lad_site,
+                       lad_part,
+                       sum(lad_qty_all) AS [lad_qty_all]
+              FROM     qadpro2.dbo.lad_det
+              WHERE    lad_dataset = 'wod_det'
+              GROUP BY lad_nbr, lad_domain, lad_site, lad_line,lad_part),
+             available_inventory
+    AS       (SELECT   ld_domain,
+                       ld_site,
+                       ld_part,
+                       SUM(ld_qty_oh - isnull(lad_qty_all,0)) AS [ld_qty_avail]
+              FROM     qadpro2.dbo.ld_det WITH (NOLOCK)
+                       INNER JOIN
+                       qadpro2.dbo.loc_mstr WITH (NOLOCK)
+                       ON loc_loc = ld_loc
+                          AND ld_domain = loc_domain
+                          AND ld_site = loc_site
+                       INNER JOIN
+                       qadpro2.dbo.is_mstr WITH (NOLOCK)
+                       ON is_status = loc_status
+                          AND is_domain = ld_domain
+                       LEFT OUTER JOIN
+                       firm_allocated_inventory
+                       ON lad_domain = ld_domain
+                          AND lad_site = ld_site
+                          AND lad_lot = ld_lot
+                          AND lad_ref = ld_ref
+              WHERE    is_nettable = '1'
+                       AND loc_status NOT IN ('MRB', 'Inspect')
+                       AND (ld_domain = @domain
+                            OR @site = '') --AND ld_domain IN ('KTC', 'KTV')
+                       AND ld_domain = 'ktc'
+              GROUP BY ld_site, ld_domain, ld_part
+              HAVING   SUM(ld_qty_oh - isnull(lad_qty_all,0)) >= 0),
+             key_parts
+    AS       (SELECT ps_par
+              FROM   qadpro2.dbo.ps_mstr WITH (NOLOCK)
+              WHERE  GETDATE() BETWEEN ISNULL(ps_start, GETDATE()) AND ISNULL(ps_end, GETDATE())
+                     AND (ps_domain = @domain
+                          OR @site = '') --AND ps_domain IN ('KTC', 'KTV')
+                     AND ps_domain = 'ktc'
+                     AND ps_comp LIKE 'key%'),
+             facility_codes
+    AS       (SELECT ptp_part,
+                     ptp_domain,
+                     ptp_site,
+                     ptp_buyer,
+                     CASE WHEN LEFT(ptp_buyer, 4) LIKE '%MOL%' THEN 'Molding' WHEN LEFT(ptp_buyer, 4) LIKE '%SMT1%' THEN 'Plant 1 SMT' WHEN LEFT(ptp_buyer, 4) LIKE '%FA1%' THEN 'Plant 1 SMT' WHEN LEFT(ptp_buyer, 4) LIKE '%SMT2%' THEN 'Plant 2' WHEN LEFT(ptp_buyer, 4) LIKE '%FA2%' THEN 'Plant 2' WHEN LEFT(ptp_buyer, 4) LIKE '%FA3%' THEN 'Plant 3' WHEN LEFT(ptp_buyer, 4) LIKE '%MT4%' THEN 'Plant 4' WHEN LEFT(ptp_buyer, 4) LIKE '%MT5%' THEN 'Plant 5' WHEN LEFT(ptp_buyer, 4) LIKE '%FA5%' THEN 'Plant 5' WHEN LEFT(ptp_buyer, 4) LIKE '%FA7%' THEN 'Plant 7' WHEN LEFT(ptp_buyer, 4) LIKE '%MT7%' THEN 'Plant 7' ELSE ptp_buyer END AS [Facility]
+              FROM   qadpro2.dbo.ptp_det
+                     INNER JOIN
+                     qadpro2.dbo.pt_mstr
+                     ON pt_part = ptp_part
+                        AND pt_domain = ptp_domain
+              WHERE  ptp_domain = 'ktc'
+                     AND ptp_site = 'sw'
+                     AND pt_prod_line BETWEEN '1000' AND '6199')
+    SELECT   pl__chr01 AS [Customer],
+             wo.wo_domain,
+             upper(wo.wo_site) AS [wo_site],
+             wo.wo_lot,
+             wo.wo_nbr,
+             wo.wo_part,
+             IIF (pt.pt_prod_line BETWEEN '1000' AND '5999', 'FG', 'SUBASSY') AS [wo_part_category],
+             CASE WHEN pt.pt_prod_line BETWEEN '1000' AND '5999' THEN isnull(Facility, wo_site) END AS [Facility],
+             wo.wo_due_date,
+             wo.wo_rel_date,
+             wo.wo_qty_ord,
+             wo.wo_qty_comp,
+             wo.wo_qty_rjct,
+             IIF (wo.wo_qty_ord - wo.wo_qty_comp - wo.wo_qty_rjct < 0, 0, wo.wo_qty_ord - wo.wo_qty_comp - wo.wo_qty_rjct) AS [QTY_Open],
+             IIF (pt.pt_prod_line BETWEEN '1000' AND '5999', 1, 0) * ISNULL(pidhist, sct_cst_tot) * IIF (wo.wo_qty_ord - wo.wo_qty_comp - wo.wo_qty_rjct < 0, 0, wo.wo_qty_ord - wo.wo_qty_comp - wo.wo_qty_rjct) AS [Revenue],
+             upper(wo.wo_status) AS [wo_status],
+             wo.wo_type,
+             wod.wod_part,
+             comp.pt_desc1 AS [Component_Desc],
+              --   ,wod_op
+    SUM(wod.wod_qty_req) AS [wod_qty_req],
+             SUM(wod.wod_qty_iss) AS [wod_qty_iss],
+             SUM(isnull(lad_qty_all,0)) AS [wod_qty_all],
+             ISNULL(ld_qty_avail, 0) AS [ld_qty_avail],
+             CASE WHEN SUM(wod_qty_req) <= SUM(wod_qty_iss) + SUM(isnull(lad_qty_all,0)) THEN 'Sufficient Parts Allocated to WO' ELSE 'Insufficient Parts Allocated to WO' END AS [Allocated],
+             CASE WHEN SUM(wod_qty_req) > SUM(wod_qty_iss) + SUM(isnull(lad_qty_all,0))
+                       AND ISNULL(ld_qty_avail, 0) >= SUM(wod_qty_req) - SUM(wod_qty_iss) - SUM(isnull(lad_qty_all,0)) THEN 'Allocate Available Parts to Work Order' WHEN SUM(wod_qty_req) > SUM(wod_qty_iss) + SUM(isnull(lad_qty_all,0))
+                                                                                                                                                                AND ISNULL(ld_qty_avail, 0) < SUM(wod_qty_req) - SUM(wod_qty_iss) - SUM(isnull(lad_qty_all,0)) THEN 'Short ' + CASE WHEN comp.pt_prod_line = '6200' THEN 'Materials' ELSE 'Subassy' END END AS [Short],
+             CASE WHEN SUM(wod_qty_req) > SUM(wod_qty_iss) + SUM(isnull(lad_qty_all,0))
+                       AND ISNULL(ld_qty_avail, 0) < SUM(wod_qty_req) - SUM(wod_qty_iss) - SUM(isnull(lad_qty_all,0)) THEN Resolve END AS [Resolve],
+             CASE WHEN wod_part IN (SELECT ps_par
+                                    FROM   key_parts) THEN 1 ELSE 0 END AS [Key_Part],
+             ISNULL(pidhist, sct_cst_tot) AS [SalePrice],
+             CASE WHEN comp.pt_prod_line = '6200' THEN 'Purchased Component' ELSE 'Manufactured Part' END AS [Component_Category]
+    FROM     qadpro2.dbo.wo_mstr AS wo WITH (NOLOCK)
+             INNER JOIN
+             qadpro2.dbo.pt_mstr AS pt WITH (NOLOCK)
+             ON pt.pt_part = wo.wo_part
+                AND pt.pt_domain = wo.wo_domain
+                AND pt.pt_prod_line BETWEEN '1000' AND '6200'
+             LEFT OUTER JOIN
+             facility_codes
+             ON ptp_part = wo_part
+                AND ptp_domain = wo_domain
+                AND ptp_site = wo_site
+             INNER JOIN
+             qadpro2.dbo.pl_mstr AS pl WITH (NOLOCK)
+             ON pl.pl_prod_line = pt.pt_group
+                AND pl.pl_domain = wo.wo_domain
+                AND (pl.pl__chr01 = @customer
+                     OR @customer = '') OUTER APPLY analysis.dbo.pidhist(wo_part, wo_domain, GETDATE())
+             LEFT OUTER JOIN
+             qadpro2.dbo.sct_det WITH (NOLOCK)
+             ON sct_part = wo_part
+                AND sct_domain = wo_domain
+                AND sct_site = wo_site
+                AND sct_sim = 'standard'
+             INNER JOIN
+             qadpro2.dbo.wod_det AS wod WITH (NOLOCK)
+             ON wod.wod_domain = wo.wo_domain
+                AND wod.wod_lot = wo.wo_lot
+                AND wod_nbr = wo_nbr
+                AND wod.wod_qty_req <> 0
+             LEFT OUTER JOIN
+             firm_allocated_orders
+             ON lad_nbr = wod_lot
+                AND lad_line = wod_op
+                AND lad_domain = wo_domain
+                AND lad_part = wod_part
+                AND lad_site = wo_site
+             INNER JOIN
+             qadpro2.dbo.pt_mstr AS comp WITH (NOLOCK)
+             ON comp.pt_part = wod_part
+                AND comp.pt_domain = wo_domain
+             LEFT OUTER JOIN
+             available_inventory
+             ON ld_part = wod_part
+                AND ld_domain = wo_domain
+                AND ld_site = wo_site
+             LEFT OUTER JOIN
+             Commodity_Mgmt.dbo.Comm_Sub_Cat_Tbl
+              ON Comm_Code = comp.pt_comm_code OUTER APPLY (SELECT TOP 1 CAST (CAST (RunningTotal AS DECIMAL (18, 2)) AS VARCHAR) + ' Due On: ' + CAST (CAST (mrp_due_date AS DATE) AS VARCHAR) AS [Resolve] --take out mrb, inspect,
+                                                           FROM   (SELECT mrp_part,
+                                                                          mrp_due_date,
+                                                                          mrp_qty,
+                                                                          SUM(mrp_qty) OVER (ORDER BY mrp_due_date ASC) AS [RunningTotal]
+                                                                   FROM   qadpro2.dbo.mrp_det WITH (NOLOCK)
+                                                                   WHERE  mrp_part = wod_part
+                                                                          AND mrp_site = wo_site
+                                                                          AND mrp_domain = wo_domain
+                                                                          AND mrp_type LIKE 'SUPP%') AS RT
+                                                           WHERE  RunningTotal >= wod_qty_req - wod_qty_iss - isnull(lad_qty_all,0) - ISNULL(ld_qty_avail, 0)) AS MRP
+    WHERE    (wo.wo_domain = @domain
+              OR @site = '') --AND wo.wo_domain IN ('KTC', 'KTV')
+             AND wo.wo_domain = 'ktc'
+             AND (wo.wo_site = @site
+                  OR @site = '')
+             AND wo.wo_type <> 'R'
+             AND wo.wo_status <> 'C'
+             AND wo.wo_due_date < DATEADD(DAY, @days, GETDATE())
+              AND comp.pt_prod_line <> '6150' --ORDER BY wo_due_date ASC, wo_lot
+               --Remove Packaging -R
+             AND NOT (Primary_Comm_Cat = 'Packaging'
+                      AND wod_part LIKE '%-R')
+    GROUP BY wo.wo_domain, wo.wo_site, wo.wo_lot, wo.wo_nbr, wo.wo_part, wo.wo_due_date, wo.wo_rel_date, wo.wo_qty_ord, wo.wo_qty_comp, wo.wo_qty_rjct, wo.wo_status, wo.wo_type, wod.wod_part, ISNULL(ld_qty_avail, 0), ISNULL(pidhist, sct_cst_tot), comp.pt_prod_line, Resolve, pt.pt_prod_line, pl__chr01, facility, comp.pt_desc1
+    OPTION (RECOMPILE);
+END

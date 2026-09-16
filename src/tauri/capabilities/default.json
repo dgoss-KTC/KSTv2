@@ -1,8 +1,10 @@
 {
   "identifier": "default",
-  "description": "Default Tauri app capabilities: core IPC only. No Tauri shell-plugin permission is granted to the webview; KST's process lifecycle (Kst.Api sidecar launch and PID-scoped shutdown handling) runs from the Rust host, outside the webview IPC surface (see docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md).",
+  "description": "Default Tauri app capabilities: core IPC plus a user-mediated Stage 11-A workbook Save As flow. No Tauri shell-plugin permission is granted to the webview; KST's process lifecycle (Kst.Api sidecar launch and PID-scoped shutdown handling) runs from the Rust host, outside the webview IPC surface (see docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md). The dialog plugin grants the chosen file path only for the current process, and the filesystem plugin may write that selected file only.",
   "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "dialog:allow-save",
+    "fs:allow-write-file"
   ]
 }

@@ -9,6 +9,7 @@ using Kst.Application.Bom;
 using Kst.Application.ComponentOrders;
 using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
+using Kst.Application.LongTermShortages;
 using Kst.Application.Mps;
 using Kst.Application.PartDetail;
 using Kst.Application.Preferences;
@@ -16,6 +17,8 @@ using Kst.Application.Refresh;
 using Kst.Application.SystemStatus;
 using Kst.Application.Workspaces;
 using Kst.Application.WorkOrders;
+using Kst.Exports.Contracts;
+using Kst.Exports;
 using Kst.Domain.Common;
 using Kst.Application.Snapshots;
 using Kst.Application.Shortages;
@@ -26,6 +29,7 @@ using Kst.Infrastructure.ComponentDetail;
 using Kst.Infrastructure.Configuration;
 using Kst.Infrastructure.Identity;
 using Kst.Infrastructure.Mps;
+using Kst.Infrastructure.LongTermShortages;
 using Kst.Infrastructure.PartDetail;
 using Kst.Infrastructure.SystemStatus;
 using Kst.Infrastructure.Shortages;
@@ -37,6 +41,7 @@ using Kst.Integrations.Qad.ComponentDetail;
 using Kst.Integrations.Qad.Connectivity;
 using Kst.Integrations.Qad.Inventory;
 using Kst.Integrations.Qad.Mps;
+using Kst.Integrations.Qad.LongTermShortages;
 using Kst.Integrations.Qad.Options;
 using Kst.Integrations.Qad.PartDetail;
 using Kst.Integrations.Qad.Shortages;
@@ -104,6 +109,7 @@ var shortagesOptions = new ShortagesConnectionOptions(shortagesSecretFileLoader.
 
 // -- Services ------------------------------------------------------------------
 builder.Services.AddInfrastructure();
+builder.Services.AddSingleton<IExportService, PlaceholderExportService>();
 
 builder.Services.AddSingleton(qadOptions);
 if (qadOptions.IsConfigured)
@@ -325,6 +331,23 @@ else
 
 builder.Services.AddSingleton<ComponentOrdersService>();
 
+// -- Long-Term Shortages (Stage 11-A) ------------------------------------------
+builder.Services.AddSingleton<ILongTermShortagesCacheStore, InMemoryLongTermShortagesCacheStore>();
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadLongTermShortageSourceReader>();
+    builder.Services.AddSingleton<ILongTermShortageSourceReader>(sp => new DelegateLongTermShortageSourceReader(
+        (site, componentParents, refreshDate, horizonEnd, workspaceParents, ct) =>
+            sp.GetRequiredService<QadLongTermShortageSourceReader>().ReadAsync(site, componentParents, refreshDate, horizonEnd, workspaceParents, ct)));
+}
+else
+{
+    const string notConfiguredMessage = "QAD connection is not configured.";
+    builder.Services.AddSingleton<ILongTermShortageSourceReader>(_ => new DelegateLongTermShortageSourceReader(
+        (_, _, _, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+}
+builder.Services.AddSingleton<LongTermShortagesService>();
+
 // -- Immediate Material Analysis (Stage 9.4; no HTTP endpoint until Stage 9.5) -------------
 builder.Services.AddSingleton<IWorkOrderImmediateMaterialCacheStore, InMemoryWorkOrderImmediateMaterialCacheStore>();
 
@@ -420,6 +443,8 @@ app.MapBomEndpoints();
 app.MapComponentDetailEndpoints();
 app.MapApprovedVendorEndpoints();
 app.MapComponentOrderEndpoints();
+app.MapLongTermShortagesEndpoints();
+app.MapLongTermShortagesExportEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------
 // Writes a JSON line to stdout once the server is bound so Tauri can read the port.
