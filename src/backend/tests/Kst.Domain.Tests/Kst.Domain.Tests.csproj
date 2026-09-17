@@ -13,7 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Kst.Domain\Kst.Domain.csproj" />
-    <ProjectReference Include="..\..\Kst.Exports\Kst.Exports.csproj" />
   </ItemGroup>
 
   <ItemGroup>

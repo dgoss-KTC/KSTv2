@@ -1281,24 +1281,6 @@ shortage-clearance claim.
 
 ## Stage 11 — Phase 8: Future Shortages and Component MRP
 
-### Stage 11-A — Long-Term Shortages
-
-**Status:** IMPLEMENTED / OWNER REVIEW PENDING — 2026-09-16
-
-- [x] Add a distinct Long-Term Shortages workspace module; Stage 9 Shortages and Stage 10 Component Orders remain unchanged.
-- [x] Build exactly 24 Sunday-start date-only projected-balance buckets from the active workspace's resolved parent/BOM component population.
-- [x] Apply the Stage 11-A direct `ld_det` opening-QOH rule, site-wide netting, WO residual demand, gross future `fcs_sum` forecast, confirmed conventional in-horizon PO supply, and KSS classification-only rules.
-- [x] Preserve workspace-parent and other-program attribution as evidence without multiplying component balance inputs.
-- [x] Apply selected-site safety-stock precedence, including the explicit selected-site-null unresolved state.
-- [x] Deliver stale-last-good behavior, Component Information evidence detail, generated API contracts, and filtered ClosedXML `.xlsx` export.
-- [x] Apply approved report-population defaults: Include Manufactured Parts = off and Include Phantoms = off. These options filter current-effective-BOM selected components before Stage 11-A source retrieval, require both enabled for a component that is both manufactured and phantom, and are included in report cache/export identity.
-- [x] Add deterministic timeline tests for `ICC-00994`, `ICC-01084`, `ICC-01117`, and `115989`.
-- [x] Complete backend build/tests, OpenAPI/TypeScript generation, frontend typecheck/build, cargo check, and diff whitespace verification.
-- [ ] Resolve repository-wide frontend test/lint baseline failures in locked Stage 10 files under separate authorization.
-- [ ] Project-owner manual validation and acceptance.
-
-**Known limitations:** Gross forecast remains a potentially overstated interim rule because consumption is not modeled. A selected-site safety-stock null remains an unresolved source-data state. No covering-PO assertion, reservation, UOM conversion, planned/scheduled/transfer/production supply, or Stage 11-B work is included.
-
 ### 11.1 Rule discovery
 
 - [ ] Define projection horizon

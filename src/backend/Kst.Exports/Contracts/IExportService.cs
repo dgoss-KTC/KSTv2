@@ -1,10 +1,13 @@
-using Kst.Domain.LongTermShortages;
 namespace Kst.Exports.Contracts;
 
 /// <summary>
-/// Controlled workbook generation from an already loaded Stage 11-A projection.
+/// Marker interface for the export service boundary.
+/// No production export methods implemented in this phase.
 /// </summary>
 public interface IExportService
 {
-    byte[] CreateLongTermShortagesWorkbook(string workspaceName, DateOnly refreshDate, IReadOnlyList<LongTermShortageRow> rows);
+    /// <summary>
+    /// Returns diagnostic information confirming the export service is wired up.
+    /// </summary>
+    string GetDiagnosticStatus();
 }

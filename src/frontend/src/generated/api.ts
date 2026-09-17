@@ -382,38 +382,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/workspaces/{assignmentId}/long-term-shortages": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["GetLongTermShortages"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/workspaces/{assignmentId}/long-term-shortages/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["ExportLongTermShortages"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -535,14 +503,6 @@ export interface components {
             name: string;
             status: string;
         };
-        ExportLongTermShortagesRequestDto: {
-            snapshotId: string;
-            componentParts: string[];
-            /** @default false */
-            includeManufacturedParts: boolean;
-            /** @default false */
-            includePhantoms: boolean;
-        };
         HealthResponse: {
             status: string;
             application: string;
@@ -560,82 +520,6 @@ export interface components {
             fullyIssuedLineCount: number | string;
             /** Format: double */
             kittingPercent: null | number | string;
-        };
-        LongTermPurchaseOrderDto: {
-            poNumber: string;
-            /** Format: int32 */
-            poLine: number | string;
-            /** Format: date */
-            dueDate: null | string;
-            /** Format: double */
-            openQuantity: number | string;
-            /** Format: double */
-            displayOpenQuantity: number | string;
-            confirmed: null | boolean;
-            manufacturerItem: null | string;
-            isScheduled: boolean;
-        };
-        LongTermShortageRowDto: {
-            componentPart: string;
-            unitOfMeasure: null | string;
-            qadStatus: null | string;
-            description: null | string;
-            isKss: boolean;
-            /** Format: int32 */
-            leadTimeWeeks: null | number | string;
-            planner: null | string;
-            /** Format: double */
-            openingQoh: number | string;
-            /** Format: double */
-            displayOpeningQoh: number | string;
-            safetyStockState: string;
-            /** Format: double */
-            safetyStock: null | number | string;
-            /** Format: double */
-            displaySafetyStock: null | number | string;
-            severity: string;
-            /** Format: int32 */
-            firstSafetyStockShortWeek: null | number | string;
-            /** Format: int32 */
-            firstCriticalShortWeek: null | number | string;
-            demandParentParts: string[];
-            otherProgramParentParts: string[];
-            weeks: components["schemas"]["LongTermShortageWeekDto"][];
-            purchaseOrders: components["schemas"]["LongTermPurchaseOrderDto"][];
-            buyerPlannerCode: null | string;
-        };
-        LongTermShortagesResponseDto: {
-            snapshotId: string;
-            /** Format: date */
-            refreshDate: string;
-            isStale: boolean;
-            warning: null | string;
-            rows: components["schemas"]["LongTermShortageRowDto"][];
-        };
-        LongTermShortageWeekDto: {
-            /** Format: int32 */
-            weekNumber: number | string;
-            /** Format: date */
-            weekStart: string;
-            /** Format: double */
-            workOrderDemand: number | string;
-            /** Format: double */
-            displayWorkOrderDemand: number | string;
-            /** Format: double */
-            forecastDemand: number | string;
-            /** Format: double */
-            displayForecastDemand: number | string;
-            /** Format: double */
-            displayDemand: number | string;
-            /** Format: double */
-            purchaseOrderSupply: number | string;
-            /** Format: double */
-            displayPurchaseOrderSupply: number | string;
-            /** Format: double */
-            balance: number | string;
-            /** Format: double */
-            displayBalance: number | string;
-            severity: string;
         };
         MpsBucketDto: {
             kind: string;
@@ -1973,128 +1857,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ComponentOrdersResponseDto"];
                 };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    GetLongTermShortages: {
-        parameters: {
-            query?: {
-                snapshotId?: string;
-                includeManufacturedParts?: boolean;
-                includePhantoms?: boolean;
-            };
-            header?: never;
-            path: {
-                assignmentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LongTermShortagesResponseDto"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    ExportLongTermShortages: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                assignmentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExportLongTermShortagesRequestDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Bad Request */
             400: {
