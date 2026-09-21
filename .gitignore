@@ -1,6 +1,7 @@
 Documentation/
 prototype/
 review-packet/
+/scratch/
 
 # .NET / C#
 src/backend/**/bin/
