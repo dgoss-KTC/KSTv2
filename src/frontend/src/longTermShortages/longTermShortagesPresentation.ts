@@ -13,7 +13,7 @@ export const EMPTY_LONG_TERM_SHORTAGES_FILTERS: LongTermShortagesFilters = {
 };
 
 export function isShortage(row: LongTermShortageRow): boolean {
-  // A selected-site null safety-stock value is not a clean result and must stay visible by default.
+  // A selected-site null safety-stock value is unresolved operational data, not a clear result.
   return row.severity === 'CriticalShort' || row.severity === 'SafetyStockShort' || row.severity === 'SafetyStockUnavailable';
 }
 
@@ -28,19 +28,19 @@ export function filterLongTermShortages(
     .filter((row) => filters.showAll || isShortage(row))
     .filter((row) => !component || row.componentPart.toLocaleLowerCase().includes(component))
     .filter((row) => !planner || (row.planner ?? '').toLocaleLowerCase().includes(planner))
-    .filter((row) => !filters.kssOnly || row.isKss)
+    .filter((row) => !filters.kssOnly || row.presentation?.isKss === true)
     .filter((row) => !filters.statusOnly || Boolean(row.qadStatus))
     .sort((left, right) => {
-      const leftWeek = left.firstSafetyStockShortWeek ?? Number.MAX_SAFE_INTEGER;
-      const rightWeek = right.firstSafetyStockShortWeek ?? Number.MAX_SAFE_INTEGER;
-      return Number(leftWeek) - Number(rightWeek) || left.componentPart.localeCompare(right.componentPart);
+      const leftDate = left.firstShortDate ?? '9999-12-31';
+      const rightDate = right.firstShortDate ?? '9999-12-31';
+      return leftDate.localeCompare(rightDate) || left.componentPart.localeCompare(right.componentPart);
     });
 }
 
-/** Formats the API-provided Stage 11-A display quantity; the backend owns UOM rounding. */
+/** Retains the raw QAD/API decimal value without applying display rounding. */
 export function formatLongTermQuantity(value: number | string | null | undefined): string {
   if (value === null || value === undefined) return '—';
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(Number(value));
+  return String(value);
 }
 
 export function formatLongTermDate(value: string): string {

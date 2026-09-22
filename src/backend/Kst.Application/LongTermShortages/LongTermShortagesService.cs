@@ -18,6 +18,7 @@ public sealed class LongTermShortagesService(
     IClock clock,
     ILogger<LongTermShortagesService> logger)
 {
+    public const string ScheduleVersion = "shared-mrp-v1";
     public async Task<LongTermShortagesResult> GetAsync(Guid workspaceId, SnapshotId requestedSnapshotId, LongTermShortagePopulationOptions options, CancellationToken cancellationToken = default)
     {
         var workspace = (await workspaces.GetWorkspacesAsync()).Workspaces.FirstOrDefault(w => w.AssignmentId == workspaceId)
@@ -27,16 +28,11 @@ public sealed class LongTermShortagesService(
         if (state.Snapshot.Id != requestedSnapshotId) return LongTermShortagesResult.SnapshotChanged;
 
         var refreshDate = DateOnly.FromDateTime(clock.LocalNow.Date);
-        var cached = cache.Get(workspaceId, requestedSnapshotId, refreshDate, options);
+        var cached = cache.Get(workspaceId, requestedSnapshotId, refreshDate, ScheduleVersion, options);
         if (cached is not null) return LongTermShortagesResult.Loaded(requestedSnapshotId, refreshDate, cached.Rows);
 
         try
         {
-            var parentParts = state.Snapshot.ResolvedParts.Select(p => p.ParentPart).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            // Population options apply after resolved-parent/current-effective-BOM component selection and before any
-            // opening-QOH, demand, supply, forecast, KSS, presentation, or projection retrieval: excluded components
-            // never reach the source read. Classification uses the established part-master indicators carried by the
-            // BOM occurrence (pt_mstr.pt_pm_code = 'M' manufactured; pt_phantom phantom, null = not phantom).
             var componentParents = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
             foreach (var parent in state.Snapshot.ResolvedParts)
                 foreach (var occurrence in await bom.ReadAsync(workspace.Site, parent.ParentPart, refreshDate, cancellationToken))
@@ -50,20 +46,19 @@ public sealed class LongTermShortagesService(
                     parents.Add(parent.ParentPart);
                 }
 
-            var weekOne = MpsBusinessCalendar.GetBusinessWeekStart(refreshDate);
             var inputs = await source.ReadAsync(workspace.Site,
                 componentParents.ToDictionary(entry => entry.Key, entry => (IReadOnlyList<string>)entry.Value.OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToList(), StringComparer.OrdinalIgnoreCase),
-                refreshDate, weekOne.AddDays(LongTermShortagesBuilder.WeekCount * 7), parentParts, cancellationToken);
+                LongTermShortagesBuilder.GetWeekOneStart(refreshDate).AddDays(LongTermShortagesBuilder.WeekCount * 7), cancellationToken);
             if (snapshots.GetState(workspaceId).Snapshot?.Id != requestedSnapshotId) return LongTermShortagesResult.SnapshotChanged;
             var rows = LongTermShortagesBuilder.Build(refreshDate, inputs);
-            cache.Set(new LongTermShortagesCacheEntry(workspaceId, requestedSnapshotId, refreshDate, options, rows));
+            cache.Set(new LongTermShortagesCacheEntry(workspaceId, requestedSnapshotId, refreshDate, ScheduleVersion, options, rows));
             return LongTermShortagesResult.Loaded(requestedSnapshotId, refreshDate, rows);
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             logger.LogError(ex, "Stage 11-A Long-Term Shortages load failed for workspace {WorkspaceId}.", workspaceId);
-            var stale = cache.GetLatest(workspaceId, requestedSnapshotId, options);
+            var stale = cache.GetLatest(workspaceId, requestedSnapshotId, ScheduleVersion, options);
             return stale is null ? LongTermShortagesResult.Unavailable : LongTermShortagesResult.Loaded(requestedSnapshotId, stale.RefreshDate, stale.Rows, true);
         }
     }
@@ -82,7 +77,7 @@ public sealed class LongTermShortagesService(
         if (state.Snapshot.Id != requestedSnapshotId) return new(LongTermShortagesOutcomeKind.SnapshotChanged);
 
         // The export must match the projection produced under exactly these population options.
-        var cached = cache.GetLatest(workspaceId, requestedSnapshotId, options);
+        var cached = cache.GetLatest(workspaceId, requestedSnapshotId, ScheduleVersion, options);
         if (cached is null) return new(LongTermShortagesOutcomeKind.Unavailable);
 
         if (displayedComponentParts.Count == 0)

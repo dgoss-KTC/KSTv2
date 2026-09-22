@@ -1,83 +1,63 @@
 using Kst.Domain.LongTermShortages;
-
 namespace Kst.Domain.Tests.LongTermShortages;
-
 public sealed class LongTermShortagesBuilderTests
 {
     [Fact]
-    public void Build_UsesTwentyFourSundayStartWeeks_AndNetsSameWeekSupplyAndDemand()
+    public void Build_UsesMondayWeeks_PastCarryIn_AndReleaseOnlyEvidence()
     {
-        var rows = LongTermShortagesBuilder.Build(new DateOnly(2026, 9, 15), [Input(
-            openingQoh: 10m,
-            safetyStock: 5m,
-            demands: [new(new DateOnly(2026, 9, 16), 8m, false)],
-            purchaseOrders: [new("100", 1, new DateOnly(2026, 9, 17), 3m, true, null, false)])]);
+        var row = Assert.Single(LongTermShortagesBuilder.Build(new DateOnly(2026, 9, 15), [Input(200m, 0m,
+            new(1, "DEMAND", new(2026, 9, 10), null, 98.2456140337m, MrpScheduleCategory.Unclassified),
+            new(2, "SUPPLYP", new(2026, 9, 22), new(2026, 9, 18), 49m, MrpScheduleCategory.Unclassified),
+            new(3, "SUPPLYP", null, new(2026, 9, 18), 11m, MrpScheduleCategory.Unclassified))]));
 
-        var row = Assert.Single(rows);
+        Assert.Equal(new DateOnly(2026, 9, 14), row.Weeks[0].WeekStart);
         Assert.Equal(24, row.Weeks.Count);
-        Assert.Equal(new DateOnly(2026, 9, 13), row.Weeks[0].WeekStart);
-        Assert.Equal(new DateOnly(2027, 2, 21), row.Weeks[^1].WeekStart);
-        Assert.Equal(5m, row.Weeks[0].Balance);
-        Assert.Equal(LongTermShortageSeverity.None, row.Weeks[0].Severity);
+        Assert.Equal(new DateOnly(2027, 2, 22), row.Weeks[^1].WeekStart);
+        Assert.Equal(101.7543859663m, row.Past.ProjectedQoh);
+        Assert.Equal(49m, row.Weeks[1].PlannedOrdersDue);
+        Assert.Equal(60m, row.Weeks[0].PlannedOrdersRelease);
+        Assert.Contains(row.Evidence, fact => fact.IsPlannedOrderReleaseEvidence && fact.Quantity == 11m);
     }
 
     [Fact]
-    public void Build_RollsPastDueWorkOrderDemandIntoWeekOne_ButExcludesPastForecast()
+    public void Build_DoesNotDoubleCountEqualFacts_AndEvaluatesSeverityOnlyInForwardWeeks()
     {
-        var row = Assert.Single(LongTermShortagesBuilder.Build(new DateOnly(2026, 9, 15), [Input(
-            openingQoh: 20m,
-            safetyStock: 0m,
-            demands: [new(new DateOnly(2026, 9, 1), 4m, false), new(new DateOnly(2026, 9, 1), 8m, true)])]));
+        var row = Assert.Single(LongTermShortagesBuilder.Build(new DateOnly(2026, 9, 15), [Input(10m, 5m,
+            new(1, "DEMAND", new(2026, 9, 1), null, 20m, MrpScheduleCategory.Unclassified),
+            new(2, "SUPPLY", new(2026, 9, 15), null, 20m, MrpScheduleCategory.Unclassified),
+            new(3, "DEMAND", new(2026, 9, 16), null, 2m, MrpScheduleCategory.Unclassified),
+            new(4, "DEMAND", new(2026, 9, 16), null, 2m, MrpScheduleCategory.Unclassified))]));
 
-        Assert.Equal(4m, row.Weeks[0].WorkOrderDemand);
-        Assert.Equal(0m, row.Weeks[0].ForecastDemand);
-        Assert.Equal(16m, row.Weeks[0].Balance);
-    }
-
-    [Fact]
-    public void Build_UsesSafetyStockSeverityAndSelectedSiteMissingState()
-    {
-        var safetyShort = Assert.Single(LongTermShortagesBuilder.Build(new DateOnly(2026, 9, 15), [Input(10m, 15m)]));
-        var unavailable = Assert.Single(LongTermShortagesBuilder.Build(new DateOnly(2026, 9, 15), [Input(10m, null, SafetyStockState.SelectedSiteValueMissing)]));
-
-        Assert.Equal(LongTermShortageSeverity.SafetyStockShort, safetyShort.Severity);
-        Assert.Equal(1, safetyShort.FirstSafetyStockShortWeek);
-        Assert.Equal(LongTermShortageSeverity.SafetyStockUnavailable, unavailable.Severity);
-        Assert.Null(unavailable.FirstSafetyStockShortWeek);
-    }
-
-    [Fact]
-    public void Build_ApprovedIcc00994Timeline_FirstSafetyShortIsWeek16_AndCriticalShortIsWeek17()
-    {
-        var weeklyDemand = new decimal[] { 18796.99m, 8956.39m, 20462.66m, 6618.55m, 1616.04m, 6027.07m, 12356.89m, 6329.82m, 3665.16m, 14817.04m, 894.24m, 0m, 0m, 0m, 3663.16m, 5802.51m, 15837.59m, 916.29m, 2584.46m, 3584.96m, 5497.74m, 15957.89m, 14249.62m, 18359.90m };
-        var weekOne = new DateOnly(2026, 9, 13);
-        var demands = weeklyDemand.Select((quantity, index) => new LongTermDemandEvent(weekOne.AddDays(index * 7), quantity, false)).ToList();
-
-        var row = Assert.Single(LongTermShortagesBuilder.Build(new DateOnly(2026, 9, 15), [Input(120721m, 14838m, demands: demands)]));
-
-        Assert.Equal(LongTermShortageSeverity.SafetyStockShort, row.Weeks[15].Severity);
-        Assert.Equal(LongTermShortageSeverity.CriticalShort, row.Weeks[16].Severity);
-        Assert.Equal(16, row.FirstSafetyStockShortWeek);
-        Assert.Equal(17, row.FirstCriticalShortWeek);
-        Assert.All(row.Weeks.Skip(16), week => Assert.Equal(LongTermShortageSeverity.CriticalShort, week.Severity));
-    }
-
-    [Theory]
-    [InlineData("ICC-01084", 63974, 36568)]
-    [InlineData("ICC-01117", 37056, 13761)]
-    [InlineData("115989", 0.96, 0)]
-    public void Build_ApprovedCleanTimelineFixtures_HaveNoShortage(string part, double opening, double safety)
-    {
-        var demands = part == "115989" ? new[] { new LongTermDemandEvent(new DateOnly(2026, 11, 29), 0.90m, false) } : Array.Empty<LongTermDemandEvent>();
-        var input = Input((decimal)opening, (decimal)safety, demands: demands) with { ComponentPart = part, OtherProgramParentParts = part == "115989" ? ["OTHER-PARENT"] : [] };
-        var row = Assert.Single(LongTermShortagesBuilder.Build(new DateOnly(2026, 9, 15), [input]));
-
+        Assert.Equal(-10m, row.Past.ProjectedQoh);
+        Assert.Equal(6m, row.Weeks[0].ProjectedQoh);
         Assert.Equal(LongTermShortageSeverity.None, row.Severity);
-        Assert.Null(row.FirstSafetyStockShortWeek);
-        Assert.Null(row.FirstCriticalShortWeek);
-        if (part == "115989") Assert.Equal(0.06m, row.Weeks[11].Balance);
+        Assert.Equal(4m, row.Weeks[0].GrossRequirements);
+        Assert.Equal(4, row.Evidence.Count);
     }
 
-    private static LongTermShortageInput Input(decimal openingQoh, decimal? safetyStock, SafetyStockState state = SafetyStockState.Resolved, IReadOnlyList<LongTermDemandEvent>? demands = null, IReadOnlyList<LongTermPurchaseOrder>? purchaseOrders = null) =>
-        new("COMP", "EA", null, null, false, null, null, null, openingQoh, state, safetyStock, ["PARENT"], [], demands ?? [], purchaseOrders ?? []);
+    [Fact]
+    public void Build_SelectedSiteNullSafetyDoesNotFallback()
+    {
+        var row = Assert.Single(LongTermShortagesBuilder.Build(new DateOnly(2026, 9, 15), [new LongTermShortageInput("COMP", null, null, null, null, null, 0m, SafetyStockState.SelectedSiteValueMissing, null, [], [])]));
+        Assert.Equal(LongTermShortageSeverity.SafetyStockUnavailable, row.Severity);
+    }
+
+    [Fact]
+    public void Build_PresentationContextDoesNotAlterRawMrpBalance()
+    {
+        var facts = new[] { new LongTermMrpFact(1, "DEMAND", new(2026, 9, 15), null, 4m, MrpScheduleCategory.Unclassified) };
+        var raw = Assert.Single(LongTermShortagesBuilder.Build(new DateOnly(2026, 9, 15), [Input(10m, 0m, facts)]));
+        var contextual = Assert.Single(LongTermShortagesBuilder.Build(new DateOnly(2026, 9, 15), [Input(10m, 0m, facts) with
+        {
+            Presentation = new LongTermShortagePresentationContext("MFG-1", "PO-1", 2, new DateOnly(2026, 9, 16), 999m, true, true)
+        }]));
+
+        Assert.Equal(raw.Past, contextual.Past);
+        Assert.Equal(raw.Weeks, contextual.Weeks);
+        Assert.Equal(raw.Evidence, contextual.Evidence);
+        Assert.Equal(6m, contextual.Weeks[0].ProjectedQoh);
+        Assert.True(contextual.Presentation!.IsKss);
+    }
+
+    private static LongTermShortageInput Input(decimal qoh, decimal safety, params LongTermMrpFact[] facts) => new("COMP", "EA", null, null, null, null, qoh, SafetyStockState.Resolved, safety, ["PARENT"], facts);
 }

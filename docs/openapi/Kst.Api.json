@@ -2330,29 +2330,30 @@
           }
         }
       },
-      "LongTermPurchaseOrderDto": {
+      "LongTermMrpFactDto": {
         "required": [
-          "poNumber",
-          "poLine",
+          "evidenceOrdinal",
+          "type",
           "dueDate",
-          "openQuantity",
-          "displayOpenQuantity",
-          "confirmed",
-          "manufacturerItem",
-          "isScheduled"
+          "releaseDate",
+          "quantity",
+          "category"
         ],
         "type": "object",
         "properties": {
-          "poNumber": {
-            "type": "string"
-          },
-          "poLine": {
+          "evidenceOrdinal": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "integer",
               "string"
             ],
             "format": "int32"
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "dueDate": {
             "type": [
@@ -2361,35 +2362,156 @@
             ],
             "format": "date"
           },
-          "openQuantity": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "displayOpenQuantity": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "confirmed": {
+          "releaseDate": {
             "type": [
               "null",
-              "boolean"
-            ]
+              "string"
+            ],
+            "format": "date"
           },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "category": {
+            "type": "string"
+          }
+        }
+      },
+      "LongTermShortageBucketDto": {
+        "required": [
+          "weekNumber",
+          "weekStart",
+          "grossRequirements",
+          "scheduledReceipts",
+          "plannedOrdersDue",
+          "plannedOrdersRelease",
+          "projectedQoh",
+          "severity"
+        ],
+        "type": "object",
+        "properties": {
+          "weekNumber": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "weekStart": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "grossRequirements": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "scheduledReceipts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "plannedOrdersDue": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "plannedOrdersRelease": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "projectedQoh": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "severity": {
+            "type": "string"
+          }
+        }
+      },
+      "LongTermShortagePresentationContextDto": {
+        "required": [
+          "manufacturerItem",
+          "poNumber",
+          "poLine",
+          "poDueDate",
+          "poOpenQuantity",
+          "poConfirmed",
+          "isKss"
+        ],
+        "type": "object",
+        "properties": {
           "manufacturerItem": {
             "type": [
               "null",
               "string"
             ]
           },
-          "isScheduled": {
+          "poNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "poLine": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "poDueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "poOpenQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "poConfirmed": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "isKss": {
             "type": "boolean"
           }
         }
@@ -2400,22 +2522,18 @@
           "unitOfMeasure",
           "qadStatus",
           "description",
-          "isKss",
-          "leadTimeWeeks",
           "planner",
+          "buyerPlannerCode",
           "openingQoh",
-          "displayOpeningQoh",
           "safetyStockState",
           "safetyStock",
-          "displaySafetyStock",
           "severity",
-          "firstSafetyStockShortWeek",
-          "firstCriticalShortWeek",
+          "firstShortDate",
           "demandParentParts",
-          "otherProgramParentParts",
+          "past",
           "weeks",
-          "purchaseOrders",
-          "buyerPlannerCode"
+          "evidence",
+          "presentation"
         ],
         "type": "object",
         "properties": {
@@ -2440,33 +2558,19 @@
               "string"
             ]
           },
-          "isKss": {
-            "type": "boolean"
-          },
-          "leadTimeWeeks": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
           "planner": {
             "type": [
               "null",
               "string"
             ]
           },
-          "openingQoh": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+          "buyerPlannerCode": {
             "type": [
-              "number",
+              "null",
               "string"
-            ],
-            "format": "double"
+            ]
           },
-          "displayOpeningQoh": {
+          "openingQoh": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
             "type": [
               "number",
@@ -2486,35 +2590,15 @@
             ],
             "format": "double"
           },
-          "displaySafetyStock": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "null",
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
           "severity": {
             "type": "string"
           },
-          "firstSafetyStockShortWeek": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
+          "firstShortDate": {
             "type": [
               "null",
-              "integer",
               "string"
             ],
-            "format": "int32"
-          },
-          "firstCriticalShortWeek": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
+            "format": "date"
           },
           "demandParentParts": {
             "type": "array",
@@ -2522,28 +2606,29 @@
               "type": "string"
             }
           },
-          "otherProgramParentParts": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "past": {
+            "$ref": "#/components/schemas/LongTermShortageBucketDto"
           },
           "weeks": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LongTermShortageWeekDto"
+              "$ref": "#/components/schemas/LongTermShortageBucketDto"
             }
           },
-          "purchaseOrders": {
+          "evidence": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LongTermPurchaseOrderDto"
+              "$ref": "#/components/schemas/LongTermMrpFactDto"
             }
           },
-          "buyerPlannerCode": {
-            "type": [
-              "null",
-              "string"
+          "presentation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LongTermShortagePresentationContextDto"
+              }
             ]
           }
         }
@@ -2579,112 +2664,6 @@
             "items": {
               "$ref": "#/components/schemas/LongTermShortageRowDto"
             }
-          }
-        }
-      },
-      "LongTermShortageWeekDto": {
-        "required": [
-          "weekNumber",
-          "weekStart",
-          "workOrderDemand",
-          "displayWorkOrderDemand",
-          "forecastDemand",
-          "displayForecastDemand",
-          "displayDemand",
-          "purchaseOrderSupply",
-          "displayPurchaseOrderSupply",
-          "balance",
-          "displayBalance",
-          "severity"
-        ],
-        "type": "object",
-        "properties": {
-          "weekNumber": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "weekStart": {
-            "type": "string",
-            "format": "date"
-          },
-          "workOrderDemand": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "displayWorkOrderDemand": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "forecastDemand": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "displayForecastDemand": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "displayDemand": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "purchaseOrderSupply": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "displayPurchaseOrderSupply": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "balance": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "displayBalance": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "severity": {
-            "type": "string"
           }
         }
       },

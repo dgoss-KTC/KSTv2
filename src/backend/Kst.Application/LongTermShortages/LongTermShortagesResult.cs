@@ -20,7 +20,7 @@ public sealed record LongTermShortagesResult(
     public static readonly LongTermShortagesResult Unavailable = new(LongTermShortagesOutcomeKind.Unavailable);
 }
 
-public sealed record LongTermShortagesCacheEntry(Guid WorkspaceId, SnapshotId SnapshotId, DateOnly RefreshDate, LongTermShortagePopulationOptions Options, IReadOnlyList<LongTermShortageRow> Rows);
+public sealed record LongTermShortagesCacheEntry(Guid WorkspaceId, SnapshotId SnapshotId, DateOnly RefreshDate, string ScheduleVersion, LongTermShortagePopulationOptions Options, IReadOnlyList<LongTermShortageRow> Rows);
 
 /// <summary>
 /// Snapshot-aware Stage 11-A projection cache. The population options are part of the result
@@ -28,8 +28,8 @@ public sealed record LongTermShortagesCacheEntry(Guid WorkspaceId, SnapshotId Sn
 /// </summary>
 public interface ILongTermShortagesCacheStore
 {
-    LongTermShortagesCacheEntry? Get(Guid workspaceId, SnapshotId snapshotId, DateOnly refreshDate, LongTermShortagePopulationOptions options);
-    LongTermShortagesCacheEntry? GetLatest(Guid workspaceId, SnapshotId snapshotId, LongTermShortagePopulationOptions options);
+    LongTermShortagesCacheEntry? Get(Guid workspaceId, SnapshotId snapshotId, DateOnly refreshDate, string scheduleVersion, LongTermShortagePopulationOptions options);
+    LongTermShortagesCacheEntry? GetLatest(Guid workspaceId, SnapshotId snapshotId, string scheduleVersion, LongTermShortagePopulationOptions options);
     void Set(LongTermShortagesCacheEntry entry);
 }
 

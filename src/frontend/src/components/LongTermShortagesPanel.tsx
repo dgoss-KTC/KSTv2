@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import {
   DEFAULT_LONG_TERM_SHORTAGE_POPULATION_OPTIONS,
   exportLongTermShortages,
+  type LongTermShortageBucket,
   type LongTermShortageRow,
 } from '../api/longTermShortagesApi';
 import { useLongTermShortages } from '../hooks/useLongTermShortages';
@@ -64,12 +65,12 @@ export function LongTermShortagesPanel({ assignmentId, snapshotId }: { assignmen
     {rows.length === 0 ? <div className="long-term-shortages__state">{filters.showAll ? 'No components match the current filters.' : 'No components reach a shortage. Select Show All to view clear components.'}</div> :
       <div className="long-term-shortages__grid" data-testid="workspace-shortages-grid">
         <table className="long-term-shortages__metadata" aria-label="Workspace Shortages component metadata">
-          <thead><tr><th scope="col">Comp</th><th scope="col">QAD Status</th><th scope="col">Description</th><th scope="col">KSS</th><th scope="col">Leadtime</th><th scope="col">Planner</th><th scope="col">On Hand</th></tr></thead>
+          <thead><tr><th scope="col">Comp</th><th scope="col">QAD Status</th><th scope="col">Description</th><th scope="col">KSS</th><th scope="col">Planner</th><th scope="col">On Hand</th><th scope="col">Severity</th></tr></thead>
           <tbody>{rows.map((row) => <ShortageMetadataRow key={row.componentPart} row={row} onSelect={(button) => { origin.current = button; setSelectedRow(row); }} />)}</tbody>
         </table>
         <div className="long-term-shortages__week-scroll" data-testid="workspace-shortages-week-scroll" tabIndex={0} aria-label="Workspace Shortages weekly balances. Scroll horizontally to view Weeks 1 through 24.">
           <table className="long-term-shortages__weeks" aria-label="Workspace Shortages weekly balances">
-            <thead><tr>{rows[0].weeks.map((week) => <th key={week.weekNumber} scope="col" title={week.weekStart}>Week {week.weekNumber}<br />{formatLongTermDate(week.weekStart)}</th>)}</tr></thead>
+            <thead><tr>{rows[0].weeks.map((week) => <th key={week.weekNumber} scope="col" title={week.weekStart ?? undefined}>Week {week.weekNumber}<br />{formatLongTermDate(week.weekStart ?? '')}</th>)}</tr></thead>
             <tbody>{rows.map((row) => <ShortageWeekRow key={row.componentPart} row={row} />)}</tbody>
           </table>
         </div>
@@ -82,9 +83,15 @@ function ShortageMetadataRow({ row, onSelect }: { row: LongTermShortageRow; onSe
   const currentSeverity = row.weeks[0]?.severity;
   const severityClass = currentSeverity === 'CriticalShort' ? ' long-term-shortages__comp--critical' : currentSeverity === 'SafetyStockShort' ? ' long-term-shortages__comp--safety' : '';
   const safetyStockUnresolved = row.safetyStockState === 'SelectedSiteValueMissing';
-  return <tr aria-label={`${row.componentPart}: ${safetyStockUnresolved ? 'Safety stock unresolved' : row.severity}`}><td className={`long-term-shortages__comp${severityClass}`}><button type="button" onClick={(event) => onSelect(event.currentTarget)}>{row.componentPart}</button><span className="long-term-shortages__sr-only">, {safetyStockUnresolved ? 'Safety stock unresolved' : row.severity}</span></td><td>{row.qadStatus ?? ''}</td><td>{row.description ?? ''}</td><td>{row.isKss ? 'KSS' : ''}</td><td className="long-term-shortages__num">{formatLongTermQuantity(row.leadTimeWeeks)}</td><td>{row.planner ?? ''}</td><td className="long-term-shortages__num">{formatLongTermQuantity(row.displayOpeningQoh)}</td></tr>;
+  const rowSeverity = safetyStockUnresolved ? 'SafetyStockUnavailable' : row.severity;
+  return <tr aria-label={`${row.componentPart}: ${rowSeverity}`}><td className={`long-term-shortages__comp${severityClass}`}><button type="button" onClick={(event) => onSelect(event.currentTarget)}>{row.componentPart}</button><span className="long-term-shortages__sr-only">, {rowSeverity}</span></td><td>{row.qadStatus ?? ''}</td><td>{row.description ?? ''}</td><td>{row.presentation?.isKss ? 'KSS' : ''}</td><td>{row.planner ?? ''}</td><td className="long-term-shortages__num">{formatLongTermQuantity(row.openingQoh)}</td><td>{rowSeverity}</td></tr>;
 }
 
 function ShortageWeekRow({ row }: { row: LongTermShortageRow }) {
-  return <tr>{row.weeks.map((week) => <td key={week.weekNumber} className={`long-term-shortages__num${Number(week.balance) < 0 ? ' long-term-shortages__balance--negative' : ''}`} aria-label={`${row.componentPart}, Week ${week.weekNumber}: ${week.severity}, raw calculated balance ${week.balance}, displayed balance ${formatLongTermQuantity(week.displayBalance)}`}>{formatLongTermQuantity(week.displayBalance)}</td>)}</tr>;
+  return <tr>{row.weeks.map((week) => <BucketCell key={week.weekNumber} row={row} bucket={week} />)}</tr>;
+}
+
+function BucketCell({ row, bucket }: { row: LongTermShortageRow; bucket: LongTermShortageBucket }) {
+  const projectedQoh = Number(bucket.projectedQoh);
+  return <td className={`long-term-shortages__num${projectedQoh < 0 ? ' long-term-shortages__balance--negative' : ''}`} aria-label={`${row.componentPart}, Week ${bucket.weekNumber}: ${bucket.severity}, raw projected QOH ${bucket.projectedQoh}`}>{formatLongTermQuantity(bucket.projectedQoh)}</td>;
 }

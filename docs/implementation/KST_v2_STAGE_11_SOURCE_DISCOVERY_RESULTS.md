@@ -1,6 +1,14 @@
 # KST v2 -- Stage 11-A Long-Term Shortages Source Discovery Results
 
-**Status:** Stopped -- evidence-only source discovery; remaining source evidence incomplete; no implementation authorization
+**Status:** Superseded as a Stage 11-A calculation baseline by the 2026-09-22 shared-MRP re-baseline. Retained as historical discovery evidence. `KST_v2_STAGE_11_REBASELINED_IMPLEMENTATION_PLAN.md` is the authoritative replacement planning baseline; implementation remains unauthorized pending its project-owner approval.
+
+## 0. Shared-MRP Re-Baseline -- 2026-09-22
+
+The checkpoint's custom WOD/PO/forecast projection is superseded and must not be treated as a QAD MRP schedule. The owner-approved shared-MRP direction is a Monday-to-Sunday, 24-week QAD `mrp_det` schedule with a separate Past carry-in category. Past Scheduled Receipts, Past Gross Requirements, and Planned Orders Due participate in the approved projected-balance treatment; Planned Orders Release is evidence only.
+
+**Corrected direct opening-QOH rule:** at domain/site/part grain, use `COALESCE(SUM(ld_det.ld_qty_oh), 0)`. Include non-null `ld_status` values `Stock`, `TRAN`, `INSPECT`, `NCMINSP`, and any other non-null status except `MRB`. Exclude `MRB`, `RMA%` lots, and `RA%` lots. Include Transit. Do not add a positive-quantity, date, expiration, `loc_mstr`, `is_mstr`, `lad_det`, or `in_mstr` predicate/join; do not subtract hard allocations. Normal SQL predicate behavior continues to exclude null `ld_status` and null `ld_lot`.
+
+Same-observation evidence for `A107-003A-ECOAT` resolved the prior four-unit discrepancy without adopting `in_mstr`: Stock `12` + TRAN `16` + INSPECT `1` + NCMINSP `3` = corrected direct `ld_det` QOH `32`, matching the QAD 23.15 Summary header QOH `32`; MRB remains excluded.
 
 ## 1. Authority Reconciliation
 
@@ -23,7 +31,7 @@ No required authority document is missing. The legacy sources were read only as 
 
 | Fact class | Source, grain, and safe join | Accepted rule supported or challenged | Status |
 |---|---|---|---|
-| Opening QOH (Stage 11-A specific) | Direct `ld_det` aggregate at domain/site/part grain. | `OpeningQoh = COALESCE(SUM(ld_qty_oh), 0)` for lots whose non-null `ld_status` is not MRB/INSPECT/NCMINSP and whose non-null `ld_lot` starts with neither RMA nor RA. No positive-quantity filter, date input, `loc_mstr`, `is_mstr`, `lad_det`, or `in_mstr` joins. | Settled owner-defined Stage 11-A source rule, confirmed 2026-09-15. `NOT IN` / `NOT LIKE` exclude null status or lot values under SQL three-valued logic. Transit is included. | Confirmed |
+| Opening QOH (shared-MRP) | Direct `ld_det` aggregate at domain/site/part grain. | `OpeningQoh = COALESCE(SUM(ld_qty_oh), 0)` for non-null statuses other than MRB and non-null lots not beginning RMA/RA. This includes Stock, TRAN, INSPECT, NCMINSP, and other non-MRB statuses. No positive-quantity filter, date input, `loc_mstr`, `is_mstr`, `lad_det`, or `in_mstr` joins. | Owner-corrected 2026-09-22 rule. `NOT` predicates retain normal SQL null exclusion; Transit is included; no hard allocation is subtracted. Same-observation A107 evidence reconciled corrected direct `ld_det` QOH 32 to QAD 23.15 header QOH 32. | Confirmed |
 | Hard allocation | `lad_det` grain is domain/site/WOID/operation/component/location/lot; `lad_nbr = wod_lot`, `lad_line = wod_op`, `lad_part = wod_part`; `lad_qty_all` is firm allocation. | Supports the accepted remaining-demand deduction and prohibits use of `wod_qty_all` as extra coverage. | Confirmed by locked Stage 9 evidence |
 | Workspace population | Current MPS snapshot retains resolved parent scope; Stage 10 expands each resolved parent through current-effective `ps_mstr`, then deduplicates component parts only for the component report population. | Supports report-component selection. Parent attribution must retain occurrences/parents separately from component deduplication. | Confirmed implementation pattern |
 | Conventional PO | `pod_det` line grain, joined to `po_mstr` on domain + PO number; positive `pod_qty_ord - pod_qty_rcvd`, status not C/X case-insensitively, line confirmation `pod__log01`, line due date `pod_due_date`. | Supports 11-A conventional supply rule, including deterministic `DueDate, PoNumber, PoLine` ordering. | Confirmed by locked Stage 10 evidence |
@@ -75,7 +83,7 @@ The owner-reviewable timeline packet is recorded in Section 9. It shows opening 
 ## 6. Interim Rules
 
 - Gross `mrp_det` `fcs_sum` forecast remains an interim, potentially overstated approximation because forecast consumption against sales orders is not modeled.
-- Opening QOH is a settled Stage 11-A-specific direct `ld_det` aggregate. It excludes non-null MRB/INSPECT/NCMINSP status lots and non-null RMA/RA lot prefixes, includes Transit, and requires no date/expiration, positive-quantity, allocation, inventory-master, location, or inventory-status condition. KST performs no hard-allocation subtraction.
+- Opening QOH is a settled shared-MRP direct `ld_det` aggregate. It excludes non-null MRB status lots and non-null RMA/RA lot prefixes, includes Stock, TRAN, INSPECT, NCMINSP, and other non-MRB statuses, and requires no date/expiration, positive-quantity, allocation, inventory-master, location, or inventory-status condition. KST performs no hard-allocation subtraction.
 
 ## 7. Stop Condition And Go/No-Go
 

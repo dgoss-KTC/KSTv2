@@ -561,48 +561,67 @@ export interface components {
             /** Format: double */
             kittingPercent: null | number | string;
         };
-        LongTermPurchaseOrderDto: {
-            poNumber: string;
+        LongTermMrpFactDto: {
             /** Format: int32 */
-            poLine: number | string;
+            evidenceOrdinal: number | string;
+            type: null | string;
             /** Format: date */
             dueDate: null | string;
+            /** Format: date */
+            releaseDate: null | string;
             /** Format: double */
-            openQuantity: number | string;
+            quantity: number | string;
+            category: string;
+        };
+        LongTermShortageBucketDto: {
+            /** Format: int32 */
+            weekNumber: null | number | string;
+            /** Format: date */
+            weekStart: null | string;
             /** Format: double */
-            displayOpenQuantity: number | string;
-            confirmed: null | boolean;
+            grossRequirements: number | string;
+            /** Format: double */
+            scheduledReceipts: number | string;
+            /** Format: double */
+            plannedOrdersDue: number | string;
+            /** Format: double */
+            plannedOrdersRelease: number | string;
+            /** Format: double */
+            projectedQoh: number | string;
+            severity: string;
+        };
+        LongTermShortagePresentationContextDto: {
             manufacturerItem: null | string;
-            isScheduled: boolean;
+            poNumber: null | string;
+            /** Format: int32 */
+            poLine: null | number | string;
+            /** Format: date */
+            poDueDate: null | string;
+            /** Format: double */
+            poOpenQuantity: null | number | string;
+            poConfirmed: null | boolean;
+            isKss: boolean;
         };
         LongTermShortageRowDto: {
             componentPart: string;
             unitOfMeasure: null | string;
             qadStatus: null | string;
             description: null | string;
-            isKss: boolean;
-            /** Format: int32 */
-            leadTimeWeeks: null | number | string;
             planner: null | string;
+            buyerPlannerCode: null | string;
             /** Format: double */
             openingQoh: number | string;
-            /** Format: double */
-            displayOpeningQoh: number | string;
             safetyStockState: string;
             /** Format: double */
             safetyStock: null | number | string;
-            /** Format: double */
-            displaySafetyStock: null | number | string;
             severity: string;
-            /** Format: int32 */
-            firstSafetyStockShortWeek: null | number | string;
-            /** Format: int32 */
-            firstCriticalShortWeek: null | number | string;
+            /** Format: date */
+            firstShortDate: null | string;
             demandParentParts: string[];
-            otherProgramParentParts: string[];
-            weeks: components["schemas"]["LongTermShortageWeekDto"][];
-            purchaseOrders: components["schemas"]["LongTermPurchaseOrderDto"][];
-            buyerPlannerCode: null | string;
+            past: components["schemas"]["LongTermShortageBucketDto"];
+            weeks: components["schemas"]["LongTermShortageBucketDto"][];
+            evidence: components["schemas"]["LongTermMrpFactDto"][];
+            presentation: null | components["schemas"]["LongTermShortagePresentationContextDto"];
         };
         LongTermShortagesResponseDto: {
             snapshotId: string;
@@ -611,31 +630,6 @@ export interface components {
             isStale: boolean;
             warning: null | string;
             rows: components["schemas"]["LongTermShortageRowDto"][];
-        };
-        LongTermShortageWeekDto: {
-            /** Format: int32 */
-            weekNumber: number | string;
-            /** Format: date */
-            weekStart: string;
-            /** Format: double */
-            workOrderDemand: number | string;
-            /** Format: double */
-            displayWorkOrderDemand: number | string;
-            /** Format: double */
-            forecastDemand: number | string;
-            /** Format: double */
-            displayForecastDemand: number | string;
-            /** Format: double */
-            displayDemand: number | string;
-            /** Format: double */
-            purchaseOrderSupply: number | string;
-            /** Format: double */
-            displayPurchaseOrderSupply: number | string;
-            /** Format: double */
-            balance: number | string;
-            /** Format: double */
-            displayBalance: number | string;
-            severity: string;
         };
         MpsBucketDto: {
             kind: string;

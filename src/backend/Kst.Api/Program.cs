@@ -337,14 +337,14 @@ if (qadOptions.IsConfigured)
 {
     builder.Services.AddSingleton<QadLongTermShortageSourceReader>();
     builder.Services.AddSingleton<ILongTermShortageSourceReader>(sp => new DelegateLongTermShortageSourceReader(
-        (site, componentParents, refreshDate, horizonEnd, workspaceParents, ct) =>
-            sp.GetRequiredService<QadLongTermShortageSourceReader>().ReadAsync(site, componentParents, refreshDate, horizonEnd, workspaceParents, ct)));
+        (site, componentParents, horizonEnd, ct) =>
+            sp.GetRequiredService<QadLongTermShortageSourceReader>().ReadAsync(site, componentParents, horizonEnd, ct)));
 }
 else
 {
     const string notConfiguredMessage = "QAD connection is not configured.";
     builder.Services.AddSingleton<ILongTermShortageSourceReader>(_ => new DelegateLongTermShortageSourceReader(
-        (_, _, _, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+        (_, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
 }
 builder.Services.AddSingleton<LongTermShortagesService>();
 

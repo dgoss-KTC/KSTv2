@@ -2,8 +2,8 @@ import { ApiClient, ApiError } from './client';
 import type { components } from '../generated/api';
 import { resolveBackendBaseUrl } from './tauri-bridge';
 
-export type LongTermShortageWeek = components['schemas']['LongTermShortageWeekDto'];
-export type LongTermPurchaseOrder = components['schemas']['LongTermPurchaseOrderDto'];
+export type LongTermShortageBucket = components['schemas']['LongTermShortageBucketDto'];
+export type LongTermMrpFact = components['schemas']['LongTermMrpFactDto'];
 export type LongTermShortageRow = components['schemas']['LongTermShortageRowDto'];
 export type LongTermShortagesResponse = components['schemas']['LongTermShortagesResponseDto'];
 

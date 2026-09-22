@@ -1,5 +1,7 @@
 # KST v2 -- Stage 11-A Long-Term Shortages Production-Build Prompt
 
+> **Superseded -- do not execute.** The custom WOD/PO/forecast projection, Sunday-start calendar, and planned-supply exclusion below were replaced by the owner-approved 2026-09-22 shared-MRP re-baseline. `KST_v2_STAGE_11_REBASELINED_IMPLEMENTATION_PLAN.md` is the authoritative planning baseline. Production implementation remains unauthorized pending project-owner approval of that plan and its deterministic test design.
+
 Implement only the owner-approved Stage 11-A Long-Term Shortages plan in `docs/implementation/KST_v2_STAGE_11A_IMPLEMENTATION_PLAN.md`.
 
 ## Mandatory authority and boundaries

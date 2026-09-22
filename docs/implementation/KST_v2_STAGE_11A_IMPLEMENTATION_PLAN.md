@@ -1,6 +1,12 @@
 # KST v2 -- Stage 11-A Long-Term Shortages Implementation Plan
 
-**Status:** Implemented / owner review pending (2026-09-16). Backend, generated contract, frontend typecheck/build, and Tauri verification passed; repository-wide frontend test/lint baseline failures in locked Stage 10 files remain outside this scope.
+**Status:** Superseded checkpoint plan. The implemented custom WOD/PO/forecast projection is not an authoritative QAD MRP schedule. The authoritative replacement planning baseline is `KST_v2_STAGE_11_REBASELINED_IMPLEMENTATION_PLAN.md`; do not execute any implementation instruction below.
+
+## Re-Baseline Notice -- 2026-09-22
+
+Do not carry this plan's Sunday-start calendar, custom WOD/PO/forecast calculation, or planned-supply exclusion forward. The replacement design must use QAD `mrp_det` on Monday-to-Sunday buckets, calculate Past before the 24 displayed weeks, include Past Scheduled Receipts and Past Gross Requirements in carry-in, include `SUPPLYP` quantity in its due-date bucket, and retain `mrp_rel_date` as evidence only. The Workspace Shortages grid displays Weeks 1-24 only; Past belongs in detail/export evidence.
+
+The corrected opening-QOH source is direct `ld_det`: `COALESCE(SUM(ld_qty_oh), 0)` at domain/site/part grain, including non-null Stock, TRAN, INSPECT, NCMINSP, and other non-MRB statuses; excluding MRB plus RMA/RA lot prefixes. It retains no positive-quantity, date, expiration, location, inventory-master, allocation, or `in_mstr` condition/join, and no hard-allocation subtraction. Same-observation A107 evidence reconciled the corrected direct aggregate (32) to QAD 23.15 header QOH (32) without adopting `in_mstr`.
 
 ## 1. Authority, scope, and fixed boundaries
 
@@ -12,7 +18,7 @@ This plan implements only the owner-approved Stage 11-A Long-Term Shortages work
 
 Stage 9 and Stage 10 remain complete, accepted, and locked. Stage 11-A must add a distinct `Long-Term Shortages` workspace module; it must not replace, alter, reinterpret, or share mutable state with the locked `Shortages` or `Component Orders` surfaces. Stage 11-B Single-Part MRP is out of scope.
 
-The projection uses a date-only refresh snapshot and exactly 24 Sunday-start business weeks. Week 1 starts on `MpsBusinessCalendar.GetBusinessWeekStart(refreshDate)` and Week 24 ends at the following Week 25 start. For each component and week:
+The checkpoint projection described below used a date-only refresh snapshot and exactly 24 Sunday-start business weeks. It is superseded by the re-baseline notice above and must not be implemented or extended.
 
 ```text
 balance(week) = prior balance + accepted supply - accepted demand
