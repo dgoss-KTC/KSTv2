@@ -42,6 +42,20 @@ public sealed class VersionConsistencyTests
     }
 
     [Fact]
+    public void Alpha_Version_Suffix_Matches_Active_Project_Stage()
+    {
+        var repoRoot = FindRepoRoot();
+        var props = File.ReadAllText(Path.Combine(repoRoot, "src", "backend", "Directory.Build.props"));
+        var activeStage = Regex.Match(props, "<KstActiveStage>(\\d+)</KstActiveStage>").Groups[1].Value;
+        var suffix = Regex.Match(props, "<VersionSuffix>(.*?)</VersionSuffix>").Groups[1].Value;
+
+        activeStage.Should().NotBeNullOrEmpty(
+            "Directory.Build.props must identify the numbered stage represented by the alpha version");
+        suffix.Should().Be($"alpha.{activeStage}",
+            because: "numbered alpha releases must identify the active project stage");
+    }
+
+    [Fact]
     public void Tauri_CargoToml_Version_Matches_Authoritative_Version()
     {
         var repoRoot = FindRepoRoot();

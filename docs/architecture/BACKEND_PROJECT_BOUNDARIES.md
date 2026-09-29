@@ -96,7 +96,43 @@ Stage 8 is an **informational** Component/BOM investigation capability. It does 
 - **Component Information responsibility:** `Kst.Domain.ComponentDetail.ComponentSourceFacts` (the QAD-crossing record) and `Kst.Application.ComponentDetail.ComponentDetailService` (composing `IComponentSourceReader`, backed by `Kst.Integrations.Qad.ComponentDetail.QadComponentSourceReader`, plus the shared `IPartInventoryReader`) own informational component detail — selected-site planning fields, Standard Cost, and QCTC — exposed through `Kst.Api.Endpoints.ComponentDetailEndpoints`. `ComponentDetailService` has no dependency on Approved Vendor/Approved Alternates retrieval.
 - **Approved Alternates responsibility:** a separate, independently-composed boundary: `Kst.Domain.ApprovedVendors.ApprovedVendor`, `Kst.Application.ApprovedVendors.ApprovedVendorService` (via `IApprovedVendorSourceReader`/`DelegateApprovedVendorSourceReader`), `Kst.Integrations.Qad.ApprovedVendors.QadApprovedVendorReader`, and `Kst.Api.Endpoints.ApprovedVendorEndpoints`. "Approved Alternates" is the accepted user-facing term; the technical `ApprovedVendor`/`vp_mstr` naming is retained throughout this boundary. Component Information does not own or depend on Approved Alternates merely because both concern the same selected component.
 - **API boundary:** BOM, Component Information, and Approved Alternates are exposed as three independently-composed endpoint groups (`BomEndpoints`, `ComponentDetailEndpoints`, `ApprovedVendorEndpoints`), each wired in `Kst.Api/Program.cs`; none is a prerequisite for another, and Approved Alternates loads independently of Component Detail.
-- **Explicit non-scope:** Extended Requirement, Incoming Supply, Coverage/Material Status, component MRP/netting, and Future Shortages/PO coverage remain deferred future capability. Stage 8 introduces no architectural placeholder for them — a future stage that implements them should expect to add new services/boundaries rather than extend `BomService`/`ComponentDetailService`.
+- **Explicit Stage 8 non-scope:** Stage 8 itself did not implement Extended Requirement, Incoming
+  Supply, Coverage/Material Status, component MRP/netting, or Future Shortages/PO coverage. Later
+  accepted Stages 9–11 added bounded shortage, component-order, and workspace-projection services;
+  they did not retroactively change the Stage 8 contract. Remaining Component Information
+  refinements are assigned to the Stage 22 review, and the standalone Component MRP report is
+  assigned to Stage 18.
 - **Architecture-test invariants (confirmed for Stage 7 and Stage 8):** `Kst.Domain` and `Kst.Application` remain free of ASP.NET Core and SQL-client infrastructure dependencies; `Kst.Integrations.Qad` and `Kst.Integrations.Shortages` have no dependency on `Kst.Api`. Future Work Order/Kitting and Component/BOM work must preserve this property.
 
+## Stage 9 Immediate Work-Order Shortages Boundary
+
+- Stage 9 is **COMPLETE / ACCEPTED / LOCKED**. Its grain is Work Order + Component and its accepted
+  allocation, inventory, purchased/manufactured participation, and residual-pool rules remain
+  authoritative.
+- QAD-specific acquisition remains in `Kst.Integrations.Qad`; application orchestration and
+  snapshot-scoped caching remain outside the API and frontend layers.
+- Stage 9 is not a combined-parent netting engine and does not consume PO/KSS context as shortage
+  relief. Stage 22 may improve presentation, workflow, explanation, and measured performance but may
+  change business behavior only through an explicit owner-approved amendment.
+
+## Stage 10 Component Orders Boundary
+
+- Stage 10 is **COMPLETE / ACCEPTED / LOCKED** and informational. It presents purchase-order,
+  receipt, supplier, and buyer-comment context without changing Stage 9 shortage calculations.
+- PO/KSS source knowledge remains in the integration boundary. Shared Component Information UI may
+  consume the accepted contracts without acquiring business-rule ownership.
+- Deferred PO navigation/detail refinements belong to Stage 22; they do not reopen the accepted
+  Stage 10 data contract automatically.
+
+## Stage 11 Workspace Shortages Boundary
+
+- Stage 11 is **COMPLETE / ACCEPTED / LOCKED**. The accepted application service owns its daily
+  component projection ledger, confirmed-only/include-unconfirmed modes, Sunday–Saturday calendar
+  with Monday visible labels, snapshot identity, and cache behavior.
+- Source-specific QAD retrieval remains in `Kst.Integrations.Qad`; the frontend owns presentation,
+  filtering, sorting, selection, and user interaction but not projection rules.
+- Workbook generation is an export-boundary responsibility and uses a user-mediated Save As flow.
+  Stage 21 inventories and checks export consistency but does not silently rebuild the accepted
+  Stage 11 export.
+- Individual Component MRP is not unfinished Stage 11 scope. It is a Stage 18 standalone report.
 

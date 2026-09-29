@@ -9,6 +9,9 @@ See docs/development/VERSIONING.md for the full versioning design. Directory.Bui
 and the frontend package.json cannot read MSBuild XML directly, so this script is the documented,
 repeatable procedure for propagating a version bump to them.
 
+During numbered alpha-stage work, the authoritative VersionSuffix must be
+alpha.<KstActiveStage>. This script rejects drift between those two values.
+
 .PARAMETER Fix
 When specified, rewrites the out-of-sync files instead of only reporting drift.
 
@@ -45,8 +48,18 @@ if ($propsContent -notmatch '<VersionSuffix>(.*?)</VersionSuffix>') {
 }
 $versionSuffix = $Matches[1]
 
+if ($propsContent -notmatch '<KstActiveStage>(\d+)</KstActiveStage>') {
+    throw "Could not read numeric KstActiveStage from $propsPath"
+}
+$activeStage = $Matches[1]
+$expectedStageSuffix = "alpha.$activeStage"
+
+if ($versionSuffix -ne $expectedStageSuffix) {
+    throw "VersionSuffix '$versionSuffix' must match active Stage $activeStage ('$expectedStageSuffix')."
+}
+
 $authoritative = "$versionPrefix-$versionSuffix"
-Write-Host "Authoritative version (from Directory.Build.props): $authoritative"
+Write-Host "Authoritative version (from Directory.Build.props): $authoritative (Stage $activeStage)"
 
 $mismatches = [System.Collections.Generic.List[string]]::new()
 

@@ -12,6 +12,24 @@ exhaustive penetration testing or formal certification (none was performed or ob
 not use scanner counts as a security score, does not call any UTV an "Accepted Risk," and does
 not imply any AI-accepted risk or any IT/security approval that was not actually obtained.
 
+## Post-S0 current-state addendum — 2026-09-29
+
+This report's S0 evidence remains authoritative for the 2026-08-31 closeout at the stated commit,
+but its `core:default`-only Tauri description is historical rather than the complete current runtime
+capability set. Accepted Stage 11 workbook export added a user-mediated Save As workflow. Current
+checked-in capability evidence grants the `main` window:
+
+- `core:default`;
+- `dialog:allow-save`; and
+- `fs:allow-write-file`.
+
+No `shell:*` permission is granted. The added file access exists to write the path selected through
+the Save As interaction; it is not authority for direct company-database writes. Before Release 1
+closeout, Stage 23 must reconcile the security regression/documentation assertions and the
+dependency-admission/licensing records for the Stage 11 export components, including ClosedXML and
+the Tauri dialog/filesystem plugins. This addendum records a required reconciliation; it does not
+retroactively claim an unrecorded admission decision or rewrite the accepted S0 evidence.
+
 ---
 
 ## 1. Executive Summary

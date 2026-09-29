@@ -2,7 +2,9 @@
 
 Date: 2026-09-29
 Workstation: Windows (`C:\Dev\kst_v2`)
-Current stage: **Stage 11 — Workspace Shortages — COMPLETE / ACCEPTED / LOCKED — 2026-09-29**
+Current implementation position: **Stages 1–11 COMPLETE / ACCEPTED; Stages 9–11 LOCKED.**
+The revised Release 1 roadmap is owner-approved for planning. **Stage 13 — Open Orders** is the
+next planned product stage, but no implementation stage is authorized by this documentation update.
 UI Navigation & Keyboard Ergonomics A: **COMPLETE / ACCEPTED — 2026-08-21**
 Active cross-cutting effort: **R0 — Repository / Documentation Reconciliation — COMPLETE /
 ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation Status` below and
@@ -86,9 +88,50 @@ Pre-Stage-10 customer-workspace UI foundation: **COMPLETE / ACCEPTED** (inter-st
 not a Stage 10 checkpoint; see `docs/implementation/KST_v2_PRE_STAGE_10_UI_FOUNDATION_CLOSEOUT.md`)
 Stage 7 status: **COMPLETE / ACCEPTED - 2026-08-13; reopened, amended, and closed by Stage 7R (Four-Week Work Order Planning Window) - 2026-09-01** - see [Stage 7R Amendment](#stage-7r-amendment-four-week-work-order-planning-window) below
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
-Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versioning-foundation) below)
+Application version: **`0.1.0-alpha.13`** — the alpha prerelease number identifies the current
+numbered project stage (see [Versioning Foundation](#versioning-foundation) below)
 
 ## Current Position
+
+Stages 1–11 are complete and owner-accepted at their documented depth. Stages 9, 10, and 11 are
+locked. Stage 11 Workspace Shortages was accepted on 2026-09-29 with its accuracy, display,
+usability, export, cold-load performance, and cached performance validated. Its accepted calendar is
+Sunday–Saturday with Monday as the visible label. Individual Component MRP is not unfinished Stage
+11 scope; it is retained in Stage 18 as a standalone Excel report generator.
+
+The owner approved the revised Release 1 roadmap on 2026-09-29:
+
+- Stage 12 Multi-Part Shortage Analysis is **RETIRED / SUPERSEDED** by accepted Workspace Shortages.
+- Stage 13 is the combined Open Orders capability; it absorbs former Stage 16 General Open Orders.
+- Stage 14 is Planning Workbook, reordered behind Open Orders.
+- Stage 15 remains Finished Goods.
+- Stage 16 is **ABSORBED** into Stage 13.
+- Stage 17 General WO Variance is **RETIRED / NO LONGER DESIRED**.
+- Stage 18 contains the required standalone Excel generators: Component MRP, Open Order Report,
+  Shipments-To-Go, and S&OP.
+- Stage 19 Historical Shipments is required for Release 1.
+- Stage 20 Legacy Simulation is **RETIRED / NO LONGER DESIRED**.
+- Stage 21 is required to inventory every application area needing export, implement missing
+  exports, and validate the export system as a whole. The accepted Stage 11 export remains delivered.
+- Stage 22 is an interactive, product-wide Refinement & Optimization stage. It receives measured
+  performance work, usability defects, refinements, and deferred Release 1 work that does not fit a
+  feature stage. The known nonfunctional horizontal scrollbar in the main MPS matrix is a required
+  Stage 22 item.
+- Quality and Hardening moves to Stage 23; Release 1 Readiness to Stage 24; Pilot to Stage 25;
+  Incremental Multi-Site Rollout to Stage 26; and Post-Release Roadmap to Stage 27.
+
+The stage-disposition matrix, deferred-work registry, removed-capability record, and documentation
+reconciliation ledger are in `docs/status/RELEASE_1_SCOPE_REVIEW_2026-09-29.md`.
+
+Stage 22 does not silently reopen locked algorithms. A change to accepted Stage 9–11 business
+behavior requires an explicit owner-approved amendment. New standalone capabilities also require an
+explicit roadmap disposition rather than entering Stage 22 as unbounded refinement.
+
+No implementation stage is authorized by this documentation update. Stage-specific discovery,
+business-rule decisions, security/dependency admission, implementation, and owner acceptance remain
+required when each retained stage is authorized.
+
+### Accepted Stage 11 closeout and historical foundation status
 
 Stage 11 closeout (2026-09-29): automated verification and owner desktop validation passed. The
 owner’s real-world cold-load measurements compared KSTv1/KSTv2 medians of Shure **72/11 seconds**,
@@ -101,7 +144,7 @@ typecheck, changed-file lint, production build, sidecar rebuild, 2,304 screen eq
 and retained projection/workbook comparisons.
 
 **Deferred future backlog:** Individual Component MRP is not an unfinished Stage 11 requirement. It
-is future legacy-report work to be planned only when that report section is authorized. The DBA
+is assigned to the Stage 18 standalone report generators and remains unstarted. The DBA
 evidence request is retained but deferred unless production use reveals a material concurrency or
 reliability issue. Virtualization is deferred until its keyboard-focus/accessibility failure is
 resolved. Minor report fine-tuning is non-blocking future backlog. No next implementation stage is
@@ -572,7 +615,10 @@ Between Stage 6 and Stage 7, a lightweight application versioning foundation was
 established (inter-stage housekeeping, not a Stage 7 activity):
 
 - Product identity `KST v2` remains distinct from the semantic application version.
-- Current application version: **`0.1.0-alpha.2`** ([SemVer 2.0.0](https://semver.org/)) — bumped from `0.1.0-alpha.1` at Stage 7 closeout (session housekeeping, not a Stage 7 behavior change).
+- Current application version: **`0.1.0-alpha.13`** ([SemVer 2.0.0](https://semver.org/)). During
+  numbered alpha development, Stage `N` uses `0.1.0-alpha.N`; Stage 13 is the current planning stage.
+- Historical note: the initial foundation used `0.1.0-alpha.1` and later
+  `0.1.0-alpha.2` before the owner adopted stage-aligned alpha numbering on 2026-09-29.
 - Authoritative source: `src/backend/Directory.Build.props` (`VersionPrefix`/`VersionSuffix`),
   propagated to the backend (assembly `InformationalVersion`, system status/health endpoints,
   frontend top bar), `src/tauri/Cargo.toml`, `src/frontend/package.json` (full version), and
@@ -582,6 +628,8 @@ established (inter-stage housekeeping, not a Stage 7 activity):
   `Kst.ArchitectureTests` (`VersionConsistencyTests`) guarding future drift. Full backend suite:
   329/329 passing.
 - New repeatable sync/check script: `scripts/check-version.ps1` (`-Fix` to auto-correct drift).
+- `KstActiveStage` in `src/backend/Directory.Build.props` and the architecture drift guard enforce
+  the stage-to-alpha relationship.
 - Full documentation: `docs/development/VERSIONING.md`.
 - Packaged Windows build (NSIS + MSI) verified successfully with the new version metadata.
 - This work does not begin, renumber, or otherwise affect Stage 7.
@@ -603,16 +651,14 @@ R0 overall: **COMPLETE / ACCEPTED — 2026-08-21.** Full detail:
 
 ## Next Action
 
-S0 — Security Foundation Integration is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1 through 8,
-UI Navigation & Keyboard Ergonomics A, and R0 — Repository / Documentation Reconciliation are
-complete and accepted.
+The next planned product stage is **Stage 13 — Open Orders**, combining the customer-specific
+date-change workflow with general cross-customer search and reporting. It precedes Stage 14 Planning
+Workbook. Planning approval does not authorize implementation: Stage 13 must begin only after the
+owner separately authorizes its discovery or implementation checkpoint.
 
-Stage 9 is **COMPLETE / ACCEPTED / LOCKED** and was not modified. Stage 10 is **COMPLETE /
-ACCEPTED / LOCKED**. Component Orders remains informational only. Stage 11-A Long-Term Shortages is
-**RE-BASELINED IMPLEMENTATION COMPLETE / OWNER REVIEW AND MANUAL VALIDATION PENDING
-(2026-09-22)**: the old custom projection checkpoint and build prompt are superseded,
-historical/non-executable. The implemented shared-MRP replacement uses QAD `mrp_det`, Monday-to-Sunday
-weeks, Past carry-in, planned-order due balance treatment, corrected direct `ld_det` opening-QOH, and
-presentation-only PO/KSS/manufacturer context. `docs/implementation/KST_v2_STAGE_11_REBASELINED_IMPLEMENTATION_PLAN.md`
-is the authoritative record; project-owner manual validation and explicit acceptance remain pending.
-Stage 11-B Single-Part MRP remains unstarted and requires separate authorization.
+The prepared new-conversation planning prompt is
+`docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`.
+
+Preserve the three existing untracked Stage 11 reference files unless the owner separately
+dispositions them. Do not begin Stage 13, perform live source investigation, introduce dependencies,
+or commit/push as part of this roadmap documentation update.

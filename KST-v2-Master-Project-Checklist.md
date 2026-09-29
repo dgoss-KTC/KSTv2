@@ -1,8 +1,16 @@
 # KST v2 Master Project Checklist
 
-**S0 final status:** **COMPLETE / ACCEPTED — 2026-08-31**. **S0.8:** **COMPLETE / ACCEPTED — 2026-08-31**. Stage 9 — Immediate Work-Order Shortages is **COMPLETE / ACCEPTED / LOCKED — 2026-09-08**.
+**Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
+owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** Stages 1–8 are complete and accepted. UI Navigation & Keyboard Ergonomics A is complete and accepted. R0 — Repository / Documentation Reconciliation is complete and accepted. The active cross-cutting effort is S0 — Security Foundation Integration; S0.1 — Security Policy Injection, S0.2 — Security Baseline Discovery, and S0.3 — Existing-Tool Security Checks are complete and owner-accepted (2026-08-24). The remaining S0 work is approved as checkpoints S0.4–S0.8 (Approved Planning Baseline — 2026-08-24 — see `docs/implementation/KST_v2_S0_REMAINING_SECURITY_WORK_PLAN.md`); S0.4 — Security Finding Disposition & Bounded Remediation is COMPLETE / ACCEPTED — 2026-08-25: S0.4A — QAD SQL Transport Correction is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F003` at the application-configuration level — `docs/security/S0_4A_QAD_SQL_TRANSPORT_REMEDIATION.md`); S0.4B — Tauri Shell Capability is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.2-F001` — `docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md`); S0.4C — npm Development-Tooling Advisories is COMPLETE / ACCEPTED — 2026-08-25 (resolves `S0.3-F001` — `docs/security/S0_4C_NPM_DEV_DEPENDENCY_REMEDIATION.md`). S0.5 — Security Regression & Architecture Checks is COMPLETE / ACCEPTED — 2026-08-26 (implemented 2026-08-25 — repository regression protection for the accepted S0.3 security gaps — see `docs/security/S0_5_SECURITY_REGRESSION_ARCHITECTURE_CHECKS.md`). S0.6 — Security Tool Admission is COMPLETE / ACCEPTED — 2026-08-27: Capability Review 1 (Rust Dependency Advisory Capability, gap `S0.3-G001`) is **COMPLETE / ACCEPTED — 2026-08-26** — cargo-audit 0.22.2 ADMITTED / ACCEPTED; S0.3-G001 — Covered / Resolved (`docs/security/S0_6_RUST_DEPENDENCY_ADMISSION.md`); cargo-deny 0.20.2 DEFERRED; Capability Review 2 (Dedicated Secret Scanning, gap `S0.3-G007`) is **COMPLETE / ACCEPTED — 2026-08-27** (Gitleaks v8.30.0 installed, release-integrity and synthetic-canary verified, scanned current KST content (4 findings) and full Git history (8 findings), all rule `private-key`, confirmed documentation false positives; `S0.3-G007` — Covered / Resolved) (`docs/security/S0_6_SECRET_SCANNING_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SECRET_SCANNING_ADMISSION.md`; Gitleaks v8.30.1, TruffleHog v3.97.1, detect-secrets v1.5.0 DEFERRED); Capability Review 3 (Software Bill of Materials, gap `S0.3-G008`) is **COMPLETE / ACCEPTED — 2026-08-27** (Anchore Syft v1.51.1 installed, release-integrity verified, run against KST build/repository evidence and a complementary packaged-artifact view; six informational findings `S0.6-F014`–`S0.6-F019` recorded, none blocking; complete Tauri Windows installer/application bundle Unable to Verify / future packaged-release verification boundary, not Accepted Risk) (`docs/security/S0_6_SBOM_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SBOM_ADMISSION.md`; Anchore Syft v1.51.1 — ADMITTED / IMPLEMENTED / ACCEPTED; Microsoft sbom-tool v4.1.5 and the CycloneDX ecosystem-native approach DEFERRED); `S0.3-G008` — Covered / Resolved; Capability Review 4 (Dedicated Static Application Security Testing (SAST), gap `S0.3-G006`) is **COMPLETE / ACCEPTED — 2026-08-27** (owner reviewed the neutral research packet comparing Semgrep CE v1.175.0, CodeQL CLI v2.26.4, and Microsoft DevSkim CLI v1.0.90 and admitted DevSkim CLI v1.0.90, which was installed, self-verified, synthetically validated (C#, JavaScript/TypeScript, Rust, SQL), and run against the KST source tree — 50 findings across 3 bundled rules; `S0.6-F020` reviewed 2026-08-27 and reclassified to Informational / Framework-Local Origin / Confirmed DevSkim False Positive for plaintext-network interpretation; `S0.6-F021` — Informational / Known DevSkim Rule Limitation; neither Accepted Risk; Semgrep CE v1.175.0 and CodeQL CLI v2.26.4 DEFERRED, not rejected, pending organizational licensing/entitlement review) (`docs/security/S0_6_SAST_ADMISSION_RESEARCH.md`; `docs/security/S0_6_SAST_ADMISSION.md`); `S0.3-G006` — Covered / Resolved; Microsoft DevSkim CLI v1.0.90 — ADMITTED / INSTALLED / VERIFIED / ACCEPTED. All four S0.6-assigned gaps (`S0.3-G001`, `S0.3-G006`, `S0.3-G007`, `S0.3-G008`) are Covered / Resolved. The cross-cutting Third-Party Software & Licensing Governance foundation is ENACTED / ACCEPTED — 2026-08-27 (`docs/governance/THIRD_PARTY_SOFTWARE_AND_LICENSING_POLICY.md`, integrated into `docs/security/DEPENDENCY_ADMISSION.md` and `AGENTS.md`; a governing prerequisite for future third-party dependency/tool admission, not itself an S0 checkpoint). S0.7 — Runtime & Infrastructure Verification is COMPLETE / ACCEPTED — 2026-08-28 (S0.7A — Local Release Runtime Verification working pass — COMPLETE / ACCEPTED — 2026-08-28: 2026-08-27 evidence pass VALID / ACCEPTED AS EVIDENCE by owner review; 2026-08-28 `S0.5-F001` loopback-binding remediation implemented — the sidecar now unconditionally sets an explicit `http://127.0.0.1:<port>` `UseUrls` endpoint (verified on the shipped self-contained .NET 10 release runtime to ignore an inherited `ASPNETCORE_URLS` value after the fix, so inherited hosting configuration no longer takes authority over the listener) — with failure-safe behavioral regression tests (no test can create a wildcard listener even in its failing state; original wildcard real-process test replaced before acceptance — see evidence §26.3; incl. demonstrated pre-fix failure), 672/672 backend suite, and post-fix release-runtime re-verification — `S0.5-F001` REMEDIATED AND VERIFIED BY S0.7; `S0.3-G009` Covered / Resolved (accepted with S0.7A — 2026-08-28); `S0.7-F001` — Operational / Package-Identity Coexistence Issue — Deferred for packaging/deployment decision — see `docs/security/S0_7_RUNTIME_INFRASTRUCTURE_VERIFICATION.md`; S0.7B — database/infrastructure permission verification — COMPLETE / ACCEPTED — 2026-08-28 (`S0.3-G010` Covered / Resolved; `S0.7-F002` RETIRED — Application-vs-Enterprise Identity Scope Model Corrected — 2026-08-28 owner scope decision; NOT Accepted Risk) — see `docs/security/S0_7_DATABASE_INFRASTRUCTURE_PERMISSION_VERIFICATION.md`). S0.8 — Independent Assurance & S0 Closeout is **IMPLEMENTED / AWAITING PROJECT-OWNER REVIEW — 2026-08-31** (independent assurance review reconciled the complete S0 evidence and re-ran the security regression tests at HEAD (all passing); S0 — READY FOR PROJECT-OWNER CLOSEOUT — see `docs/security/S0_8_INDEPENDENT_ASSURANCE_CLOSEOUT.md` and `docs/security/KST_V2_SECURITY_IMPLEMENTATION_REPORT.md`). Stage 9 begins only after S0 is closed and accepted (currently **BLOCKED PENDING S0 OWNER CLOSEOUT**).
+**Current project position:** The owner approved the revised Release 1 scope and stage sequence on
+2026-09-29. Stage 12 is retired. Stage 13 Open Orders is the next planned product stage and precedes
+Stage 14 Planning Workbook. No implementation stage is authorized by this documentation update.
+Stages 16 and 17 are absorbed/retired as recorded below; Stage 20 is retired. Stage 21 Export
+Completion and Stage 22 Refinement & Optimization are required before Stage 23 Quality and
+Hardening. Release readiness, pilot, rollout, and post-release planning are Stages 24–27.
+The supporting disposition matrix and deferred-work registry are in
+`docs/status/RELEASE_1_SCOPE_REVIEW_2026-09-29.md`.
 
 **Stage 3 closeout commit:** `6f5644c` — `chore: complete Stage 3 technical foundation closeout`
 
@@ -806,6 +814,9 @@ accepted — see below).
 - [x] Single authoritative version source: `src/backend/Directory.Build.props`
   (`VersionPrefix`/`VersionSuffix`).
 - [x] Initial application version set: `0.1.0-alpha.1` (SemVer 2.0.0).
+- [x] Owner adopted stage-aligned alpha numbering on 2026-09-29: Stage `N` uses
+      `0.1.0-alpha.N`; the current Stage 13 planning version is `0.1.0-alpha.13`.
+- [x] `KstActiveStage` plus the version-consistency guard enforce the active-stage relationship.
 - [x] Version propagated to backend assemblies (`InformationalVersion`, system status/health
   endpoints, startup logs, frontend top bar), `src/tauri/Cargo.toml`, `src/frontend/package.json`.
 - [x] `src/tauri/tauri.conf.json` kept numeric-only (`0.1.0`) — MSI/WiX installer bundling
@@ -1309,132 +1320,80 @@ they are acceptance evidence of consistent material improvement, not controlled 
 - [~] Minor report cosmetic refinements and fine-tuning.
 
 
-## Stage 12 — Phase 9: Multi-Part Shortage Analysis
+## Stage 12 — Multi-Part Shortage Analysis — RETIRED / SUPERSEDED
 
-### 12.1 Selection behavior
-
-- [ ] Confirm Multi mode
-- [ ] Confirm row checkbox behavior
-- [ ] Confirm one-part WO-centric view
-- [ ] Confirm multi-part component-centric view
-- [ ] Confirm affected-parent display
-- [ ] Confirm selection clearing
-- [ ] Confirm export scope
-### 12.2 Rules and backend
-
-- [ ] Define shared-component aggregation
-- [ ] Define inventory netting across selected parents
-- [ ] Prevent duplicate inventory multiplication
-- [ ] Define work-order-specific shortage grain
-- [ ] Define component-centric shortage grain
-- [ ] Define affected-parent relationships
-- [ ] Create selection-analysis endpoint
-- [ ] Create shortage export request
-- [ ] Create configurable shortage export dataset
-### 12.3 Frontend and validation
-
-- [ ] Build Multi selection
-- [ ] Build WO-centric table
-- [ ] Build part-centric table
-- [ ] Build shared-component pills
-- [ ] Build export dialog
-- [ ] Support selected columns
-- [ ] Support selected parts and WOs
-- [ ] Validate shared inventory
-- [ ] Compare exported results with current Shortage Report
-- [ ] Owner acceptance
-Phase 9 completion gate: A scheduler can analyze and export shortages for one or several selected MPS parent parts.
+Owner disposition — 2026-09-29: **RETIRED / SUPERSEDED**. Accepted Stage 11 Workspace Shortages
+provides the multi-parent, component-centric workspace capability that motivated this stage. Do not
+recreate the old Stage 12 selection-and-netting design or reinterpret it as permission to modify the
+locked Stage 9–11 algorithms. Retained refinements belong in Stage 22; missing exports belong in
+Stage 21.
 
 
-## Stage 13 — Phase 10: Planning Workbook
+## Stage 13 — Open Orders — PLANNED / RELEASE 1 REQUIRED
 
-### 13.1 Field and rule discovery
+Stage 13 combines the former Customer Open Orders and General Open Orders scopes. It must support
+both customer-focused date-change work and flexible cross-customer investigation without direct
+company-database writes. Planning prompt:
+`docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`.
 
-- [ ] Map sales-order quantities
-- [ ] Map forecast quantities
-- [ ] Map MPS quantities
-- [ ] Map unit price
-- [ ] Map unit cost
-- [ ] Define SO value
-- [ ] Define MPS value
-- [ ] Define demand selection
-- [ ] Define estimated on-hand
-- [ ] Define adjusted on-hand
-- [ ] Define adjustment grain
-- [ ] Define frozen-fence restrictions
-- [ ] Define validation rules
-- [ ] Define export mappings
-### 13.2 Backend
+### 13.1 Discovery and accepted-scope decisions
 
-- [ ] Define PlanningBucket
-- [ ] Define ProposedMpsAdjustment
-- [ ] Create planning-data service
-- [ ] Create inventory-projection service
-- [ ] Create price and cost adapters
-- [ ] Create adjustment staging service
-- [ ] Create validation service
-- [ ] Create planning endpoints
-- [ ] Create MPS mass-update exporter
-### 13.3 Frontend and validation
+- [ ] Map sales-order number, customer PO, line, item/revision, ship-to, status, quantities, dates,
+      on hand, and extended price.
+- [ ] Confirm customer, site, part, status, date, and other search filters.
+- [ ] Confirm required versus optional filters, default site behavior, result limits, sorting,
+      selectable columns, column order, and saved-layout requirements.
+- [ ] Confirm editable date fields and date-validation rules.
+- [ ] Define QXtend mapping and distinguish the operational change file from analytical exports.
+- [ ] Define the Open Order Report relationship with the Stage 18 standalone generator.
 
-- [ ] Build Planning Workbook grid
-- [ ] Build grouped part blocks
-- [ ] Build editable adjustment row
-- [ ] Highlight staged changes
-- [ ] Build clear confirmation
-- [ ] Build export behavior
-- [ ] Display last export
-- [ ] Test negative inventory
-- [ ] Test frozen periods
-- [ ] Test invalid adjustments
-- [ ] Validate exported mass update
-- [ ] Owner acceptance
-Phase 10 completion gate: A scheduler can review supply and demand, stage MPS adjustments, validate them, and produce a QAD-compatible update file.
+### 13.2 Backend and frontend
+
+- [ ] Reuse or create the authoritative sales-order adapter.
+- [ ] Define `OpenOrderSearchRequest`, `OpenOrderLine`, and `ProposedOrderChange` contracts.
+- [ ] Create one coherent Open Orders service and endpoints for customer and cross-customer use.
+- [ ] Add filter validation, safe result limits or pagination, and measured large-result behavior.
+- [ ] Build the filterable, sortable Open Orders grid and customer-focused date-edit workflow.
+- [ ] Highlight staged changes and provide explicit clearing/confirmation behavior.
+- [ ] Create and validate the QXtend-compatible date-change file without direct database writes.
+- [ ] Defer ordinary application-view export inventory and consistency to Stage 21.
+- [ ] Owner acceptance.
+
+Completion gate: A scheduler can search Open Orders across customers, focus a customer workflow,
+stage and validate approved date changes, and generate the external QXtend-compatible change file.
 
 
-## Stage 14 — Phase 11: Customer Open Orders
+## Stage 14 — Planning Workbook — PLANNED / RELEASE 1 REQUIRED
 
-### 14.1 Field inventory and rules
+### 14.1 Field and rule discovery
 
-- [ ] Map sales-order number
-- [ ] Map customer PO
-- [ ] Map line
-- [ ] Map item and revision
-- [ ] Map ship date
-- [ ] Map perform date
-- [ ] Map required date
-- [ ] Map dock date
-- [ ] Map on hand
-- [ ] Map extended price
-- [ ] Map ship-to
-- [ ] Map order status
-- [ ] Confirm editable date fields
-- [ ] Define date validation
-- [ ] Define QXtend mapping
+- [ ] Map sales-order, forecast, and MPS quantities.
+- [ ] Map unit price and unit cost; define SO value and MPS value.
+- [ ] Define demand selection, estimated on hand, adjusted on hand, and adjustment grain.
+- [ ] Define frozen-fence restrictions and validation rules.
+- [ ] Define mass-update file mappings and distinguish them from Stage 21 analytical exports.
+
 ### 14.2 Backend
 
-- [ ] Create sales-order adapter
-- [ ] Define OpenOrderLine
-- [ ] Define ProposedOrderChange
-- [ ] Create customer Open Orders service
-- [ ] Create order-change validation
-- [ ] Create Open Orders endpoints
-- [ ] Create QXtend-compatible exporter
+- [ ] Define `PlanningBucket` and `ProposedMpsAdjustment`.
+- [ ] Create planning-data and inventory-projection services.
+- [ ] Create price and cost adapters.
+- [ ] Create adjustment staging and validation services.
+- [ ] Create planning endpoints and the MPS mass-update exporter.
+
 ### 14.3 Frontend and validation
 
-- [ ] Build customer order grid
-- [ ] Build editable date cells
-- [ ] Highlight staged changes
-- [ ] Build clear confirmation
-- [ ] Build export behavior
-- [ ] Display change count
-- [ ] Validate representative orders
-- [ ] Validate output file with QXtend requirements
-- [ ] Owner acceptance
-Phase 11 completion gate: A scheduler can inspect customer orders and generate validated date-change files without direct database writes.
+- [ ] Build the Planning Workbook grid and grouped part blocks.
+- [ ] Build the editable adjustment row, staged-change highlighting, and clear confirmation.
+- [ ] Display last export and validate negative inventory, frozen periods, and invalid adjustments.
+- [ ] Validate the exported mass-update file.
+- [ ] Owner acceptance.
+
+Completion gate: A scheduler can review supply and demand, stage MPS adjustments, validate them,
+and produce a QAD-compatible update file.
 
 
-## Stage 15 — Phase 12: Finished Goods
+## Stage 15 — Finished Goods — PLANNED / RELEASE 1 REQUIRED
 
 ### 15.1 Field and rule discovery
 
@@ -1461,70 +1420,32 @@ Phase 11 completion gate: A scheduler can inspect customer orders and generate v
 - [ ] Build summary cards
 - [ ] Build location and lot grid
 - [ ] Build date selector
-- [ ] Build export if retained
+- [ ] Provide Stage 21 with the Finished Goods export requirements and disposition.
 - [ ] Validate nettable inventory
 - [ ] Validate RMA exclusion
 - [ ] Owner acceptance
-Phase 12 completion gate: A scheduler can determine whether available finished goods cover immediate customer demand.
+Completion gate: A scheduler can determine whether available finished goods cover immediate
+customer demand.
 
 
-## Stage 16 — Phase 13: General Open Orders
+## Stage 16 — General Open Orders — ABSORBED INTO STAGE 13
 
-### 16.1 Search design
-
-- [ ] Confirm all filters
-- [ ] Confirm required versus optional filters
-- [ ] Confirm default site behavior
-- [ ] Confirm result limits
-- [ ] Confirm sorting behavior
-- [ ] Confirm selectable columns
-- [ ] Confirm column order
-- [ ] Confirm saved layouts
-- [ ] Confirm export behavior
-### 16.2 Backend and frontend
-
-- [ ] Define OpenOrderSearchRequest
-- [ ] Define OpenOrderSearchRow
-- [ ] Create cross-customer search service
-- [ ] Add filter validation
-- [ ] Add pagination or safe result limits
-- [ ] Create search endpoint
-- [ ] Create configurable export
-- [ ] Build filter bar
-- [ ] Build column builder
-- [ ] Build sortable grid
-- [ ] Build saved layouts
-- [ ] Validate large result sets
-- [ ] Owner acceptance
-Phase 13 completion gate: A scheduler can perform flexible cross-customer Open Orders searches and exports.
+Owner disposition — 2026-09-29: **ABSORBED**. Customer Open Orders and General Open Orders are
+different entry points into the same capability. Their filters, search, results, staged date changes,
+and external-file behavior are now planned together in Stage 13. This historical stage number is
+retained so earlier references remain understandable.
 
 
-## Stage 17 — Phase 14: General WO Variance
+## Stage 17 — General WO Variance — RETIRED / NO LONGER DESIRED
 
-### 17.1 Rules and backend
-
-- [ ] Confirm IOS-code filter
-- [ ] Confirm included WO statuses
-- [ ] Confirm component inclusion
-- [ ] Confirm variance thresholds
-- [ ] Confirm negative-variance treatment
-- [ ] Define WorkOrderVarianceRow
-- [ ] Create cross-customer variance service
-- [ ] Create search endpoint
-- [ ] Decide whether export remains required
-### 17.2 Frontend and validation
-
-- [ ] Build IOS selector
-- [ ] Build sortable variance grid
-- [ ] Build severity highlighting
-- [ ] Build empty state
-- [ ] Build export if retained
-- [ ] Compare with current WO Variance report
-- [ ] Owner acceptance
-Phase 14 completion gate: A scheduler can independently investigate work-order material variance by IOS or equivalent scope.
+Owner disposition — 2026-09-29: **RETIRED / NO LONGER DESIRED**. Release 1 will not add a
+standalone cross-customer work-order variance search or export. Accepted Stage 7 work-order and
+variance behavior remains unchanged. Small filtering, navigation, or usability improvements may be
+considered in Stage 22; a future standalone variance capability requires a new owner-approved use
+case.
 
 
-## Stage 18 — Phase 15: Standalone Excel Reports
+## Stage 18 — Standalone Excel Report Generators — PLANNED / RELEASE 1 REQUIRED
 
 ### 18.1 Shared report infrastructure
 
@@ -1537,7 +1458,24 @@ Phase 14 completion gate: A scheduler can independently investigate work-order m
 - [ ] Define cancellation behavior
 - [ ] Define error cleanup
 - [ ] Define workbook validation tests
-### 18.2 Shipments-To-Go
+### 18.2 Component MRP
+
+- [ ] Confirm the report's individual/single-component request scope and inputs.
+- [ ] Inventory the legacy inputs, calculations, output columns, and formatting.
+- [ ] Identify authoritative source data and accepted business rules.
+- [ ] Implement workbook generation without changing locked Stage 9–11 algorithms.
+- [ ] Compare with the legacy workbook and validate with stakeholders.
+- [ ] Owner acceptance.
+
+### 18.3 Open Order Report
+
+- [ ] Confirm report inputs, filters, output columns, grouping, sorting, and formatting.
+- [ ] Reuse accepted Stage 13 Open Orders data contracts and business rules.
+- [ ] Implement standalone workbook generation.
+- [ ] Compare with the legacy report and validate with stakeholders.
+- [ ] Owner acceptance.
+
+### 18.4 Shipments-To-Go
 
 - [ ] Inventory current inputs
 - [ ] Inventory current output columns
@@ -1548,7 +1486,7 @@ Phase 14 completion gate: A scheduler can independently investigate work-order m
 - [ ] Compare with legacy workbook
 - [ ] Validate with stakeholders
 - [ ] Owner acceptance
-### 18.3 S&OP
+### 18.5 S&OP
 
 - [ ] Inventory current inputs
 - [ ] Inventory current output columns
@@ -1558,10 +1496,12 @@ Phase 14 completion gate: A scheduler can independently investigate work-order m
 - [ ] Compare with legacy workbook
 - [ ] Validate monthly period behavior
 - [ ] Owner acceptance
-Phase 15 completion gate: Required Shipments-To-Go and S&OP workbooks can be generated and validated from KST v2.
+Completion gate: Component MRP, Open Order Report, Shipments-To-Go, and S&OP workbooks can be
+generated and validated independently from KST v2. These report generators are distinct from the
+application-view export inventory and conformance work in Stage 21.
 
 
-## Stage 19 — Phase 16: Historical Shipments
+## Stage 19 — Historical Shipments — PLANNED / RELEASE 1 REQUIRED
 
 ### 19.1 Requirements
 
@@ -1575,7 +1515,7 @@ Phase 15 completion gate: Required Shipments-To-Go and S&OP workbooks can be gen
 - [ ] Confirm revenue calculation
 - [ ] Confirm returns and reversals
 - [ ] Confirm corrections
-- [ ] Decide export requirements
+- [ ] Define the required shipment report/export.
 ### 19.2 Backend and frontend
 
 - [ ] Investigate tr_hist
@@ -1586,70 +1526,122 @@ Phase 15 completion gate: Required Shipments-To-Go and S&OP workbooks can be gen
 - [ ] Create shipment-history endpoint
 - [ ] Build search and results UI
 - [ ] Build drill-downs if needed
-- [ ] Build export if approved
+- [ ] Build the required shipment report/export.
 - [ ] Validate historic totals
 - [ ] Owner acceptance
-Phase 16 completion gate: A scheduler can review reliable historical shipment activity for a selected site, customer, part, and date range.
+Completion gate: A scheduler can review and report reliable historical shipment activity for a
+selected site, customer, part, and date range. Historical Shipments is distinct from the
+forward-looking Shipments-To-Go generator in Stage 18.
 
 
-## Stage 20 — Phase 17: Legacy Simulation
+## Stage 20 — Legacy Simulation — RETIRED / NO LONGER DESIRED
 
-### 20.1 Compatibility inventory
-
-- [ ] Document current input format
-- [ ] Document current calculation process
-- [ ] Document current output
-- [ ] Identify external file dependencies
-- [ ] Identify PO data requirements
-- [ ] Identify configuration requirements
-- [ ] Identify known limitations
-### 20.2 Migration
-
-- [ ] Move existing logic behind the v2 backend
-- [ ] Preserve existing inputs
-- [ ] Preserve existing outputs
-- [ ] Add regression fixtures
-- [ ] Build minimal v2 UI integration
-- [ ] Add errors and progress reporting
-- [ ] Validate against KST v1
-- [ ] Owner acceptance
-### 20.3 Deferred redesign
-
-- [ ] Record advanced simulation as future scope
-- [ ] Create future-requirements placeholder
-- [ ] Avoid designing the advanced simulation engine during Release 1
-- [ ] Avoid allowing legacy architecture to constrain future simulation design
-Phase 17 completion gate: Existing Simulation functionality is available without expanding Release 1 scope.
+Owner disposition — 2026-09-29: **RETIRED / NO LONGER DESIRED**. The old roadmap did not identify
+the business question answered by the proposed KST v1 compatibility migration, and Release 1 does
+not require it. Remove simulation compatibility from release-readiness criteria. Stage 18 carries
+the required standalone reports. The future Can-Build concept remains separate in Stage 27 and does
+not inherit this undefined legacy scope.
 
 
 ## Stage 21 — Cross-Cutting Export Completion
 
-Some export work occurs inside feature phases, but this stage verifies the export system as a whole.
+Status: **PLANNED / RELEASE 1 REQUIRED**. Stage 11 delivered and accepted its Workspace Shortages
+export ahead of this cross-cutting stage. That export remains accepted functionality; Stage 21
+includes it in the inventory and conformance review but does not rebuild it without a demonstrated
+defect or inconsistency.
 
-- [ ] MPS configurable Excel export
-- [ ] Component MRP configurable Excel export
-- [ ] Shortage configurable Excel export
-- [ ] Open Orders export
-- [ ] Finished Goods export if retained
-- [ ] WO Variance export if retained
-- [ ] MPS mass-update CSV
-- [ ] Sales-order mass-update CSV
-- [ ] Shipments-To-Go workbook
-- [ ] S&OP workbook
-- [ ] Historical Shipments export if approved
-- [ ] Consistent filenames
-- [ ] Consistent destination handling
-- [ ] Consistent error handling
-- [ ] Selected-column support
-- [ ] Selected-part support
-- [ ] Selected-date support
-- [ ] Workbook formatting standards
-- [ ] Export audit metadata
-- [ ] Golden-master validation
+### 21.1 Export inventory and decisions
 
-## Stage 22 — Cross-Cutting Quality and Hardening
+- [ ] Review every retained application area and identify whether it needs an export.
+- [ ] Record required audience, format, columns, filters, selections, date scope, and result limits.
+- [ ] Record an explicit no-export disposition where an export is not required.
+- [ ] Distinguish analytical exports from QAD/QXtend operational update files.
+- [ ] Reconcile completed Stage 11 export behavior and Stage 18 standalone generators with the
+      system-wide inventory.
 
-### 22.1 Data integrity
+### 21.2 Shared export standards
+
+- [ ] Define consistent filenames, destination handling, overwrite behavior, metadata, formatting,
+      success feedback, and error cleanup.
+- [ ] Define selected-row, selected-column, selected-part, selected-date, and filtered-result behavior
+      where applicable.
+- [ ] Define progress, cancellation, and safe large-result behavior.
+- [ ] Confirm security, filesystem, dependency-admission, and licensing requirements.
+
+### 21.3 Completion and validation
+
+- [ ] Implement every approved missing application-view export.
+- [ ] Validate exported data against the displayed and filtered source data.
+- [ ] Validate representative and large datasets and applicable golden masters.
+- [ ] Confirm retained operational update files independently of analytical exports.
+- [ ] Owner acceptance of the complete export inventory and behavior.
+
+Completion gate: Every retained application area has an explicit export disposition; all required
+exports are implemented, consistent, validated, and owner-accepted.
+
+## Stage 22 — Refinement & Optimization — PLANNED / RELEASE 1 REQUIRED
+
+Stage 22 is an intentionally interactive, product-wide refinement stage. It consolidates observed
+defects, owner feedback, measured performance work, usability improvements, and deferred Release 1
+items that do not naturally belong to a retained feature stage.
+
+Entry rule: an item may enter Stage 22 when it improves or repairs an existing Release 1 capability.
+A substantial new standalone capability requires its own explicit roadmap disposition. Locked Stage
+9–11 business behavior may change only through an explicit owner-approved amendment.
+
+### 22.1 Backlog consolidation and prioritization
+
+- [ ] Walk through every major workflow with the owner and schedulers.
+- [ ] Consolidate known defects, deferred work, usability observations, and performance evidence.
+- [ ] Classify each item as release-blocking, important, optional Release 1, trigger-deferred, or
+      post-release.
+- [ ] Preserve an explicit destination and trigger for work not completed in Stage 22.
+
+### 22.2 Required known intake
+
+- [ ] Repair the main MPS matrix horizontal scrolling: when the matrix exceeds the viewport, its
+      horizontal scrollbar must allow access to every column at supported window sizes without
+      breaking headers, selection, or layout.
+- [ ] Revisit Stage 9 presentation, workflow, explanation, and measured performance without silently
+      changing its accepted shortage algorithm.
+- [ ] Reassess Stage 10 `PERF-001` using current measurements.
+- [ ] Include accepted minor Stage 11 cosmetic refinements and fine-tuning.
+- [ ] Resolve UI Navigation & Keyboard Ergonomics B items.
+- [ ] Reconcile parent-part CSV import from the Stage 4 backlog.
+- [ ] Review deferred Component Information additions: Inventory/Lot Locations, Show MRP, Extended
+      Requirement, Incoming Supply, Coverage, and Material Status.
+- [ ] Review PO-detail/drill-card behavior, previous/next navigation, and no-open-PO presentation.
+- [ ] Keep Current Comments read-only unless a separately approved, security-reviewed write-capable
+      notes design is authorized.
+
+### 22.3 Interactive refinement cycles
+
+- [ ] Work in bounded owner-review batches rather than one monolithic change set.
+- [ ] Improve cross-view consistency, scrolling, sizing, navigation, keyboard behavior, filters,
+      selection, loading states, empty states, errors, and explanations.
+- [ ] Measure before optimizing startup, acquisition, queries, caching, rendering, and exports.
+- [ ] Optimize only demonstrated bottlenecks; do not create database objects or indexes without the
+      required DBA and security authority.
+- [ ] Re-run relevant deterministic regression coverage after each accepted batch.
+
+### 22.4 Trigger-deferred items retained through Stage 22
+
+- [~] Stage 11 row virtualization — reconsider only after keyboard-focus and accessibility behavior
+      is solved.
+- [~] Stage 11 DBA investigation — trigger only if production use reveals a material concurrency or
+      reliability problem.
+- [~] Stage 9 `po_mstr.po_stat` predicate — do not invent one without accepted source evidence.
+- [~] Write-capable buyer notes, local note persistence, or exported note updates — require an
+      explicit workflow decision plus security and persistence review.
+
+Completion gate: required defects and refinements are accepted, performance changes are supported by
+measurements, retained regressions pass, every deferred item has a destination/trigger, and the
+product baseline is frozen for Stage 23.
+
+
+## Stage 23 — Cross-Cutting Quality and Hardening
+
+### 23.1 Data integrity
 
 - [ ] Verify domain filtering
 - [ ] Verify site filtering
@@ -1662,7 +1654,7 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Verify duplicate handling
 - [ ] Verify stale-data handling
 - [ ] Verify partial-refresh handling
-### 22.2 Performance
+### 23.2 Performance verification
 
 - [ ] Measure startup time
 - [ ] Measure initial customer load
@@ -1672,11 +1664,9 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Measure large Open Orders search
 - [ ] Measure shortage analysis
 - [ ] Measure export generation
-- [ ] Add indexes or query changes where allowed
-- [ ] Add in-memory caching where measured
-- [ ] Reconsider persistent cache only if justified
-- [ ] Reconsider pre-exploded BOM only if justified
-### 22.3 Reliability
+- [ ] Confirm Stage 22 optimizations meet owner-accepted targets without changing accepted results.
+- [ ] Record any residual performance limitation and its explicit release disposition.
+### 23.3 Reliability
 
 - [ ] Test QAD unavailable
 - [ ] Test shortage DB unavailable
@@ -1688,10 +1678,15 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Test invalid destination
 - [ ] Test low disk space
 - [ ] Test application update compatibility
-### 22.4 Security
+### 23.4 Security
 
 - [ ] Verify read-only QAD access
 - [ ] Verify read-only shortage access unless an exception is approved
+- [ ] Reconcile the post-Stage-11 Tauri capability regression/documentation baseline for
+      `dialog:allow-save` and `fs:allow-write-file`; preserve the no-`shell:*` boundary.
+- [ ] Complete or reconcile dependency-admission and commercial-use licensing records for ClosedXML
+      and the Tauri dialog/filesystem plugins.
+- [ ] Complete the retrospective third-party software and license inventory required by governance.
 - [ ] Prevent credentials in logs
 - [ ] Protect local configuration
 - [ ] Bind API only to the local machine
@@ -1700,7 +1695,7 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Validate all user-entered filters
 - [ ] Validate staged update values
 - [ ] Ensure no direct company-database writes exist
-### 22.5 Accessibility and usability
+### 23.5 Accessibility and usability
 
 - [ ] Keyboard navigation
 - [ ] Visible focus state
@@ -1714,7 +1709,7 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Clear stale-data warnings
 - [ ] Clear export confirmation
 - [ ] User testing with schedulers
-### 22.6 Documentation
+### 23.6 Documentation
 
 - [ ] Architecture overview
 - [ ] Repository guide
@@ -1730,19 +1725,18 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] QAD-upgrade migration guide
 - [ ] Architecture decision records
 
-## Stage 23 — Release 1 Readiness
+## Stage 24 — Release 1 Readiness
 
-### 23.1 Functional readiness
+### 24.1 Functional readiness
 
 - [ ] All required interactive phases complete
 - [ ] Required exports complete
-- [ ] Simulation compatibility complete
-- [ ] Historical Shipments disposition confirmed
+- [ ] Stage 19 Historical Shipments report complete and accepted.
 - [ ] Customer/site configuration complete
 - [ ] Staged update workflows complete
 - [ ] No direct database writes
 - [ ] All critical business rules approved
-### 23.2 Validation readiness
+### 24.2 Validation readiness
 
 - [ ] Golden-master comparisons complete
 - [ ] Representative customer tests complete
@@ -1752,11 +1746,13 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Open critical defects resolved
 - [ ] Performance targets accepted
 - [ ] Error behavior accepted
-### 23.3 Packaging and deployment
+### 24.3 Packaging and deployment
 
 - [ ] Build signed or approved Windows installer
+- [ ] Resolve KST v1/KST v2 package identity and single-instance coexistence before side-by-side deployment.
 - [ ] Package .NET sidecar
 - [ ] Package runtime dependencies
+- [ ] Verify the complete Windows installer/application-bundle SBOM.
 - [ ] Configure installation directories
 - [ ] Configure local settings migration
 - [ ] Configure logging directories
@@ -1765,7 +1761,8 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Test upgrade installation
 - [ ] Test uninstall
 - [ ] Create deployment instructions
-### 23.4 Operational readiness
+- [ ] Verify security requirements before activating any `keytronicshortage` integration.
+### 24.4 Operational readiness
 
 - [ ] Identify pilot users
 - [ ] Identify support contacts
@@ -1776,11 +1773,13 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Define training
 - [ ] Define feedback collection
 - [ ] Define release notes
+- [ ] Resolve the CI/CD platform, organizational risk-acceptance authority, external-AI-provider
+      policy, and release security thresholds when they become required for release operations.
 - [ ] Approve pilot launch
 
-## Stage 24 — Pilot
+## Stage 25 — Pilot
 
-### 24.1 Initial-site pilot
+### 25.1 Initial-site pilot
 
 - [ ] Deploy at primary site
 - [ ] Keep KST v1 available
@@ -1793,7 +1792,7 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Correct critical business rules
 - [ ] Refine UI
 - [ ] Refine diagnostics
-### 24.2 Pilot exit criteria
+### 25.2 Pilot exit criteria
 
 - [ ] Core workflows used successfully
 - [ ] Required reports accepted
@@ -1806,7 +1805,7 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Support process functioning
 - [ ] Project owner approves broader rollout
 
-## Stage 25 — Incremental Multi-Site Rollout
+## Stage 26 — Incremental Multi-Site Rollout
 
 - [ ] Select next site
 - [ ] Gather site-specific configuration
@@ -1822,9 +1821,9 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Repeat for each site
 - [ ] Retire KST v1 only after approved transition
 
-## Stage 26 — Post-Release Roadmap
+## Stage 27 — Post-Release Roadmap
 
-### 26.1 QAD upgrade preparation
+### 27.1 QAD upgrade preparation
 
 - [ ] Monitor upgrade timeline
 - [ ] Obtain test-schema access
@@ -1835,7 +1834,17 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Run migration fixtures
 - [ ] Validate exports
 - [ ] Deploy compatibility update
-### 26.2 Advanced Simulation
+### 27.2 Can-Build tool — FUTURE CONCEPT / NOT AUTHORIZED
+
+- [ ] Preserve the owner concept: calculate how many units of a selected model can be built from
+      available materials for a selected date.
+- [ ] Include earliest material-ready state with Can-Build, not Workspace Shortages.
+- [ ] Define authoritative inventory, demand, supply, BOM, date, and allocation inputs only after a
+      separate owner-approved discovery stage is authorized.
+- [ ] Define constraints, validation, comparisons, and explainability.
+- [ ] Create a separate charter and implementation plan before implementation.
+
+### 27.3 Other scenario-planning concepts — OWNER DECISION REQUIRED
 
 - [ ] Gather scheduler requirements
 - [ ] Define simulation questions
@@ -1847,7 +1856,7 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Define comparison views
 - [ ] Define saved scenarios
 - [ ] Create separate charter and implementation plan
-### 26.3 Potential future enhancements
+### 27.4 Potential future enhancements
 
 - [ ] More historical analytics
 - [ ] Additional configurable exports
@@ -1856,6 +1865,8 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [ ] Alternate-part analysis
 - [ ] Expanded supplier-risk integration
 - [ ] Additional local-first capabilities
+- [ ] Write-capable buyer notes or local note persistence if a future owner-approved workflow and
+      security model justify them.
 - [ ] Site-requested enhancements
 
 ## Current Project Position
@@ -1870,9 +1881,32 @@ Some export work occurs inside feature phases, but this stage verifies the expor
 - [x] Stage 6 — Part Information Drill-Down.
 - [x] Stage 7 — Work Orders and Kitting.
 - [x] Stage 8 — Component and BOM Detail.
+- [x] Stage 9 — Immediate Work-Order Shortages (**COMPLETE / ACCEPTED / LOCKED — 2026-09-08**).
+- [x] Stage 10 — Purchase-Order Drill-Down / Component Orders (**COMPLETE / ACCEPTED / LOCKED —
+      2026-09-14**).
+- [x] Stage 11 — Workspace Shortages (**COMPLETE / ACCEPTED / LOCKED — 2026-09-29**).
 - [x] UI Navigation & Keyboard Ergonomics A.
 
-### Current focus
+### Approved future roadmap
+
+- [~] Stage 12 — Multi-Part Shortage Analysis — **RETIRED / SUPERSEDED**.
+- [ ] Stage 13 — Open Orders — next planned product stage; implementation not yet authorized.
+- [ ] Stage 14 — Planning Workbook.
+- [ ] Stage 15 — Finished Goods.
+- [~] Stage 16 — General Open Orders — **ABSORBED into Stage 13**.
+- [~] Stage 17 — General WO Variance — **RETIRED / NO LONGER DESIRED**.
+- [ ] Stage 18 — Standalone Excel Report Generators.
+- [ ] Stage 19 — Historical Shipments.
+- [~] Stage 20 — Legacy Simulation — **RETIRED / NO LONGER DESIRED**.
+- [ ] Stage 21 — Cross-Cutting Export Completion.
+- [ ] Stage 22 — Refinement & Optimization.
+- [ ] Stage 23 — Quality and Hardening.
+- [ ] Stage 24 — Release 1 Readiness.
+- [ ] Stage 25 — Pilot.
+- [ ] Stage 26 — Incremental Multi-Site Rollout.
+- [~] Stage 27 — Post-Release Roadmap; future concepts are not implementation-authorized.
+
+### Accepted cross-cutting foundations
 
 - [x] R0 — Repository / Documentation Reconciliation.
 - [x] S0 — Security Foundation Integration (**COMPLETE / ACCEPTED — 2026-08-31**; S0.8 — **COMPLETE / ACCEPTED — 2026-08-31**).
