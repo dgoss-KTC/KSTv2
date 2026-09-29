@@ -6,5 +6,5 @@ namespace Kst.Exports.Contracts;
 /// </summary>
 public interface IExportService
 {
-    byte[] CreateLongTermShortagesWorkbook(string workspaceName, DateOnly refreshDate, IReadOnlyList<LongTermShortageRow> rows);
+    byte[] CreateLongTermShortagesWorkbook(string workspaceName, DateOnly refreshDate, IReadOnlyList<LongTermShortageRow> rows, DateTimeOffset? acquiredAtUtc = null, string? consistencyMode = null);
 }

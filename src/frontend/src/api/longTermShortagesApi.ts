@@ -6,15 +6,27 @@ export type LongTermShortageBucket = components['schemas']['LongTermShortageBuck
 export type LongTermMrpFact = components['schemas']['LongTermMrpFactDto'];
 export type LongTermShortageRow = components['schemas']['LongTermShortageRowDto'];
 export type LongTermShortagesResponse = components['schemas']['LongTermShortagesResponseDto'];
+export type LongTermShortagePurchasing = components['schemas']['LongTermShortagePurchasingDto'];
+export type LongTermShortagesScreen = components['schemas']['LongTermShortagesScreenDto'];
+export type LongTermShortageScreenComponent = components['schemas']['LongTermShortageScreenComponentDto'];
+export type LongTermShortageScreenMode = components['schemas']['LongTermShortageScreenModeDto'];
+export type LongTermShortageProjectionDetail = components['schemas']['LongTermShortageProjectionDetailDto'];
+export type LongTermShortageScreenRow = LongTermShortageScreenComponent & LongTermShortageScreenMode;
 
 export interface LongTermShortagePopulationOptions {
   includeManufacturedParts: boolean;
   includePhantoms: boolean;
+  includeUnconfirmed: boolean;
+  horizonWeeks: 13 | 26 | 52 | 72;
+  showAll: boolean;
 }
 
 export const DEFAULT_LONG_TERM_SHORTAGE_POPULATION_OPTIONS: LongTermShortagePopulationOptions = {
   includeManufacturedParts: false,
   includePhantoms: false,
+  includeUnconfirmed: false,
+  horizonWeeks: 26,
+  showAll: false,
 };
 
 export interface LongTermShortagesApiError {
@@ -44,13 +56,29 @@ export async function fetchLongTermShortages(
   assignmentId: string,
   snapshotId: string,
   options: LongTermShortagePopulationOptions,
-): Promise<LongTermShortagesResponse> {
-  return new ApiClient(await resolveBackendBaseUrl()).getLongTermShortages(
+): Promise<LongTermShortagesScreen> {
+  return new ApiClient(await resolveBackendBaseUrl()).getLongTermShortagesScreen(
     assignmentId,
     snapshotId,
     options.includeManufacturedParts,
     options.includePhantoms,
+    options.horizonWeeks,
   );
+}
+
+export async function fetchLongTermShortageProjectionDetail(assignmentId: string, snapshotId: string,
+  componentPart: string, options: LongTermShortagePopulationOptions): Promise<LongTermShortageProjectionDetail> {
+  return new ApiClient(await resolveBackendBaseUrl()).getLongTermShortageProjectionDetail(assignmentId,
+    snapshotId, componentPart, options.includeManufacturedParts, options.includePhantoms, options.horizonWeeks);
+}
+
+/** Selected-component open PO and buyer-comment detail; never reprojects the shortage matrix. */
+export async function fetchLongTermShortagePurchasing(
+  assignmentId: string, snapshotId: string, componentPart: string,
+  options: LongTermShortagePopulationOptions,
+): Promise<LongTermShortagePurchasing> {
+  return new ApiClient(await resolveBackendBaseUrl()).getLongTermShortagePurchasing(assignmentId, snapshotId,
+    componentPart, options.includeManufacturedParts, options.includePhantoms, options.horizonWeeks);
 }
 
 export async function exportLongTermShortages(
@@ -64,5 +92,8 @@ export async function exportLongTermShortages(
     componentParts,
     includeManufacturedParts: options.includeManufacturedParts,
     includePhantoms: options.includePhantoms,
+    includeUnconfirmed: options.includeUnconfirmed,
+    horizonWeeks: options.horizonWeeks,
+    showAll: options.showAll,
   });
 }

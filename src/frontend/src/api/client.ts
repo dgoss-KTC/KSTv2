@@ -35,6 +35,7 @@ export type ComponentDetailResponseDto = components['schemas']['ComponentDetailR
 export type ApprovedVendorDto = components['schemas']['ApprovedVendorDto'];
 export type ComponentOrdersResponseDto = components['schemas']['ComponentOrdersResponseDto'];
 export type LongTermShortagesResponseDto = components['schemas']['LongTermShortagesResponseDto'];
+export type LongTermShortagePurchasingDto = components['schemas']['LongTermShortagePurchasingDto'];
 export type ExportLongTermShortagesRequestDto = components['schemas']['ExportLongTermShortagesRequestDto'];
 
 export class ApiError extends Error {
@@ -246,11 +247,36 @@ export class ApiClient {
     snapshotId: string,
     includeManufacturedParts: boolean,
     includePhantoms: boolean,
+    includeUnconfirmed = false,
+    horizonWeeks = 26,
+    showAll = false,
+    includeEvidence = true,
   ): Promise<LongTermShortagesResponseDto> {
     return this.get<LongTermShortagesResponseDto>(
       `/api/v1/workspaces/${assignmentId}/long-term-shortages?snapshotId=${encodeURIComponent(snapshotId)}` +
-      `&includeManufacturedParts=${includeManufacturedParts}&includePhantoms=${includePhantoms}`,
+      `&includeManufacturedParts=${includeManufacturedParts}&includePhantoms=${includePhantoms}&includeUnconfirmed=${includeUnconfirmed}&horizonWeeks=${horizonWeeks}&showAll=${showAll}&includeEvidence=${includeEvidence}`,
     );
+  }
+
+  async getLongTermShortagesScreen(assignmentId: string, snapshotId: string,
+    includeManufacturedParts: boolean, includePhantoms: boolean, horizonWeeks: number): Promise<components['schemas']['LongTermShortagesScreenDto']> {
+    return this.get<components['schemas']['LongTermShortagesScreenDto']>(
+      `/api/v1/workspaces/${assignmentId}/long-term-shortages/screen?snapshotId=${encodeURIComponent(snapshotId)}` +
+      `&includeManufacturedParts=${includeManufacturedParts}&includePhantoms=${includePhantoms}&horizonWeeks=${horizonWeeks}`);
+  }
+
+  async getLongTermShortageProjectionDetail(assignmentId: string, snapshotId: string, componentPart: string,
+    includeManufacturedParts: boolean, includePhantoms: boolean, horizonWeeks: number): Promise<components['schemas']['LongTermShortageProjectionDetailDto']> {
+    return this.get<components['schemas']['LongTermShortageProjectionDetailDto']>(
+      `/api/v1/workspaces/${assignmentId}/long-term-shortages/projection-detail?snapshotId=${encodeURIComponent(snapshotId)}` +
+      `&componentPart=${encodeURIComponent(componentPart)}&includeManufacturedParts=${includeManufacturedParts}&includePhantoms=${includePhantoms}&horizonWeeks=${horizonWeeks}`);
+  }
+
+  async getLongTermShortagePurchasing(assignmentId: string, snapshotId: string, componentPart: string,
+    includeManufacturedParts: boolean, includePhantoms: boolean, horizonWeeks: number): Promise<LongTermShortagePurchasingDto> {
+    const query = `?snapshotId=${encodeURIComponent(snapshotId)}&componentPart=${encodeURIComponent(componentPart)}` +
+      `&includeManufacturedParts=${includeManufacturedParts}&includePhantoms=${includePhantoms}&horizonWeeks=${horizonWeeks}`;
+    return this.get<LongTermShortagePurchasingDto>(`/api/v1/workspaces/${assignmentId}/long-term-shortages/purchasing${query}`);
   }
 
   async exportLongTermShortages(assignmentId: string, request: ExportLongTermShortagesRequestDto): Promise<{ blob: Blob; fileName: string | null }> {

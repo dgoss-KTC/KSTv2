@@ -18,5 +18,6 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Compile Include="../../../../scripts/stage11-performance/IndexedProjectionReference.cs" Link="LongTermShortages/IndexedProjectionReference.cs" />
   </ItemGroup>
 </Project>

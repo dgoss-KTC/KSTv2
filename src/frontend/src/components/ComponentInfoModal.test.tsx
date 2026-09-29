@@ -3,6 +3,10 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ComponentInfoModal } from './ComponentInfoModal';
 import type { ComponentDetailResponseDto } from '../api/client';
+import type { LongTermShortageRow } from '../api/longTermShortagesApi';
+import { compactFixture, projectionFixture } from '../longTermShortages/compactScreenFixture.test-support';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 function makeDetail(overrides: Partial<ComponentDetailResponseDto> = {}): ComponentDetailResponseDto {
   return {
@@ -51,13 +55,170 @@ function renderModal(props: Partial<React.ComponentProps<typeof ComponentInfoMod
   );
 }
 
+function fullShortage(overrides: Partial<LongTermShortageRow> = {}): LongTermShortageRow {
+  return { componentPart: 'COMP-1', unitOfMeasure: 'EA', qadStatus: 'P', description: 'Component One', planner: null,
+    buyerPlannerCode: 'JDOE', openingQoh: '10.75', safetyStockState: 'Resolved', safetyStock: 3,
+    severity: 'FutureShort', firstShortDate: '2026-09-27', demandParentParts: ['MODEL-A', 'MODEL-B'],
+    past: { weekNumber: null, weekStart: null, grossRequirements: '2.75', scheduledReceipts: 0, plannedOrdersDue: 0,
+      plannedOrdersRelease: 0, projectedQoh: '8.25', severity: 'Healthy', unconfirmedReceipts: 0,
+      confirmedEnding: 0, allReceiptsEnding: 0, planningEnding: 0, allReceiptsPlanningEnding: 0, lowestProjectedBalance: 0,
+      lowestConfirmedBalance: 0, lowestAllReceiptsBalance: 0, overdueReceipts: '1.75', includesUnconfirmed: false },
+    weeks: [], evidence: [], episodes: [], presentation: { manufacturerItem: 'MFG-1', poNumber: null, poLine: null,
+      poDueDate: null, poOpenQuantity: null, poConfirmed: null, isKss: true }, dataQualityWarning: null,
+    firstAtRiskDate: null, effectivePmCode: 'P', partStatusDescription: null, orderPeriodDays: null, safetyTimeWorkingDays: null,
+    manufacturingLeadWorkingDays: null, purchasingLeadCalendarDays: null, cumulativeLeadCalendarDays: null, sitePlanningPresent: true,
+    ...overrides };
+}
+
+function shortage(overrides: Partial<LongTermShortageRow> = {}) { return compactFixture(fullShortage(overrides)); }
+
 describe('ComponentInfoModal', () => {
+  it('keeps master fields, manufacturer item and alternates in the first column, independent of location length', () => {
+    renderModal({ context: 'shortages', shortage: shortage(), purchasing: { commentAvailable: true, currentComment: null, openPurchaseOrders: [] } });
+    const dialog = screen.getByRole('dialog');
+    const left = dialog.querySelector('.component-info-modal__left')!;
+    const middle = dialog.querySelector('.component-info-modal__right')!;
+    const right = within(dialog).getByRole('complementary', { name: 'Workspace Shortages details' });
+    expect(left.parentElement).toHaveClass('component-info-modal__columns');
+    expect(left.nextElementSibling).toBe(middle);
+    expect(middle.nextElementSibling).toBe(right);
+    expect(within(left as HTMLElement).getByRole('heading', { name: 'Reference' })).toBeInTheDocument();
+    expect(within(left as HTMLElement).getByRole('heading', { name: 'Manufacturer Item' })).toBeInTheDocument();
+    expect(within(left as HTMLElement).getByRole('button', { name: 'Approved Alternates' })).toBeInTheDocument();
+    expect(within(middle as HTMLElement).getByRole('heading', { name: 'Inventory / Lot Locations' })).toBeInTheDocument();
+    const locationList = document.createElement('div');
+    locationList.textContent = 'LOCATION LOT '.repeat(100);
+    middle.append(locationList);
+    expect(left.contains(locationList)).toBe(false);
+    expect(within(left as HTMLElement).getByRole('heading', { name: 'Reference' })).toBeInTheDocument();
+    const css = readFileSync(resolve(process.cwd(), 'src/components/ComponentInfoModal.css'), 'utf8');
+    expect(css).toMatch(/\.component-info-modal__columns\s*{[^}]*display:\s*grid;[^}]*align-items:\s*start/);
+    expect(css).toMatch(/\.component-info-modal--shortages \.component-info-modal__columns[^}]*grid-template-columns:\s*minmax\(0,/);
+    expect(css).toMatch(/@media \(max-width: 1100px\)[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/);
+  });
+
+  it('keeps master planning values out of the shortage column and wraps every demand parent', () => {
+    const parents = Array.from({ length: 40 }, (_, index) => `LONG-MODEL-${index}`);
+    renderModal({ context: 'shortages', shortage: shortage(), projectionDetail: projectionFixture(fullShortage({ demandParentParts: parents })),
+      purchasing: { commentAvailable: true, currentComment: null, openPurchaseOrders: [] } });
+    const left = screen.getByLabelText('Component information');
+    const right = screen.getByRole('complementary', { name: 'Workspace Shortages details' });
+    for (const field of ['Buyer / Planner', 'Safety Stock', 'Safety Time', 'Purchase LT']) {
+      expect(within(left).getByText(field)).toBeInTheDocument();
+      expect(within(right).queryByText(field)).not.toBeInTheDocument();
+    }
+    expect(within(right).getAllByText('KSS')).toHaveLength(2);
+    const parentField = within(right).getByText('Demand Parents').parentElement!;
+    expect(parentField).toHaveClass('long-term-shortage-detail__parents');
+    expect(parentField.querySelector('dd')).toHaveTextContent(parents[parents.length - 1]);
+    expect(within(right).queryByText('Manufacturing Lead (site working days)')).not.toBeInTheDocument();
+    const css = readFileSync(resolve(process.cwd(), 'src/components/ComponentInfoModal.css'), 'utf8');
+    expect(css).toMatch(/\.long-term-shortage-detail__parents\s*{[^}]*grid-column:\s*1 \/ -1/);
+    expect(css).toMatch(/\.long-term-shortage-detail__parents dd\s*{[^}]*white-space:\s*normal;[^}]*overflow-wrap:\s*anywhere/);
+  });
+
+  it('rounds Past and PO quantities by component UOM without changing raw values, and hides normal-screen evidence', () => {
+    const view = renderModal({ context: 'shortages', shortage: shortage(), projectionDetail: projectionFixture(fullShortage()),
+      purchasing: { commentAvailable: true, currentComment: 'On order', openPurchaseOrders: [] } });
+    const right = screen.getByRole('complementary', { name: 'Workspace Shortages details' });
+    expect(within(right).getByText('Past Gross Requirements').nextElementSibling).toHaveTextContent('3');
+    expect(within(right).getByText('Overdue Receipts (excluded)').nextElementSibling).toHaveTextContent('2');
+    expect(within(right).getByText('Adjusted Opening QOH').nextElementSibling).toHaveTextContent('8');
+    for (const removed of ['Site Planning Lead Times', 'PO/KSS Context', 'Shortage Episodes', '26-Week Timeline', 'Raw MRP Evidence'])
+      expect(within(right).queryByText(removed)).not.toBeInTheDocument();
+    view.rerender(<ComponentInfoModal componentPart="COMP-1" context="shortages" shortage={shortage({ unitOfMeasure: 'UNFAMILIAR' })}
+      projectionDetail={projectionFixture(fullShortage())}
+      detail={makeDetail()} isLoading={false} error={null} onRetry={vi.fn()} onClose={vi.fn()} approvedVendors={null}
+      isApprovedVendorsLoading={false} approvedVendorsError={null} onExpandApprovedVendors={vi.fn()} onRetryApprovedVendors={vi.fn()}
+      purchasing={{ commentAvailable: true, currentComment: null, openPurchaseOrders: [] }} />);
+    expect(within(right).getByText('Past Gross Requirements').nextElementSibling).toHaveTextContent('2.75');
+    expect(within(right).getByText('Overdue Receipts (excluded)').nextElementSibling).toHaveTextContent('1.75');
+    expect(within(right).getByText('Adjusted Opening QOH').nextElementSibling).toHaveTextContent('8.25');
+  });
+
+  it('uses Current Buyer Comment without invented metadata and distinguishes no comment from unavailable', () => {
+    const props = { context: 'shortages' as const, shortage: shortage() };
+    const view = renderModal({ ...props, purchasing: { commentAvailable: true, currentComment: 'Buyer note', openPurchaseOrders: [] } });
+    const right = screen.getByRole('complementary', { name: 'Workspace Shortages details' });
+    expect(within(right).getByRole('heading', { name: 'Current Buyer Comment' })).toBeInTheDocument();
+    expect(within(right).queryByText('Latest Buyer Comment')).not.toBeInTheDocument();
+    expect(within(right).getByText('Buyer note')).toBeInTheDocument();
+    view.rerender(<ComponentInfoModal componentPart="COMP-1" detail={makeDetail()} isLoading={false} error={null}
+      onRetry={vi.fn()} onClose={vi.fn()} approvedVendors={null} isApprovedVendorsLoading={false} approvedVendorsError={null}
+      onExpandApprovedVendors={vi.fn()} onRetryApprovedVendors={vi.fn()} {...props}
+      purchasing={{ commentAvailable: true, currentComment: '  ', openPurchaseOrders: [] }} />);
+    expect(within(right).getByText('No buyer comment on file')).toBeInTheDocument();
+  });
+
+  it('sorts selected-component open POs past-due first, then by due date, with explicit exception text', () => {
+    const po = (poNumber: string, dueDate: string | null, openQuantity: number) => ({
+      componentPart: 'COMP-1', description: null, leadTimeDays: null, poNumber, poLine: 1, dueDate, openQuantity,
+      confirmed: true, supplierDisplay: 'Acme', buyerDisplay: null, manufacturerItem: null, isKss: false,
+      trackingInfo: null, isCreditHold: null, isCia: null, currentComments: null,
+    });
+    renderModal({ context: 'shortages', shortage: shortage(), purchasing: { commentAvailable: true, currentComment: null,
+      openPurchaseOrders: [po('FUTURE', '2999-01-01', 12.75), po('NO-DATE', null, 4.25),
+        po('PAST-LATER', '2001-02-01', 1.5), po('PAST-EARLIER', '2000-01-01', 2.5)] } });
+    const table = within(screen.getByRole('complementary', { name: 'Workspace Shortages details' })).getByRole('table');
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows.map((element) => element.querySelector('td')?.textContent)).toEqual(['PAST-EARLIER', 'PAST-LATER', 'FUTURE', 'NO-DATE']);
+    expect(rows[0]).toHaveTextContent('Past due: 2000-01-01');
+    expect(rows[2]).toHaveTextContent('13');
+    expect(rows[3]).toHaveTextContent('Due date missing');
+  });
+
+  it('uses the shortage report as-of date to identify past-due open PO lines', () => {
+    renderModal({ context: 'shortages', asOfDate: '2026-09-25', shortage: shortage(),
+      purchasing: { commentAvailable: true, currentComment: null, openPurchaseOrders: [{
+        componentPart: 'COMP-1', description: null, leadTimeDays: null, poNumber: 'PO-A', poLine: 1,
+        dueDate: '2026-09-24', openQuantity: 1, confirmed: null, supplierDisplay: null, buyerDisplay: null,
+        manufacturerItem: null, isKss: false, trackingInfo: null, isCreditHold: null, isCia: null, currentComments: null,
+      }] } });
+    expect(within(screen.getByRole('table')).getByRole('cell', { name: 'Past due: 2026-09-24' })).toBeInTheDocument();
+  });
+
   it('renders as an accessible dialog with the component identity', () => {
     renderModal();
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(within(dialog).getByText('COMP-1')).toBeInTheDocument();
     expect(within(dialog).getByText('Component One')).toBeInTheDocument();
+  });
+
+  it('keeps BOM context free of shortage data and displays shared fields in shortages context', () => {
+    const base = renderModal({ context: 'bom' });
+    expect(screen.getByText('Net QOH')).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: 'Workspace Shortages details' })).not.toBeInTheDocument();
+    base.rerender(<ComponentInfoModal componentPart="COMP-1" detail={makeDetail()} isLoading={false} error={null}
+      onRetry={vi.fn()} onClose={vi.fn()} approvedVendors={null} isApprovedVendorsLoading={false}
+      approvedVendorsError={null} onExpandApprovedVendors={vi.fn()} onRetryApprovedVendors={vi.fn()}
+      context="shortages" shortage={compactFixture({ componentPart: 'COMP-1', unitOfMeasure: 'EA', qadStatus: 'A', description: 'Component One', planner: null,
+        buyerPlannerCode: 'JDOE', openingQoh: 10, safetyStockState: 'Resolved', safetyStock: 3,
+        severity: 'Healthy', firstShortDate: null, demandParentParts: [], past: { weekNumber: null, weekStart: null,
+          grossRequirements: 0, scheduledReceipts: 0, plannedOrdersDue: 0, plannedOrdersRelease: 0, projectedQoh: 10,
+          severity: 'Healthy', unconfirmedReceipts: 0, confirmedEnding: 10, allReceiptsEnding: 10, planningEnding: 10,
+          allReceiptsPlanningEnding: 10, lowestProjectedBalance: 10, lowestConfirmedBalance: 10, lowestAllReceiptsBalance: 10,
+          overdueReceipts: 0, includesUnconfirmed: false }, weeks: [], evidence: [], presentation: null, episodes: [],
+        dataQualityWarning: null, firstAtRiskDate: null, effectivePmCode: 'P', partStatusDescription: null, orderPeriodDays: null,
+        safetyTimeWorkingDays: null, manufacturingLeadWorkingDays: null, purchasingLeadCalendarDays: null,
+        cumulativeLeadCalendarDays: null, sitePlanningPresent: true })} />);
+    expect(screen.getByText('Net QOH')).toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: 'Workspace Shortages details' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Shortage Snapshot' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Show MRP' })).not.toBeInTheDocument();
+  });
+
+  it('shows a truthful empty location placeholder and no shortage column from BOM', () => {
+    renderModal({ context: 'bom', detail: null, isLoading: true });
+    expect(screen.getByText(/Loading component information/i)).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: 'Workspace Shortages details' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the location placeholder in the middle column for loaded BOM detail', () => {
+    renderModal({ context: 'bom' });
+    expect(screen.getByLabelText('Inventory / Lot Locations column')).toHaveTextContent('Inventory location detail will be added in a later stage.');
+    expect(screen.queryByRole('complementary', { name: 'Workspace Shortages details' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Open Purchase Orders')).not.toBeInTheDocument();
   });
 
   it('shows a loading state before detail arrives', () => {

@@ -1526,6 +1526,43 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "name": "includeUnconfirmed",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "horizonWeeks",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 26
+            }
+          },
+          {
+            "name": "showAll",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "includeEvidence",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
           }
         ],
         "responses": {
@@ -1535,6 +1572,341 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LongTermShortagesResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/long-term-shortages/screen": {
+      "get": {
+        "tags": [
+          "LongTermShortages"
+        ],
+        "operationId": "GetLongTermShortagesScreen",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "snapshotId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeManufacturedParts",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "includePhantoms",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "horizonWeeks",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 26
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LongTermShortagesScreenDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/long-term-shortages/projection-detail": {
+      "get": {
+        "tags": [
+          "LongTermShortages"
+        ],
+        "operationId": "GetLongTermShortageProjectionDetail",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "snapshotId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "componentPart",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeManufacturedParts",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "includePhantoms",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "horizonWeeks",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 26
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LongTermShortageProjectionDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/long-term-shortages/purchasing": {
+      "get": {
+        "tags": [
+          "LongTermShortages"
+        ],
+        "operationId": "GetLongTermShortagesPurchasing",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "snapshotId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "componentPart",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeManufacturedParts",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "includePhantoms",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "horizonWeeks",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 26
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LongTermShortagePurchasingDto"
                 }
               }
             }
@@ -2255,6 +2627,23 @@
           "includePhantoms": {
             "type": "boolean",
             "default": false
+          },
+          "includeUnconfirmed": {
+            "type": "boolean",
+            "default": false
+          },
+          "horizonWeeks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32",
+            "default": 26
+          },
+          "showAll": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -2337,7 +2726,13 @@
           "dueDate",
           "releaseDate",
           "quantity",
-          "category"
+          "category",
+          "sourceNumber",
+          "sourceLine",
+          "sourceLine2",
+          "isPoReceipt",
+          "poConfirmed",
+          "sourceRowId"
         ],
         "type": "object",
         "properties": {
@@ -2379,6 +2774,42 @@
           },
           "category": {
             "type": "string"
+          },
+          "sourceNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourceLine": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourceLine2": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isPoReceipt": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "poConfirmed": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "sourceRowId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -2391,7 +2822,17 @@
           "plannedOrdersDue",
           "plannedOrdersRelease",
           "projectedQoh",
-          "severity"
+          "severity",
+          "unconfirmedReceipts",
+          "confirmedEnding",
+          "allReceiptsEnding",
+          "planningEnding",
+          "allReceiptsPlanningEnding",
+          "lowestProjectedBalance",
+          "overdueReceipts",
+          "includesUnconfirmed",
+          "lowestConfirmedBalance",
+          "lowestAllReceiptsBalance"
         ],
         "type": "object",
         "properties": {
@@ -2453,6 +2894,123 @@
           },
           "severity": {
             "type": "string"
+          },
+          "unconfirmedReceipts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "confirmedEnding": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "allReceiptsEnding": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "planningEnding": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "allReceiptsPlanningEnding": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "lowestProjectedBalance": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "overdueReceipts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "includesUnconfirmed": {
+            "type": "boolean"
+          },
+          "lowestConfirmedBalance": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "lowestAllReceiptsBalance": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "LongTermShortageEpisodeDto": {
+        "required": [
+          "startDate",
+          "deepestDate",
+          "maximumShortage",
+          "firstRecoveryDate",
+          "stableClearDate"
+        ],
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "deepestDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "maximumShortage": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "firstRecoveryDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "stableClearDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },
@@ -2516,6 +3074,118 @@
           }
         }
       },
+      "LongTermShortageProjectionDetailDto": {
+        "required": [
+          "snapshotId",
+          "componentPart",
+          "refreshDate",
+          "acquiredAtUtc",
+          "consistencyMode",
+          "demandParentParts",
+          "pastGrossRequirements",
+          "overdueReceipts",
+          "adjustedOpeningQoh",
+          "effectivePmCode",
+          "manufacturingLeadWorkingDays",
+          "manufacturerItem"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "componentPart": {
+            "type": "string"
+          },
+          "refreshDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "consistencyMode": {
+            "type": "string"
+          },
+          "demandParentParts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pastGrossRequirements": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "overdueReceipts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "adjustedOpeningQoh": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "effectivePmCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "manufacturingLeadWorkingDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "manufacturerItem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LongTermShortagePurchasingDto": {
+        "required": [
+          "commentAvailable",
+          "currentComment",
+          "openPurchaseOrders"
+        ],
+        "type": "object",
+        "properties": {
+          "commentAvailable": {
+            "type": "boolean"
+          },
+          "currentComment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "openPurchaseOrders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComponentOrderLineDto"
+            }
+          }
+        }
+      },
       "LongTermShortageRowDto": {
         "required": [
           "componentPart",
@@ -2533,7 +3203,18 @@
           "past",
           "weeks",
           "evidence",
-          "presentation"
+          "presentation",
+          "episodes",
+          "dataQualityWarning",
+          "firstAtRiskDate",
+          "effectivePmCode",
+          "partStatusDescription",
+          "orderPeriodDays",
+          "safetyTimeWorkingDays",
+          "manufacturingLeadWorkingDays",
+          "purchasingLeadCalendarDays",
+          "cumulativeLeadCalendarDays",
+          "sitePlanningPresent"
         ],
         "type": "object",
         "properties": {
@@ -2630,6 +3311,246 @@
                 "$ref": "#/components/schemas/LongTermShortagePresentationContextDto"
               }
             ]
+          },
+          "episodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LongTermShortageEpisodeDto"
+            }
+          },
+          "dataQualityWarning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "firstAtRiskDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "effectivePmCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partStatusDescription": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "orderPeriodDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "safetyTimeWorkingDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "manufacturingLeadWorkingDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "purchasingLeadCalendarDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "cumulativeLeadCalendarDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "sitePlanningPresent": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "LongTermShortageScreenComponentDto": {
+        "required": [
+          "componentPart",
+          "unitOfMeasure",
+          "qadStatus",
+          "description",
+          "planner",
+          "buyerPlannerCode",
+          "openingQoh",
+          "openingDisplay",
+          "safetyStock",
+          "dataQualityWarning",
+          "isKss",
+          "confirmed",
+          "all"
+        ],
+        "type": "object",
+        "properties": {
+          "componentPart": {
+            "type": "string"
+          },
+          "unitOfMeasure": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "qadStatus": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "planner": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "buyerPlannerCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "openingQoh": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "openingDisplay": {
+            "type": "string"
+          },
+          "safetyStock": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "dataQualityWarning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isKss": {
+            "type": "boolean"
+          },
+          "confirmed": {
+            "$ref": "#/components/schemas/LongTermShortageScreenModeDto"
+          },
+          "all": {
+            "$ref": "#/components/schemas/LongTermShortageScreenModeDto"
+          }
+        }
+      },
+      "LongTermShortageScreenModeDto": {
+        "required": [
+          "severity",
+          "firstShortDate",
+          "firstAtRiskDate",
+          "maximumShortage",
+          "firstRecoveryDate",
+          "ending",
+          "endingDisplay",
+          "weeklySeverity"
+        ],
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string"
+          },
+          "firstShortDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "firstAtRiskDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "maximumShortage": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "firstRecoveryDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "ending": {
+            "type": "array",
+            "items": {
+              "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+              "type": [
+                "number",
+                "string"
+              ],
+              "format": "double"
+            }
+          },
+          "endingDisplay": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "weeklySeverity": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -2639,7 +3560,10 @@
           "refreshDate",
           "isStale",
           "warning",
-          "rows"
+          "rows",
+          "acquiredAtUtc",
+          "consistencyMode",
+          "allReceiptsRows"
         ],
         "type": "object",
         "properties": {
@@ -2664,6 +3588,98 @@
             "items": {
               "$ref": "#/components/schemas/LongTermShortageRowDto"
             }
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "consistencyMode": {
+            "type": "string"
+          },
+          "allReceiptsRows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LongTermShortageRowDto"
+            }
+          },
+          "evidenceIncluded": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LongTermShortagesScreenDto": {
+        "required": [
+          "snapshotId",
+          "refreshDate",
+          "isStale",
+          "warning",
+          "acquiredAtUtc",
+          "consistencyMode",
+          "weeks",
+          "components"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "refreshDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "isStale": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "consistencyMode": {
+            "type": "string"
+          },
+          "weeks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LongTermShortageWeekDto"
+            }
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LongTermShortageScreenComponentDto"
+            }
+          }
+        }
+      },
+      "LongTermShortageWeekDto": {
+        "required": [
+          "weekNumber",
+          "weekStart",
+          "labelDate"
+        ],
+        "type": "object",
+        "properties": {
+          "weekNumber": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "weekStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "labelDate": {
+            "type": "string",
+            "format": "date"
           }
         }
       },

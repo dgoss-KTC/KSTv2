@@ -1,19 +1,21 @@
 namespace Kst.Domain.LongTermShortages;
 
 /// <summary>
-/// Stage 11-A report-population options (owner-accepted defaults: both off). They select which
+/// Stage 11 component report controls. They select which
 /// BOM-selected components enter the site-wide projection; they are not client-side row-display
-/// filters. A normal component is included by default; a manufactured component requires
-/// <see cref="IncludeManufacturedParts"/>; a phantom component requires <see cref="IncludePhantoms"/>;
-/// a component that is both manufactured and phantom requires both options.
+/// filters. Purchased components are included by default; manufactured components require
+/// <see cref="IncludeManufacturedParts"/>. Phantoms are traversed but never displayed.
 /// </summary>
 public sealed record LongTermShortagePopulationOptions(
     bool IncludeManufacturedParts = false,
-    bool IncludePhantoms = false)
+    bool IncludePhantoms = false,
+    bool IncludeUnconfirmed = false,
+    int HorizonWeeks = 26,
+    bool ShowAll = false)
 {
     public static readonly LongTermShortagePopulationOptions Default = new();
 
-    /// <summary>Applies the accepted population rule to one component's established part-master classifications.</summary>
+    /// <summary>Retained for existing consumers; the Stage 11 service applies effective P/M and hides phantoms.</summary>
     public bool IsIncluded(bool isManufactured, bool isPhantom) =>
         (!isManufactured || IncludeManufacturedParts) && (!isPhantom || IncludePhantoms);
 }

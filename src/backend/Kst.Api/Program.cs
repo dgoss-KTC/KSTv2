@@ -331,20 +331,20 @@ else
 
 builder.Services.AddSingleton<ComponentOrdersService>();
 
-// -- Long-Term Shortages (Stage 11-A) ------------------------------------------
+// -- Component MRP / Workspace Shortages (Stage 11) -----------------------------
 builder.Services.AddSingleton<ILongTermShortagesCacheStore, InMemoryLongTermShortagesCacheStore>();
 if (qadOptions.IsConfigured)
 {
     builder.Services.AddSingleton<QadLongTermShortageSourceReader>();
     builder.Services.AddSingleton<ILongTermShortageSourceReader>(sp => new DelegateLongTermShortageSourceReader(
-        (site, componentParents, horizonEnd, ct) =>
-            sp.GetRequiredService<QadLongTermShortageSourceReader>().ReadAsync(site, componentParents, horizonEnd, ct)));
+        (site, componentParents, refreshDate, horizonEnd, ct) =>
+            sp.GetRequiredService<QadLongTermShortageSourceReader>().ReadAsync(site, componentParents, refreshDate, horizonEnd, ct)));
 }
 else
 {
     const string notConfiguredMessage = "QAD connection is not configured.";
     builder.Services.AddSingleton<ILongTermShortageSourceReader>(_ => new DelegateLongTermShortageSourceReader(
-        (_, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
+        (_, _, _, _, _) => throw new InvalidOperationException(notConfiguredMessage)));
 }
 builder.Services.AddSingleton<LongTermShortagesService>();
 
@@ -444,6 +444,7 @@ app.MapComponentDetailEndpoints();
 app.MapApprovedVendorEndpoints();
 app.MapComponentOrderEndpoints();
 app.MapLongTermShortagesEndpoints();
+app.MapLongTermShortagesPurchasingEndpoints();
 app.MapLongTermShortagesExportEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------

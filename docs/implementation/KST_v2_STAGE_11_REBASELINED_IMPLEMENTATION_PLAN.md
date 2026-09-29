@@ -1,6 +1,6 @@
 # KST v2 -- Stage 11 Re-Baselined Shared-MRP Implementation Plan
 
-**Status:** Implemented / project-owner review and manual desktop validation pending -- 2026-09-22. The shared-MRP replacement was built and automated verification completed; project-owner acceptance is not yet recorded.
+**Status:** Superseded for Stage 11 scheduling by `stage11_component_mrp_algorithm.md` on 2026-09-23 by project-owner decision. Retained as historical implementation evidence; its Monday-to-Sunday buckets, past receipts in projected QOH, and planned due in official balance are not current calculation rules. The prior implementation was not owner-accepted.
 
 ## 1. Authority and Scope
 

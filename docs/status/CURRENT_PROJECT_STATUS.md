@@ -1,8 +1,8 @@
 # Current Project Status
 
-Date: 2026-09-14
+Date: 2026-09-29
 Workstation: Windows (`C:\Dev\kst_v2`)
-Current stage: **Stage 10 — Purchase-Order Drill-Down / Component Orders — COMPLETE / ACCEPTED / LOCKED — 2026-09-14**
+Current stage: **Stage 11 — Workspace Shortages — COMPLETE / ACCEPTED / LOCKED — 2026-09-29**
 UI Navigation & Keyboard Ergonomics A: **COMPLETE / ACCEPTED — 2026-08-21**
 Active cross-cutting effort: **R0 — Repository / Documentation Reconciliation — COMPLETE /
 ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation Status` below and
@@ -81,7 +81,7 @@ S0.7-F002 RETIRED);
 S0.8 is now COMPLETE / ACCEPTED — 2026-08-31. S0 is now COMPLETE / ACCEPTED — 2026-08-31.
 Stage 9: **COMPLETE / ACCEPTED / LOCKED — 2026-09-08**
 Stage 10: **COMPLETE / ACCEPTED / LOCKED — 2026-09-14**
-Stage 11-A — Workspace Shortages: **RE-BASELINED IMPLEMENTATION COMPLETE / OWNER REVIEW AND MANUAL VALIDATION PENDING — 2026-09-22**. The premature custom WOD/PO/forecast projection checkpoint remains superseded and historical/non-executable. The implemented authoritative replacement in `docs/implementation/KST_v2_STAGE_11_REBASELINED_IMPLEMENTATION_PLAN.md` uses a shared QAD `mrp_det` schedule with Monday-to-Sunday weeks, a separate Past carry-in, planned-order due quantity in projected balance, planned-order release as evidence only, corrected direct `ld_det` opening-QOH status treatment, and presentation-only PO/KSS/manufacturer context. Automated verification is complete; project-owner manual desktop validation and explicit acceptance remain pending.
+Stage 11 Workspace Shortages: **COMPLETE / ACCEPTED / LOCKED — 2026-09-29**. The owner completed desktop validation and accepted report accuracy, display/usability, cold-load performance, cached performance, and overall readiness. The accepted algorithm is `docs/implementation/stage11_component_mrp_algorithm.md`; it uses a daily ledger from the application-local `asOfDate`, Sunday–Saturday presentation with Monday labels, separate confirmed-only and include-unconfirmed modes, and snapshot-scoped cached projection/export behavior. Workspace Shortages integrates the shared Component Information drawer, PO and buyer-comment presentation, compact initial screen, frozen columns, sticky headers, horizontal scrolling, filtering, sorting, severity display, and workbook export. Stage 9 and Stage 10 remain locked and unmodified.
 Pre-Stage-10 customer-workspace UI foundation: **COMPLETE / ACCEPTED** (inter-stage UI update;
 not a Stage 10 checkpoint; see `docs/implementation/KST_v2_PRE_STAGE_10_UI_FOUNDATION_CLOSEOUT.md`)
 Stage 7 status: **COMPLETE / ACCEPTED - 2026-08-13; reopened, amended, and closed by Stage 7R (Four-Week Work Order Planning Window) - 2026-09-01** - see [Stage 7R Amendment](#stage-7r-amendment-four-week-work-order-planning-window) below
@@ -89,6 +89,23 @@ Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
 Application version: **`0.1.0-alpha.2`** (see [Versioning Foundation](#versioning-foundation) below)
 
 ## Current Position
+
+Stage 11 closeout (2026-09-29): automated verification and owner desktop validation passed. The
+owner’s real-world cold-load measurements compared KSTv1/KSTv2 medians of Shure **72/11 seconds**,
+Taco **54/10 seconds**, and MSA/Neutronics **20/6 seconds**. Across nine observations, the overall
+median was **53/10 seconds** and average approximately **55.1/11.7 seconds**, a roughly **79%**
+average elapsed-time decrease. Server load affected the uncontrolled measurements; they demonstrate
+consistent material improvement rather than a SQL benchmark or SLA. The retained production-pass
+evidence records 891 backend tests, 68 focused frontend tests, OpenAPI/type synchronization,
+typecheck, changed-file lint, production build, sidecar rebuild, 2,304 screen equivalence cases,
+and retained projection/workbook comparisons.
+
+**Deferred future backlog:** Individual Component MRP is not an unfinished Stage 11 requirement. It
+is future legacy-report work to be planned only when that report section is authorized. The DBA
+evidence request is retained but deferred unless production use reveals a material concurrency or
+reliability issue. Virtualization is deferred until its keyboard-focus/accessibility failure is
+resolved. Minor report fine-tuning is non-blocking future backlog. No next implementation stage is
+authorized by the current project documentation.
 
 **Final S0 closeout:** S0 — **COMPLETE / ACCEPTED — 2026-08-31**; S0.8 — **COMPLETE / ACCEPTED — 2026-08-31**; S0.7 — **COMPLETE / ACCEPTED — 2026-08-28**. Stage 9 — **COMPLETE / ACCEPTED / LOCKED — 2026-09-08**.
 
