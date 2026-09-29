@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Using Include="Microsoft.AspNetCore.Builder" />
+    <Using Include="Microsoft.AspNetCore.Http" />
+    <Using Include="Microsoft.AspNetCore.Routing" />
+    <Compile Include="../../src/backend/Kst.Api/Dtos/LongTermShortageDtos.cs" Link="LongTermShortageDtos.cs" />
+    <Compile Include="../../src/backend/Kst.Api/Dtos/ComponentOrderDtos.cs" Link="ComponentOrderDtos.cs" />
+    <Compile Include="../../src/backend/Kst.Api/Endpoints/LongTermShortagesEndpoints.cs" Link="LongTermShortagesEndpoints.cs" />
+    <ProjectReference Include="../../src/backend/Kst.Integrations.Qad/Kst.Integrations.Qad.csproj" />
+    <ProjectReference Include="../../src/backend/Kst.Exports/Kst.Exports.csproj" />
+    <ProjectReference Include="../../src/backend/Kst.Application/Kst.Application.csproj" />
+  </ItemGroup>
+</Project>

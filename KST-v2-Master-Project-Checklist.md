@@ -1279,43 +1279,34 @@ supplier/comment context for components in the active workspace. Stage 10 makes 
 shortage-clearance claim.
 
 
-## Stage 11 — Phase 8: Future Shortages and Component MRP
+## Stage 11 — Workspace Shortages
 
-### 11.1 Rule discovery
+**Status: COMPLETE / ACCEPTED / LOCKED — 2026-09-29.** The authoritative algorithm is
+`docs/implementation/stage11_component_mrp_algorithm.md`. The owner completed desktop validation
+and accepted report accuracy, display/usability, cold-load performance, cached performance, and
+overall readiness.
 
-- [ ] Define projection horizon
-- [ ] Define lead-time horizon
-- [ ] Define projected balance
-- [ ] Define planned-order handling
-- [ ] Define covering PO
-- [ ] Define projected clear week
-- [ ] Define coverage gap
-- [ ] Define future-shortage quantity
-- [ ] Confirm behavior when no WO exists
-- [ ] Confirm forecast treatment
-### 11.2 Backend
+- [x] Acquire QAD facts and calculate daily component projections from the accepted Stage 11 algorithm.
+- [x] Present Sunday–Saturday weeks with Monday labels, confirmed-only and include-unconfirmed receipt modes, purchased components, optional manufactured components, and Show All behavior.
+- [x] Deliver filtering, sorting, severity classification/display, compact initial-screen contract, frozen columns, sticky headers, and horizontal scrolling.
+- [x] Deliver snapshot-scoped component detail and shared Component Information drawer integration, including PO and buyer-comment presentation.
+- [x] Deliver cached projection/export behavior and filtered workbook export.
+- [x] Preserve locked Stage 9 and Stage 10 implementations and the legacy shortage report.
+- [x] Complete automated verification: backend suite, focused Stage 11 frontend tests including sticky-header and snapshot-race regressions, typecheck, changed-file lint, production frontend build, OpenAPI/generated TypeScript synchronization, and sidecar rebuild.
+- [x] Complete owner desktop validation and acceptance against the legacy KSTv1 shortage report.
 
-- [ ] Define ProjectedShortage
-- [ ] Create time-phased Component MRP service
-- [ ] Create projected-balance service
-- [ ] Create future-shortage service
-- [ ] Reuse component and PO services
-- [ ] Create future-shortage endpoint
-- [ ] Create Component MRP endpoint
-- [ ] Define Component MRP export dataset
-### 11.3 Frontend, export, and validation
+**Acceptance performance evidence:** owner-observed cold-load medians were Shure **72 seconds in
+KSTv1 versus 11 seconds in KSTv2**, Taco **54 versus 10**, and MSA/Neutronics **20 versus 6**.
+Across nine uncontrolled real-world observations, the overall median was **53 versus 10 seconds**
+and the average approximately **55.1 versus 11.7 seconds**. Server load affects these observations;
+they are acceptance evidence of consistent material improvement, not controlled SQL benchmarks.
 
-- [ ] Build Future Shortages tab
-- [ ] Build projection descriptions
-- [ ] Build no-future-shortage state
-- [ ] Build Component MRP export options
-- [ ] Support selected parent parts
-- [ ] Support selected components
-- [ ] Support date horizon
-- [ ] Support selectable columns
-- [ ] Compare with existing Component MRP
-- [ ] Owner acceptance
-Phase 8 completion gate: A scheduler can see future material exposure and export a scoped Component MRP report.
+**Deferred future backlog, not incomplete Stage 11 scope:**
+
+- [~] Individual Component MRP belongs to the future legacy-report section and is not implemented by this stage.
+- [~] Retain the DBA evidence request for optional future investigation if production use reveals a material concurrency or reliability issue.
+- [~] Reconsider row virtualization only after its keyboard-focus/accessibility failure is solved.
+- [~] Minor report cosmetic refinements and fine-tuning.
 
 
 ## Stage 12 — Phase 9: Multi-Part Shortage Analysis

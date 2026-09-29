@@ -381,6 +381,9 @@ describe('MpsWorkspace', () => {
         const result = handlers.onGetImmediateMaterial?.(url) ?? { ok: true, json: async () => makeImmediateMaterialAnalysis() };
         return Promise.resolve(result);
       }
+      if (method === 'GET' && url.includes('/component-orders')) {
+        return Promise.resolve({ ok: true, json: async () => ({ snapshotId: 'snap-1', enrichmentAvailability: 'Available', groups: [] }) });
+      }
       if (method === 'GET' && url.includes('/work-orders/') && url.includes('/material')) {
         const result = handlers.onGetMaterialLines?.(url) ?? { ok: true, json: async () => makeMaterialResponse() };
         return Promise.resolve(result);
@@ -459,8 +462,8 @@ describe('MpsWorkspace', () => {
     fetchMock.mockClear();
 
     await user.click(screen.getByRole('tab', { name: 'Component Orders' }));
-    expect(screen.getByRole('heading', { name: 'Component Orders' })).toBeInTheDocument();
-    expect(screen.getByText(/stage 10 workspace surface/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Component Orders' })).toBeInTheDocument();
+    expect(screen.getByText(/No components have qualifying open PO lines/i)).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/mps'))).toBe(false);
 
     await user.click(screen.getByRole('tab', { name: 'Dashboard' }));

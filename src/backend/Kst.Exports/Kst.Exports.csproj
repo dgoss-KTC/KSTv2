@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Kst.Exports: export service boundary. No Excel, QXtend, or CSV in this phase. -->
+  <!-- Kst.Exports: controlled human-reviewable file generation boundary. -->
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Kst.Domain\Kst.Domain.csproj" />

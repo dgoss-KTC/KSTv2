@@ -2,10 +2,23 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ComponentDetailApiError } from '../api/componentDetailApi';
 import type { ApprovedVendorsApiError } from '../api/approvedVendorsApi';
 import type { ComponentDetailResponseDto, ApprovedVendorDto } from '../api/client';
+import type { LongTermShortagePurchasing, LongTermShortageScreenRow, LongTermShortageProjectionDetail } from '../api/longTermShortagesApi';
 import { formatQuantity } from '../mps/mpsPresentation';
+import { ShortageInformationSections } from './LongTermShortageDetailModal';
 import './ComponentInfoModal.css';
 
 interface ComponentInfoModalProps {
+  context?: 'bom' | 'shortages';
+  shortage?: LongTermShortageScreenRow;
+  projectionDetail?: LongTermShortageProjectionDetail | null;
+  isProjectionLoading?: boolean;
+  projectionError?: boolean;
+  onRetryProjection?: () => void;
+  asOfDate?: string;
+  purchasing?: LongTermShortagePurchasing | null;
+  isPurchasingLoading?: boolean;
+  purchasingError?: boolean;
+  onRetryPurchasing?: () => void;
   componentPart: string;
   detail: ComponentDetailResponseDto | null;
   isLoading: boolean;
@@ -58,6 +71,17 @@ const FOCUSABLE_SELECTOR =
  * here.
  */
 export function ComponentInfoModal({
+  context = 'bom',
+  shortage,
+  projectionDetail = null,
+  isProjectionLoading = false,
+  projectionError = false,
+  onRetryProjection = () => {},
+  asOfDate,
+  purchasing = null,
+  isPurchasingLoading = false,
+  purchasingError = false,
+  onRetryPurchasing = () => {},
   componentPart,
   detail,
   isLoading,
@@ -72,9 +96,7 @@ export function ComponentInfoModal({
 }: ComponentInfoModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  // Local disclosure state: always starts collapsed for a newly opened component. This component
-  // never survives a component-to-component switch without a full unmount (the modal is blocking
-  // — see MpsWorkspace), so remounting alone resets it; no effect/identity plumbing needed here.
+  // Disclosure starts collapsed for each newly mounted component modal.
   const [isAvlExpanded, setIsAvlExpanded] = useState(false);
 
   useEffect(() => {
@@ -133,7 +155,7 @@ export function ComponentInfoModal({
     <div className="component-info-modal-backdrop">
       <div
         ref={dialogRef}
-        className="component-info-modal"
+        className={`component-info-modal${context === 'shortages' ? ' component-info-modal--shortages' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="component-info-modal-title"
@@ -159,23 +181,24 @@ export function ComponentInfoModal({
               <span className="component-info-modal__part">{componentPart}</span>
               <span className="component-info-modal__description">{detail?.description ?? NO_VALUE}</span>
             </div>
-            <button
+            {context === 'bom' && <button
               type="button"
               className="component-info-modal__mrp-btn"
               disabled
               title="Component MRP is a future capability."
             >
               Show MRP
-            </button>
+            </button>}
           </div>
         </div>
 
-        <div className="component-info-modal__body">
-          {isLoading && (
+        <div className={`component-info-modal__body${context === 'shortages' ? ' component-info-modal__body--shortages' : ''}`}>
+          <div className="component-info-modal__base">
+          {isLoading && context === 'bom' && (
             <div className="component-info-modal__state">Loading component information&hellip;</div>
           )}
 
-          {!isLoading && error && (
+          {!isLoading && error && context === 'bom' && (
             <div className="component-info-modal__state component-info-modal__state--error">
               <p>Component information could not be loaded.</p>
               <p>{error.detail}</p>
@@ -190,16 +213,17 @@ export function ComponentInfoModal({
             </div>
           )}
 
-          {!isLoading && !error && detail && (
+          {!isLoading && !error && (detail || context === 'shortages') && (
             <>
-              {detail.isStale && (
+              {detail?.isStale && (
                 <div className="component-info-modal__banner" role="alert">
                   {detail.warning ?? 'Showing the last known component information.'}
                 </div>
               )}
 
-              <div className="component-info-modal__upper">
-                <div className="component-info-modal__left">
+              <div className="component-info-modal__columns">
+                <div className="component-info-modal__left" aria-label="Component information">
+                  {detail ? <>
                   <section className="component-info-modal__section">
                     <h3>Inventory</h3>
                     <dl className="component-info-modal__grid">
@@ -288,10 +312,33 @@ export function ComponentInfoModal({
                         <dd>{detail.iosCode ?? NO_VALUE}</dd>
                       </div>
                     </dl>
+                   </section>
+                  </> : null}
+                  {context === 'shortages' && isLoading && <p className="component-info-modal__placeholder">Loading component master information…</p>}
+                  {context === 'shortages' && error && <p role="status">Component master information unavailable. <button type="button" onClick={onRetry}>Retry component information</button></p>}
+                  {context === 'shortages' && !detail && !isLoading && !error && <p className="component-info-modal__placeholder">Component master information is unavailable.</p>}
+                  {context === 'shortages' && projectionDetail?.effectivePmCode === 'M' && projectionDetail.manufacturingLeadWorkingDays !== null &&
+                    <section className="component-info-modal__section"><h3>Manufacturing Planning</h3><dl className="component-info-modal__grid"><div className="component-info-modal__field"><dt>Manufacturing Lead (site working days)</dt><dd>{projectionDetail.manufacturingLeadWorkingDays ?? '—'}</dd></div></dl></section>}
+                  {context === 'shortages' && <section className="component-info-modal__section"><h3>Manufacturer Item</h3><p>{projectionDetail?.manufacturerItem ?? (isProjectionLoading ? 'Loading…' : projectionError ? 'Unavailable' : '—')}</p></section>}
+                  <section className="component-info-modal__section component-info-modal__alternates">
+                    <button type="button" className="component-info-modal__avl-toggle" aria-expanded={isAvlExpanded}
+                      aria-controls="component-info-modal-avl-content" onClick={handleToggleApprovedVendors}>
+                      <span className="component-info-modal__avl-disclosure" aria-hidden="true">{isAvlExpanded ? '\u25BE' : '\u25B8'}</span>
+                      Approved Alternates
+                    </button>
+                    {isAvlExpanded && <div id="component-info-modal-avl-content" className="component-info-modal__avl-content">
+                      {isApprovedVendorsLoading && <p className="component-info-modal__placeholder">Loading approved alternates&hellip;</p>}
+                      {!isApprovedVendorsLoading && approvedVendorsError && <div className="component-info-modal__avl-error"><p>Approved alternates could not be loaded.</p><button type="button" className="component-info-modal__retry-btn" onClick={onRetryApprovedVendors}>Retry</button></div>}
+                      {!isApprovedVendorsLoading && !approvedVendorsError && approvedVendors && (approvedVendors.length === 0
+                        ? <p className="component-info-modal__placeholder">No approved alternates found.</p>
+                        : <div className="component-info-modal__avl-scroll"><table className="component-info-modal__avl-table"><thead><tr><th>Supplier</th><th>Vendor Name</th><th>Supplier Item</th><th>MFG Part</th></tr></thead><tbody>
+                          {approvedVendors.map((vendor, index) => <tr key={`${vendor.supplier}-${index}`}><td>{vendor.supplier}</td><td>{vendor.vendorName ?? NO_VALUE}</td><td>{vendor.supplierItem ?? NO_VALUE}</td><td>{vendor.manufacturerPart ?? NO_VALUE}</td></tr>)}
+                        </tbody></table></div>)}
+                    </div>}
                   </section>
                 </div>
 
-                <div className="component-info-modal__right">
+                <div className="component-info-modal__right" aria-label="Inventory / Lot Locations column">
                   <section className="component-info-modal__section">
                     <h3>Inventory / Lot Locations</h3>
                     <p className="component-info-modal__placeholder">
@@ -299,74 +346,11 @@ export function ComponentInfoModal({
                     </p>
                   </section>
                 </div>
-              </div>
-
-              <div className="component-info-modal__lower">
-                <section className="component-info-modal__section">
-                  <button
-                    type="button"
-                    className="component-info-modal__avl-toggle"
-                    aria-expanded={isAvlExpanded}
-                    aria-controls="component-info-modal-avl-content"
-                    onClick={handleToggleApprovedVendors}
-                  >
-                    <span className="component-info-modal__avl-disclosure" aria-hidden="true">
-                      {isAvlExpanded ? '\u25BE' : '\u25B8'}
-                    </span>
-                    Approved Alternates
-                  </button>
-
-                  {isAvlExpanded && (
-                    <div id="component-info-modal-avl-content" className="component-info-modal__avl-content">
-                      {isApprovedVendorsLoading && (
-                        <p className="component-info-modal__placeholder">Loading approved alternates&hellip;</p>
-                      )}
-
-                      {!isApprovedVendorsLoading && approvedVendorsError && (
-                        <div className="component-info-modal__avl-error">
-                          <p>Approved alternates could not be loaded.</p>
-                          <button
-                            type="button"
-                            className="component-info-modal__retry-btn"
-                            onClick={onRetryApprovedVendors}
-                          >
-                            Retry
-                          </button>
-                        </div>
-                      )}
-
-                      {!isApprovedVendorsLoading && !approvedVendorsError && approvedVendors && (
-                        approvedVendors.length === 0 ? (
-                          <p className="component-info-modal__placeholder">No approved alternates found.</p>
-                        ) : (
-                          <table className="component-info-modal__avl-table">
-                            <thead>
-                              <tr>
-                                <th>Supplier</th>
-                                <th>Vendor Name</th>
-                                <th>Supplier Item</th>
-                                <th>MFG Part</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {approvedVendors.map((vendor, index) => (
-                                <tr key={`${vendor.supplier}-${index}`}>
-                                  <td>{vendor.supplier}</td>
-                                  <td>{vendor.vendorName ?? NO_VALUE}</td>
-                                  <td>{vendor.supplierItem ?? NO_VALUE}</td>
-                                  <td>{vendor.manufacturerPart ?? NO_VALUE}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        )
-                      )}
-                    </div>
-                  )}
-                </section>
+                {context === 'shortages' && shortage && <aside className="component-info-modal__shortage" aria-label="Workspace Shortages details"><ShortageInformationSections row={shortage} projection={projectionDetail} isProjectionLoading={isProjectionLoading} projectionError={projectionError} onRetryProjection={onRetryProjection} asOfDate={asOfDate} purchasing={purchasing} isLoading={isPurchasingLoading} error={purchasingError} onRetry={onRetryPurchasing} /></aside>}
               </div>
             </>
           )}
+          </div>
         </div>
       </div>
     </div>

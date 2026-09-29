@@ -382,6 +382,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{assignmentId}/long-term-shortages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetLongTermShortages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/long-term-shortages/screen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetLongTermShortagesScreen"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/long-term-shortages/projection-detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetLongTermShortageProjectionDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/long-term-shortages/purchasing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetLongTermShortagesPurchasing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/long-term-shortages/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ExportLongTermShortages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -503,6 +583,23 @@ export interface components {
             name: string;
             status: string;
         };
+        ExportLongTermShortagesRequestDto: {
+            snapshotId: string;
+            componentParts: string[];
+            /** @default false */
+            includeManufacturedParts: boolean;
+            /** @default false */
+            includePhantoms: boolean;
+            /** @default false */
+            includeUnconfirmed: boolean;
+            /**
+             * Format: int32
+             * @default 26
+             */
+            horizonWeeks: number | string;
+            /** @default false */
+            showAll: boolean;
+        };
         HealthResponse: {
             status: string;
             application: string;
@@ -520,6 +617,211 @@ export interface components {
             fullyIssuedLineCount: number | string;
             /** Format: double */
             kittingPercent: null | number | string;
+        };
+        LongTermMrpFactDto: {
+            /** Format: int32 */
+            evidenceOrdinal: number | string;
+            type: null | string;
+            /** Format: date */
+            dueDate: null | string;
+            /** Format: date */
+            releaseDate: null | string;
+            /** Format: double */
+            quantity: number | string;
+            category: string;
+            sourceNumber: null | string;
+            sourceLine: null | string;
+            sourceLine2: null | string;
+            isPoReceipt: null | boolean;
+            poConfirmed: null | boolean;
+            sourceRowId: null | string;
+        };
+        LongTermShortageBucketDto: {
+            /** Format: int32 */
+            weekNumber: null | number | string;
+            /** Format: date */
+            weekStart: null | string;
+            /** Format: double */
+            grossRequirements: number | string;
+            /** Format: double */
+            scheduledReceipts: number | string;
+            /** Format: double */
+            plannedOrdersDue: number | string;
+            /** Format: double */
+            plannedOrdersRelease: number | string;
+            /** Format: double */
+            projectedQoh: number | string;
+            severity: string;
+            /** Format: double */
+            unconfirmedReceipts: number | string;
+            /** Format: double */
+            confirmedEnding: number | string;
+            /** Format: double */
+            allReceiptsEnding: number | string;
+            /** Format: double */
+            planningEnding: number | string;
+            /** Format: double */
+            allReceiptsPlanningEnding: number | string;
+            /** Format: double */
+            lowestProjectedBalance: number | string;
+            /** Format: double */
+            overdueReceipts: number | string;
+            includesUnconfirmed: boolean;
+            /** Format: double */
+            lowestConfirmedBalance: number | string;
+            /** Format: double */
+            lowestAllReceiptsBalance: number | string;
+        };
+        LongTermShortageEpisodeDto: {
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            deepestDate: string;
+            /** Format: double */
+            maximumShortage: number | string;
+            /** Format: date */
+            firstRecoveryDate: null | string;
+            /** Format: date */
+            stableClearDate: null | string;
+        };
+        LongTermShortagePresentationContextDto: {
+            manufacturerItem: null | string;
+            poNumber: null | string;
+            /** Format: int32 */
+            poLine: null | number | string;
+            /** Format: date */
+            poDueDate: null | string;
+            /** Format: double */
+            poOpenQuantity: null | number | string;
+            poConfirmed: null | boolean;
+            isKss: boolean;
+        };
+        LongTermShortageProjectionDetailDto: {
+            snapshotId: string;
+            componentPart: string;
+            /** Format: date */
+            refreshDate: string;
+            /** Format: date-time */
+            acquiredAtUtc: string;
+            consistencyMode: string;
+            demandParentParts: string[];
+            /** Format: double */
+            pastGrossRequirements: number | string;
+            /** Format: double */
+            overdueReceipts: number | string;
+            /** Format: double */
+            adjustedOpeningQoh: number | string;
+            effectivePmCode: null | string;
+            /** Format: int32 */
+            manufacturingLeadWorkingDays: null | number | string;
+            manufacturerItem: null | string;
+        };
+        LongTermShortagePurchasingDto: {
+            commentAvailable: boolean;
+            currentComment: null | string;
+            openPurchaseOrders: components["schemas"]["ComponentOrderLineDto"][];
+        };
+        LongTermShortageRowDto: {
+            componentPart: string;
+            unitOfMeasure: null | string;
+            qadStatus: null | string;
+            description: null | string;
+            planner: null | string;
+            buyerPlannerCode: null | string;
+            /** Format: double */
+            openingQoh: number | string;
+            safetyStockState: string;
+            /** Format: double */
+            safetyStock: null | number | string;
+            severity: string;
+            /** Format: date */
+            firstShortDate: null | string;
+            demandParentParts: string[];
+            past: components["schemas"]["LongTermShortageBucketDto"];
+            weeks: components["schemas"]["LongTermShortageBucketDto"][];
+            evidence: components["schemas"]["LongTermMrpFactDto"][];
+            presentation: null | components["schemas"]["LongTermShortagePresentationContextDto"];
+            episodes: components["schemas"]["LongTermShortageEpisodeDto"][];
+            dataQualityWarning: null | string;
+            /** Format: date */
+            firstAtRiskDate: null | string;
+            effectivePmCode: null | string;
+            partStatusDescription: null | string;
+            /** Format: int32 */
+            orderPeriodDays: null | number | string;
+            /** Format: double */
+            safetyTimeWorkingDays: null | number | string;
+            /** Format: int32 */
+            manufacturingLeadWorkingDays: null | number | string;
+            /** Format: int32 */
+            purchasingLeadCalendarDays: null | number | string;
+            /** Format: int32 */
+            cumulativeLeadCalendarDays: null | number | string;
+            sitePlanningPresent: null | boolean;
+        };
+        LongTermShortageScreenComponentDto: {
+            componentPart: string;
+            unitOfMeasure: null | string;
+            qadStatus: null | string;
+            description: null | string;
+            planner: null | string;
+            buyerPlannerCode: null | string;
+            /** Format: double */
+            openingQoh: number | string;
+            openingDisplay: string;
+            /** Format: double */
+            safetyStock: null | number | string;
+            dataQualityWarning: null | string;
+            isKss: boolean;
+            confirmed: components["schemas"]["LongTermShortageScreenModeDto"];
+            all: components["schemas"]["LongTermShortageScreenModeDto"];
+        };
+        LongTermShortageScreenModeDto: {
+            severity: string;
+            /** Format: date */
+            firstShortDate: null | string;
+            /** Format: date */
+            firstAtRiskDate: null | string;
+            /** Format: double */
+            maximumShortage: number | string;
+            /** Format: date */
+            firstRecoveryDate: null | string;
+            ending: (number | string)[];
+            endingDisplay: string[];
+            weeklySeverity: string[];
+        };
+        LongTermShortagesResponseDto: {
+            snapshotId: string;
+            /** Format: date */
+            refreshDate: string;
+            isStale: boolean;
+            warning: null | string;
+            rows: components["schemas"]["LongTermShortageRowDto"][];
+            /** Format: date-time */
+            acquiredAtUtc: string;
+            consistencyMode: string;
+            allReceiptsRows: components["schemas"]["LongTermShortageRowDto"][];
+            evidenceIncluded?: boolean;
+        };
+        LongTermShortagesScreenDto: {
+            snapshotId: string;
+            /** Format: date */
+            refreshDate: string;
+            isStale: boolean;
+            warning: null | string;
+            /** Format: date-time */
+            acquiredAtUtc: string;
+            consistencyMode: string;
+            weeks: components["schemas"]["LongTermShortageWeekDto"][];
+            components: components["schemas"]["LongTermShortageScreenComponentDto"][];
+        };
+        LongTermShortageWeekDto: {
+            /** Format: int32 */
+            weekNumber: number | string;
+            /** Format: date */
+            weekStart: string;
+            /** Format: date */
+            labelDate: string;
         };
         MpsBucketDto: {
             kind: string;
@@ -1857,6 +2159,323 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ComponentOrdersResponseDto"];
                 };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetLongTermShortages: {
+        parameters: {
+            query?: {
+                snapshotId?: string;
+                includeManufacturedParts?: boolean;
+                includePhantoms?: boolean;
+                includeUnconfirmed?: boolean;
+                horizonWeeks?: number | string;
+                showAll?: boolean;
+                includeEvidence?: boolean;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LongTermShortagesResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetLongTermShortagesScreen: {
+        parameters: {
+            query?: {
+                snapshotId?: string;
+                includeManufacturedParts?: boolean;
+                includePhantoms?: boolean;
+                horizonWeeks?: number | string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LongTermShortagesScreenDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetLongTermShortageProjectionDetail: {
+        parameters: {
+            query?: {
+                snapshotId?: string;
+                componentPart?: string;
+                includeManufacturedParts?: boolean;
+                includePhantoms?: boolean;
+                horizonWeeks?: number | string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LongTermShortageProjectionDetailDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetLongTermShortagesPurchasing: {
+        parameters: {
+            query?: {
+                snapshotId?: string;
+                componentPart?: string;
+                includeManufacturedParts?: boolean;
+                includePhantoms?: boolean;
+                horizonWeeks?: number | string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LongTermShortagePurchasingDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ExportLongTermShortages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportLongTermShortagesRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Bad Request */
             400: {

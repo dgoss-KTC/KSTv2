@@ -34,6 +34,9 @@ export type BomResponseDto = components['schemas']['BomResponseDto'];
 export type ComponentDetailResponseDto = components['schemas']['ComponentDetailResponseDto'];
 export type ApprovedVendorDto = components['schemas']['ApprovedVendorDto'];
 export type ComponentOrdersResponseDto = components['schemas']['ComponentOrdersResponseDto'];
+export type LongTermShortagesResponseDto = components['schemas']['LongTermShortagesResponseDto'];
+export type LongTermShortagePurchasingDto = components['schemas']['LongTermShortagePurchasingDto'];
+export type ExportLongTermShortagesRequestDto = components['schemas']['ExportLongTermShortagesRequestDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -237,6 +240,55 @@ export class ApiClient {
     return this.get<ComponentOrdersResponseDto>(
       `/api/v1/workspaces/${assignmentId}/component-orders${query}`,
     );
+  }
+
+  async getLongTermShortages(
+    assignmentId: string,
+    snapshotId: string,
+    includeManufacturedParts: boolean,
+    includePhantoms: boolean,
+    includeUnconfirmed = false,
+    horizonWeeks = 26,
+    showAll = false,
+    includeEvidence = true,
+  ): Promise<LongTermShortagesResponseDto> {
+    return this.get<LongTermShortagesResponseDto>(
+      `/api/v1/workspaces/${assignmentId}/long-term-shortages?snapshotId=${encodeURIComponent(snapshotId)}` +
+      `&includeManufacturedParts=${includeManufacturedParts}&includePhantoms=${includePhantoms}&includeUnconfirmed=${includeUnconfirmed}&horizonWeeks=${horizonWeeks}&showAll=${showAll}&includeEvidence=${includeEvidence}`,
+    );
+  }
+
+  async getLongTermShortagesScreen(assignmentId: string, snapshotId: string,
+    includeManufacturedParts: boolean, includePhantoms: boolean, horizonWeeks: number): Promise<components['schemas']['LongTermShortagesScreenDto']> {
+    return this.get<components['schemas']['LongTermShortagesScreenDto']>(
+      `/api/v1/workspaces/${assignmentId}/long-term-shortages/screen?snapshotId=${encodeURIComponent(snapshotId)}` +
+      `&includeManufacturedParts=${includeManufacturedParts}&includePhantoms=${includePhantoms}&horizonWeeks=${horizonWeeks}`);
+  }
+
+  async getLongTermShortageProjectionDetail(assignmentId: string, snapshotId: string, componentPart: string,
+    includeManufacturedParts: boolean, includePhantoms: boolean, horizonWeeks: number): Promise<components['schemas']['LongTermShortageProjectionDetailDto']> {
+    return this.get<components['schemas']['LongTermShortageProjectionDetailDto']>(
+      `/api/v1/workspaces/${assignmentId}/long-term-shortages/projection-detail?snapshotId=${encodeURIComponent(snapshotId)}` +
+      `&componentPart=${encodeURIComponent(componentPart)}&includeManufacturedParts=${includeManufacturedParts}&includePhantoms=${includePhantoms}&horizonWeeks=${horizonWeeks}`);
+  }
+
+  async getLongTermShortagePurchasing(assignmentId: string, snapshotId: string, componentPart: string,
+    includeManufacturedParts: boolean, includePhantoms: boolean, horizonWeeks: number): Promise<LongTermShortagePurchasingDto> {
+    const query = `?snapshotId=${encodeURIComponent(snapshotId)}&componentPart=${encodeURIComponent(componentPart)}` +
+      `&includeManufacturedParts=${includeManufacturedParts}&includePhantoms=${includePhantoms}&horizonWeeks=${horizonWeeks}`;
+    return this.get<LongTermShortagePurchasingDto>(`/api/v1/workspaces/${assignmentId}/long-term-shortages/purchasing${query}`);
+  }
+
+  async exportLongTermShortages(assignmentId: string, request: ExportLongTermShortagesRequestDto): Promise<{ blob: Blob; fileName: string | null }> {
+    const path = `/api/v1/workspaces/${assignmentId}/long-term-shortages/export`;
+    const url = `${this.baseUrl}${path}`;
+    const response = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }, body: JSON.stringify(request),
+    });
+    if (!response.ok) { const text = await response.text(); throw new ApiError(response.status, url, text || `HTTP ${response.status} from ${url}`); }
+    const disposition = response.headers.get('content-disposition');
+    const fileName = disposition?.match(/filename="?([^";]+)"?/i)?.[1] ?? null;
+    return { blob: await response.blob(), fileName };
   }
 
   private async get<T>(path: string): Promise<T> {
