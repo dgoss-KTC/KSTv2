@@ -42,4 +42,29 @@ describe('saveLongTermShortagesWorkbook', () => {
 
     await expect(saveLongTermShortagesWorkbook(blob, 'Workspace.xlsx')).rejects.toThrow('access denied');
   });
+
+  it('uses the suggested Open Orders filename for browser download and reports a user-renamed Save As file', async () => {
+    const suggestion = 'Shure-SMT-Open-Orders-2026-09-30.xlsx';
+    saveMock.mockResolvedValueOnce('C:\\Exports\\Owner-Choice.xlsx');
+    const blob = { arrayBuffer: vi.fn().mockResolvedValue(new Uint8Array([0x50, 0x4b]).buffer) } as unknown as Blob;
+    expect(await saveLongTermShortagesWorkbook(blob, suggestion)).toEqual({ kind: 'saved', fileName: 'Owner-Choice.xlsx' });
+    expect(saveMock).toHaveBeenCalledWith(expect.objectContaining({ defaultPath: suggestion }));
+
+    isRunningInTauriMock.mockReturnValue(false);
+    const create = vi.fn().mockReturnValue('blob:synthetic');
+    const revoke = vi.fn();
+    URL.createObjectURL = create;
+    URL.revokeObjectURL = revoke;
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      expect(this.download).toBe(suggestion);
+    });
+    try {
+      expect(await saveLongTermShortagesWorkbook(blob, suggestion)).toEqual({ kind: 'saved', fileName: suggestion });
+      expect(click).toHaveBeenCalledOnce();
+    } finally {
+      delete (URL as unknown as Record<string, unknown>).createObjectURL;
+      delete (URL as unknown as Record<string, unknown>).revokeObjectURL;
+      click.mockRestore();
+    }
+  });
 });

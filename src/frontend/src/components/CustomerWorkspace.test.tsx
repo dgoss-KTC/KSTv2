@@ -9,6 +9,8 @@ vi.mock('../hooks/useMpsDashboard', () => ({
 vi.mock('./MpsWorkspace', () => ({ MpsWorkspace: () => <div>MPS dashboard</div> }));
 vi.mock('./ComponentOrdersPanel', () => ({ ComponentOrdersPanel: () => <div>Component Orders</div> }));
 vi.mock('./LongTermShortagesPanel', () => ({ LongTermShortagesPanel: () => <div>Workspace Shortages panel</div> }));
+vi.mock('./OpenOrdersPanel', () => ({ OpenOrdersPanel: ({ workspaceName, site }: { workspaceName: string | null; site: string }) =>
+  <div>Open Orders for {workspaceName ?? site}</div> }));
 
 const workspace: WorkspaceAssignmentDto = {
   assignmentId: 'ws-1', displayName: 'Line 1', site: 'NW', productLineFrom: null, productLineTo: null,
@@ -24,5 +26,13 @@ describe('CustomerWorkspace', () => {
     fireEvent.click(tab);
     expect(screen.getByText('Workspace Shortages panel')).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Long-Term Shortages' })).not.toBeInTheDocument();
+  });
+
+  it('places Customer Open Orders before Component Orders and passes the display name and site', () => {
+    render(<CustomerWorkspace workspace={workspace} />);
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs.findIndex(tab => tab.textContent === 'Customer Open Orders')).toBeLessThan(tabs.findIndex(tab => tab.textContent === 'Component Orders'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Customer Open Orders' }));
+    expect(screen.getByText('Open Orders for Line 1')).toBeInTheDocument();
   });
 });

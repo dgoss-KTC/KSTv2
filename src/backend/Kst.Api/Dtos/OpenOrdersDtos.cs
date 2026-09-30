@@ -20,3 +20,7 @@ public sealed record OpenOrdersResponseDto(
     Guid WorkspaceId, string Site, string MpsSnapshotId, string OpenOrdersSnapshotId,
     DateTimeOffset AcquiredAtUtc, bool IsStale, string? Warning,
     IReadOnlyList<OpenOrderLineDto> Lines);
+
+public sealed record ExportOpenOrdersReportRequestDto(
+    string MpsSnapshotId, string OpenOrdersSnapshotId,
+    IReadOnlyList<OpenOrderLineKeyDto> LineKeys, IReadOnlyList<string> Columns);

@@ -37,6 +37,8 @@ export type ComponentOrdersResponseDto = components['schemas']['ComponentOrdersR
 export type LongTermShortagesResponseDto = components['schemas']['LongTermShortagesResponseDto'];
 export type LongTermShortagePurchasingDto = components['schemas']['LongTermShortagePurchasingDto'];
 export type ExportLongTermShortagesRequestDto = components['schemas']['ExportLongTermShortagesRequestDto'];
+export type OpenOrdersResponseDto = components['schemas']['OpenOrdersResponseDto'];
+export type ExportOpenOrdersReportRequestDto = components['schemas']['ExportOpenOrdersReportRequestDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -240,6 +242,24 @@ export class ApiClient {
     return this.get<ComponentOrdersResponseDto>(
       `/api/v1/workspaces/${assignmentId}/component-orders${query}`,
     );
+  }
+
+  async getOpenOrders(assignmentId: string, mpsSnapshotId: string): Promise<OpenOrdersResponseDto> {
+    return this.get<OpenOrdersResponseDto>(`/api/v1/workspaces/${assignmentId}/open-orders?mpsSnapshotId=${encodeURIComponent(mpsSnapshotId)}`);
+  }
+
+  async refreshOpenOrders(assignmentId: string, mpsSnapshotId: string): Promise<OpenOrdersResponseDto> {
+    return this.postEmpty<OpenOrdersResponseDto>(`/api/v1/workspaces/${assignmentId}/open-orders/refresh?mpsSnapshotId=${encodeURIComponent(mpsSnapshotId)}`);
+  }
+
+  async exportOpenOrdersReport(assignmentId: string, request: ExportOpenOrdersReportRequestDto): Promise<{ blob: Blob; fileName: string | null }> {
+    const url = `${this.baseUrl}/api/v1/workspaces/${assignmentId}/open-orders/report-export`;
+    const response = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) { const text = await response.text(); throw new ApiError(response.status, url, text || `HTTP ${response.status} from ${url}`); }
+    return { blob: await response.blob(), fileName: response.headers.get('content-disposition')?.match(/filename="?([^";]+)"?/i)?.[1] ?? null };
   }
 
   async getLongTermShortages(

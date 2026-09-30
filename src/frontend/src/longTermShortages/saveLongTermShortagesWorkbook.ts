@@ -7,14 +7,14 @@ export type WorkbookSaveResult =
   | { kind: 'cancelled' };
 
 /** Saves a generated Stage 11-A workbook only after the user chooses its destination. */
-export async function saveLongTermShortagesWorkbook(blob: Blob, fileName: string): Promise<WorkbookSaveResult> {
+export async function saveLongTermShortagesWorkbook(blob: Blob, fileName: string, title = 'Save Workspace Shortages Workbook'): Promise<WorkbookSaveResult> {
   if (!isRunningInTauri()) {
     saveBrowserDownload(blob, fileName);
     return { kind: 'saved', fileName };
   }
 
   const path = await save({
-    title: 'Save Workspace Shortages Workbook',
+    title,
     defaultPath: fileName,
     filters: [{ name: 'Excel Workbook', extensions: ['xlsx'] }],
   });

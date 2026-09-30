@@ -99,6 +99,13 @@ Product Line range, exact IOS, and inclusive Due Date range. Supplied filters ar
 Workspace scope itself satisfies the legacy requirement for a bounded query, so no additional
 filter is required. Default report sorting remains Customer Name, Item Number, then Due Date.
 
+**13.3 owner amendment (2026-09-30):** the legacy text-comparison sentence above is historical
+planning evidence; the accepted workspace Report Mode UI now uses case-insensitive literal contains
+for Customer Name, Customer #, Salesperson, IOS, SO, PO and Item Number, with Product Line and Due
+Date ranges retained. The displayed labels Order/Stat/Customer/Plnr become SO/Status/Customer #/
+Planner in the table, selector and XLSX. Stable IDs and source SQL are unchanged. See
+`docs/api/CUSTOMER_OPEN_ORDERS.md` for the implemented 13.3 behavior.
+
 ## Accepted planning rules
 
 - Order Qty is the original total `sod_qty_ord`, not the derived Open quantity. The original remains

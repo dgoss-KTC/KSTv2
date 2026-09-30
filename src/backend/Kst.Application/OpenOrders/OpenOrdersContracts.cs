@@ -11,7 +11,7 @@ public sealed record OpenOrdersReport(OpenOrdersSnapshot Snapshot, bool IsStale,
 
 public enum OpenOrdersOutcomeKind { Loaded, UnknownWorkspace, MpsNotLoaded, MpsSnapshotChanged, Unavailable }
 
-public sealed record OpenOrdersResult(OpenOrdersOutcomeKind Kind, OpenOrdersReport? Report = null)
+public sealed record OpenOrdersResult(OpenOrdersOutcomeKind Kind, OpenOrdersReport? Report = null, string? ExportWorkspaceName = null)
 {
     public static OpenOrdersResult Loaded(OpenOrdersReport report) => new(OpenOrdersOutcomeKind.Loaded, report);
 }

@@ -4,19 +4,21 @@ import { useMpsDashboard } from '../hooks/useMpsDashboard';
 import { ComponentOrdersPanel } from './ComponentOrdersPanel';
 import { LongTermShortagesPanel } from './LongTermShortagesPanel';
 import { MpsWorkspace } from './MpsWorkspace';
+import { OpenOrdersPanel } from './OpenOrdersPanel';
 import './CustomerWorkspace.css';
 
-type CustomerModule = 'dashboard' | 'planning' | 'componentOrders' | 'longTermShortages' | 'finishedGoods';
+type CustomerModule = 'dashboard' | 'planning' | 'openOrders' | 'componentOrders' | 'longTermShortages' | 'finishedGoods';
 
 const modules: ReadonlyArray<{ id: CustomerModule; label: string }> = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'planning', label: 'Planning' },
+  { id: 'openOrders', label: 'Customer Open Orders' },
   { id: 'componentOrders', label: 'Component Orders' },
   { id: 'longTermShortages', label: 'Workspace Shortages' },
   { id: 'finishedGoods', label: 'Finished Goods' },
 ];
 
-const unavailableCopy: Record<Exclude<CustomerModule, 'dashboard'>, string> = {
+const unavailableCopy: Record<Exclude<CustomerModule, 'dashboard' | 'openOrders'>, string> = {
   planning: 'Planning is not available yet. This module will be enabled when its accepted scheduling behavior is implemented.',
   componentOrders: 'Component Orders is not available yet. This Stage 10 workspace surface will be populated after its purchase-order data and workflow are accepted.',
   longTermShortages: 'Workspace Shortages is not available yet. This module will be enabled when its accepted scheduling behavior is implemented.',
@@ -80,7 +82,7 @@ export function CustomerWorkspace({ workspace }: { workspace: WorkspaceAssignmen
             refresh={mps.refresh}
           />
         </div>
-        {activeModule !== 'dashboard' && activeModule !== 'componentOrders' && activeModule !== 'longTermShortages' && (
+        {activeModule !== 'dashboard' && activeModule !== 'openOrders' && activeModule !== 'componentOrders' && activeModule !== 'longTermShortages' && (
           <section className="customer-workspace__unavailable" aria-labelledby={`${activeModule}-heading`}>
             <h3 id={`${activeModule}-heading`}>{modules.find((module) => module.id === activeModule)?.label}</h3>
             <p>{unavailableCopy[activeModule]}</p>
@@ -88,6 +90,10 @@ export function CustomerWorkspace({ workspace }: { workspace: WorkspaceAssignmen
         )}
         {activeModule === 'componentOrders' && (
           <ComponentOrdersPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null} />
+        )}
+        {activeModule === 'openOrders' && (
+          <OpenOrdersPanel key={`${workspace.assignmentId}:${mps.dashboard?.snapshot.snapshotId ?? ''}`} assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null}
+            workspaceName={workspace.displayName} site={workspace.site} />
         )}
         {activeModule === 'longTermShortages' && (
           <LongTermShortagesPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null} />

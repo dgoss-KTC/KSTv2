@@ -1,9 +1,12 @@
 using ClosedXML.Excel;
 using Kst.Domain.LongTermShortages;
+using Kst.Domain.OpenOrders;
 using Kst.Exports.Contracts;
 namespace Kst.Exports;
 public sealed class PlaceholderExportService : IExportService
 {
+    public byte[] CreateOpenOrdersWorkbook(IReadOnlyList<OpenOrderLine> rows, IReadOnlyList<string> columns,
+        DateTimeOffset acquiredAtUtc, bool isStale) => OpenOrdersWorkbook.Create(rows, columns, acquiredAtUtc, isStale);
     public byte[] CreateLongTermShortagesWorkbook(string workspaceName, DateOnly refreshDate, IReadOnlyList<LongTermShortageRow> rows, DateTimeOffset? acquiredAtUtc = null, string? consistencyMode = null)
     {
         using var book = new XLWorkbook(); var sheet = book.Worksheets.Add("Shortages");

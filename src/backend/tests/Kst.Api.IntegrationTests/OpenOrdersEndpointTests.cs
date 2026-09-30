@@ -6,12 +6,79 @@ using Kst.Application.OpenOrders;
 using Kst.Domain.Common;
 using Kst.Domain.Mps;
 using Kst.Domain.OpenOrders;
+using ClosedXML.Excel;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Kst.Api.IntegrationTests;
 
 public sealed class OpenOrdersEndpointTests
 {
+    [Fact]
+    public async Task ReportExportUsesCachedScopedRowsInClientOrderAndRejectsChangedSnapshot()
+    {
+        var sourceReads = 0;
+        await using var factory = new KstApiFactory
+        {
+            OpenOrdersSourceReader = new DelegateOpenOrdersSourceReader((_, _, _) =>
+            {
+                sourceReads++;
+                return Task.FromResult<IReadOnlyList<OpenOrderLine>>([Line(), Line() with
+                {
+                    Key = new OpenOrderLineKey("TEST", "SO-2", 2),
+                    ItemNumber = "P-2",
+                    SiteQoh = -2m,
+                    Consignment = false
+                }]);
+            })
+        };
+        using var client = factory.CreateClient();
+        var id = await CreateAsync(client, "Shure SMT");
+        var mps = factory.Services.GetRequiredService<IMpsSnapshotStore>();
+        var snapshot = Seed(mps, id, "P-1", "P-2");
+        var report = await client.GetFromJsonAsync<JsonElement>($"/api/v1/workspaces/{id}/open-orders?mpsSnapshotId={snapshot.Id}");
+        var keys = report.GetProperty("lines").EnumerateArray().Select(l => l.GetProperty("key")).Reverse().ToArray();
+        var request = new { mpsSnapshotId = snapshot.Id.ToString(), openOrdersSnapshotId = report.GetProperty("openOrdersSnapshotId").GetString(),
+            lineKeys = keys, columns = new[] { "order", "stat", "customer", "plnr", "itemNumber", "siteQoh", "unitPrice", "extPrice", "dueDate" } };
+        using var response = await client.PostAsJsonAsync($"/api/v1/workspaces/{id}/open-orders/report-export", request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal($"Shure-SMT-Open-Orders-{report.GetProperty("acquiredAtUtc").GetString()![..10]}.xlsx", response.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
+        Assert.Equal(1, sourceReads); // exporting never asks QAD again
+        var workbookBytes = await response.Content.ReadAsByteArrayAsync();
+        var evidencePath = Environment.GetEnvironmentVariable("KST_STAGE13_SYNTHETIC_WORKBOOK_PATH");
+        if (!string.IsNullOrEmpty(evidencePath)) File.WriteAllBytes(evidencePath, workbookBytes);
+        using var stream = new MemoryStream(workbookBytes);
+        using var book = new XLWorkbook(stream);
+        var sheet = book.Worksheet("Open Orders");
+        Assert.Equal(new[] { "SO", "Status", "Customer #", "Planner", "Item Number", "Site QOH", "Unit Price", "Ext Price", "Due Date" },
+            Enumerable.Range(1, 9).Select(i => sheet.Cell(1, i).GetString()));
+        Assert.Equal("SO-2", sheet.Cell(2, 1).GetString());
+        Assert.Equal("P-2", sheet.Cell(2, 5).GetString());
+        Assert.Equal(-2d, sheet.Cell(2, 6).GetDouble());
+        Assert.Equal(0.0125d, sheet.Cell(2, 7).GetDouble());
+        Assert.Equal("P-1", sheet.Cell(3, 5).GetString());
+        Assert.True(sheet.Cell(3, 6).IsEmpty());
+        Assert.Equal(0d, sheet.Cell(3, 7).GetDouble()); // consignment display, raw ext price
+        Assert.Equal(0.0375d, sheet.Cell(3, 8).GetDouble());
+        Assert.Contains("not operational", book.Worksheet("Report Metadata").Cell(2, 2).GetString());
+        var onlyFirst = new { request.mpsSnapshotId, request.openOrdersSnapshotId, lineKeys = keys.Take(1).ToArray(), request.columns };
+        using var filteredResponse = await client.PostAsJsonAsync($"/api/v1/workspaces/{id}/open-orders/report-export", onlyFirst);
+        Assert.Equal(HttpStatusCode.OK, filteredResponse.StatusCode);
+        using (var filteredStream = new MemoryStream(await filteredResponse.Content.ReadAsByteArrayAsync()))
+        using (var filteredBook = new XLWorkbook(filteredStream))
+        {
+            Assert.Equal("SO-2", filteredBook.Worksheet("Open Orders").Cell(2, 1).GetString());
+            Assert.True(filteredBook.Worksheet("Open Orders").Cell(3, 1).IsEmpty());
+        }
+        Assert.Equal(1, sourceReads);
+        var invalidColumns = new { request.mpsSnapshotId, request.openOrdersSnapshotId, request.lineKeys, columns = new[] { "unknown" } };
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.PostAsJsonAsync($"/api/v1/workspaces/{id}/open-orders/report-export", invalidColumns)).StatusCode);
+        Assert.Equal(1, sourceReads);
+        Seed(mps, id, "P-1");
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await client.PostAsJsonAsync($"/api/v1/workspaces/{id}/open-orders/report-export", request)).StatusCode);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -126,6 +193,14 @@ public sealed class OpenOrdersEndpointTests
         Assert.True(staleJson.RootElement.GetProperty("isStale").GetBoolean());
         Assert.Equal(goodId, staleJson.RootElement.GetProperty("openOrdersSnapshotId").GetString());
         Assert.DoesNotContain("Sensitive", staleJson.RootElement.GetProperty("warning").GetString());
+        var staleExport = await client.PostAsJsonAsync($"{root}/report-export", new {
+            mpsSnapshotId = snapshot.Id.ToString(), openOrdersSnapshotId = goodId,
+            lineKeys = new[] { new { domain = "TEST", salesOrder = "SO-1", line = 1 } }, columns = new[] { "order" }
+        });
+        Assert.Equal(HttpStatusCode.OK, staleExport.StatusCode);
+        using (var stream = new MemoryStream(await staleExport.Content.ReadAsByteArrayAsync()))
+        using (var book = new XLWorkbook(stream))
+            Assert.Contains("STALE", book.Worksheet("Report Metadata").Cell(2, 2).GetString());
         using var hitJson = JsonDocument.Parse(await client.GetStringAsync(url));
         Assert.True(hitJson.RootElement.GetProperty("isStale").GetBoolean());
         var retried = await client.PostAsync(root + $"/refresh?mpsSnapshotId={snapshot.Id}", null);
@@ -135,10 +210,33 @@ public sealed class OpenOrdersEndpointTests
         Assert.Equal(4, calls);
     }
 
-    private static async Task<Guid> CreateAsync(HttpClient client)
+    [Theory]
+    [InlineData("  Shure   / SMT.  ", "Shure-SMT")]
+    [InlineData("<\\/:\"|?*\t . ", "SW")]
+    [InlineData("Acme___ / : Co...", "Acme-Co")]
+    [InlineData("A\\B:C*D?E\"F<G>H|I", "A-B-C-D-E-F-G-H-I")]
+    [InlineData("Acme\u0085West", "Acme-West")]
+    [InlineData("CON", "CON")]
+    public async Task ExportSuggestsNormalizedWorkspaceFilename(string displayName, string expectedPrefix)
+    {
+        await using var factory = new KstApiFactory { OpenOrdersSourceReader = new DelegateOpenOrdersSourceReader((_, _, _) =>
+            Task.FromResult<IReadOnlyList<OpenOrderLine>>([Line()])) };
+        using var client = factory.CreateClient();
+        var id = await CreateAsync(client, displayName);
+        var snapshot = Seed(factory.Services.GetRequiredService<IMpsSnapshotStore>(), id, "P-1");
+        var report = await client.GetFromJsonAsync<JsonElement>($"/api/v1/workspaces/{id}/open-orders?mpsSnapshotId={snapshot.Id}");
+        using var response = await client.PostAsJsonAsync($"/api/v1/workspaces/{id}/open-orders/report-export", new {
+            mpsSnapshotId = snapshot.Id.ToString(), openOrdersSnapshotId = report.GetProperty("openOrdersSnapshotId").GetString(),
+            lineKeys = new[] { new { domain = "TEST", salesOrder = "SO-1", line = 1 } }, columns = new[] { "order" }
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal($"{expectedPrefix}-Open-Orders-{report.GetProperty("acquiredAtUtc").GetString()![..10]}.xlsx", response.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
+    }
+
+    private static async Task<Guid> CreateAsync(HttpClient client, string? displayName = null)
     {
         var response = await client.PostAsJsonAsync("/api/v1/workspaces",
-            new { site = "SW", parentParts = new[] { "P-1" }, isTemporary = false });
+            new { displayName, site = "SW", parentParts = new[] { "P-1" }, isTemporary = false });
         response.EnsureSuccessStatusCode();
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         return json.RootElement.GetProperty("assignmentId").GetGuid();

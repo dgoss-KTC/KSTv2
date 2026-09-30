@@ -47,6 +47,15 @@ neither modify nor stage them.
   workspace/MPS scope and open predicate, original editable values, and current shipped quantity.
   These are contractual constraints, not implemented 13.1 queries.
 
+**13.3 workspace Report Mode amendment (owner request, 2026-09-30):** the historical exact-match
+filter and legacy label statements above remain source evidence for 13.1, but no longer prescribe
+the 13.3 UI. Its Customer Name, Customer #, Salesperson, IOS, SO, PO and Item Number text filters
+are case-insensitive literal contains matches on the cached scoped report. Product Line and Due Date
+retain inclusive bounds (Due Date needs both). The 13.3 report/XLSX labels use SO, Status,
+Customer # and Planner for the stable `order`, `stat`, `customer` and `plnr` column IDs; this does
+not rename QAD source fields or change the SQL scope/predicates. See `docs/api/CUSTOMER_OPEN_ORDERS.md`
+§Checkpoint 13.3 for the implemented UI/export contract.
+
 `Kst.Integrations.Qad.OpenOrders.QadOpenOrderQueryContract.BuildBatchQuery` is the **pure 13.1
 query shape**, not an executing reader. It emits a full report field selection and binds domain,
 site, and every parent via Dapper parameters; no raw input is interpolated. Empty parent scope is

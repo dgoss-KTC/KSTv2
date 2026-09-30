@@ -21,6 +21,24 @@ public sealed class OpenOrdersService(
     public async Task<OpenOrdersResult> RefreshAsync(Guid assignmentId, SnapshotId mpsSnapshotId, CancellationToken ct) =>
         await ResolveAsync(assignmentId, mpsSnapshotId, true, ct);
 
+    /// <summary>Export must never fetch a new QAD population; only the exact compatible report can be serialized.</summary>
+    public async Task<OpenOrdersResult> GetCachedForReportExportAsync(Guid assignmentId, SnapshotId mpsSnapshotId, SnapshotId reportId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var assignments = await workspaces.GetWorkspacesAsync();
+        var workspace = assignments.Workspaces.FirstOrDefault(w => w.AssignmentId == assignmentId);
+        if (workspace is null) return new(OpenOrdersOutcomeKind.UnknownWorkspace);
+        var current = mps.GetState(assignmentId).Snapshot;
+        if (current is null || current.Id != mpsSnapshotId || current.Site != workspace.Site)
+            return new(OpenOrdersOutcomeKind.MpsSnapshotChanged);
+        var report = store.Get(assignmentId);
+        if (report is null || report.Snapshot.Id != reportId || report.Snapshot.MpsSnapshotId != mpsSnapshotId ||
+            report.Snapshot.Site != workspace.Site)
+            return new(OpenOrdersOutcomeKind.MpsSnapshotChanged);
+        return new(OpenOrdersOutcomeKind.Loaded, report,
+            string.IsNullOrWhiteSpace(workspace.DisplayName) ? workspace.Site : workspace.DisplayName);
+    }
+
     private async Task<OpenOrdersResult> ResolveAsync(Guid id, SnapshotId expected, bool refresh, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
