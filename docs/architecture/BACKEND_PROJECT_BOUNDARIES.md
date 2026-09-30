@@ -136,3 +136,14 @@ Stage 8 is an **informational** Component/BOM investigation capability. It does 
   Stage 11 export.
 - Individual Component MRP is not unfinished Stage 11 scope. It is a Stage 18 standalone report.
 
+## Stage 13.2 Customer Open Orders Boundary
+
+- Domain owns full report-line identity, source/editable values, and exact decimal calculations.
+  Application owns workspace/current-MPS scope, separate Open Orders snapshot metadata, structured
+  outcomes, and compatible last-good report lifecycle; Infrastructure stores it in memory only.
+- QAD owns the parameterized read-only site/domain/parent/open query and MPS-sized batching.
+  API owns the two typed read/refresh routes, Problem Details, DTOs, and configured/unconfigured
+  composition. See `docs/api/CUSTOMER_OPEN_ORDERS.md` for semantics and limitations.
+- The API never triggers an MPS load, and the 13.2 cached report is not an operational validation
+  result or authorization to produce a QXtend file.
+

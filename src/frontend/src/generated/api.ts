@@ -212,6 +212,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{assignmentId}/open-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the full workspace Open Orders report for the supplied current MPS snapshot. */
+        get: operations["GetOpenOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/open-orders/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refreshes the workspace Open Orders report against the supplied current MPS snapshot. */
+        post: operations["RefreshOpenOrders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{assignmentId}/part-detail": {
         parameters: {
             query?: never;
@@ -861,6 +895,80 @@ export interface components {
             sourceRowCount: number | string;
             isRefreshInProgress: boolean;
             lastRefreshError: null | string;
+        };
+        OpenOrderEditableValuesDto: {
+            /** Format: date */
+            dueDate: null | string;
+            /** Format: date */
+            performDate: null | string;
+            /** Format: date */
+            requiredDate: null | string;
+            /** Format: date */
+            dockDate: null | string;
+            /** Format: double */
+            orderQty: number | string;
+            /** Format: double */
+            price: number | string;
+        };
+        OpenOrderLineDto: {
+            key: components["schemas"]["OpenOrderLineKeyDto"];
+            itemNumber: string;
+            site: string;
+            purchaseOrder: null | string;
+            stat: null | string;
+            /** Format: double */
+            shippedQty: number | string;
+            sourceValues: components["schemas"]["OpenOrderEditableValuesDto"];
+            /** Format: double */
+            open: number | string;
+            /** Format: double */
+            extPrice: number | string;
+            /** Format: double */
+            unitPrice: number | string;
+            /** Format: double */
+            allocated: null | number | string;
+            customer: null | string;
+            customerName: null | string;
+            salesperson: null | string;
+            customerPart: null | string;
+            ios: null | string;
+            lineComments: string;
+            lineHold: null | string;
+            partials: null | boolean;
+            /** Format: double */
+            picked: null | number | string;
+            plnr: null | string;
+            prodStat: null | string;
+            productLine: null | string;
+            qaHold: null | string;
+            remarks: null | string;
+            revision: null | string;
+            shipAcct: null | string;
+            shipTo: null | string;
+            shipVia: null | string;
+            /** Format: double */
+            siteQoh: null | number | string;
+            soHoldStatus: null | string;
+            soType: null | string;
+            consignment: null | boolean;
+        };
+        OpenOrderLineKeyDto: {
+            domain: string;
+            salesOrder: string;
+            /** Format: int32 */
+            line: number | string;
+        };
+        OpenOrdersResponseDto: {
+            /** Format: uuid */
+            workspaceId: string;
+            site: string;
+            mpsSnapshotId: string;
+            openOrdersSnapshotId: string;
+            /** Format: date-time */
+            acquiredAtUtc: string;
+            isStale: boolean;
+            warning: null | string;
+            lines: components["schemas"]["OpenOrderLineDto"][];
         };
         PartDetailResponseDto: {
             site: string;
@@ -1579,6 +1687,126 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetOpenOrders: {
+        parameters: {
+            query: {
+                mpsSnapshotId: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenOrdersResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RefreshOpenOrders: {
+        parameters: {
+            query: {
+                mpsSnapshotId: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenOrdersResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

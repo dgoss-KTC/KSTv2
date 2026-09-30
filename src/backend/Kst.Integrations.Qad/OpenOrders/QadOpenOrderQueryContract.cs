@@ -88,6 +88,7 @@ public static class QadOpenOrderQueryContract
                    AND ld.ld_site = sod.sod_site) AS SiteQoh,
                 so.so_hold_stat AS SoHoldStatus,
                 so.so_type AS SoType,
+                sod.sod_consignment AS Consignment,
                 CASE WHEN sod.sod_consignment = 'TRUE' THEN 0
                      ELSE sod.sod_price END AS UnitPrice
             FROM qadpro2.dbo.sod_det AS sod

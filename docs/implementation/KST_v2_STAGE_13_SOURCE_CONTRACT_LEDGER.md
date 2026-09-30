@@ -1,6 +1,6 @@
 # Stage 13.1 — Customer Open Orders source-contract ledger
 
-**Status: owner source-name decision and bounded live metadata verification recorded; 13.1 review pending.** This records
+**Status: 13.1 owner-accepted; 13.2 bounded validation and owner comment-order decision recorded.** This records
 repository evidence at the `bd8bfeb` planning baseline and the subsequent owner decision. The
 owner confirmed `sod__dte01` for Dock Date and authorized the legacy `so_partial`, `sod_qty_all`,
 and `so_hold_stat` mappings and bounded read-only QAD verification. A metadata-only probe using
@@ -160,6 +160,28 @@ metadata query succeeded. No QAD schema or data was changed.
 
 The Stage 13 implementation prompt §8 requires source verification **before production SQL**.
 The disputed source names and SQL types have been reconciled, and a pure query-shape builder plus
-synthetic fixtures are checked offline without opening an order-data connection. Runtime reader,
-endpoint, and serializers remain later checkpoints. Owner acceptance of 13.1 and authorization
-for 13.2 are separate gates.
+synthetic fixtures were checked offline without opening an order-data connection. At the
+13.1 gate, runtime reader, endpoint, and serializers remained later checkpoints. Owner
+acceptance of 13.1 and authorization for 13.2 were separate gates.
+
+## Stage 13.2 bounded source observations (2026-09-30)
+
+Owner-approved, parameterized read-only probes ran against the current Shure SMT / SW MPS
+snapshot (38 resolved parents) for three confirmed parents. Samples had 10, 22, and 18
+positive-open lines respectively, bounded at TOP (100) per part for validation only.
+All 50 sampled lines matched exactly one order header, customer, ship-to, and part-master
+record. None had comments. All 50 had raw consignment False and blank SO Hold; Site QOH
+was null for all 50. Thus multi-row comments, consignment True, nonblank holds, and
+negative Site QOH were not witnessed in this bounded sample; the accepted legacy
+source mappings and nullable/negative semantics remain in force. Cardinality probes
+took 96/16/6 ms, code-value probes 1207/11/14 ms, and correlated comment/QOH
+probes 30/5/5 ms, respectively. These are small samples, not a full-workspace
+benchmark or evidence for a SQL rewrite. No customer/order/comment text, credentials,
+or connection string was retained. No database or QXtend writes occurred.
+
+**Owner comment decision:** preserve the legacy query's unordered *comment-record*
+behavior. Within each record, concatenate `cmt_cmmt##1` through `cmt_cmmt##15`
+in that order. The owner independently verified this behavior in SSMS. Do not
+claim a guaranteed record order or silently impose `cmt_seq` ordering. The
+Stage 13.2 acquisition retains the accepted correlated query shape; no performance
+rewrite is justified by the small-scope observation.

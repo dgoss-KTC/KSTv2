@@ -8,6 +8,7 @@ using Kst.Application.ComponentOrders;
 using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
 using Kst.Application.LongTermShortages;
+using Kst.Application.OpenOrders;
 using Kst.Application.Preferences;
 using Kst.Application.Workspaces;
 using Kst.Application.Shortages;
@@ -60,6 +61,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
     /// <summary>Optional deterministic Stage 11-A source reader override for endpoint tests.</summary>
     public ILongTermShortageSourceReader? LongTermShortageSourceReader { get; set; }
+    public IOpenOrdersSourceReader? OpenOrdersSourceReader { get; set; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -146,6 +148,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
             ReplaceIfProvided(services, ComponentOrderSourceReader);
             ReplaceIfProvided(services, ComponentOrderEnrichmentReader);
             ReplaceIfProvided(services, LongTermShortageSourceReader);
+            ReplaceIfProvided(services, OpenOrdersSourceReader);
         });
 
         builder.ConfigureLogging(logging =>

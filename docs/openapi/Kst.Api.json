@@ -603,6 +603,168 @@
         }
       }
     },
+    "/api/v1/workspaces/{assignmentId}/open-orders": {
+      "get": {
+        "tags": [
+          "OpenOrders"
+        ],
+        "summary": "Returns the full workspace Open Orders report for the supplied current MPS snapshot.",
+        "operationId": "GetOpenOrders",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mpsSnapshotId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenOrdersResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/open-orders/refresh": {
+      "post": {
+        "tags": [
+          "OpenOrders"
+        ],
+        "summary": "Refreshes the workspace Open Orders report against the supplied current MPS snapshot.",
+        "operationId": "RefreshOpenOrders",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mpsSnapshotId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenOrdersResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{assignmentId}/part-detail": {
       "get": {
         "tags": [
@@ -3854,6 +4016,374 @@
           }
         }
       },
+      "OpenOrderEditableValuesDto": {
+        "required": [
+          "dueDate",
+          "performDate",
+          "requiredDate",
+          "dockDate",
+          "orderQty",
+          "price"
+        ],
+        "type": "object",
+        "properties": {
+          "dueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "performDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "requiredDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "dockDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "orderQty": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "price": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "OpenOrderLineDto": {
+        "required": [
+          "key",
+          "itemNumber",
+          "site",
+          "purchaseOrder",
+          "stat",
+          "shippedQty",
+          "sourceValues",
+          "open",
+          "extPrice",
+          "unitPrice",
+          "allocated",
+          "customer",
+          "customerName",
+          "salesperson",
+          "customerPart",
+          "ios",
+          "lineComments",
+          "lineHold",
+          "partials",
+          "picked",
+          "plnr",
+          "prodStat",
+          "productLine",
+          "qaHold",
+          "remarks",
+          "revision",
+          "shipAcct",
+          "shipTo",
+          "shipVia",
+          "siteQoh",
+          "soHoldStatus",
+          "soType",
+          "consignment"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/OpenOrderLineKeyDto"
+          },
+          "itemNumber": {
+            "type": "string"
+          },
+          "site": {
+            "type": "string"
+          },
+          "purchaseOrder": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "stat": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shippedQty": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "sourceValues": {
+            "$ref": "#/components/schemas/OpenOrderEditableValuesDto"
+          },
+          "open": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "extPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "unitPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "allocated": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "customer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "customerName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "salesperson": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "customerPart": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ios": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lineComments": {
+            "type": "string"
+          },
+          "lineHold": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partials": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "picked": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "plnr": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "prodStat": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "productLine": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "qaHold": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "remarks": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "revision": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shipAcct": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shipTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shipVia": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "siteQoh": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "soHoldStatus": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "soType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "consignment": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "OpenOrderLineKeyDto": {
+        "required": [
+          "domain",
+          "salesOrder",
+          "line"
+        ],
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "salesOrder": {
+            "type": "string"
+          },
+          "line": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "OpenOrdersResponseDto": {
+        "required": [
+          "workspaceId",
+          "site",
+          "mpsSnapshotId",
+          "openOrdersSnapshotId",
+          "acquiredAtUtc",
+          "isStale",
+          "warning",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "site": {
+            "type": "string"
+          },
+          "mpsSnapshotId": {
+            "type": "string"
+          },
+          "openOrdersSnapshotId": {
+            "type": "string"
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isStale": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenOrderLineDto"
+            }
+          }
+        }
+      },
       "PartDetailResponseDto": {
         "required": [
           "site",
@@ -5004,6 +5534,9 @@
     },
     {
       "name": "Mps"
+    },
+    {
+      "name": "OpenOrders"
     },
     {
       "name": "PartDetail"
