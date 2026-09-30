@@ -7,8 +7,16 @@ Generated from `DataMap.xlsx`.
 - Source file: `DataMap.xlsx`
 - Generated UTC: `2026-08-06T23:23:17+00:00`
 - Tables: `30` (24 from `DataMap.xlsx` + `sct_det` [added Stage 8D.5] + `loc_mstr` [added R0.6 — see that table's entry] + `icc_ctrl` [added Stage 9.1] + `lad_det` [added Stage 9.1] + `code_mstr` [added Stage 10.1] + `vd_mstr` [added Stage 10.1])
-- Fields: `581` (548 from `DataMap.xlsx` + 6 `sct_det` fields + 1 `in_price.inp_source` field [added R0.6] + 4 `loc_mstr` fields [added R0.6] + 3 `icc_ctrl` fields [added Stage 9.1] + 10 `lad_det` fields [added Stage 9.1] + 2 KSS effectivity fields [added Stage 9.8] + 4 `code_mstr` fields [added Stage 10.1] + 3 `vd_mstr` fields [added Stage 10.1])
-- Validated fields: `578`
+- Fields: `585` (581 previously documented + 4 Stage 13 live-confirmed legacy fields)
+- Validated fields: `582`
+
+Stage 13 source reconciliation: the owner confirmed the legacy Python/VBA SQL Dock Date source
+`sod__dte01` (not `sod_dock`) and authorized adding `so_partial`, `so_hold_stat`, and
+`sod_qty_all`. A bounded read-only SQL Server `sys.columns` probe confirmed all four fields:
+`sod__dte01` is `datetime`, `so_partial` is `bit`, `so_hold_stat` is `nvarchar`, and
+`sod_qty_all` is `decimal`. The original `sod_dock` field is `nvarchar` and therefore is **not**
+interchangeable with the Dock Date `datetime` source. See
+`docs/implementation/KST_v2_STAGE_13_SOURCE_CONTRACT_LEDGER.md`.
 
 ## Agent Usage Rules
 
@@ -594,7 +602,7 @@ Generated from `DataMap.xlsx`.
 
 - **Business name:** Sales Order Master
 - **Source sheet:** `QADPRO2`
-- **Fields:** 41
+- **Fields:** 43
 
 | Field | Description | Validated |
 |---|---|---:|
@@ -616,9 +624,11 @@ Generated from `DataMap.xlsx`.
 | `so_due_date` | Due Date | Yes |
 | `so_fob` | FOB | Yes |
 | `so_fr_terms` | Sales Order Freight Terms | Yes |
+| `so_hold_stat` | SO Hold Status — Stage 13 legacy report header field (`nvarchar` metadata) | Yes — Stage 13 read-only schema probe |
 | `so_lang` | Language | Yes |
 | `so_nbr` | Sales Order Number | Yes |
 | `so_ord_date` | Order Date | Yes |
+| `so_partial` | Partials — Stage 13 legacy report header field (`bit` metadata) | Yes — Stage 13 read-only schema probe |
 | `so_po` | Customer PO Number | Yes |
 | `so_pricing_dt` | Pricing Date | Yes |
 | `so_quote` | Quote Number | Yes |
@@ -644,13 +654,14 @@ Generated from `DataMap.xlsx`.
 
 - **Business name:** Sales Order Detail
 - **Source sheet:** `QADPRO2`
-- **Fields:** 55
+- **Fields:** 57
 
 | Field | Description | Validated |
 |---|---|---:|
 | `sod__chr03` | C/S Line Hold (T/F) | Yes |
 | `sod__chr05` | Revision | Yes |
 | `sod__chr06` | QA Hold (T/F) | Yes |
+| `sod__dte01` | Dock Date — Stage 13 owner-confirmed legacy SQL source (`datetime` metadata) | Yes — Stage 13 read-only schema probe |
 | `sod_cmtindx` | Comment Index | Yes |
 | `sod_comment##1` | Line Comment 1 | Yes |
 | `sod_comment##2` | Line Comment 2 | Yes |
@@ -665,7 +676,7 @@ Generated from `DataMap.xlsx`.
 | `sod_custref` | Customer Reference | Yes |
 | `sod_desc` | Description | Yes |
 | `sod_disc_pct` | Discount Percentage | Yes |
-| `sod_dock` | Dock Date | Yes |
+| `sod_dock` | Original workbook Dock Date label; SQL type `nvarchar`, not the Stage 13 Dock Date (`sod__dte01`, `datetime`) | Yes — original workbook and Stage 13 schema probe |
 | `sod_domain` | Domain | Yes |
 | `sod_due_date` | Due Date | Yes |
 | `sod_hold_stat` | Hold Status | Yes |
@@ -685,6 +696,7 @@ Generated from `DataMap.xlsx`.
 | `sod_prodline` | Product Line | Yes |
 | `sod_project` | Project Code | Yes |
 | `sod_promise_date` | Promise Date | Yes |
+| `sod_qty_all` | Allocated — Stage 13 legacy report field (`decimal`; not `lad_det.lad_qty_all`) | Yes — Stage 13 read-only schema probe |
 | `sod_qty_ivcd` | Quantity Invoiced | Yes |
 | `sod_qty_ord` | Quantity Ordered | Yes |
 | `sod_qty_pend` | Quantity Pending | Yes |

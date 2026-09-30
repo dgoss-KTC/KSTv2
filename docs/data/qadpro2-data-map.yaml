@@ -2,8 +2,8 @@ metadata:
   source_file: DataMap.xlsx
   generated_utc: '2026-08-06T23:23:17+00:00'
   table_count: 30
-  field_count: 581
-  validated_field_count: 578
+  field_count: 585
+  validated_field_count: 582
   notes:
   - Generated from the KST v2 DataMap workbook.
   - Validated is true when the source workbook contained x/yes/y/true/1.
@@ -13,6 +13,7 @@ metadata:
   - Stage 9.1 (Immediate Work-Order Shortages source-mapping reconciliation) added the icc_ctrl table (3 fields: icc_domain, icc_iss_days, icc_site) and the lad_det table (10 fields), both confirmed directly against live QADPRO2 schema/data. icc_iss_days is the QAD issue-days source used by the legacy shortage logic (ktshrtge11) and the accepted Stage 9 Expired/Expiring rule. lad_det is the firm/detail inventory allocation table (hard allocation); see the Stage 9 source-mapping document for the allocation-authority conflict with the accepted Stage 9 reconstructed allocation.
   - Stage 9.8 KSS blocker correction added po_mstr.po_eff_to and pod_det.pod_end_eff##1, confirmed directly against the live SQL Server QADPRO2 mirror. pod_end_eff##1 is the SQL Server column name for Progress pod_end_eff[1]; together with po_sched they establish effective KSS supplier-schedule classification independently of conventional PO availability.
   - Stage 10.1 (Component Orders source validation) added the code_mstr table (4 fields — code_domain, code_fldname, code_value, code_user1) and the vd_mstr table (3 fields — vd_addr, vd_domain, vd_sort), both confirmed directly against live QADPRO2 schema/data on KNWVM13. Buyer-code resolution is domain-scoped via the code_fldname discriminator ('ptp_buyer' for ptp_det.ptp_buyer, 'pt_buyer' for pt_mstr.pt_buyer) with display value code_user1; vendor display joins po_mstr.po_vend to vd_mstr.vd_addr disambiguated by domain with display value vd_sort. See the Stage 10 source-mapping document.
+  - Stage 13 owner-confirmed legacy SQL Dock Date source is sod__dte01 (datetime), not the original workbook's sod_dock (nvarchar). Owner authorized adding so_partial (bit), so_hold_stat (nvarchar), and sod_qty_all (decimal). All four additions and the sod_dock type were confirmed by a bounded read-only SQL Server sys.columns probe. See the Stage 13 source-contract ledger.
 databases:
   QADPRO2:
     ad_mstr:
@@ -1240,6 +1241,9 @@ databases:
         so_fr_terms:
           description: Sales Order Freight Terms
           validated: true
+        so_hold_stat:
+          description: SO Hold Status — Stage 13 legacy report header field (nvarchar metadata)
+          validated: true
         so_lang:
           description: Language
           validated: true
@@ -1248,6 +1252,9 @@ databases:
           validated: true
         so_ord_date:
           description: Order Date
+          validated: true
+        so_partial:
+          description: Partials — Stage 13 legacy report header field (bit metadata)
           validated: true
         so_po:
           description: Customer PO Number
@@ -1322,6 +1329,9 @@ databases:
         sod__chr06:
           description: QA Hold (T/F)
           validated: true
+        sod__dte01:
+          description: Dock Date — Stage 13 owner-confirmed legacy SQL source (datetime metadata)
+          validated: true
         sod_cmtindx:
           description: Comment Index
           validated: true
@@ -1365,7 +1375,7 @@ databases:
           description: Discount Percentage
           validated: true
         sod_dock:
-          description: Dock Date
+          description: Original workbook Dock Date label; SQL type nvarchar, not Stage 13 Dock Date sod__dte01 (datetime)
           validated: true
         sod_domain:
           description: Domain
@@ -1423,6 +1433,9 @@ databases:
           validated: true
         sod_promise_date:
           description: Promise Date
+          validated: true
+        sod_qty_all:
+          description: Allocated — Stage 13 legacy report field (decimal metadata; not lad_det.lad_qty_all)
           validated: true
         sod_qty_ivcd:
           description: Quantity Invoiced

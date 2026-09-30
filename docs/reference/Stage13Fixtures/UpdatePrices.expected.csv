@@ -1,0 +1,3 @@
+Operation (salesOrder.operation)  String,Sales Order (salesOrder.soNbr)  String,Operation (salesOrderDetail.operation)  String,Sales Order (salesOrderDetail.soNbr)  String,Line (salesOrderDetail.line)  Integer,Reprice/Edit (salesOrderDetail.repriceDtl)  Logical,reasonCode (salesOrderDetail.reasonCode)  String,List Price (salesOrderDetail.sodListPr)  Decimal,Price (salesOrderDetail.sodPrice)  Decimal
+M,SO-10,M,SO-10,1,TRUE,Buyers,3.125,3.125
+M,SO-20,M,SO-20,3,TRUE,Quality,0.0125,0.0125

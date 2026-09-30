@@ -1,0 +1,46 @@
+{
+  "purpose": "Synthetic Stage 13.1 report and QXtend contract cases; never production/customer data. Exact CSV headers come from the three untracked owner templates in docs/reference/QXtend; these row arrays are expected logical cells, not serialized output bytes.",
+  "scope": {
+    "workspaceAssignmentId": "00000000-0000-0000-0000-000000001301",
+    "mpsSnapshotId": "00000000-0000-0000-0000-000000001302",
+    "domain": "TEST",
+    "site": "S1",
+    "resolvedParents": ["P-1", "P-2"]
+  },
+  "report": {
+    "sourceLines": [
+      { "order": "SO-10", "line": 2, "part": "P-1", "site": "S1", "customerName": "Alpha", "customer": "C-1", "salesperson": "SP-1", "productLine": "PL-1", "ios": "IOS-1", "due": "2026-10-02", "orderQty": "10", "shippedQty": "2", "price": "1.25", "consignment": false, "siteQoh": "-3", "lineComments": "first;second", "expectedOpen": "8", "expectedExtPrice": "10.00", "expectedUnitPrice": "1.25", "included": true },
+      { "order": "SO-10", "line": 1, "part": "P-2", "site": "S1", "customerName": "Alpha", "customer": "C-1", "salesperson": "SP-1", "productLine": "PL-2", "ios": "IOS-1", "due": "2026-10-01", "orderQty": "5", "shippedQty": "1", "price": "2.50", "consignment": true, "siteQoh": null, "lineComments": "", "expectedOpen": "4", "expectedExtPrice": "10.00", "expectedUnitPrice": "0", "included": true },
+      { "order": "SO-20", "line": 3, "part": "P-1", "site": "S1", "customerName": "Beta", "customer": "C-2", "salesperson": "SP-2", "productLine": "PL-1", "ios": "IOS-2", "due": "2026-10-03", "orderQty": "3", "shippedQty": "0", "price": "0.0100", "consignment": false, "siteQoh": "0", "lineComments": "", "expectedOpen": "3", "expectedExtPrice": "0.0300", "expectedUnitPrice": "0.0100", "included": true },
+      { "order": "CLOSED", "line": 1, "part": "P-1", "site": "S1", "orderQty": "2", "shippedQty": "2", "price": "1", "included": false, "reason": "open quantity is zero" },
+      { "order": "OTHER-SITE", "line": 1, "part": "P-1", "site": "S2", "orderQty": "2", "shippedQty": "0", "price": "1", "included": false, "reason": "site mismatch" },
+      { "order": "OTHER-PART", "line": 1, "part": "X-1", "site": "S1", "orderQty": "2", "shippedQty": "0", "price": "1", "included": false, "reason": "not in resolved parent set" }
+    ],
+    "defaultSortOrder": ["SO-10/2", "SO-10/1", "SO-20/3"],
+    "andFilter": { "customerNameContains": "alp", "customer": "C-1", "salesperson": "SP-1", "productLineFrom": "PL-1", "productLineTo": "PL-2", "ios": "IOS-1", "dueFrom": "2026-10-01", "dueTo": "2026-10-02", "expectedOrdersAndLines": ["SO-10/2", "SO-10/1"] }
+  },
+  "qxtend": {
+    "headers": {
+      "quantity": "Operation (salesOrder.operation)  String,Sales Order (salesOrder.soNbr)  String,Operation (salesOrderDetail.operation)  String,Sales Order (salesOrderDetail.soNbr)  String,Line (salesOrderDetail.line)  Integer,Quantity Ordered (salesOrderDetail.sodQtyOrd)  Decimal,reasonCode (salesOrderDetail.reasonCode)  String",
+      "price": "Operation (salesOrder.operation)  String,Sales Order (salesOrder.soNbr)  String,Operation (salesOrderDetail.operation)  String,Sales Order (salesOrderDetail.soNbr)  String,Line (salesOrderDetail.line)  Integer,Reprice/Edit (salesOrderDetail.repriceDtl)  Logical,reasonCode (salesOrderDetail.reasonCode)  String,List Price (salesOrderDetail.sodListPr)  Decimal,Price (salesOrderDetail.sodPrice)  Decimal",
+      "date": "Operation (salesOrder.operation)  String,Sales Order (salesOrder.soNbr)  String,Operation (salesOrderDetail.operation)  String,Sales Order (salesOrderDetail.soNbr)  String,Line (salesOrderDetail.line)  Integer,reasonCode (salesOrderDetail.reasonCode)  String,Required Date (salesOrderDetail.sodReqDate)  Date,Due Date (salesOrderDetail.sodDueDate)  Date,Performance Date (salesOrderDetail.sodPerDate)  Date,Dock Date (salesOrderDetail.sodDte01)  Date"
+    },
+    "changedRows": [
+      { "order": "SO-20", "line": 3, "reason": "Quality", "originalOrderQty": "3", "shippedQty": "0", "proposedOrderQty": "4", "originalPrice": "0.0100", "proposedPrice": "0.0125", "originalDates": { "required": "2026-09-30", "due": "2026-10-03", "perform": "2026-10-01", "dock": null }, "proposedDates": { "required": "2026-09-30", "due": "2026-10-04", "perform": "2026-10-01", "dock": "2027-01-06" }, "families": ["quantity", "price", "date"] },
+      { "order": "SO-10", "line": 2, "reason": "Cust/PM", "originalOrderQty": "10", "shippedQty": "2", "proposedOrderQty": "12", "originalPrice": "1.25", "proposedPrice": "1.25", "originalDates": { "required": "2026-09-28", "due": "2026-10-02", "perform": "2026-09-29", "dock": "2026-09-30" }, "proposedDates": { "required": "2026-09-28", "due": "2026-10-02", "perform": "2026-09-29", "dock": "2026-09-30" }, "families": ["quantity"] },
+      { "order": "SO-10", "line": 1, "reason": "Buyers", "originalOrderQty": "5", "shippedQty": "1", "proposedOrderQty": "6", "originalPrice": "2.50", "proposedPrice": "3.125", "originalDates": { "required": "2026-09-27", "due": "2026-10-01", "perform": "2026-09-28", "dock": "2026-09-29" }, "proposedDates": { "required": "2026-09-27", "due": "2026-10-01", "perform": "2026-09-28", "dock": null }, "families": ["quantity", "price", "date"] }
+    ],
+    "expectedLogicalRows": {
+      "quantity": [["M", "SO-10", "M", "SO-10", "1", "6", "Buyers"], ["", "", "M", "SO-10", "2", "12", "Cust/PM"], ["M", "SO-20", "M", "SO-20", "3", "4", "Quality"]],
+      "price": [["M", "SO-10", "M", "SO-10", "1", "TRUE", "Buyers", "3.125", "3.125"], ["M", "SO-20", "M", "SO-20", "3", "TRUE", "Quality", "0.0125", "0.0125"]],
+      "date": [["M", "SO-10", "M", "SO-10", "1", "Buyers", "9/27/2026", "10/1/2026", "9/28/2026", ""], ["M", "SO-20", "M", "SO-20", "3", "Quality", "9/30/2026", "10/4/2026", "10/1/2026", "1/6/2027"]]
+    },
+    "additionalCases": [
+      { "case": "same-order-group", "order": "SO-10", "lines": [1, 2], "expectedParentColumns": [["M", "SO-10"], ["", ""]], "expectedDetailColumns": [["M", "SO-10"], ["M", "SO-10"]] },
+      { "case": "quantity-equals-shipped", "originalOrderQty": "5", "shippedQty": "2", "proposedOrderQty": "2", "expectedValid": true, "expectedProposedOpen": "0" },
+      { "case": "quantity-below-shipped", "originalOrderQty": "5", "shippedQty": "2", "proposedOrderQty": "1", "expectedValid": false },
+      { "case": "no-op", "originalPrice": "2.50", "proposedPrice": "2.500", "expectedExport": false },
+      { "case": "csv-escaping", "order": "SO,\"X\"", "reason": "Cust/PM", "expectedSerializedOrderCell": "\"SO,\"\"X\"\"\"" }
+    ]
+  }
+}

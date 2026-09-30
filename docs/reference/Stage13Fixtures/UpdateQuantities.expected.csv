@@ -1,0 +1,4 @@
+Operation (salesOrder.operation)  String,Sales Order (salesOrder.soNbr)  String,Operation (salesOrderDetail.operation)  String,Sales Order (salesOrderDetail.soNbr)  String,Line (salesOrderDetail.line)  Integer,Quantity Ordered (salesOrderDetail.sodQtyOrd)  Decimal,reasonCode (salesOrderDetail.reasonCode)  String
+M,SO-10,M,SO-10,1,6,Buyers
+,,M,SO-10,2,12,Cust/PM
+M,SO-20,M,SO-20,3,4,Quality
