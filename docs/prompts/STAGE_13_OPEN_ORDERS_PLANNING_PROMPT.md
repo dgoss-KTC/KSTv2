@@ -4,10 +4,10 @@ Continue KST v2 planning for **Stage 13 — Open Orders** in the repository:
 
 `/home/david/dev/KSTv2/`
 
-This is a new planning conversation. Verify the current repository rather than relying on this
-prompt as evidence. The Release 1 roadmap review is complete and owner-approved. Stage 13 combines
-the former Customer Open Orders and General Open Orders stages and now precedes Stage 14 Planning
-Workbook. The stage-aligned planning version is `0.1.0-alpha.13`.
+The Release 1 roadmap review is complete and owner-approved. Stage 13 now precedes Stage 14 Planning
+Workbook. The Stage 13 plan was accepted by the project owner on 2026-09-29. This document records
+that accepted planning baseline; it is not implementation authorization. The stage-aligned version
+is `0.1.0-alpha.13`.
 
 ## Authority and preflight
 
@@ -34,9 +34,10 @@ Apply the authority tiers in `AGENTS.md`. Accepted implementation and closeout e
 older planning assumptions. Do not reopen locked Stage 9–11 behavior unless current evidence exposes
 a genuine conflict and the owner explicitly approves an amendment.
 
-## Planning boundary
+## Authorization boundary
 
-This conversation is for collaborative Stage 13 discovery and implementation planning. Do not yet:
+Do not implement Stage 13 until the owner separately authorizes the implementation prompt and its
+first checkpoint. Until then, do not:
 
 - implement production code;
 - run live QAD or Shortages database investigations;
@@ -45,94 +46,131 @@ This conversation is for collaborative Stage 13 discovery and implementation pla
 - change established business behavior;
 - commit or push.
 
-After the owner accepts a bounded Stage 13 plan, implementation must be authorized separately.
+The accepted implementation prompt is maintained separately at
+`docs/implementation/KST_v2_STAGE_13_IMPLEMENTATION_PROMPT.md`.
 
 ## Accepted Stage 13 intent
 
-Stage 13 is one coherent Open Orders capability with two complementary workflows:
+Stage 13 adds a workspace module named **Customer Open Orders** before Component Orders. It is
+strictly scoped to the active workspace's site and the exact parent population resolved by the
+current MPS snapshot: product-line-discovered parents unioned with explicitly assigned parents.
+Cross-customer investigation outside a workspace is not Stage 13; it belongs to Stage 18.
 
-1. **Customer-focused Open Orders and date changes**
-   - Inspect a selected customer's open order lines.
-   - Stage only approved date-field changes locally.
-   - Validate changes.
-   - Produce a human-reviewable QXtend-compatible external update file.
-   - Never write directly to QAD or another company database.
+The module has two states:
 
-2. **General cross-customer Open Orders investigation**
-   - Search and filter open orders across the authorized site/customer scope.
-   - Provide safe sorting, result limits or pagination, and useful column selection/order.
-   - Support customer-focused navigation without creating a second independent data model.
+1. **Report Mode (Planning Mode off)**
+   - Read and display every qualifying open sales-order line in the workspace scope.
+   - An open line satisfies `sod_qty_ord - sod_qty_ship > 0`. Do not invent additional status,
+     hold, completion, order-type, or RA exclusions.
+   - Query the complete accepted field contract once, then perform column visibility, column order,
+     filtering, and sorting locally without re-querying QAD.
+   - Export the filtered workspace report as an Excel workbook using the visible columns in their
+     displayed order.
 
-The ordinary Open Orders application-view export is decided and completed in Stage 21. The
-QXtend-compatible date-change file is an operational update artifact and belongs to Stage 13. The
-standalone Open Order Excel Report belongs to Stage 18. Keep those three outputs distinct while
-identifying data contracts and infrastructure that can legitimately be shared.
+2. **Planning Mode**
+   - Stage edits to Due Date, Perform Date, Required Date, Dock Date, Order Qty, and Price.
+   - Require a Reason Code on changed rows from the exact accepted list: `Cust/PM`, `Buyers`,
+     `Planning`, `Factory`, `C&R`, `Quality`, and `Engineer`.
+   - Optionally persist a workspace-specific local draft through the Save Draft toggle.
+   - Revalidate every changed line against fresh QAD data before export.
+   - Produce human-reviewable QXtend-compatible date, quantity, and price CSV files containing only
+     staged changes.
+   - Never submit files to QXtend and never write directly to QAD or another company database.
 
-## Questions the planning conversation must resolve
+The workspace report approved here belongs to Stage 13. Stage 18 owns the later standalone
+cross-customer Open Order Report. Stage 21 still owns product-wide export inventory and consistency,
+but must not remove or defer the Stage 13 workspace report or QXtend files.
 
-Work with the owner in manageable groups. Recover evidence first, then ask only questions that the
-repository cannot answer.
+## Accepted report fields and presentation
 
-### Workflow and scope
+Default visible columns are Due Date, Order, PO, Line, Item Number, Site, Open, Stat, and Ext Price.
+Every legacy optional column remains selectable: Allocated, Customer, Customer Name, Customer Part,
+Dock Date, IOS, Line Comments, Line Hold, Partials, Perform Date, Picked, Plnr, Prod Stat, Product
+Line, QA Hold, Remarks, Required Date, Revision, Ship Acct, Ship To, Ship Via, Site QOH, SO Hold
+Status, SO Type, and Unit Price.
 
-- Who uses each Open Orders workflow and what decision or action does it support?
-- What is the default entry point: current workspace/customer, general search, or both?
-- What site, customer, product-line, planner, and workspace boundaries apply?
-- What constitutes an open order and which statuses are included or excluded?
-- What result limits, pagination, refresh, and stale-data behavior are required?
-- Are saved layouts required for Release 1 or a Stage 22 refinement candidate?
+Visibility and order are remembered per immutable workspace assignment ID across sessions. Pointer
+drag-and-drop and accessible Move Left/Move Right controls are both required. Hidden columns retain
+their relative position, unknown saved column IDs are ignored, and Reset restores the accepted
+default. The query and API always return the full data contract regardless of the visible layout.
 
-### Fields, filters, and editing
+Legacy filters are Customer Name contains, exact Customer number, exact Salesperson, inclusive
+Product Line range, exact IOS, and inclusive Due Date range. Supplied filters are AND-combined.
+Workspace scope itself satisfies the legacy requirement for a bounded query, so no additional
+filter is required. Default report sorting remains Customer Name, Item Number, then Due Date.
 
-- Confirm authoritative mappings for sales-order number, customer PO, line, item/revision, ship-to,
-  status, quantities, on hand, extended price, ship date, perform date, required date, and dock date.
-- Identify required and optional filters, default sorting, selectable columns, and column order.
-- Identify exactly which date fields may be staged for change.
-- Define validation, frozen/closed/order-status restrictions, clearing, confirmation, and change-count
-  behavior without guessing business rules.
+## Accepted planning rules
 
-### QXtend-compatible change file
+- Order Qty is the original total `sod_qty_ord`, not the derived Open quantity. The original remains
+  the comparison baseline. A proposal below the freshly read shipped quantity is invalid; equality
+  is allowed and may close the line.
+- Price accepts a plain decimal-capable numeric value with no currency symbol or grouping. One Price
+  edit populates both QXtend List Price and Price. Internally use exact decimal arithmetic rather
+  than binary floating-point money calculations.
+- Dates accept valid calendar values or an intentional empty value. Do not invent chronological,
+  past-date, frozen-date, or status restrictions. QXtend dates use `M/d/yyyy`.
+- Reason Code is required only on a row with a material staged change. The same row-level reason is
+  repeated in every applicable QXtend file.
+- Highlight changes, retain originals, recompute the proposed Open quantity and Extended Price,
+  remove no-op edits, and support row undo plus Clear All.
+- Export does not clear changes because file generation does not prove successful QXtend processing.
 
-- Recover the authoritative legacy/current input mapping, format, naming, validation, and operational
-  handoff procedure.
-- Define the exact relationship between displayed data, staged edits, validation messages, and file
-  rows.
-- Preserve human review and external processing; no automatic submission and no direct database
-  writes.
-- Identify security, filesystem, licensing, and audit requirements.
+Save Draft is off by default. When enabled, proposed values, originals, reasons, and source identity
+are persisted locally for that workspace. Restored drafts must be checked against a fresh read;
+conflicting rows remain visible but are blocked from export. Turning Save Draft off removes the
+persisted copy after confirmation but does not discard current in-memory edits. Permanent workspace
+deletion removes its draft; archival preserves it.
 
-### Architecture and reuse
+## Accepted QXtend boundary
 
-- Identify existing workspace, snapshot, QAD adapter, cache, endpoint, generated-contract, grid,
-  preferences, and export/update-file patterns that should be reused.
-- Keep QAD schema knowledge in `Kst.Integrations.Qad` and business orchestration in the accepted
-  Domain/Application boundaries.
-- Use the C# DTO → OpenAPI → generated TypeScript contract flow.
-- Avoid speculative shared abstractions; extract shared behavior only from demonstrated Stage 13 and
-  existing use cases.
+Use the owner-supplied `UpdateQuantities.csv`, `UpdatePrices.csv`, and
+`DateChange_with_dock.csv` templates as the exact column-order/header evidence. Generate up to three
+separate CSVs containing only changed rows. A row changed in multiple families appears in each
+applicable file.
 
-### Validation and acceptance
+For every QXtend file:
 
-- Define deterministic fixtures and representative owner-validation scenarios.
-- Include cross-customer size/performance cases, empty and partial data, invalid filters, invalid
-  edits, stale snapshots, QAD unavailable, file cancellation/failure, and safe retry behavior.
-- Define comparison evidence for the existing Open Orders workflow and QXtend file.
-- Identify which checkpoints require owner review before proceeding.
+- sort Sales Order then Line ascending;
+- put `M` in detail Operation column C on every row and the Sales Order in detail column D;
+- copy C and D into parent columns A and B only on the first exported row for each Sales Order;
+- leave A and B blank on later rows in the same Sales Order group;
+- preserve exact template headers, CRLF line endings, UTF-8 without BOM, normal CSV escaping, and no
+  unused template rows.
 
-## Required discussion deliverables
+Quantity exports set Quantity Ordered and Reason Code. Price exports set Reprice/Edit to `TRUE`,
+repeat the same edited decimal into List Price and Price, and include Reason Code. Date exports
+include Reason Code and all four effective date values serialized as `M/d/yyyy`.
 
-Produce, for owner review before implementation:
+## Required implementation evidence
 
-1. A concise current-state and evidence map.
-2. A proposed Stage 13 user workflow and screen/state model.
-3. A field/source/rule discovery ledger separating known, inferred, and unknown items.
-4. Proposed domain/application contracts and architecture boundaries.
-5. The QXtend-compatible file boundary and its distinction from Stage 18 and Stage 21 outputs.
-6. A performance, caching, pagination/result-limit, and failure-handling plan.
-7. A security, dependency, filesystem, and licensing impact assessment.
-8. A bounded checkpoint sequence with verification and owner-acceptance gates.
-9. Focused owner questions that cannot be answered from repository evidence.
-10. A clear list of Stage 13 non-scope and deferred Stage 22 refinements.
+Before production work passes its source-contract checkpoint, reconcile the legacy `sod__dte01`
+Dock Date source with the documented `sod_dock` field and verify legacy-only references including
+`so_partial` and `sod_qty_all`. This is technical source verification, not permission to invent a
+business rule or conduct an unbounded live investigation.
 
-Do not produce a build prompt or begin implementation until the owner has reviewed and accepted the
-Stage 13 plan.
+Use a workspace- and MPS-snapshot-scoped read contract plus an Open Orders snapshot identity. A
+failed refresh may leave a clearly stale report visible, but QXtend generation must perform a fresh,
+targeted reread and fail closed when the MPS population changed, a line disappeared or is no longer
+open, an original editable value changed, shipped quantity invalidates the proposal, validation
+fails, or QAD is unavailable.
+
+Keep SQL/schema knowledge in `Kst.Integrations.Qad`, business rules and orchestration in
+Domain/Application, CSV/XLSX creation in `Kst.Exports`, DTO mapping in `Kst.Api`, and UI state in the
+frontend. Use the C# DTO → OpenAPI → generated TypeScript flow. Reuse the existing ClosedXML and
+Tauri save infrastructure. No new dependency is approved by this plan.
+
+Verification must cover source-reader scope and read-only SQL, domain validation, snapshot and stale
+behavior, draft lifecycle, layouts, accessibility, filters/sorting, exact byte-level QXtend golden
+files, report export, cancellation/failure, and representative owner comparison with the legacy
+report and external QXtend acceptance.
+
+## Non-scope
+
+- Cross-customer/global Open Orders, which belongs to Stage 18.
+- Stage 14 Planning Workbook, forecasts, projections, or MPS adjustments.
+- Automatic QXtend submission/import or any direct company-database write.
+- Named multi-layout presets and speculative advanced grid personalization; these remain Stage 22
+  candidates.
+- Reopening locked Stage 9–11 algorithms.
+
+Owner disposition — 2026-09-29: **PLAN ACCEPTED; IMPLEMENTATION NOT YET AUTHORIZED.**

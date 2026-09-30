@@ -38,7 +38,7 @@ Cross-cutting completion and release gates
 Post-release: Stage 27
 ```
 
-Stages 12, 17, and 20 are retired. Stage 16 is absorbed into Stage 13. Their numbers remain visible
+Stages 12, 17, and 20 are retired. Stage 16 is absorbed into Stage 18. Their numbers remain visible
 for provenance; later historical references do not need reinterpretation.
 
 ## Stage-disposition matrix
@@ -46,12 +46,12 @@ for provenance; later historical references do not need reinterpretation.
 | Stage | Disposition | Release 1 outcome |
 |---|---|---|
 | 12 — Multi-Part Shortage Analysis | **RETIRED / SUPERSEDED** | Accepted Stage 11 supplies the relevant workspace capability. |
-| 13 — Open Orders | **PLANNED / REQUIRED** | Combined customer-specific date-change and cross-customer search workflow. Next planned product stage; not implementation-authorized. |
+| 13 — Customer Open Orders | **PLAN ACCEPTED / REQUIRED** | Workspace-scoped report and Planning Mode for staged date, quantity, and price changes. Implementation is not yet authorized. |
 | 14 — Planning Workbook | **PLANNED / REQUIRED** | Reordered behind Open Orders. |
 | 15 — Finished Goods | **PLANNED / REQUIRED** | Immediate-demand coverage using accepted source rules established during the stage. |
-| 16 — General Open Orders | **ABSORBED** | Included in Stage 13. |
+| 16 — General Open Orders | **ABSORBED** | Its cross-customer report outcome is included in Stage 18, not workspace Stage 13. |
 | 17 — General WO Variance | **RETIRED / NO LONGER DESIRED** | Existing Stage 7 capability remains; no standalone search/report. |
-| 18 — Standalone Excel Report Generators | **PLANNED / REQUIRED** | Component MRP, Open Order Report, Shipments-To-Go, and S&OP. |
+| 18 — Standalone Excel Report Generators | **PLANNED / REQUIRED** | Component MRP, cross-customer Open Order Report, Shipments-To-Go, and S&OP. |
 | 19 — Historical Shipments | **PLANNED / REQUIRED** | Historical shipment search/report, distinct from Shipments-To-Go. |
 | 20 — Legacy Simulation | **RETIRED / NO LONGER DESIRED** | No compatibility migration; remove from readiness criteria. |
 | 21 — Cross-Cutting Export Completion | **PLANNED / REQUIRED** | Inventory all application areas, decide export need, implement gaps, and validate consistency. |
@@ -67,7 +67,7 @@ for provenance; later historical references do not need reinterpretation.
 | Item | Source/evidence | Disposition and destination | Trigger | Release blocking? |
 |---|---|---|---|---|
 | Individual / Single-Part Component MRP | Stage 11 closeout backlog | **Stage 18 — required report generator** | Stage 18 authorization | Yes, as part of approved Stage 18 report set |
-| Open Order Report | Owner decision in scope review | **Stage 18 — required report generator** | Stage 18 authorization | Yes |
+| Cross-customer Open Order Report | Owner decision amended during Stage 13 planning | **Stage 18 — required report generator** | Stage 18 authorization | Yes |
 | Shipments-To-Go and S&OP | Existing master checklist + owner confirmation | **Stage 18 — required report generators** | Stage 18 authorization | Yes |
 | Historical Shipments report | Existing Stage 19 + owner confirmation | **Stage 19 — required** | Stage 19 authorization | Yes |
 | Inventory/Lot Locations in Component Information | Stage 8 deferred scope | **Stage 22 — review and disposition** | Stage 22 interactive walkthrough | Owner decides within Stage 22 |
@@ -97,7 +97,7 @@ for provenance; later historical references do not need reinterpretation.
 ## Explicitly removed or consolidated capability
 
 - Old Stage 12 is not deferred; it is superseded and retired.
-- Former Stage 16 is not an independent stage; its functionality is part of Stage 13.
+- Former Stage 16 is not an independent stage; its cross-customer report outcome is part of Stage 18.
 - Stage 17 is not retained for Release 1 or automatically moved into Stage 18.
 - Stage 20 simulation compatibility is not retained and is not a Stage 18 report.
 - Stage 11's accepted export is not unfinished Stage 21 work. Stage 21 may check conformance but may
@@ -126,6 +126,7 @@ become an unbounded feature bucket.
 
 ## Remaining authorization boundary
 
-The next planned capability is Stage 13 Open Orders. This planning baseline does not authorize
-implementation, live QAD/Shortages investigation, dependency installation, database changes,
-commit, or push. The project owner must separately authorize the next bounded checkpoint.
+The next planned capability is Stage 13 Customer Open Orders. Its bounded plan was owner-accepted
+on 2026-09-29. That acceptance does not authorize implementation, live QAD/Shortages investigation,
+dependency installation, database changes, commit, or push. The project owner must separately
+authorize the first implementation checkpoint.

@@ -3,8 +3,8 @@
 Date: 2026-09-29
 Workstation: Windows (`C:\Dev\kst_v2`)
 Current implementation position: **Stages 1–11 COMPLETE / ACCEPTED; Stages 9–11 LOCKED.**
-The revised Release 1 roadmap is owner-approved for planning. **Stage 13 — Open Orders** is the
-next planned product stage, but no implementation stage is authorized by this documentation update.
+The revised Release 1 roadmap is owner-approved. **Stage 13 — Customer Open Orders** has an
+owner-accepted bounded plan as of 2026-09-29, but implementation is not yet authorized.
 UI Navigation & Keyboard Ergonomics A: **COMPLETE / ACCEPTED — 2026-08-21**
 Active cross-cutting effort: **R0 — Repository / Documentation Reconciliation — COMPLETE /
 ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation Status` below and
@@ -102,10 +102,12 @@ Sunday–Saturday with Monday as the visible label. Individual Component MRP is 
 The owner approved the revised Release 1 roadmap on 2026-09-29:
 
 - Stage 12 Multi-Part Shortage Analysis is **RETIRED / SUPERSEDED** by accepted Workspace Shortages.
-- Stage 13 is the combined Open Orders capability; it absorbs former Stage 16 General Open Orders.
+- Stage 13 is workspace-scoped Customer Open Orders with Report Mode, Planning Mode, saved layouts,
+  optional saved drafts, and QXtend date/quantity/price files. Cross-customer Open Orders belongs to
+  Stage 18 rather than an individual workspace.
 - Stage 14 is Planning Workbook, reordered behind Open Orders.
 - Stage 15 remains Finished Goods.
-- Stage 16 is **ABSORBED** into Stage 13.
+- Stage 16 is **ABSORBED** into Stage 18; its cross-customer outcome is not part of workspace Stage 13.
 - Stage 17 General WO Variance is **RETIRED / NO LONGER DESIRED**.
 - Stage 18 contains the required standalone Excel generators: Component MRP, Open Order Report,
   Shipments-To-Go, and S&OP.
@@ -651,14 +653,15 @@ R0 overall: **COMPLETE / ACCEPTED — 2026-08-21.** Full detail:
 
 ## Next Action
 
-The next planned product stage is **Stage 13 — Open Orders**, combining the customer-specific
-date-change workflow with general cross-customer search and reporting. It precedes Stage 14 Planning
-Workbook. Planning approval does not authorize implementation: Stage 13 must begin only after the
-owner separately authorizes its discovery or implementation checkpoint.
+The next planned product stage is **Stage 13 — Customer Open Orders**. Its bounded plan was accepted
+by the owner on 2026-09-29. It adds a workspace report plus Planning Mode for staged date, quantity,
+and price changes and external QXtend CSV generation. Cross-customer Open Orders is deferred to
+Stage 18. Planning approval does not authorize implementation: Stage 13 must begin only after the
+owner separately authorizes the first checkpoint in the implementation prompt.
 
-The prepared new-conversation planning prompt is
-`docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`.
+The accepted planning baseline is `docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`. The
+bounded implementation prompt is `docs/implementation/KST_v2_STAGE_13_IMPLEMENTATION_PROMPT.md`.
 
 Preserve the three existing untracked Stage 11 reference files unless the owner separately
-dispositions them. Do not begin Stage 13, perform live source investigation, introduce dependencies,
-or commit/push as part of this roadmap documentation update.
+dispositions them. Do not begin Stage 13 implementation, perform live source investigation,
+introduce dependencies, or commit/push until separately authorized.

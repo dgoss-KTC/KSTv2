@@ -4,9 +4,9 @@
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
 **Current project position:** The owner approved the revised Release 1 scope and stage sequence on
-2026-09-29. Stage 12 is retired. Stage 13 Open Orders is the next planned product stage and precedes
-Stage 14 Planning Workbook. No implementation stage is authorized by this documentation update.
-Stages 16 and 17 are absorbed/retired as recorded below; Stage 20 is retired. Stage 21 Export
+2026-09-29. Stage 12 is retired. Stage 13 Customer Open Orders has an owner-accepted bounded plan
+and precedes Stage 14 Planning Workbook; implementation is not yet authorized. Stage 16 is absorbed
+into Stage 18, while Stages 17 and 20 are retired. Stage 21 Export
 Completion and Stage 22 Refinement & Optimization are required before Stage 23 Quality and
 Hardening. Release readiness, pilot, rollout, and post-release planning are Stages 24–27.
 The supporting disposition matrix and deferred-work registry are in
@@ -1329,38 +1329,51 @@ locked Stage 9–11 algorithms. Retained refinements belong in Stage 22; missing
 Stage 21.
 
 
-## Stage 13 — Open Orders — PLANNED / RELEASE 1 REQUIRED
+## Stage 13 — Customer Open Orders — PLAN ACCEPTED / RELEASE 1 REQUIRED
 
-Stage 13 combines the former Customer Open Orders and General Open Orders scopes. It must support
-both customer-focused date-change work and flexible cross-customer investigation without direct
-company-database writes. Planning prompt:
-`docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`.
+Owner disposition — 2026-09-29: the bounded plan is accepted; implementation remains separately
+authorized. Stage 13 adds a workspace-scoped Customer Open Orders module before Component Orders.
+It does not provide cross-customer investigation; that capability belongs to Stage 18. Planning
+baseline: `docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`. Bounded implementation prompt:
+`docs/implementation/KST_v2_STAGE_13_IMPLEMENTATION_PROMPT.md`.
 
 ### 13.1 Discovery and accepted-scope decisions
 
-- [ ] Map sales-order number, customer PO, line, item/revision, ship-to, status, quantities, dates,
-      on hand, and extended price.
-- [ ] Confirm customer, site, part, status, date, and other search filters.
-- [ ] Confirm required versus optional filters, default site behavior, result limits, sorting,
-      selectable columns, column order, and saved-layout requirements.
-- [ ] Confirm editable date fields and date-validation rules.
-- [ ] Define QXtend mapping and distinguish the operational change file from analytical exports.
-- [ ] Define the Open Order Report relationship with the Stage 18 standalone generator.
+- [x] Scope each report to the active workspace site and current MPS-resolved parent population.
+- [x] Define open as `sod_qty_ord - sod_qty_ship > 0` without invented status/hold/type exclusions.
+- [x] Accept legacy report mappings, filters, default columns, default sorting, selectable columns,
+      and per-workspace visibility/order persistence.
+- [x] Accept Planning Mode edits for Due, Perform, Required, and Dock dates, Order Qty, and Price.
+- [x] Accept the exact Reason Code list, Save Draft behavior, stale-data validation, and change
+      lifecycle.
+- [x] Define the quantity, price, and date QXtend templates, grouping algorithm, and value formats.
+- [x] Distinguish the Stage 13 workspace report from Stage 18 cross-customer reporting and Stage 21
+      product-wide export consistency work.
+- [ ] Verify legacy-only QAD source names, especially Dock Date, Partials, and Allocated, during the
+      bounded source-contract checkpoint.
 
 ### 13.2 Backend and frontend
 
-- [ ] Reuse or create the authoritative sales-order adapter.
-- [ ] Define `OpenOrderSearchRequest`, `OpenOrderLine`, and `ProposedOrderChange` contracts.
-- [ ] Create one coherent Open Orders service and endpoints for customer and cross-customer use.
-- [ ] Add filter validation, safe result limits or pagination, and measured large-result behavior.
-- [ ] Build the filterable, sortable Open Orders grid and customer-focused date-edit workflow.
-- [ ] Highlight staged changes and provide explicit clearing/confirmation behavior.
-- [ ] Create and validate the QXtend-compatible date-change file without direct database writes.
-- [ ] Defer ordinary application-view export inventory and consistency to Stage 21.
+- [ ] Create the parameterized, read-only workspace sales-order adapter and targeted validation read.
+- [ ] Define Open Order line, snapshot, editable-value, proposed-change, Reason Code, draft, and
+      export contracts through the C# DTO → OpenAPI → generated TypeScript workflow.
+- [ ] Add Open Orders snapshot orchestration, last-good report behavior, and fail-closed QXtend
+      validation.
+- [ ] Build Customer Open Orders navigation, full-contract grid, legacy filters/sort, column
+      selection/reordering, and per-workspace layout persistence.
+- [ ] Build Planning Mode, editable value previews, reasons, undo/clear behavior, and optional
+      workspace-specific saved drafts.
+- [ ] Create the workspace Excel report and exact quantity, price, and date QXtend CSV exporters.
+- [ ] Verify complete-result performance without silent truncation and add rendering paging/windowing
+      only if measurement requires it.
+- [ ] Validate read-only safety, file cancellation/failure, accessibility, stale conflicts, QAD
+      unavailability, golden QXtend bytes, and legacy comparison evidence.
 - [ ] Owner acceptance.
 
-Completion gate: A scheduler can search Open Orders across customers, focus a customer workflow,
-stage and validate approved date changes, and generate the external QXtend-compatible change file.
+Completion gate: A scheduler can open the Customer Open Orders module for a workspace, inspect and
+export its complete scoped report, customize and retain its layout, stage and optionally retain
+approved date/quantity/price edits, and generate externally processed QXtend-compatible files after
+fresh validation. KST performs no direct write and no automatic import.
 
 
 ## Stage 14 — Planning Workbook — PLANNED / RELEASE 1 REQUIRED
@@ -1428,12 +1441,12 @@ Completion gate: A scheduler can determine whether available finished goods cove
 customer demand.
 
 
-## Stage 16 — General Open Orders — ABSORBED INTO STAGE 13
+## Stage 16 — General Open Orders — ABSORBED INTO STAGE 18
 
-Owner disposition — 2026-09-29: **ABSORBED**. Customer Open Orders and General Open Orders are
-different entry points into the same capability. Their filters, search, results, staged date changes,
-and external-file behavior are now planned together in Stage 13. This historical stage number is
-retained so earlier references remain understandable.
+Owner disposition — amended 2026-09-29: **ABSORBED INTO STAGE 18**. Stage 13 is intentionally
+workspace-scoped. The cross-customer Open Order Report formerly associated with General Open Orders
+belongs to the Stage 18 standalone report generator. This historical stage number is retained so
+earlier references remain understandable.
 
 
 ## Stage 17 — General WO Variance — RETIRED / NO LONGER DESIRED
@@ -1469,8 +1482,11 @@ case.
 
 ### 18.3 Open Order Report
 
-- [ ] Confirm report inputs, filters, output columns, grouping, sorting, and formatting.
-- [ ] Reuse accepted Stage 13 Open Orders data contracts and business rules.
+- [ ] Implement the full cross-customer report outside individual workspace scope.
+- [ ] Confirm report inputs, authorized site/customer scope, filters, output columns, grouping,
+      sorting, and formatting.
+- [ ] Reuse accepted Stage 13 field mappings where applicable without inheriting its workspace-only
+      parent population.
 - [ ] Implement standalone workbook generation.
 - [ ] Compare with the legacy report and validate with stakeholders.
 - [ ] Owner acceptance.
@@ -1890,10 +1906,10 @@ product baseline is frozen for Stage 23.
 ### Approved future roadmap
 
 - [~] Stage 12 — Multi-Part Shortage Analysis — **RETIRED / SUPERSEDED**.
-- [ ] Stage 13 — Open Orders — next planned product stage; implementation not yet authorized.
+- [ ] Stage 13 — Customer Open Orders — plan accepted; implementation not yet authorized.
 - [ ] Stage 14 — Planning Workbook.
 - [ ] Stage 15 — Finished Goods.
-- [~] Stage 16 — General Open Orders — **ABSORBED into Stage 13**.
+- [~] Stage 16 — General Open Orders — **ABSORBED into Stage 18**.
 - [~] Stage 17 — General WO Variance — **RETIRED / NO LONGER DESIRED**.
 - [ ] Stage 18 — Standalone Excel Report Generators.
 - [ ] Stage 19 — Historical Shipments.
