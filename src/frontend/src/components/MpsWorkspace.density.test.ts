@@ -32,6 +32,13 @@ describe('MPS grid density wiring', () => {
   });
 });
 
+describe('MPS grid scroll containment', () => {
+  it('lets the dashboard flex item shrink while one grid scroller owns both axes', () => {
+    expect(mpsWorkspaceCss).toMatch(/\.mps-workspace\s*{[^}]*min-width:\s*0\s*;/);
+    expect(mpsWorkspaceCss).toMatch(/\.mps-grid-scroll\s*{[^}]*min-width:\s*0\s*;[^}]*overflow:\s*auto\s*;/);
+  });
+});
+
 describe('density tokens (index.css)', () => {
   function tokenValue(block: RegExp, token: string): string | undefined {
     const blockMatch = block.exec(indexCss);

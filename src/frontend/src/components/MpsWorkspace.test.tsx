@@ -425,6 +425,11 @@ describe('MpsWorkspace', () => {
     expect(screen.getByText('Jul 21')).toBeInTheDocument();
     expect(screen.getByText('100')).toBeInTheDocument();
     expect(screen.getByText('300')).toBeInTheDocument();
+    const grid = screen.getByRole('table');
+    expect(grid.parentElement).toHaveClass('mps-grid-scroll');
+    expect(grid.querySelector('thead')?.parentElement).toBe(grid);
+    expect(grid.querySelector('tbody')?.parentElement).toBe(grid);
+    expect(grid.closest('.mps-workspace')).toBeInTheDocument();
   });
 
   it('keeps the Dashboard state loaded while customer modules are switched', async () => {

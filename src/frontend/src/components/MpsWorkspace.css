@@ -3,6 +3,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 
 .mps-workspace__header {
@@ -162,6 +163,7 @@
 .mps-grid-scroll {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   overflow: auto;
 }
 
