@@ -263,6 +263,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{assignmentId}/open-orders/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["RestoreOpenOrdersDraft"];
+        put: operations["SaveOpenOrdersDraft"];
+        post?: never;
+        delete: operations["DeleteOpenOrdersDraft"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/open-orders/draft/presence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetOpenOrdersDraftPresence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{assignmentId}/part-detail": {
         parameters: {
             query?: never;
@@ -919,6 +951,22 @@ export interface components {
             isRefreshInProgress: boolean;
             lastRefreshError: null | string;
         };
+        OpenOrderDraftRowDto: {
+            proposal: components["schemas"]["OpenOrderProposalDto"];
+            issues: string[];
+        };
+        OpenOrderDraftValuesDto: {
+            /** Format: date */
+            dueDate: null | string;
+            /** Format: date */
+            performDate: null | string;
+            /** Format: date */
+            requiredDate: null | string;
+            /** Format: date */
+            dockDate: null | string;
+            orderQty: string;
+            price: string;
+        };
         OpenOrderEditableValuesDto: {
             /** Format: date */
             dueDate: null | string;
@@ -974,12 +1022,32 @@ export interface components {
             soHoldStatus: null | string;
             soType: null | string;
             consignment: null | boolean;
+            planningValues: components["schemas"]["OpenOrderDraftValuesDto"];
+            shippedQtyText: string;
         };
         OpenOrderLineKeyDto: {
             domain: string;
             salesOrder: string;
             /** Format: int32 */
             line: number | string;
+        };
+        OpenOrderProposalDto: {
+            key: components["schemas"]["OpenOrderLineKeyDto"];
+            site: string;
+            itemNumber: string;
+            original: components["schemas"]["OpenOrderDraftValuesDto"];
+            proposed: components["schemas"]["OpenOrderDraftValuesDto"];
+            reasonCode: null | string;
+        };
+        OpenOrdersDraftPresenceDto: {
+            exists: boolean;
+        };
+        OpenOrdersDraftResponseDto: {
+            exists: boolean;
+            restored: boolean;
+            warning: null | string;
+            freshReport: null | components["schemas"]["OpenOrdersResponseDto"];
+            rows: components["schemas"]["OpenOrderDraftRowDto"][];
         };
         OpenOrdersResponseDto: {
             /** Format: uuid */
@@ -1047,6 +1115,11 @@ export interface components {
         };
         ReorderWorkspacesRequestDto: {
             assignmentIds: string[];
+        };
+        SaveOpenOrdersDraftRequestDto: {
+            mpsSnapshotId: string;
+            openOrdersSnapshotId: string;
+            proposals: components["schemas"]["OpenOrderProposalDto"][];
         };
         SnapshotStatusDto: {
             available: boolean;
@@ -1886,6 +1959,161 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RestoreOpenOrdersDraft: {
+        parameters: {
+            query: {
+                mpsSnapshotId: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenOrdersDraftResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SaveOpenOrdersDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveOpenOrdersDraftRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenOrdersDraftResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DeleteOpenOrdersDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetOpenOrdersDraftPresence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenOrdersDraftPresenceDto"];
                 };
             };
             /** @description Service Unavailable */

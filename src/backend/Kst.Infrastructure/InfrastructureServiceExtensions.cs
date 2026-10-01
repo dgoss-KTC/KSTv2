@@ -11,6 +11,8 @@ using Kst.Infrastructure.Snapshots;
 using Kst.Infrastructure.SystemStatus;
 using Kst.Infrastructure.Configuration;
 using Kst.Infrastructure.Workspaces;
+using Kst.Application.OpenOrders;
+using Kst.Infrastructure.OpenOrders;
 
 namespace Kst.Infrastructure;
 
@@ -30,6 +32,7 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton(new LocalAppDataPaths(localAppDataOverride));
         services.AddSingleton<IWorkspaceConfigurationStore, JsonWorkspaceConfigurationStore>();
         services.AddSingleton<IPreferencesStore, JsonPreferencesStore>();
+        services.AddSingleton<IOpenOrdersDraftStore, JsonOpenOrdersDraftStore>();
         return services;
     }
 }

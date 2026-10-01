@@ -5,6 +5,7 @@ import type { OrderLine } from './report';
 const line = (order: string, itemNumber: string, customerName: string | null, dueDate: string | null, overrides: Partial<OrderLine> = {}): OrderLine => ({
   key: { domain: 'TEST', salesOrder: order, line: 1 }, itemNumber, site: 'SW', purchaseOrder: null, stat: null,
   shippedQty: '2', sourceValues: { dueDate, performDate: null, requiredDate: null, dockDate: null, orderQty: '5', price: '0.0125' },
+  planningValues: { dueDate, performDate: null, requiredDate: null, dockDate: null, orderQty: '5', price: '0.0125' }, shippedQtyText: '2',
   open: '3', extPrice: '0.0375', unitPrice: '0', allocated: null, customer: 'C1', customerName,
   salesperson: 'SP', customerPart: null, ios: 'IOS', lineComments: '', lineHold: null, partials: null,
   picked: null, plnr: null, prodStat: null, productLine: 'B', qaHold: null, remarks: null, revision: null,

@@ -19,6 +19,8 @@
 }
 
 .open-orders__toolbar { margin-bottom: 8px; }
+.open-orders__draft-progress { color: var(--tx3); font-size: 11px; white-space: nowrap; }
+.open-orders__draft-progress::before { content: '◌'; margin-right: 4px; color: var(--accent-text); }
 .open-orders__feedback { max-width: 300px; color: var(--tx2); font-size: 11px; }
 .open-orders__feedback--error { color: var(--danger-tx); }
 .open-orders__toolbar h3 {
@@ -121,6 +123,18 @@
 .open-orders__header-moves button { padding: 0 3px; border: 0; background: transparent; color: var(--tx2); font-size: 15px; line-height: 1; }
 .open-orders__header-moves button:hover:not(:disabled) { color: var(--accent-text); }
 .open-orders__state { padding: 16px 4px; color: var(--tx3); font-size: 12.5px; }
+.open-orders__planning-summary, .open-orders__hidden-changes { padding: 8px; margin: 5px 0; background: var(--panel2); border: 1px solid var(--bd); font-size: 12px; }
+.open-orders__planning-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.open-orders__hidden-changes > div { padding: 5px 0; border-top: 1px solid var(--bd-soft); white-space: normal; overflow-wrap: anywhere; }
+.open-orders__hidden-changes button, .open-orders__planning-summary button { margin-left: 8px; }
+.open-orders__changed { background: var(--danger-bg); border-left: 3px solid var(--accent-solid); padding: 3px; }
+.open-orders td input, .open-orders td select { width: 126px; max-width: 100%; box-sizing: border-box; padding: 4px; background: var(--panel2); color: var(--tx); border: 1px solid var(--bd); border-radius: 3px; }
+.open-orders td small { display: block; color: var(--tx3); font-size: 10px; }
+.open-orders td .open-orders__date-error { color: var(--danger-tx); max-width: 145px; white-space: normal; }
+.open-orders td input[aria-invalid="true"] { border-color: var(--danger-tx); }
+.open-orders__actions, .open-orders__actions-heading { width: 100px; max-width: 145px; white-space: normal; }
+.open-orders__actions button { display: block; margin-top: 3px; }
+.open-orders__actions small { max-width: 145px; }
 
 @media (max-width: 850px) {
   .open-orders__filter-field select { min-width: 170px; }

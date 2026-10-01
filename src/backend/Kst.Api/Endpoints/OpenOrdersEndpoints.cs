@@ -5,6 +5,7 @@ using Kst.Domain.OpenOrders;
 using Kst.Exports;
 using Kst.Exports.Contracts;
 using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace Kst.Api.Endpoints;
 
@@ -35,6 +36,96 @@ public static class OpenOrdersEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        app.MapGet("/api/v1/workspaces/{assignmentId:guid}/open-orders/draft", RestoreDraft)
+            .WithName("RestoreOpenOrdersDraft").WithTags("OpenOrders").Produces<OpenOrdersDraftResponseDto>()
+            .ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        app.MapGet("/api/v1/workspaces/{assignmentId:guid}/open-orders/draft/presence", DraftPresence)
+            .WithName("GetOpenOrdersDraftPresence").WithTags("OpenOrders")
+            .Produces<OpenOrdersDraftPresenceDto>()
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        app.MapPut("/api/v1/workspaces/{assignmentId:guid}/open-orders/draft", SaveDraft)
+            .WithName("SaveOpenOrdersDraft").WithTags("OpenOrders").Produces<OpenOrdersDraftResponseDto>()
+            .ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        app.MapDelete("/api/v1/workspaces/{assignmentId:guid}/open-orders/draft", DeleteDraft)
+            .WithName("DeleteOpenOrdersDraft").WithTags("OpenOrders").Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+    }
+
+    private static async Task<IResult> DraftPresence(Guid assignmentId, OpenOrdersDraftService drafts, CancellationToken ct)
+    {
+        try { return Results.Ok(new OpenOrdersDraftPresenceDto(await drafts.ExistsAsync(assignmentId, ct))); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { return Results.Problem(title: "Draft presence could not be checked", statusCode: 503); }
+    }
+
+    private static async Task<IResult> RestoreDraft(Guid assignmentId, Guid mpsSnapshotId, OpenOrdersDraftService drafts, CancellationToken ct)
+    {
+        if (mpsSnapshotId == Guid.Empty) return Results.Problem(statusCode: 400);
+        try
+        {
+            var result = await drafts.RestoreAsync(assignmentId, new SnapshotId(mpsSnapshotId), ct);
+            return Results.Ok(DraftDto(result));
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { return Results.Problem(title: "Open Orders draft could not be read or validated", statusCode: 503); }
+    }
+
+    private static async Task<IResult> SaveDraft(Guid assignmentId, SaveOpenOrdersDraftRequestDto request, OpenOrdersDraftService drafts, CancellationToken ct)
+    {
+        if (request is null || !Guid.TryParse(request.MpsSnapshotId, out var mps) || mps == Guid.Empty ||
+            !Guid.TryParse(request.OpenOrdersSnapshotId, out var snapshot) || snapshot == Guid.Empty || request.Proposals is null ||
+            request.Proposals.Count > 100_000 || request.Proposals.Any(p => p is null || p.Key is null || p.Original is null || p.Proposed is null ||
+                string.IsNullOrWhiteSpace(p.Key.Domain) || string.IsNullOrWhiteSpace(p.Key.SalesOrder) ||
+                string.IsNullOrWhiteSpace(p.Site) || string.IsNullOrWhiteSpace(p.ItemNumber)) ||
+            request.Proposals.Where(p => p is not null && p.Key is not null).Select(p => p.Key).Distinct().Count() != request.Proposals.Count)
+            return Results.Problem(title: "Invalid draft", statusCode: 400);
+        var proposals = new List<OpenOrderProposal>();
+        foreach (var dto in request.Proposals)
+        {
+            if (!TryValues(dto.Original, out var original) || !TryValues(dto.Proposed, out var proposed) ||
+                dto.ReasonCode is not null && !OpenOrderPlanning.ReasonCodes.Contains(dto.ReasonCode))
+                return Results.Problem(title: "Invalid draft values or Reason Code", statusCode: 400);
+            proposals.Add(new OpenOrderProposal(new(dto.Key.Domain, dto.Key.SalesOrder, dto.Key.Line), dto.Site,
+                dto.ItemNumber, original!, proposed!, dto.ReasonCode));
+        }
+        try
+        {
+            var result = await drafts.SaveAsync(assignmentId, new SnapshotId(mps), new SnapshotId(snapshot), proposals, ct);
+            return result.Warning is null ? Results.Ok(DraftDto(result)) : Results.Problem(title: result.Warning, statusCode: 409);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { return Results.Problem(title: "Open Orders draft could not be saved", statusCode: 503); }
+    }
+
+    private static bool TryValues(OpenOrderDraftValuesDto dto, out OpenOrderEditableValues? values)
+    {
+        values = null;
+        const NumberStyles style = NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint;
+        if (dto.OrderQty is null || dto.Price is null ||
+            !Regex.IsMatch(dto.OrderQty, @"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$") ||
+            !Regex.IsMatch(dto.Price, @"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$") ||
+            !decimal.TryParse(dto.OrderQty, style, CultureInfo.InvariantCulture, out var quantity) ||
+            !decimal.TryParse(dto.Price, style, CultureInfo.InvariantCulture, out var price)) return false;
+        values = new(dto.DueDate, dto.PerformDate, dto.RequiredDate, dto.DockDate, quantity, price);
+        return true;
+    }
+
+    private static OpenOrdersDraftResponseDto DraftDto(OpenOrdersDraftResult result) => new(
+        result.Draft is not null, result.Report is not null, result.Warning,
+        result.Report is null ? null : ToDto(result.Report), result.Rows.Select(row => new OpenOrderDraftRowDto(
+            new(new(row.Proposal.Key.Domain, row.Proposal.Key.SalesOrder, row.Proposal.Key.Line), row.Proposal.Site,
+                row.Proposal.ItemNumber, ValuesDto(row.Proposal.Original), ValuesDto(row.Proposal.Proposed), row.Proposal.ReasonCode), row.Issues)).ToArray());
+
+    private static OpenOrderDraftValuesDto ValuesDto(OpenOrderEditableValues v) => new(
+        v.DueDate, v.PerformDate, v.RequiredDate, v.DockDate,
+        v.OrderQty.ToString(CultureInfo.InvariantCulture), v.Price.ToString(CultureInfo.InvariantCulture));
+
+    private static async Task<IResult> DeleteDraft(Guid assignmentId, OpenOrdersDraftService drafts, CancellationToken ct)
+    {
+        try { await drafts.DeleteAsync(assignmentId, ct); return Results.NoContent(); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { return Results.Problem(title: "Open Orders draft could not be removed", statusCode: 503); }
     }
 
     private static async Task<IResult> ExportReport(Guid assignmentId, ExportOpenOrdersReportRequestDto request,
@@ -131,5 +222,6 @@ public static class OpenOrdersEndpoints
         line.CustomerName, line.Salesperson, line.CustomerPart, line.Ios, line.LineComments,
         line.LineHold, line.Partials, line.Picked, line.Plnr, line.ProdStat, line.ProductLine,
         line.QaHold, line.Remarks, line.Revision, line.ShipAcct, line.ShipTo, line.ShipVia,
-        line.SiteQoh, line.SoHoldStatus, line.SoType, line.Consignment);
+        line.SiteQoh, line.SoHoldStatus, line.SoType, line.Consignment,
+        ValuesDto(line.SourceValues), line.ShippedQty.ToString(CultureInfo.InvariantCulture));
 }

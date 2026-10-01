@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { WorkspaceAssignmentDto } from '../api/client';
 import { useMpsDashboard } from '../hooks/useMpsDashboard';
 import { ComponentOrdersPanel } from './ComponentOrdersPanel';
@@ -31,8 +31,10 @@ function formatTimestamp(value: string | null | undefined): string {
   return Number.isNaN(date.getTime()) ? 'Never' : date.toLocaleString();
 }
 
-export function CustomerWorkspace({ workspace }: { workspace: WorkspaceAssignmentDto }) {
+export function CustomerWorkspace({ workspace, onPlanningDirtyChange }: { workspace: WorkspaceAssignmentDto; onPlanningDirtyChange?: (dirty: boolean) => void }) {
   const [activeModule, setActiveModule] = useState<CustomerModule>('dashboard');
+  const [planningDirty, setPlanningDirty] = useState(false);
+  const planningDirtyChanged = useCallback((dirty: boolean) => { setPlanningDirty(dirty); onPlanningDirtyChange?.(dirty); }, [onPlanningDirtyChange]);
   const mps = useMpsDashboard(workspace.assignmentId);
   const title = workspace.displayName ?? workspace.site;
 
@@ -59,7 +61,11 @@ export function CustomerWorkspace({ workspace }: { workspace: WorkspaceAssignmen
             role="tab"
             aria-selected={activeModule === module.id}
             className={`customer-workspace__module${activeModule === module.id ? ' customer-workspace__module--active' : ''}`}
-            onClick={() => setActiveModule(module.id)}
+            onClick={() => {
+              if (module.id !== 'openOrders' && planningDirty && !window.confirm('Unsaved Customer Open Orders planning changes will be discarded. Continue?')) return;
+              if (module.id !== 'openOrders') { setPlanningDirty(false); onPlanningDirtyChange?.(false); }
+              setActiveModule(module.id);
+            }}
           >
             {module.label}
           </button>
@@ -92,8 +98,8 @@ export function CustomerWorkspace({ workspace }: { workspace: WorkspaceAssignmen
           <ComponentOrdersPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null} />
         )}
         {activeModule === 'openOrders' && (
-          <OpenOrdersPanel key={`${workspace.assignmentId}:${mps.dashboard?.snapshot.snapshotId ?? ''}`} assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null}
-            workspaceName={workspace.displayName} site={workspace.site} />
+          <OpenOrdersPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null}
+            workspaceName={workspace.displayName} site={workspace.site} onDirtyChange={planningDirtyChanged} />
         )}
         {activeModule === 'longTermShortages' && (
           <LongTermShortagesPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null} />

@@ -93,6 +93,11 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
             services.AddSingleton<IPreferencesStore, InMemoryPreferencesStore>();
 
+            // Draft routes must never write to the developer's real local application data in tests.
+            var draftDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IOpenOrdersDraftStore));
+            if (draftDescriptor is not null) services.Remove(draftDescriptor);
+            services.AddSingleton<IOpenOrdersDraftStore, InMemoryOpenOrdersDraftStore>();
+
             // Stage 8D.3: optional deterministic BOM reader overrides for endpoint tests.
             var bomSourceReader = BomSourceReader;
             if (bomSourceReader is not null)
@@ -164,6 +169,15 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
         if (descriptor is not null) services.Remove(descriptor);
         services.AddSingleton(replacement);
     }
+}
+
+internal sealed class InMemoryOpenOrdersDraftStore : IOpenOrdersDraftStore
+{
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, OpenOrdersDraft> _drafts = new();
+    public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(_drafts.ContainsKey(id));
+    public Task<OpenOrdersDraft?> LoadAsync(Guid id, CancellationToken ct) => Task.FromResult(_drafts.GetValueOrDefault(id));
+    public Task SaveAsync(OpenOrdersDraft draft, CancellationToken ct) { _drafts[draft.WorkspaceId] = draft; return Task.CompletedTask; }
+    public Task DeleteAsync(Guid id, CancellationToken ct) { _drafts.TryRemove(id, out _); return Task.CompletedTask; }
 }
 
 /// <summary>

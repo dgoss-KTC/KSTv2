@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useBackendStatus } from '../hooks/useBackendStatus';
 import { useWorkspaces } from '../hooks/useWorkspaces';
 import { usePreferences } from '../hooks/usePreferences';
@@ -47,6 +47,9 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   const [showManageDialog, setShowManageDialog] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const planningDirtyRef = useRef(false);
+  const planningDirtyChanged = useCallback((dirty: boolean) => { planningDirtyRef.current = dirty; }, []);
+  const confirmDiscardPlanning = () => !planningDirtyRef.current || window.confirm('Unsaved Customer Open Orders planning changes will be discarded. Continue?');
 
   // Focus-restoration targets are DOM elements, not application state — stored in refs per the
   // repository focus-management convention (see Stage 8D.6 Component Information).
@@ -94,11 +97,13 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   }, [connectionState, load]);
 
   const handleSelectWorkspace = (id: string) => {
+    if (id !== workspacesState.activeId && !confirmDiscardPlanning()) return;
+    if (id !== workspacesState.activeId) planningDirtyRef.current = false;
     setIsGeneralActive(false);
     selectWorkspace(id);
   };
 
-  const handleSelectGeneral = () => setIsGeneralActive(true);
+  const handleSelectGeneral = () => { if (confirmDiscardPlanning()) { planningDirtyRef.current = false; setIsGeneralActive(true); } };
 
   const handleOpenAddDialog = (triggerEl: HTMLElement) => {
     addDialogSavingRef.current = false;
@@ -204,6 +209,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   });
 
   const handleArchiveRequest = (ws: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => {
+    if (ws.assignmentId === workspacesState.activeId && !confirmDiscardPlanning()) return;
     confirmBusyRef.current = false;
     confirmReturnFocusRef.current = triggerEl;
     setConfirmState({
@@ -226,6 +232,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   };
 
   const handleDeleteRequest = (ws: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => {
+    if (ws.assignmentId === workspacesState.activeId && !confirmDiscardPlanning()) return;
     confirmBusyRef.current = false;
     confirmReturnFocusRef.current = triggerEl;
     setConfirmState({
@@ -257,6 +264,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   };
 
   const handleResetRequest = (triggerEl: HTMLElement) => {
+    if (!confirmDiscardPlanning()) return;
     confirmBusyRef.current = false;
     confirmReturnFocusRef.current = triggerEl;
     setConfirmState({
@@ -352,7 +360,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
         ) : activeWorkspaces.length === 0 ? (
           <EmptyWorkspace />
         ) : activeWorkspace ? (
-          <CustomerWorkspace workspace={activeWorkspace} />
+          <CustomerWorkspace workspace={activeWorkspace} onPlanningDirtyChange={planningDirtyChanged} />
         ) : null}
       </main>
 

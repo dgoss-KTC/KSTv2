@@ -14,6 +14,63 @@ namespace Kst.Api.IntegrationTests;
 public sealed class OpenOrdersEndpointTests
 {
     [Fact]
+    public async Task DraftRestorationUsesFreshReadAndRetainsConflictsThroughArchiveUntilPermanentDeletion()
+    {
+        var current = Line(); var reads = 0;
+        await using var factory = new KstApiFactory { OpenOrdersSourceReader = new DelegateOpenOrdersSourceReader((_, _, _) =>
+        { reads++; return Task.FromResult<IReadOnlyList<OpenOrderLine>>([current]); }) };
+        using var client = factory.CreateClient();
+        var id = await CreateAsync(client);
+        var mps = Seed(factory.Services.GetRequiredService<IMpsSnapshotStore>(), id, "P-1");
+        var root = $"/api/v1/workspaces/{id}/open-orders";
+        var report = await client.GetFromJsonAsync<JsonElement>($"{root}?mpsSnapshotId={mps.Id}");
+        var proposal = new { key = new { domain = "TEST", salesOrder = "SO-1", line = 1 }, site = "SW", itemNumber = "P-1",
+            original = new { dueDate = (string?)null, performDate = (string?)null, requiredDate = (string?)null, dockDate = (string?)null, orderQty = "5", price = "0.0125" },
+            proposed = new { dueDate = (string?)null, performDate = (string?)null, requiredDate = (string?)null, dockDate = (string?)null, orderQty = "2", price = "0.0125" }, reasonCode = "Quality" };
+        using var saved = await client.PutAsJsonAsync(root + "/draft", new { mpsSnapshotId = mps.Id.ToString(),
+            openOrdersSnapshotId = report.GetProperty("openOrdersSnapshotId").GetString(), proposals = new[] { proposal } });
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+        Assert.Equal(1, reads);
+        var restored = await client.GetFromJsonAsync<JsonElement>(root + $"/draft?mpsSnapshotId={mps.Id}");
+        Assert.True(restored.GetProperty("restored").GetBoolean()); Assert.Equal(2, reads);
+        Assert.Equal("2", restored.GetProperty("rows")[0].GetProperty("proposal").GetProperty("proposed").GetProperty("orderQty").GetString());
+        current = current with { SourceValues = current.SourceValues with { Price = 0.02m } };
+        var conflicted = await client.GetFromJsonAsync<JsonElement>(root + $"/draft?mpsSnapshotId={mps.Id}");
+        Assert.Equal(3, reads);
+        Assert.NotEmpty(conflicted.GetProperty("rows")[0].GetProperty("issues").EnumerateArray());
+        Assert.Equal("0.0125", conflicted.GetProperty("rows")[0].GetProperty("proposal").GetProperty("original").GetProperty("price").GetString());
+        (await client.PostAsync($"/api/v1/workspaces/{id}/archive", null)).EnsureSuccessStatusCode();
+        Assert.True((await client.GetFromJsonAsync<JsonElement>(root + $"/draft?mpsSnapshotId={mps.Id}")).GetProperty("exists").GetBoolean());
+        (await client.DeleteAsync($"/api/v1/workspaces/{id}")).EnsureSuccessStatusCode();
+        Assert.False((await client.GetFromJsonAsync<JsonElement>(root + $"/draft?mpsSnapshotId={mps.Id}")).GetProperty("exists").GetBoolean());
+    }
+
+    [Fact]
+    public async Task DraftPresenceDoesNotRefreshOrDeserializeReportBeforeRestoration()
+    {
+        var reads = 0;
+        await using var factory = new KstApiFactory { OpenOrdersSourceReader = new DelegateOpenOrdersSourceReader((_, _, _) =>
+        { reads++; return Task.FromResult<IReadOnlyList<OpenOrderLine>>([Line()]); }) };
+        using var client = factory.CreateClient();
+        var id = await CreateAsync(client);
+        var root = $"/api/v1/workspaces/{id}/open-orders";
+        var presence = await client.GetFromJsonAsync<JsonElement>(root + "/draft/presence");
+        Assert.False(presence.GetProperty("exists").GetBoolean());
+        Assert.Equal(0, reads);
+        var snapshot = Seed(factory.Services.GetRequiredService<IMpsSnapshotStore>(), id, "P-1");
+        var report = await client.GetFromJsonAsync<JsonElement>(root + $"?mpsSnapshotId={snapshot.Id}");
+        var original = new { dueDate = (string?)null, performDate = (string?)null, requiredDate = (string?)null, dockDate = (string?)null, orderQty = "5", price = "0.0125" };
+        var proposal = new { key = new { domain = "TEST", salesOrder = "SO-1", line = 1 }, site = "SW", itemNumber = "P-1", original,
+            proposed = new { original.dueDate, original.performDate, original.requiredDate, original.dockDate, orderQty = "4", original.price }, reasonCode = "Factory" };
+        (await client.PutAsJsonAsync(root + "/draft", new { mpsSnapshotId = snapshot.Id.ToString(),
+            openOrdersSnapshotId = report.GetProperty("openOrdersSnapshotId").GetString(), proposals = new[] { proposal } })).EnsureSuccessStatusCode();
+        Assert.True((await client.GetFromJsonAsync<JsonElement>(root + "/draft/presence")).GetProperty("exists").GetBoolean());
+        Assert.Equal(1, reads);
+        (await client.DeleteAsync(root + "/draft")).EnsureSuccessStatusCode();
+        Assert.False((await client.GetFromJsonAsync<JsonElement>(root + "/draft/presence")).GetProperty("exists").GetBoolean());
+    }
+
+    [Fact]
     public async Task ReportExportUsesCachedScopedRowsInClientOrderAndRejectsChangedSnapshot()
     {
         var sourceReads = 0;

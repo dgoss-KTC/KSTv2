@@ -219,6 +219,7 @@ else
         (_, _, _) => throw new InvalidOperationException("QAD connection is not configured.")));
 }
 builder.Services.AddSingleton<OpenOrdersService>();
+builder.Services.AddSingleton<OpenOrdersDraftService>();
 
 // -- Part Detail (Stage 6) -------------------------------------------------
 builder.Services.AddSingleton<IPartDetailCacheStore, InMemoryPartDetailCacheStore>();

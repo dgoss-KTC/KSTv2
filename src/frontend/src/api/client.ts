@@ -39,6 +39,9 @@ export type LongTermShortagePurchasingDto = components['schemas']['LongTermShort
 export type ExportLongTermShortagesRequestDto = components['schemas']['ExportLongTermShortagesRequestDto'];
 export type OpenOrdersResponseDto = components['schemas']['OpenOrdersResponseDto'];
 export type ExportOpenOrdersReportRequestDto = components['schemas']['ExportOpenOrdersReportRequestDto'];
+export type OpenOrdersDraftResponseDto = components['schemas']['OpenOrdersDraftResponseDto'];
+export type OpenOrdersDraftPresenceDto = components['schemas']['OpenOrdersDraftPresenceDto'];
+export type SaveOpenOrdersDraftRequestDto = components['schemas']['SaveOpenOrdersDraftRequestDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -250,6 +253,22 @@ export class ApiClient {
 
   async refreshOpenOrders(assignmentId: string, mpsSnapshotId: string): Promise<OpenOrdersResponseDto> {
     return this.postEmpty<OpenOrdersResponseDto>(`/api/v1/workspaces/${assignmentId}/open-orders/refresh?mpsSnapshotId=${encodeURIComponent(mpsSnapshotId)}`);
+  }
+
+  async restoreOpenOrdersDraft(assignmentId: string, mpsSnapshotId: string): Promise<OpenOrdersDraftResponseDto> {
+    return this.get<OpenOrdersDraftResponseDto>(`/api/v1/workspaces/${assignmentId}/open-orders/draft?mpsSnapshotId=${encodeURIComponent(mpsSnapshotId)}`);
+  }
+
+  async getOpenOrdersDraftPresence(assignmentId: string): Promise<OpenOrdersDraftPresenceDto> {
+    return this.get<OpenOrdersDraftPresenceDto>(`/api/v1/workspaces/${assignmentId}/open-orders/draft/presence`);
+  }
+
+  async saveOpenOrdersDraft(assignmentId: string, request: SaveOpenOrdersDraftRequestDto): Promise<OpenOrdersDraftResponseDto> {
+    return this.put<OpenOrdersDraftResponseDto>(`/api/v1/workspaces/${assignmentId}/open-orders/draft`, request);
+  }
+
+  async deleteOpenOrdersDraft(assignmentId: string): Promise<void> {
+    return this.delete(`/api/v1/workspaces/${assignmentId}/open-orders/draft`);
   }
 
   async exportOpenOrdersReport(assignmentId: string, request: ExportOpenOrdersReportRequestDto): Promise<{ blob: Blob; fileName: string | null }> {

@@ -1,6 +1,6 @@
 # Customer Open Orders — Stage 13.2 backend/API
 
-**Status:** 13.2 accepted; 13.3 Report Mode implemented for owner desktop review (not yet accepted). Business baseline:
+**Status:** 13.2, 13.3, and 13.4 accepted; 13.4 Planning Mode and draft persistence owner-accepted. Business baseline:
 `docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`; source evidence:
 `docs/implementation/KST_v2_STAGE_13_SOURCE_CONTRACT_LEDGER.md`.
 Exact mechanical contract: `docs/openapi/Kst.Api.json`.
@@ -100,4 +100,14 @@ Windows-safe normalized prefix followed by `-Open-Orders-<acquisition-date>.xlsx
 passes that same suggested name to desktop Save As or browser download. The operator may rename
 the file in Save As. Success feedback near Export announces `Saved <actual filename>` and clears
 after approximately five seconds; cancellation and retryable errors remain distinct. This endpoint does not validate or
-generate QXtend changes. Planning Mode, drafts and QXtend files remain later checkpoints.
+generate QXtend changes. Planning Mode and drafts are described below; QXtend files remain a later checkpoint.
+
+## Checkpoint 13.4 — Planning Mode and saved drafts (owner accepted)
+
+Plan Mode forces the four editable dates, total Order Qty, raw Price and row Reason Code visible, without changing the Report Mode column layout. Changed rows preserve their source key, site, part, original values and proposal. The seven accepted Reason Codes are enforced; changed rows without one are incomplete. Proposed Open = proposed Order Qty − current Shipped Qty (equality allowed), and proposed Ext Price = proposed raw Price × proposed Open even for consignment lines. Decimal planning inputs and baselines are transferred as plain invariant strings (`planningValues`, `shippedQtyText`), avoiding JS floating-point arithmetic. Valid dates or intentional nulls are allowed; display uses M/d/yyyy. Undo, confirmed Clear All, change counts and hidden/conflicted-row discovery cover the entire workspace population.
+
+`GET /api/v1/workspaces/{assignmentId}/open-orders/draft?mpsSnapshotId={guid}` checks a saved draft against a **newly acquired** Open Orders report, never against a cached GET. It returns `exists`, `restored`, `warning`, `freshReport`, and reconciled `rows` with issues; the UI asks the user to restore and re-enables saving after confirmation. Failed fresh acquisition leaves proposals visible but unrestored; corrupt drafts stay on disk for recovery and are reported rather than silently discarded. Changed or missing source rows preserve originals/proposals and are ineligible for later QXtend export. MPS-scope mismatch is a conflict.
+
+`PUT .../draft` accepts current MPS and report snapshot IDs plus proposals, validates typed identities and plain decimal text, filters no-ops by value, and atomically saves JSON under `%LOCALAPPDATA%\KST\config\open-orders-draft-{assignmentId}.json` through a temporary file and rename. A report that is stale or whose snapshot does not match cannot be used to save. `DELETE .../draft` removes the local copy; turning Save Draft off requires confirmation and leaves memory intact. Workspace archival preserves it, permanent delete and reset remove it. Navigation warns when unsaved in-memory proposals would be discarded. Save failures remain visible. This checkpoint does not generate QXtend files, submit changes, or write to company databases.
+
+**13.4 owner desktop correction (accepted):** Report refresh and filtered XLSX actions are disabled during Plan Mode, returning to their usual state in Report Mode. Plan Mode uses its own assignment-ID-scoped column layout (`kst.openOrders.planLayout.v1.{assignmentId}`), whose first-use/reset order is SO, PO, Line, Item Number, Open, Due Date, Perform Date, Required Date, Dock Date, Order Qty, Price. Reason Code follows Price; compact status and Undo follow as row actions. All eleven planning data columns remain visible; other report columns, including proposed Ext Price, may be selected and reordered. Report Mode layout stays under its accepted separate storage key. `GET .../draft/presence` checks only whether a draft file exists (no QAD read or JSON parse); only a positive result triggers fresh restoration and a compact in-progress indicator near Save Draft. The indicator ends for success, no draft, failure or superseded scope. Plan Mode dates are single text inputs accepting complete `M/d/yyyy` or `MM/dd/yyyy`; valid dates normalize to the existing ISO comparison/persistence value, blank means intentional null, and partial/invalid text remains visible without being staged as a cleared date. An incomplete date blocks saving and is marked not export-ready; Enter advances to the next editor when valid and Tab uses native focus order.

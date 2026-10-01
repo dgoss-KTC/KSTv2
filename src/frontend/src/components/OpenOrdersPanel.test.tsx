@@ -8,16 +8,18 @@ import type { OpenOrdersResponseDto } from '../api/client';
 import type { OrderLine } from '../openOrders/report';
 import { ApiError } from '../api/client';
 
-const get = vi.fn(); const refresh = vi.fn(); const exportReport = vi.fn(); const save = vi.fn();
+const get = vi.fn(); const refresh = vi.fn(); const exportReport = vi.fn(); const save = vi.fn(); const restoreDraft = vi.fn(); const draftPresence = vi.fn(); const saveDraft = vi.fn(); const deleteDraft = vi.fn();
 vi.mock('../api/tauri-bridge', () => ({ resolveBackendBaseUrl: () => Promise.resolve('http://localhost'), isRunningInTauri: () => false }));
 vi.mock('../api/client', async (original) => ({ ...(await original<typeof import('../api/client')>()),
-  ApiClient: class { getOpenOrders = get; refreshOpenOrders = refresh; exportOpenOrdersReport = exportReport; },
+  ApiClient: class { getOpenOrders = get; refreshOpenOrders = refresh; exportOpenOrdersReport = exportReport;
+    restoreOpenOrdersDraft = restoreDraft; getOpenOrdersDraftPresence = draftPresence; saveOpenOrdersDraft = saveDraft; deleteOpenOrdersDraft = deleteDraft; },
 }));
 vi.mock('../longTermShortages/saveLongTermShortagesWorkbook', () => ({ saveLongTermShortagesWorkbook: (...args: unknown[]) => save(...args) }));
 
 function response(count: number, isStale = false): OpenOrdersResponseDto {
   const template: OrderLine = { key: { domain: 'D', salesOrder: 'SO-1', line: 1 }, itemNumber: 'P-1', site: 'SW', purchaseOrder: 'PO', stat: 'A',
     shippedQty: 1, sourceValues: { dueDate: '2027-01-01', performDate: null, requiredDate: null, dockDate: null, orderQty: 3, price: '0.125' },
+    planningValues: { dueDate: '2027-01-01', performDate: null, requiredDate: null, dockDate: null, orderQty: '3', price: '0.125' }, shippedQtyText: '1',
     open: 2, extPrice: '0.250', unitPrice: 0, allocated: null, customer: 'C1', customerName: 'Acme', salesperson: 'SP',
     customerPart: null, ios: 'IOS', lineComments: '', lineHold: null, partials: null, picked: null, plnr: null, prodStat: null,
     productLine: 'B', qaHold: null, remarks: null, revision: null, shipAcct: null, shipTo: null, shipVia: null,
@@ -34,10 +36,205 @@ function applyTextFilter(type: string, value: string) {
   fireEvent.click(screen.getByRole('button', { name: `Apply ${name} filter` }));
 }
 
-beforeEach(() => { get.mockReset(); refresh.mockReset(); exportReport.mockReset(); save.mockReset(); window.localStorage.clear(); });
+beforeEach(() => { get.mockReset(); refresh.mockReset(); exportReport.mockReset(); draftPresence.mockReset(); save.mockReset(); restoreDraft.mockReset(); saveDraft.mockReset(); deleteDraft.mockReset();
+  draftPresence.mockResolvedValue({ exists: false });
+  restoreDraft.mockResolvedValue({ exists: false, restored: false, warning: null, freshReport: null, rows: [] });
+  saveDraft.mockResolvedValue({ exists: true, restored: true, warning: null, freshReport: null, rows: [] }); deleteDraft.mockResolvedValue(undefined);
+  window.localStorage.clear(); });
 afterEach(() => vi.useRealTimers());
 
 describe('Customer Open Orders panel', () => {
+  it('stages changed rows across filters and pages, keeps Report Mode layout, previews exact raw-price extension and supports undo and confirmed clear', async () => {
+    get.mockResolvedValue(response(101));
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByText(/101 scoped lines/);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    expect(screen.getByRole('columnheader', { name: /Perform Date/ })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /^Price / })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
+    expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: /3.*Original: 2/ })).toBeInTheDocument(); // Open 4 - 1; extension is optional in Plan Mode
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    expect(screen.getByText(/1 outside current filter\/page view/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    expect(screen.getAllByRole('columnheader')).toHaveLength(9);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear All' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear All' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Clear All' }));
+    expect(screen.getByText(/0 changed across workspace/)).toBeInTheDocument();
+  }, 60_000);
+
+  it('remembers Plan column order and optional Ext Price independently for each workspace, and resets only Plan', async () => {
+    get.mockResolvedValue(response(1));
+    const { rerender } = render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    const headers = () => within(screen.getByRole('table')).getAllByRole('columnheader').map(h => h.textContent?.replace(/[‹›]/g, '').trim());
+    expect(headers().slice(0, 11)).toEqual(['SO', 'PO', 'Line', 'Item Number', 'Open', 'Due Date', 'Perform Date', 'Required Date', 'Dock Date', 'Order Qty', 'Price']);
+    expect(headers().slice(11)).toEqual(['Reason Code', 'Actions']);
+    fireEvent.click(screen.getByText(/Plan columns \(11 visible\)/));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Ext Price' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Move Ext Price Left' }));
+    expect(headers()).toContain('Ext Price');
+    expect(screen.getByText('0.25')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    expect(headers().slice(0, 9)).toEqual(['Due Date', 'SO', 'PO', 'Line', 'Item Number', 'Site', 'Open', 'Status', 'Ext Price']);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    expect(headers()).toContain('Ext Price');
+    rerender(<OpenOrdersPanel key="B" assignmentId="B" snapshotId="snap-1" />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    expect(headers()).not.toContain('Ext Price');
+    rerender(<OpenOrdersPanel key="A-again" assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    expect(headers()).toContain('Ext Price');
+    fireEvent.click(screen.getByText(/Plan columns \(12 visible\)/));
+    fireEvent.click(screen.getByRole('button', { name: 'Reset columns to default' }));
+    expect(headers()).not.toContain('Ext Price');
+  });
+
+  it('restores only after fresh validation, retains conflicts, and allows save-off without dropping in-memory edits', async () => {
+    const data = response(1);
+    get.mockResolvedValue(data);
+    const original = data.lines[0].planningValues;
+    const staged = { key: data.lines[0].key, site: 'SW', itemNumber: 'P-1', original, proposed: { ...original, orderQty: '4' }, reasonCode: 'Planning' };
+    draftPresence.mockResolvedValue({ exists: true });
+    restoreDraft.mockResolvedValue({ exists: true, restored: true, warning: null, freshReport: { ...data, openOrdersSnapshotId: 'fresh-2',
+      lines: [{ ...data.lines[0], planningValues: { ...original, price: '0.2' } }] }, rows: [{ proposal: staged, issues: ['Source identity or original editable values changed.'] }] });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    expect(await screen.findByRole('button', { name: 'Restore saved draft and continue saving' })).toBeInTheDocument();
+    expect(restoreDraft).toHaveBeenCalledWith('A', 'snap-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Restore saved draft and continue saving' }));
+    expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
+    expect(screen.getByText(/1 conflicts/)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Save Draft' })).toBeChecked();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' }));
+    await waitFor(() => expect(deleteDraft).toHaveBeenCalledWith('A'));
+    expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+
+  it('shows compact draft progress only for an existing draft and clears it at every terminal state', async () => {
+    const data = response(1); get.mockResolvedValue(data);
+    let finish: (result: unknown) => void = () => {};
+    draftPresence.mockResolvedValueOnce({ exists: false }).mockResolvedValueOnce({ exists: true }).mockResolvedValueOnce({ exists: true });
+    restoreDraft.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }))
+      .mockRejectedValueOnce(new Error('synthetic offline'));
+    const { rerender } = render(<OpenOrdersPanel key="A" assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table');
+    await waitFor(() => expect(draftPresence).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Checking saved draft…')).not.toBeInTheDocument();
+    expect(restoreDraft).not.toHaveBeenCalled();
+    rerender(<OpenOrdersPanel key="B" assignmentId="B" snapshotId="snap-1" />);
+    expect(await screen.findByText('Checking saved draft…')).toBeInTheDocument();
+    await act(async () => finish({ exists: true, restored: true, warning: null, freshReport: data, rows: [] }));
+    expect(screen.queryByText('Checking saved draft…')).not.toBeInTheDocument();
+    rerender(<OpenOrdersPanel key="C" assignmentId="C" snapshotId="snap-1" />);
+    expect(await screen.findByText(/Draft check failed/)).toBeInTheDocument();
+    expect(screen.queryByText('Checking saved draft…')).not.toBeInTheDocument();
+  });
+
+  it('clears obsolete draft progress after an MPS scope change while preserving the new scope', async () => {
+    get.mockResolvedValue(response(1)); draftPresence.mockResolvedValue({ exists: true });
+    let finish: (value: unknown) => void = () => {};
+    restoreDraft.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }))
+      .mockResolvedValueOnce({ exists: false, restored: false, warning: null, freshReport: null, rows: [] });
+    const { rerender } = render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    expect(await screen.findByText('Checking saved draft…')).toBeInTheDocument();
+    rerender(<OpenOrdersPanel assignmentId="A" snapshotId="snap-2" />);
+    await waitFor(() => expect(draftPresence).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByText('Checking saved draft…')).not.toBeInTheDocument());
+    await act(async () => finish({ exists: true, restored: true, warning: null, freshReport: response(1), rows: [] }));
+    expect(screen.queryByRole('button', { name: /Restore saved draft/ })).not.toBeInTheDocument();
+  });
+
+  it('shows a retryable message and blocks Save Draft when draft presence cannot be checked', async () => {
+    get.mockResolvedValue(response(1));
+    draftPresence.mockRejectedValueOnce(new Error('synthetic file check')).mockResolvedValueOnce({ exists: false });
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    expect(await screen.findByText(/Could not check for a saved draft/)).toBeInTheDocument();
+    expect(screen.queryByText('Checking saved draft…')).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Save Draft' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry draft check' }));
+    await waitFor(() => expect(draftPresence).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Save Draft' })).toBeEnabled());
+  });
+
+  it('types complete dates in one field, preserves partial/invalid text, normalizes no-ops and supports Tab/Enter', async () => {
+    get.mockResolvedValue(response(1));
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table'); fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    const due = screen.getByRole('textbox', { name: 'Due Date proposal SO-1/1' });
+    expect(due).toHaveAttribute('type', 'text');
+    fireEvent.change(due, { target: { value: '01/01/2027' } });
+    expect(screen.getByText(/0 changed across workspace/)).toBeInTheDocument();
+    fireEvent.change(due, { target: { value: '1/8/' } });
+    expect(due).toHaveValue('1/8/');
+    expect(screen.queryByText(/Enter a valid M\/d\/yyyy/)).not.toBeInTheDocument();
+    fireEvent.keyDown(due, { key: 'Enter' });
+    expect(screen.getByText(/Enter a valid M\/d\/yyyy/)).toBeInTheDocument();
+    fireEvent.change(due, { target: { value: '2/29/2027' } });
+    expect(due).toHaveValue('2/29/2027');
+    expect(screen.getByText(/0 changed across workspace/)).toBeInTheDocument();
+    fireEvent.change(due, { target: { value: '2/29/2028' } });
+    expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
+    fireEvent.keyDown(due, { key: 'Enter' });
+    expect(screen.getByRole('textbox', { name: 'Perform Date proposal SO-1/1' })).toHaveFocus();
+    fireEvent.change(due, { target: { value: '' } });
+    expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
+    expect(due).toHaveValue('');
+    fireEvent.change(due, { target: { value: '1/1/2027' } });
+    expect(screen.getByText(/0 changed across workspace/)).toBeInTheDocument();
+  });
+
+  it('does not save incomplete date text as a blank or stale proposal while Save Draft is enabled', async () => {
+    get.mockResolvedValue(response(1));
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table'); fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' }));
+    await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
+    const due = screen.getByRole('textbox', { name: 'Due Date proposal SO-1/1' });
+    fireEvent.change(due, { target: { value: '1/8/' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
+    expect(due).toHaveValue('1/8/');
+    expect(screen.getByText(/Not export-ready/)).toBeInTheDocument();
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    fireEvent.change(due, { target: { value: '1/8/2027' } });
+    await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(2));
+    expect(saveDraft.mock.calls[1][1].proposals[0].proposed.dueDate).toBe('2027-01-08');
+    expect(saveDraft.mock.calls[1][1].proposals[0].proposed.orderQty).toBe('4');
+  });
+
+  it('preserves unsaved edits on mode switching and blocks Report Mode actions while planning', async () => {
+    const first = response(1);
+    get.mockResolvedValue(first);
+    refresh.mockResolvedValue({ ...first, openOrdersSnapshotId: 'report-2', lines: [{ ...first.lines[0], planningValues: { ...first.lines[0].planningValues, price: '2.5' } }] });
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
+    expect(screen.getByRole('button', { name: 'Refresh report' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Export filtered rows to XLSX' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh report' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export filtered rows to XLSX' }));
+    expect(refresh).not.toHaveBeenCalled(); expect(exportReport).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    expect(screen.getByRole('button', { name: 'Refresh report' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Export filtered rows to XLSX' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh report' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    await waitFor(() => expect(screen.getByText(/1 conflicts/)).toBeInTheDocument());
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' })).toHaveValue('4');
+    fireEvent.click(screen.getByText('Issues'));
+    expect(screen.getByText(/Original values or source identity changed/)).toBeInTheDocument();
+  });
+
   it('shows loaded empty distinctly and does not fetch without MPS', async () => {
     const { rerender } = render(<OpenOrdersPanel assignmentId="A" snapshotId={null} />);
     expect(screen.getByText(/Load the MPS dashboard/)).toBeInTheDocument(); expect(get).not.toHaveBeenCalled();
@@ -334,5 +531,20 @@ describe('Customer Open Orders panel', () => {
     const theme = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
     const css = readFileSync(resolve(process.cwd(), 'src/components/OpenOrdersPanel.css'), 'utf8');
     writeFileSync(process.env.KST_STAGE13_POLISH_FIXTURE_PATH!, `<!doctype html><html><head><meta charset="utf-8"><style>${theme}\n${css}\nbody { margin:0; background:var(--app); } .fixture { display:flex; height:850px; padding-top:16px; box-sizing:border-box; }</style></head><body><div class="fixture">${container.innerHTML}</div></body></html>`);
+  });
+
+  it.skipIf(!process.env.KST_STAGE13_PLAN_FIXTURE_PATH)('writes a synthetic planning screen for owner review', async () => {
+    get.mockResolvedValue(response(3));
+    const { container } = render(<OpenOrdersPanel assignmentId="synthetic-planning" snapshotId="synthetic-mps" />);
+    await screen.findByText(/3 scoped lines/);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Due Date proposal SO-1/1' }), { target: { value: '1/8/2027' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Price proposal SO-2/1' }), { target: { value: '0.3333' } });
+    const theme = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/components/OpenOrdersPanel.css'), 'utf8');
+    const screenshotMarkup = container.innerHTML.replace(/(<label><input type="checkbox")/, '$1 checked=""'); // controlled DOM state is a property, not serialized by innerHTML
+    writeFileSync(process.env.KST_STAGE13_PLAN_FIXTURE_PATH!, `<!doctype html><html><head><meta charset="utf-8"><style>${theme}\n${css}\nbody { margin:0; background:var(--app); } .fixture { display:flex; height:850px; padding-top:16px; box-sizing:border-box; }</style></head><body><div class="fixture">${screenshotMarkup}</div></body></html>`);
   });
 });

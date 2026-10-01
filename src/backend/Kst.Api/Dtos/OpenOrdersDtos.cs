@@ -14,7 +14,8 @@ public sealed record OpenOrderLineDto(
     bool? Partials, decimal? Picked, string? Plnr, string? ProdStat,
     string? ProductLine, string? QaHold, string? Remarks, string? Revision,
     string? ShipAcct, string? ShipTo, string? ShipVia, decimal? SiteQoh,
-    string? SoHoldStatus, string? SoType, bool? Consignment);
+    string? SoHoldStatus, string? SoType, bool? Consignment,
+    OpenOrderDraftValuesDto PlanningValues, string ShippedQtyText);
 
 public sealed record OpenOrdersResponseDto(
     Guid WorkspaceId, string Site, string MpsSnapshotId, string OpenOrdersSnapshotId,
@@ -24,3 +25,16 @@ public sealed record OpenOrdersResponseDto(
 public sealed record ExportOpenOrdersReportRequestDto(
     string MpsSnapshotId, string OpenOrdersSnapshotId,
     IReadOnlyList<OpenOrderLineKeyDto> LineKeys, IReadOnlyList<string> Columns);
+
+// Decimal text is deliberate: JavaScript numbers cannot preserve all .NET decimal precision.
+public sealed record OpenOrderDraftValuesDto(
+    DateOnly? DueDate, DateOnly? PerformDate, DateOnly? RequiredDate, DateOnly? DockDate,
+    string OrderQty, string Price);
+public sealed record OpenOrderProposalDto(OpenOrderLineKeyDto Key, string Site, string ItemNumber,
+    OpenOrderDraftValuesDto Original, OpenOrderDraftValuesDto Proposed, string? ReasonCode);
+public sealed record SaveOpenOrdersDraftRequestDto(string MpsSnapshotId, string OpenOrdersSnapshotId,
+    IReadOnlyList<OpenOrderProposalDto> Proposals);
+public sealed record OpenOrderDraftRowDto(OpenOrderProposalDto Proposal, IReadOnlyList<string> Issues);
+public sealed record OpenOrdersDraftResponseDto(bool Exists, bool Restored, string? Warning,
+    OpenOrdersResponseDto? FreshReport, IReadOnlyList<OpenOrderDraftRowDto> Rows);
+public sealed record OpenOrdersDraftPresenceDto(bool Exists);

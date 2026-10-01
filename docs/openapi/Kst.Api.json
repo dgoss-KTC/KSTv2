@@ -830,6 +830,208 @@
         }
       }
     },
+    "/api/v1/workspaces/{assignmentId}/open-orders/draft": {
+      "get": {
+        "tags": [
+          "OpenOrders"
+        ],
+        "operationId": "RestoreOpenOrdersDraft",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mpsSnapshotId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenOrdersDraftResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "OpenOrders"
+        ],
+        "operationId": "SaveOpenOrdersDraft",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveOpenOrdersDraftRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenOrdersDraftResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "OpenOrders"
+        ],
+        "operationId": "DeleteOpenOrdersDraft",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/open-orders/draft/presence": {
+      "get": {
+        "tags": [
+          "OpenOrders"
+        ],
+        "operationId": "GetOpenOrdersDraftPresence",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenOrdersDraftPresenceDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{assignmentId}/part-detail": {
       "get": {
         "tags": [
@@ -4110,6 +4312,71 @@
           }
         }
       },
+      "OpenOrderDraftRowDto": {
+        "required": [
+          "proposal",
+          "issues"
+        ],
+        "type": "object",
+        "properties": {
+          "proposal": {
+            "$ref": "#/components/schemas/OpenOrderProposalDto"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "OpenOrderDraftValuesDto": {
+        "required": [
+          "dueDate",
+          "performDate",
+          "requiredDate",
+          "dockDate",
+          "orderQty",
+          "price"
+        ],
+        "type": "object",
+        "properties": {
+          "dueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "performDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "requiredDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "dockDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "orderQty": {
+            "type": "string"
+          },
+          "price": {
+            "type": "string"
+          }
+        }
+      },
       "OpenOrderEditableValuesDto": {
         "required": [
           "dueDate",
@@ -4201,7 +4468,9 @@
           "siteQoh",
           "soHoldStatus",
           "soType",
-          "consignment"
+          "consignment",
+          "planningValues",
+          "shippedQtyText"
         ],
         "type": "object",
         "properties": {
@@ -4404,6 +4673,12 @@
               "null",
               "boolean"
             ]
+          },
+          "planningValues": {
+            "$ref": "#/components/schemas/OpenOrderDraftValuesDto"
+          },
+          "shippedQtyText": {
+            "type": "string"
           }
         }
       },
@@ -4428,6 +4703,91 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "OpenOrderProposalDto": {
+        "required": [
+          "key",
+          "site",
+          "itemNumber",
+          "original",
+          "proposed",
+          "reasonCode"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/OpenOrderLineKeyDto"
+          },
+          "site": {
+            "type": "string"
+          },
+          "itemNumber": {
+            "type": "string"
+          },
+          "original": {
+            "$ref": "#/components/schemas/OpenOrderDraftValuesDto"
+          },
+          "proposed": {
+            "$ref": "#/components/schemas/OpenOrderDraftValuesDto"
+          },
+          "reasonCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "OpenOrdersDraftPresenceDto": {
+        "required": [
+          "exists"
+        ],
+        "type": "object",
+        "properties": {
+          "exists": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OpenOrdersDraftResponseDto": {
+        "required": [
+          "exists",
+          "restored",
+          "warning",
+          "freshReport",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "exists": {
+            "type": "boolean"
+          },
+          "restored": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "freshReport": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OpenOrdersResponseDto"
+              }
+            ]
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenOrderDraftRowDto"
+            }
           }
         }
       },
@@ -4731,6 +5091,28 @@
             "items": {
               "type": "string",
               "format": "uuid"
+            }
+          }
+        }
+      },
+      "SaveOpenOrdersDraftRequestDto": {
+        "required": [
+          "mpsSnapshotId",
+          "openOrdersSnapshotId",
+          "proposals"
+        ],
+        "type": "object",
+        "properties": {
+          "mpsSnapshotId": {
+            "type": "string"
+          },
+          "openOrdersSnapshotId": {
+            "type": "string"
+          },
+          "proposals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenOrderProposalDto"
             }
           }
         }
