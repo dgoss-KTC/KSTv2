@@ -210,6 +210,9 @@ builder.Services.AddSingleton<IOpenOrdersSnapshotStore, InMemoryOpenOrdersSnapsh
 if (qadOptions.IsConfigured)
 {
     builder.Services.AddSingleton<QadOpenOrdersReader>();
+    builder.Services.AddSingleton<QadOpenOrderCurrentReader>();
+    builder.Services.AddSingleton<IOpenOrderCurrentLineReader>(sp => new DelegateOpenOrderCurrentLineReader(
+        (site, keys, ct) => sp.GetRequiredService<QadOpenOrderCurrentReader>().ReadAsync(site, keys, ct)));
     builder.Services.AddSingleton<IOpenOrdersSourceReader>(sp => new DelegateOpenOrdersSourceReader(
         (site, parents, ct) => sp.GetRequiredService<QadOpenOrdersReader>().ReadAsync(site, parents, ct)));
 }
@@ -217,8 +220,11 @@ else
 {
     builder.Services.AddSingleton<IOpenOrdersSourceReader>(_ => new DelegateOpenOrdersSourceReader(
         (_, _, _) => throw new InvalidOperationException("QAD connection is not configured.")));
+    builder.Services.AddSingleton<IOpenOrderCurrentLineReader>(_ => new DelegateOpenOrderCurrentLineReader(
+        (_, _, _) => throw new InvalidOperationException("QAD connection is not configured.")));
 }
 builder.Services.AddSingleton<OpenOrdersService>();
+builder.Services.AddSingleton<OpenOrdersQxtendService>();
 builder.Services.AddSingleton<OpenOrdersDraftService>();
 
 // -- Part Detail (Stage 6) -------------------------------------------------

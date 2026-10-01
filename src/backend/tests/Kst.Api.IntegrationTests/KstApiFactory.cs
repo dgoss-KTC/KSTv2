@@ -62,6 +62,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
     /// <summary>Optional deterministic Stage 11-A source reader override for endpoint tests.</summary>
     public ILongTermShortageSourceReader? LongTermShortageSourceReader { get; set; }
     public IOpenOrdersSourceReader? OpenOrdersSourceReader { get; set; }
+    public IOpenOrderCurrentLineReader? OpenOrderCurrentLineReader { get; set; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -154,6 +155,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
             ReplaceIfProvided(services, ComponentOrderEnrichmentReader);
             ReplaceIfProvided(services, LongTermShortageSourceReader);
             ReplaceIfProvided(services, OpenOrdersSourceReader);
+            ReplaceIfProvided(services, OpenOrderCurrentLineReader);
         });
 
         builder.ConfigureLogging(logging =>

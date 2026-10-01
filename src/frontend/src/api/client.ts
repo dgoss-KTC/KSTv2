@@ -42,6 +42,8 @@ export type ExportOpenOrdersReportRequestDto = components['schemas']['ExportOpen
 export type OpenOrdersDraftResponseDto = components['schemas']['OpenOrdersDraftResponseDto'];
 export type OpenOrdersDraftPresenceDto = components['schemas']['OpenOrdersDraftPresenceDto'];
 export type SaveOpenOrdersDraftRequestDto = components['schemas']['SaveOpenOrdersDraftRequestDto'];
+export type ExportOpenOrdersQxtendRequestDto = components['schemas']['ExportOpenOrdersQxtendRequestDto'];
+export type OpenOrdersQxtendResponseDto = components['schemas']['OpenOrdersQxtendResponseDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -279,6 +281,10 @@ export class ApiClient {
     });
     if (!response.ok) { const text = await response.text(); throw new ApiError(response.status, url, text || `HTTP ${response.status} from ${url}`); }
     return { blob: await response.blob(), fileName: response.headers.get('content-disposition')?.match(/filename="?([^";]+)"?/i)?.[1] ?? null };
+  }
+
+  async exportOpenOrdersQxtend(assignmentId: string, request: ExportOpenOrdersQxtendRequestDto): Promise<OpenOrdersQxtendResponseDto> {
+    return this.post<OpenOrdersQxtendResponseDto>(`/api/v1/workspaces/${assignmentId}/open-orders/qxtend-export`, request);
   }
 
   async getLongTermShortages(

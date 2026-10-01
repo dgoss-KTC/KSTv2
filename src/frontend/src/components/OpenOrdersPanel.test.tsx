@@ -8,13 +8,14 @@ import type { OpenOrdersResponseDto } from '../api/client';
 import type { OrderLine } from '../openOrders/report';
 import { ApiError } from '../api/client';
 
-const get = vi.fn(); const refresh = vi.fn(); const exportReport = vi.fn(); const save = vi.fn(); const restoreDraft = vi.fn(); const draftPresence = vi.fn(); const saveDraft = vi.fn(); const deleteDraft = vi.fn();
+const get = vi.fn(); const refresh = vi.fn(); const exportReport = vi.fn(); const exportQxtend = vi.fn(); const save = vi.fn(); const saveCsv = vi.fn(); const restoreDraft = vi.fn(); const draftPresence = vi.fn(); const saveDraft = vi.fn(); const deleteDraft = vi.fn();
 vi.mock('../api/tauri-bridge', () => ({ resolveBackendBaseUrl: () => Promise.resolve('http://localhost'), isRunningInTauri: () => false }));
 vi.mock('../api/client', async (original) => ({ ...(await original<typeof import('../api/client')>()),
-  ApiClient: class { getOpenOrders = get; refreshOpenOrders = refresh; exportOpenOrdersReport = exportReport;
+  ApiClient: class { getOpenOrders = get; refreshOpenOrders = refresh; exportOpenOrdersReport = exportReport; exportOpenOrdersQxtend = exportQxtend;
     restoreOpenOrdersDraft = restoreDraft; getOpenOrdersDraftPresence = draftPresence; saveOpenOrdersDraft = saveDraft; deleteOpenOrdersDraft = deleteDraft; },
 }));
 vi.mock('../longTermShortages/saveLongTermShortagesWorkbook', () => ({ saveLongTermShortagesWorkbook: (...args: unknown[]) => save(...args) }));
+vi.mock('../openOrders/saveQxtendCsv', () => ({ saveQxtendCsv: (...args: unknown[]) => saveCsv(...args) }));
 
 function response(count: number, isStale = false): OpenOrdersResponseDto {
   const template: OrderLine = { key: { domain: 'D', salesOrder: 'SO-1', line: 1 }, itemNumber: 'P-1', site: 'SW', purchaseOrder: 'PO', stat: 'A',
@@ -36,7 +37,7 @@ function applyTextFilter(type: string, value: string) {
   fireEvent.click(screen.getByRole('button', { name: `Apply ${name} filter` }));
 }
 
-beforeEach(() => { get.mockReset(); refresh.mockReset(); exportReport.mockReset(); draftPresence.mockReset(); save.mockReset(); restoreDraft.mockReset(); saveDraft.mockReset(); deleteDraft.mockReset();
+beforeEach(() => { get.mockReset(); refresh.mockReset(); exportReport.mockReset(); exportQxtend.mockReset(); saveCsv.mockReset(); draftPresence.mockReset(); save.mockReset(); restoreDraft.mockReset(); saveDraft.mockReset(); deleteDraft.mockReset();
   draftPresence.mockResolvedValue({ exists: false });
   restoreDraft.mockResolvedValue({ exists: false, restored: false, warning: null, freshReport: null, rows: [] });
   saveDraft.mockResolvedValue({ exists: true, restored: true, warning: null, freshReport: null, rows: [] }); deleteDraft.mockResolvedValue(undefined);
@@ -44,6 +45,107 @@ beforeEach(() => { get.mockReset(); refresh.mockReset(); exportReport.mockReset(
 afterEach(() => vi.useRealTimers());
 
 describe('Customer Open Orders panel', () => {
+  it('displays integer quantity and four-place price, exposes full raw text on focus and preserves exact proposals', async () => {
+    const data = response(1);
+    data.lines[0].planningValues = { ...data.lines[0].planningValues, orderQty: '3.000', price: '0.125' };
+    get.mockResolvedValue(data);
+    exportQxtend.mockResolvedValue({ files: [{ kind: 'price', fileName: 'UpdatePrices.csv', contentBase64: 'TQ==' }] });
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    const qty = screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' });
+    const price = screen.getByRole('textbox', { name: 'Price proposal SO-1/1' });
+    expect(qty).toHaveValue('3');
+    expect(price).toHaveValue('0.1250');
+    fireEvent.focus(qty);
+    expect(qty).toHaveValue('3.000');
+    fireEvent.change(qty, { target: { value: '3.25' } });
+    fireEvent.blur(qty);
+    expect(qty).toHaveValue('3.25');
+    fireEvent.focus(price);
+    expect(price).toHaveValue('0.125');
+    fireEvent.change(price, { target: { value: '0.1256' } });
+    fireEvent.blur(price);
+    expect(price).toHaveValue('0.1256');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Export All QXtend CSVs' }));
+    await waitFor(() => expect(exportQxtend).toHaveBeenCalledTimes(1));
+    expect(exportQxtend.mock.calls[0][1].proposals[0].original).toMatchObject({ orderQty: '3.000', price: '0.125' });
+    expect(exportQxtend.mock.calls[0][1].proposals[0].proposed).toMatchObject({ orderQty: '3.25', price: '0.1256' });
+  });
+
+  it('shows four places for a ten-decimal source price but sends its untouched original on date-only export', async () => {
+    const data = response(1);
+    data.lines[0].planningValues = { ...data.lines[0].planningValues, price: '12.3456789012' };
+    get.mockResolvedValue(data);
+    exportQxtend.mockResolvedValue({ files: [{ kind: 'date', fileName: 'DateChange.csv', contentBase64: 'TQ==' }] });
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    const price = screen.getByRole('textbox', { name: 'Price proposal SO-1/1' });
+    expect(price).toHaveValue('12.3457');
+    fireEvent.focus(price);
+    expect(price).toHaveValue('12.3456789012');
+    fireEvent.blur(price);
+    expect(price).toHaveValue('12.3457');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Due Date proposal SO-1/1' }), { target: { value: '1/2/2027' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Export All QXtend CSVs' }));
+    await waitFor(() => expect(exportQxtend).toHaveBeenCalledTimes(1));
+    expect(exportQxtend.mock.calls[0][1].proposals[0].original.price).toBe('12.3456789012');
+    expect(exportQxtend.mock.calls[0][1].proposals[0].proposed.price).toBe('12.3456789012');
+  });
+
+  it('keeps staged date-only proposal and displays old-backend route failure without guessing a validation conflict', async () => {
+    get.mockResolvedValue(response(1));
+    exportQxtend.mockRejectedValue(new ApiError(404, '/qxtend-export', ''));
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Due Date proposal SO-1/1' }), { target: { value: '1/2/2027' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Export All QXtend CSVs' }));
+    await screen.findByText(/QXtend export endpoint is unavailable in the running backend/);
+    expect(exportQxtend.mock.calls[0][1].proposals).toHaveLength(1);
+    expect(exportQxtend.mock.calls[0][1].proposals[0].reasonCode).toBe('Planning');
+    expect(screen.getByRole('textbox', { name: 'Due Date proposal SO-1/1' })).toHaveValue('1/2/2027');
+    expect(screen.queryByRole('group', { name: 'Prepared QXtend files' })).not.toBeInTheDocument();
+  });
+
+  it('validates all staged workspace changes and retains separate Save As statuses for cancellation, failure and retry', async () => {
+    get.mockResolvedValue(response(2));
+    exportQxtend.mockResolvedValue({ files: [
+      { kind: 'quantity', fileName: 'UpdateQuantities.csv', contentBase64: 'TQ==' },
+      { kind: 'price', fileName: 'UpdatePrices.csv', contentBase64: 'TQ==' },
+    ] });
+    saveCsv.mockResolvedValueOnce({ kind: 'saved', fileName: 'Chosen.csv' })
+      .mockResolvedValueOnce({ kind: 'cancelled' }).mockRejectedValueOnce(new Error('disk full'))
+      .mockResolvedValueOnce({ kind: 'saved', fileName: 'Second.csv' });
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByText(/2 scoped lines/);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    for (const order of ['SO-1', 'SO-2']) {
+      fireEvent.change(screen.getByRole('textbox', { name: `Order Qty proposal ${order}/1` }), { target: { value: '4' } });
+      fireEvent.change(screen.getByRole('combobox', { name: `Reason Code ${order}/1` }), { target: { value: 'Planning' } });
+    }
+    applyTextFilter('so', 'SO-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Export All QXtend CSVs' }));
+    await waitFor(() => expect(exportQxtend).toHaveBeenCalledTimes(1));
+    expect(exportQxtend.mock.calls[0][1].proposals).toHaveLength(2);
+    const quantity = await screen.findByRole('button', { name: 'Save As UpdateQuantities.csv' });
+    fireEvent.click(quantity);
+    await screen.findByText('Saved Chosen.csv');
+    const price = screen.getByRole('button', { name: 'Save As UpdatePrices.csv' });
+    fireEvent.click(price);
+    await screen.findByText('Save cancelled; file remains ready.');
+    fireEvent.click(price);
+    await screen.findByText('Save failed; retry this file. Other saved files and proposals remain.');
+    fireEvent.click(price);
+    await screen.findByText('Saved Second.csv');
+    expect(screen.getByText('Saved Chosen.csv')).toBeInTheDocument();
+    expect(screen.getByText(/2 changed across workspace/)).toBeInTheDocument();
+  });
+
   it('stages changed rows across filters and pages, keeps Report Mode layout, previews exact raw-price extension and supports undo and confirmed clear', async () => {
     get.mockResolvedValue(response(101));
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);

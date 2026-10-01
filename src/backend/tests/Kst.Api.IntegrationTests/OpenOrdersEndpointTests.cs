@@ -14,6 +14,146 @@ namespace Kst.Api.IntegrationTests;
 public sealed class OpenOrdersEndpointTests
 {
     [Fact]
+    public async Task QxtendEndpointValidatesFreshChangedKeysAndReturnsOnlyApplicableFiles()
+    {
+        var reads = 0;
+        var current = new OpenOrderCurrentLine(new("TEST", "SO-1", 1), "SW", "P-1", 2m,
+            new(null, null, null, null, 5m, 0.0125m));
+        await using var factory = new KstApiFactory
+        {
+            OpenOrdersSourceReader = new DelegateOpenOrdersSourceReader((_, _, _) =>
+                Task.FromResult<IReadOnlyList<OpenOrderLine>>([Line()])),
+            OpenOrderCurrentLineReader = new DelegateOpenOrderCurrentLineReader((site, keys, _) =>
+            {
+                reads++;
+                Assert.Equal("SW", site);
+                Assert.Equal([current.Key], keys);
+                return Task.FromResult<IReadOnlyList<OpenOrderCurrentLine>>([current]);
+            })
+        };
+        using var client = factory.CreateClient();
+        var id = await CreateAsync(client);
+        var mps = Seed(factory.Services.GetRequiredService<IMpsSnapshotStore>(), id, "P-1");
+        var root = $"/api/v1/workspaces/{id}/open-orders";
+        var report = await client.GetFromJsonAsync<JsonElement>($"{root}?mpsSnapshotId={mps.Id}");
+        var original = new { dueDate = (string?)null, performDate = (string?)null, requiredDate = (string?)null,
+            dockDate = (string?)null, orderQty = "5", price = "0.0125" };
+        var proposal = new { key = new { domain = "TEST", salesOrder = "SO-1", line = 1 }, site = "SW", itemNumber = "P-1",
+            original, proposed = new { original.dueDate, original.performDate, original.requiredDate, original.dockDate,
+                orderQty = "2", original.price }, reasonCode = "Planning" };
+        var request = new { mpsSnapshotId = mps.Id.ToString(), openOrdersSnapshotId = report.GetProperty("openOrdersSnapshotId").GetString(),
+            proposals = new[] { proposal } };
+        using var success = await client.PostAsJsonAsync(root + "/qxtend-export", request);
+        Assert.Equal(HttpStatusCode.OK, success.StatusCode);
+        var files = (await success.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("files");
+        Assert.Equal(1, files.GetArrayLength());
+        Assert.Equal("quantity", files[0].GetProperty("kind").GetString());
+        Assert.Equal("UpdateQuantities.csv", files[0].GetProperty("fileName").GetString());
+        Assert.Contains("M,SO-1,M,SO-1,1,2,Planning\r\n", System.Text.Encoding.UTF8.GetString(
+            Convert.FromBase64String(files[0].GetProperty("contentBase64").GetString()!)));
+        Assert.Equal(1, reads);
+        current = current with { ShippedQty = 3m };
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync(root + "/qxtend-export", request)).StatusCode);
+        current = current with { ShippedQty = 2m, Values = current.Values with { Price = 3m } };
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync(root + "/qxtend-export", request)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(root + "/qxtend-export", new {
+            request.mpsSnapshotId, request.openOrdersSnapshotId, proposals = new[] { proposal, proposal }
+        })).StatusCode);
+        Seed(factory.Services.GetRequiredService<IMpsSnapshotStore>(), id, "P-2");
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync(root + "/qxtend-export", request)).StatusCode);
+    }
+
+    [Fact]
+    public async Task QxtendDateOnlyRequestFromReportDtoProducesOnlyDateCsv()
+    {
+        var reads = 0;
+        var line = Line() with { SourceValues = new(new(2026, 10, 2), new(2026, 9, 29),
+            new(2026, 9, 28), null, 5m, 0.0125m) };
+        await using var factory = new KstApiFactory
+        {
+            OpenOrdersSourceReader = new DelegateOpenOrdersSourceReader((_, _, _) =>
+                Task.FromResult<IReadOnlyList<OpenOrderLine>>([line])),
+            OpenOrderCurrentLineReader = new DelegateOpenOrderCurrentLineReader((site, keys, _) =>
+            {
+                Assert.Equal("SW", site);
+                Assert.Equal([line.Key], keys);
+                reads++;
+                return Task.FromResult<IReadOnlyList<OpenOrderCurrentLine>>([
+                    new(line.Key, line.Site, line.ItemNumber, line.ShippedQty, line.SourceValues)]);
+            })
+        };
+        using var client = factory.CreateClient();
+        var id = await CreateAsync(client);
+        var snapshot = Seed(factory.Services.GetRequiredService<IMpsSnapshotStore>(), id, "P-1");
+        var root = $"/api/v1/workspaces/{id}/open-orders";
+        var report = await client.GetFromJsonAsync<JsonElement>($"{root}?mpsSnapshotId={snapshot.Id}");
+        var fromApi = report.GetProperty("lines")[0];
+        var original = fromApi.GetProperty("planningValues");
+        // The frontend sends the exact original decimal strings and ISO calendar dates from GET.
+        var proposed = new { dueDate = "2026-10-03", performDate = (string?)original.GetProperty("performDate").GetString(),
+            requiredDate = (string?)original.GetProperty("requiredDate").GetString(), dockDate = (string?)null,
+            orderQty = original.GetProperty("orderQty").GetString(), price = original.GetProperty("price").GetString() };
+        var request = new { mpsSnapshotId = snapshot.Id.ToString(), openOrdersSnapshotId = report.GetProperty("openOrdersSnapshotId").GetString(),
+            proposals = new[] { new { key = fromApi.GetProperty("key"), site = fromApi.GetProperty("site").GetString(),
+                itemNumber = fromApi.GetProperty("itemNumber").GetString(), original, proposed, reasonCode = "Planning" } } };
+        using var result = await client.PostAsJsonAsync(root + "/qxtend-export", request);
+        Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+        var files = (await result.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("files");
+        Assert.Equal(1, files.GetArrayLength());
+        Assert.Equal("date", files[0].GetProperty("kind").GetString());
+        Assert.Equal("DateChange.csv", files[0].GetProperty("fileName").GetString());
+        Assert.Contains("M,SO-1,M,SO-1,1,Planning,9/28/2026,10/3/2026,9/29/2026,\r\n",
+            System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(files[0].GetProperty("contentBase64").GetString()!)));
+        Assert.Equal(1, reads);
+    }
+
+    [Fact]
+    public async Task QxtendMissingReasonAndFreshConflictReturnSanitizedProblemWithoutCsv()
+    {
+        var fresh = Line();
+        var reads = 0;
+        await using var factory = new KstApiFactory
+        {
+            OpenOrdersSourceReader = new DelegateOpenOrdersSourceReader((_, _, _) =>
+                Task.FromResult<IReadOnlyList<OpenOrderLine>>([Line()])),
+            OpenOrderCurrentLineReader = new DelegateOpenOrderCurrentLineReader((_, _, _) =>
+            {
+                reads++;
+                return Task.FromResult<IReadOnlyList<OpenOrderCurrentLine>>([
+                    new(fresh.Key, fresh.Site, fresh.ItemNumber, fresh.ShippedQty, fresh.SourceValues)]);
+            })
+        };
+        using var client = factory.CreateClient();
+        var id = await CreateAsync(client);
+        var snapshot = Seed(factory.Services.GetRequiredService<IMpsSnapshotStore>(), id, "P-1");
+        var root = $"/api/v1/workspaces/{id}/open-orders";
+        var report = await client.GetFromJsonAsync<JsonElement>($"{root}?mpsSnapshotId={snapshot.Id}");
+        var original = report.GetProperty("lines")[0].GetProperty("planningValues");
+        var proposal = new { key = report.GetProperty("lines")[0].GetProperty("key"), site = "SW", itemNumber = "P-1",
+            original, proposed = new { dueDate = "2026-10-03", performDate = (string?)null, requiredDate = (string?)null,
+                dockDate = (string?)null, orderQty = original.GetProperty("orderQty").GetString(), price = original.GetProperty("price").GetString() },
+            reasonCode = (string?)null };
+        var request = new { mpsSnapshotId = snapshot.Id.ToString(), openOrdersSnapshotId = report.GetProperty("openOrdersSnapshotId").GetString(), proposals = new[] { proposal } };
+        using var invalid = await client.PostAsJsonAsync(root + "/qxtend-export", request);
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+        var invalidBody = await invalid.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("invalid-values-or-reason", invalidBody.GetProperty("issueCode").GetString());
+        Assert.Equal(1, invalidBody.GetProperty("affectedRowCount").GetInt32());
+        Assert.Equal(0, reads);
+        fresh = fresh with { SourceValues = fresh.SourceValues with { Price = 0.5m } };
+        using var changed = await client.PostAsJsonAsync(root + "/qxtend-export", new {
+            request.mpsSnapshotId, request.openOrdersSnapshotId,
+            proposals = new[] { new { proposal.key, proposal.site, proposal.itemNumber, proposal.original, proposal.proposed, reasonCode = "Planning" } }
+        });
+        Assert.Equal(HttpStatusCode.Conflict, changed.StatusCode);
+        var body = await changed.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("source-changed", body.GetProperty("issueCode").GetString());
+        Assert.Equal(1, body.GetProperty("affectedRowCount").GetInt32());
+        Assert.False(body.TryGetProperty("files", out _));
+        Assert.Equal(1, reads);
+    }
+
+    [Fact]
     public async Task DraftRestorationUsesFreshReadAndRetainsConflictsThroughArchiveUntilPermanentDeletion()
     {
         var current = Line(); var reads = 0;

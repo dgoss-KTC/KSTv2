@@ -11,6 +11,10 @@ public static class OpenOrderPlanning
 
     public static bool Changed(OpenOrderProposal proposal) => proposal.Original != proposal.Proposed;
 
+    public static bool ChangesDates(OpenOrderProposal p) => p.Original.DueDate != p.Proposed.DueDate ||
+        p.Original.PerformDate != p.Proposed.PerformDate || p.Original.RequiredDate != p.Proposed.RequiredDate ||
+        p.Original.DockDate != p.Proposed.DockDate;
+
     public static decimal ProposedOpen(OpenOrderProposal proposal, decimal shippedQty) => proposal.Proposed.OrderQty - shippedQty;
     public static decimal ProposedExtPrice(OpenOrderProposal proposal, decimal shippedQty) =>
         proposal.Proposed.Price * ProposedOpen(proposal, shippedQty);

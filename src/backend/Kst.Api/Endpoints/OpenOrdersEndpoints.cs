@@ -36,6 +36,12 @@ public static class OpenOrdersEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        app.MapPost("/api/v1/workspaces/{assignmentId:guid}/open-orders/qxtend-export", ExportQxtend)
+            .WithName("ExportOpenOrdersQxtend").WithTags("OpenOrders")
+            .WithSummary("Freshly validates changed workspace lines and prepares applicable QXtend CSV files for human review.")
+            .Produces<OpenOrdersQxtendResponseDto>()
+            .ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         app.MapGet("/api/v1/workspaces/{assignmentId:guid}/open-orders/draft", RestoreDraft)
             .WithName("RestoreOpenOrdersDraft").WithTags("OpenOrders").Produces<OpenOrdersDraftResponseDto>()
             .ProducesProblem(StatusCodes.Status400BadRequest).ProducesProblem(StatusCodes.Status503ServiceUnavailable);
@@ -110,6 +116,53 @@ public static class OpenOrdersEndpoints
         values = new(dto.DueDate, dto.PerformDate, dto.RequiredDate, dto.DockDate, quantity, price);
         return true;
     }
+
+    private static async Task<IResult> ExportQxtend(Guid assignmentId, ExportOpenOrdersQxtendRequestDto request,
+        OpenOrdersQxtendService validator, CancellationToken ct)
+    {
+        if (request is null || !Guid.TryParse(request.MpsSnapshotId, out var mps) || mps == Guid.Empty ||
+            !Guid.TryParse(request.OpenOrdersSnapshotId, out var report) || report == Guid.Empty ||
+            request.Proposals is null || request.Proposals.Count is 0 or > 100_000 ||
+            request.Proposals.Any(p => p is null || p.Key is null || p.Original is null || p.Proposed is null ||
+                string.IsNullOrWhiteSpace(p.Key.Domain) || string.IsNullOrWhiteSpace(p.Key.SalesOrder) ||
+                p.Key.Line <= 0 || string.IsNullOrWhiteSpace(p.Site) || string.IsNullOrWhiteSpace(p.ItemNumber)) ||
+            request.Proposals.Select(p => p.Key).Distinct().Count() != request.Proposals.Count)
+            return QxtendProblem(400, "invalid-request", request?.Proposals?.Count ?? 0);
+        var proposals = new List<OpenOrderProposal>(request.Proposals.Count);
+        foreach (var p in request.Proposals)
+        {
+            if (!TryValues(p.Original, out var original) || !TryValues(p.Proposed, out var proposed) ||
+                !OpenOrderPlanning.ReasonCodes.Contains(p.ReasonCode ?? ""))
+                return QxtendProblem(400, "invalid-values-or-reason", 1);
+            var proposal = new OpenOrderProposal(new(p.Key.Domain, p.Key.SalesOrder, p.Key.Line), p.Site,
+                p.ItemNumber, original!, proposed!, p.ReasonCode);
+            if (!OpenOrderPlanning.Changed(proposal)) return QxtendProblem(400, "unchanged-line", 1);
+            proposals.Add(proposal);
+        }
+        var validated = await validator.ValidateAsync(assignmentId, new SnapshotId(mps), new SnapshotId(report), proposals, ct);
+        if (validated.Outcome != QxtendOutcome.Ready)
+            return QxtendProblem(validated.Outcome switch
+            {
+                QxtendOutcome.Invalid => 400,
+                QxtendOutcome.Missing => 404,
+                QxtendOutcome.Unavailable => 503,
+                _ => 409
+            }, validated.IssueCode ?? "export-conflict", validated.AffectedRowCount);
+        // No CSV bytes are produced until every changed line passed the same fresh validation.
+        var files = OpenOrdersQxtendCsv.Create(validated.Changes!);
+        return Results.Ok(new OpenOrdersQxtendResponseDto(files.Select(file => new OpenOrdersQxtendFileDto(
+            file.Key.ToString().ToLowerInvariant(), file.Key switch
+            {
+                OpenOrdersQxtendKind.Quantity => "UpdateQuantities.csv",
+                OpenOrdersQxtendKind.Price => "UpdatePrices.csv",
+                _ => "DateChange.csv"
+            }, Convert.ToBase64String(file.Value))).ToArray()));
+    }
+
+    // Only issue categories and counts cross the boundary; never return source or proposal contents.
+    private static IResult QxtendProblem(int status, string code, int affectedRows) =>
+        Results.Problem(title: "QXtend export blocked", statusCode: status,
+            extensions: new Dictionary<string, object?> { ["issueCode"] = code, ["affectedRowCount"] = affectedRows });
 
     private static OpenOrdersDraftResponseDto DraftDto(OpenOrdersDraftResult result) => new(
         result.Draft is not null, result.Report is not null, result.Warning,

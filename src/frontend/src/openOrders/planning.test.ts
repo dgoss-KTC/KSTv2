@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { changed, decimal, equalDecimal, issues, multiply, parsePlanningDate, subtract, validDate, type Proposal } from './planning';
+import { changed, decimal, equalDecimal, issues, multiply, parsePlanningDate, planningNumberDisplay, subtract, validDate, type Proposal } from './planning';
 import type { OrderLine } from './report';
 
 const original = { dueDate: '2026-10-01', performDate: null, requiredDate: null, dockDate: null,
@@ -9,6 +9,16 @@ const proposal: Proposal = { key: { domain: 'D', salesOrder: 'SO-1', line: 1 }, 
 const row = { key: proposal.key, itemNumber: 'P', site: 'SW', shippedQty: '1.5', shippedQtyText: '1.5', planningValues: original } as OrderLine;
 
 describe('Open Orders planning arithmetic and validation', () => {
+  it('formats numeric editors without changing fractional quantity or high-precision price values', () => {
+    expect(planningNumberDisplay('orderQty', '12.0000')).toBe('12');
+    expect(planningNumberDisplay('orderQty', '12.25')).toBe('12.25');
+    expect(planningNumberDisplay('price', '1.25')).toBe('1.2500');
+    expect(planningNumberDisplay('price', '0.0125')).toBe('0.0125');
+    expect(planningNumberDisplay('price', '0.01251')).toBe('0.0125');
+    expect(planningNumberDisplay('price', '12.3456789012')).toBe('12.3457');
+    expect(planningNumberDisplay('price', '-0.01255')).toBe('-0.0126');
+    expect(planningNumberDisplay('price', '')).toBe('');
+  });
   it('handles exact consignment raw prices, equality to shipped and numeric no-ops', () => {
     expect(changed(proposal)).toBe(false);
     const p = { ...proposal, proposed: { ...original, orderQty: '1.5', price: '0.012500000000000000000000001' }, reasonCode: 'Quality' };

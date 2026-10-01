@@ -36,6 +36,21 @@ export function multiply(a: string, b: string): string | null {
 export function equalDecimal(a: string, b: string): boolean {
   return decimal(a) !== null && subtract(a, b) === '0';
 }
+
+/** Presentation only: never round or replace the value sent to draft/export validation. */
+export function planningNumberDisplay(field: 'orderQty' | 'price', value: string): string {
+  const parsed = decimal(value);
+  if (!parsed) return value;
+  if (field === 'orderQty') return parsed.n % (10n ** BigInt(parsed.scale)) === 0n
+    ? (parsed.n / (10n ** BigInt(parsed.scale))).toString() : value;
+  // Round the visual value only; the editor reveals and retains the exact source text on focus.
+  const divisor = 10n ** BigInt(Math.max(0, parsed.scale - 4));
+  const absolute = parsed.n < 0n ? -parsed.n : parsed.n;
+  const scaled = parsed.scale > 4 ? (absolute + divisor / 2n) / divisor : absolute * 10n ** BigInt(4 - parsed.scale);
+  const digits = scaled.toString().padStart(5, '0');
+  const sign = parsed.n < 0n && scaled !== 0n ? '-' : '';
+  return `${sign}${digits.slice(0, -4)}.${digits.slice(-4)}`;
+}
 export function validDate(value: string | null): boolean {
   if (value === null) return true;
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);

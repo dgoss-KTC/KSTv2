@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ApiClient, ApiError, type OpenOrdersResponseDto } from '../api/client';
+import { ApiClient, ApiError, type OpenOrdersResponseDto, type OpenOrdersQxtendResponseDto } from '../api/client';
 import { resolveBackendBaseUrl } from '../api/tauri-bridge';
 import { saveLongTermShortagesWorkbook } from '../longTermShortages/saveLongTermShortagesWorkbook';
 import { COLUMNS, DATE_COLUMNS, NUMERIC_COLUMNS, defaultLayout, emptyFilters, formatReportDate, formatReportTimestamp, loadLayout, reportRows, saveLayout, type Filters, type Layout, type ColumnId } from '../openOrders/report';
 import { FilterBuilder } from '../openOrders/FilterBuilder';
 import { openOrdersFileName } from '../openOrders/reportFileName';
-import { changed, equalDecimal, issues, keyOf, multiply, parsePlanningDate, subtract, valuesOf, REASONS, type Editable, type Proposal } from '../openOrders/planning';
+import { changed, equalDecimal, issues, keyOf, multiply, parsePlanningDate, planningNumberDisplay, subtract, valuesOf, REASONS, type Editable, type Proposal } from '../openOrders/planning';
 import { loadPlanLayout, planDefaultLayout, PLAN_REQUIRED, savePlanLayout, type LayoutForPlan, type PlanColumnId } from '../openOrders/planLayout';
+import { saveQxtendCsv } from '../openOrders/saveQxtendCsv';
+import { qxtendExportFeedback } from '../openOrders/exportFeedback';
 import './OpenOrdersPanel.css';
 
 type Failure = 'snapshot-changed' | 'unavailable' | 'error';
@@ -20,6 +22,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
   const [failureState, setFailure] = useState<{ identity: string; kind: Failure } | null>(null);
   const [feedback, setFeedback] = useState<{ identity: string; text: string; kind: 'saved' | 'cancelled' | 'error' } | null>(null);
   const [exportingState, setExporting] = useState<{ identity: string; active: boolean } | null>(null);
+  const [prepared, setPrepared] = useState<{ identity: string; signature: string; files: OpenOrdersQxtendResponseDto['files']; statuses: Record<string, string> } | null>(null);
   const [page, setPage] = useState(0);
   const [planMode, setPlanMode] = useState(false);
   const [saveDraft, setSaveDraft] = useState(false);
@@ -37,6 +40,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
   const [saveVersion, setSaveVersion] = useState(0);
   const [saveOffPending, setSaveOffPending] = useState(false);
   const [dateInputs, setDateInputs] = useState<Record<string, string>>({});
+  const [focusedNumber, setFocusedNumber] = useState<string | null>(null);
   const [dateTouched, setDateTouched] = useState<Record<string, boolean>>({});
   const invalidDateInputs = useRef(new Set<string>());
   const saveGate = useRef(Promise.resolve());
@@ -45,7 +49,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
   if (proposalAssignment !== assignmentId) {
     setProposalAssignment(assignmentId); setProposals({}); setSaveDraft(false); setSavedState('idle');
     setPlanMode(false); setRestoreCandidate(null); setRestoreIssues({}); setLastDraftMps(snapshotId);
-    setDateInputs({}); setDateTouched({});
+    setDateInputs({}); setDateTouched({}); setFocusedNumber(null);
   }
   const requestId = useRef(0);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,6 +70,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
   const rowByKey = new Map((report?.lines ?? []).map(line => [keyOf(line.key), line]));
   const scopedProposals = proposalAssignment === assignmentId ? proposals : {};
   const staged = Object.values(scopedProposals).filter(changed);
+  const exportSignature = JSON.stringify([report?.openOrdersSnapshotId, staged]);
   const conflicts = staged.filter(p => sourceChanged || [...issues(p, rowByKey.get(keyOf(p.key)), !!report?.isStale || !!failure || pending || !report), ...(restoreIssues[keyOf(p.key)] ?? [])].some(i => i !== 'Reason Code required.'));
   const incomplete = staged.filter(p => !p.reasonCode);
   const invalidDateEntries = Object.values(dateInputs).filter(text => parsePlanningDate(text) === undefined).length;
@@ -206,6 +211,36 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
       if (current === requestId.current) setFailure({ identity, kind: error instanceof ApiError && error.status === 409 ? 'snapshot-changed' : error instanceof ApiError && error.status === 503 ? 'unavailable' : 'error' });
     } finally { if (current === requestId.current) setPending(null); }
   };
+  const exportAll = async () => {
+    if (!report || !snapshotId || !staged.length || exporting) return;
+    const generation = requestId.current;
+    setPrepared(null); setExporting({ identity, active: true }); setFeedback(null);
+    try {
+      const result = await new ApiClient(await resolveBackendBaseUrl()).exportOpenOrdersQxtend(assignmentId, {
+        mpsSnapshotId: snapshotId, openOrdersSnapshotId: report.openOrdersSnapshotId, proposals: staged,
+      });
+      if (result.files.length === 0) throw new Error('No applicable CSV files');
+      // A report/mode/workspace change while validation is pending cannot authorize an old UI context.
+      if (requestId.current !== generation) return;
+      setPrepared({ identity, signature: exportSignature, files: result.files, statuses: {} });
+      showFeedback(`${result.files.length} CSV file(s) prepared after fresh validation. Choose Save As for each file; QXtend has not accepted them.`, 'saved');
+    } catch (error) {
+      showFeedback(qxtendExportFeedback(error), 'error');
+    } finally { setExporting({ identity, active: false }); }
+  };
+  const savePrepared = async (file: OpenOrdersQxtendResponseDto['files'][number]) => {
+    if (exporting || !planMode || prepared?.signature !== exportSignature || report?.isStale || sourceChanged || pending || failure ||
+        invalidDateEntries || conflicts.length || incomplete.length || restoreCandidate) return;
+    setExporting({ identity, active: true });
+    try {
+      const result = await saveQxtendCsv(file.contentBase64, file.fileName);
+      setPrepared(previous => previous?.identity === identity ? { ...previous, statuses: { ...previous.statuses,
+        [file.kind]: result.kind === 'saved' ? `Saved ${result.fileName}` : result.kind === 'downloaded' ? `Download initiated for ${result.fileName}; check your browser downloads.` : 'Save cancelled; file remains ready.' } } : previous);
+    } catch {
+      setPrepared(previous => previous?.identity === identity ? { ...previous, statuses: { ...previous.statuses,
+        [file.kind]: 'Save failed; retry this file. Other saved files and proposals remain.' } } : previous);
+    } finally { setExporting({ identity, active: false }); }
+  };
   const changeLayout = (next: Layout | LayoutForPlan) => {
     try {
       if (planMode) { setPlanLayout({ identity: assignmentId, value: next as LayoutForPlan }); savePlanLayout(assignmentId, next as LayoutForPlan); }
@@ -273,7 +308,12 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
     {report?.isStale && <p role="alert" className="open-orders__warning">STALE report acquired {formatReportTimestamp(report.acquiredAtUtc)}. {report.warning} Not ready for operational/QXtend validation.</p>}
     {report && <>
       {planMode && <div className="open-orders__planning-summary" role="status">
-        {staged.length} changed across workspace · {incomplete.length} missing Reason Code · {conflicts.length} conflicts · {hiddenChanges} outside current filter/page view. {report.isStale || failure || pending || conflicts.length || incomplete.length || invalidDateEntries || savedState === 'unavailable' || sourceChanged ? 'Not export-ready.' : 'Planning preview only; QXtend export is not available in 13.4.'}
+        {staged.length} changed across workspace · {incomplete.length} missing Reason Code · {conflicts.length} conflicts · {hiddenChanges} outside current filter/page view. {report.isStale || failure || pending || conflicts.length || incomplete.length || invalidDateEntries || savedState === 'unavailable' || sourceChanged ? 'Not export-ready.' : 'Export All validates changed lines against QAD before preparing CSVs.'}
+        <button type="button" disabled={!staged.length || !!report.isStale || !!failure || pending || exporting || !!conflicts.length || !!incomplete.length || !!invalidDateEntries || savedState === 'unavailable' || !!restoreCandidate || sourceChanged}
+          onClick={() => void exportAll()}>{exporting ? 'Working…' : 'Export All QXtend CSVs'}</button>
+        {prepared?.identity === identity && prepared.signature === exportSignature && !report.isStale && !failure && !pending && !sourceChanged && !invalidDateEntries && !conflicts.length && !incomplete.length && !restoreCandidate && <div role="group" aria-label="Prepared QXtend files">Validated CSVs: {prepared.files.map(file =>
+          <span key={file.kind}><button type="button" disabled={exporting} onClick={() => void savePrepared(file)}>Save As {file.fileName}</button>
+            <span role="status">{prepared.statuses[file.kind] ?? 'Not saved'}</span></span>)} <span>External QXtend processing is required; export does not submit changes.</span></div>}
         <label><input type="checkbox" checked={onlyChanged} onChange={e => { setOnlyChanged(e.target.checked); setPage(0); }} /> Show changed rows</label>
         <button type="button" disabled={!staged.length} onClick={() => setClearConfirmation(true)}>Clear All</button>
         {clearConfirmation && <span role="group" aria-label="Confirm Clear All">Clear all {staged.length} changes? <button type="button" onClick={() => { setRestoreIssues({}); setDateInputs({}); setDateTouched({}); invalidDateInputs.current.clear(); persist({}, saveDraft, report, false, false); setClearConfirmation(false); }}>Confirm Clear All</button><button type="button" onClick={() => setClearConfirmation(false)}>Cancel</button></span>}
@@ -315,13 +355,15 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
               const editor = (field: Editable, label: string) => {
                 const value = proposed[field]; const isDate = field.endsWith('Date');
                 const inputKey = `${key}:${field}`;
-                const inputText = dateInputs[inputKey] ?? (isDate ? formatReportDate(value as string | null) : String(value));
+                const inputText = dateInputs[inputKey] ?? (isDate ? formatReportDate(value as string | null)
+                  : focusedNumber === inputKey ? String(value) : planningNumberDisplay(field as 'orderQty' | 'price', String(value)));
                 const invalid = isDate && parsePlanningDate(inputText) === undefined;
                 const dateError = invalid && (dateTouched[inputKey] || /^\s*\d{1,2}\/\d{1,2}\/\d{4}\s*$/.test(inputText));
                 const wasChanged = p && (field === 'price' || field === 'orderQty' ? !equalDecimal(original[field], value as string) : original[field] !== value);
                 return <div className={wasChanged ? 'open-orders__changed' : undefined}>
                   <input aria-label={`${label} proposal ${r.key.salesOrder}/${r.key.line}`} type="text" inputMode={isDate ? 'numeric' : 'decimal'} placeholder={isDate ? 'M/d/yyyy' : undefined}
                     data-plan-editor="" aria-invalid={dateError || undefined} value={inputText}
+                    onFocus={() => { if (!isDate) setFocusedNumber(inputKey); }}
                     onChange={e => {
                       if (!isDate) { update(r, field, e.target.value); return; }
                       const text = e.target.value;
@@ -333,7 +375,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
                       if (parsed !== undefined) update(r, field, parsed);
                     }}
                     onBlur={() => {
-                      if (!isDate) return;
+                      if (!isDate) { setFocusedNumber(null); return; }
                       const parsed = parsePlanningDate(inputText);
                       if (parsed === undefined) setDateTouched(previous => ({ ...previous, [inputKey]: true }));
                       else { invalidDateInputs.current.delete(`${assignmentId}:${inputKey}`);
@@ -346,7 +388,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
                       editors[editors.indexOf(e.currentTarget) + 1]?.focus();
                     }} />
                   {dateError && <small className="open-orders__date-error" role="alert">Enter a valid M/d/yyyy date or leave blank.</small>}
-                  {wasChanged && <small>Original: {isDate ? formatReportDate(original[field] as string | null) || '(empty)' : original[field]}</small>}
+                  {wasChanged && <small>Original: {isDate ? formatReportDate(original[field] as string | null) || '(empty)' : planningNumberDisplay(field as 'orderQty' | 'price', String(original[field]))}</small>}
                 </div>;
               };
               return <tr className="open-orders__row" key={key}>

@@ -38,3 +38,8 @@ public sealed record OpenOrderDraftRowDto(OpenOrderProposalDto Proposal, IReadOn
 public sealed record OpenOrdersDraftResponseDto(bool Exists, bool Restored, string? Warning,
     OpenOrdersResponseDto? FreshReport, IReadOnlyList<OpenOrderDraftRowDto> Rows);
 public sealed record OpenOrdersDraftPresenceDto(bool Exists);
+
+public sealed record ExportOpenOrdersQxtendRequestDto(string MpsSnapshotId, string OpenOrdersSnapshotId,
+    IReadOnlyList<OpenOrderProposalDto> Proposals);
+public sealed record OpenOrdersQxtendFileDto(string Kind, string FileName, string ContentBase64);
+public sealed record OpenOrdersQxtendResponseDto(IReadOnlyList<OpenOrdersQxtendFileDto> Files);

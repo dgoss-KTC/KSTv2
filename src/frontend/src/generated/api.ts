@@ -263,6 +263,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{assignmentId}/open-orders/qxtend-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Freshly validates changed workspace lines and prepares applicable QXtend CSV files for human review. */
+        post: operations["ExportOpenOrdersQxtend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{assignmentId}/open-orders/draft": {
         parameters: {
             query?: never;
@@ -683,6 +700,11 @@ export interface components {
             /** @default false */
             showAll: boolean;
         };
+        ExportOpenOrdersQxtendRequestDto: {
+            mpsSnapshotId: string;
+            openOrdersSnapshotId: string;
+            proposals: components["schemas"]["OpenOrderProposalDto"][];
+        };
         ExportOpenOrdersReportRequestDto: {
             mpsSnapshotId: string;
             openOrdersSnapshotId: string;
@@ -1048,6 +1070,14 @@ export interface components {
             warning: null | string;
             freshReport: null | components["schemas"]["OpenOrdersResponseDto"];
             rows: components["schemas"]["OpenOrderDraftRowDto"][];
+        };
+        OpenOrdersQxtendFileDto: {
+            kind: string;
+            fileName: string;
+            contentBase64: string;
+        };
+        OpenOrdersQxtendResponseDto: {
+            files: components["schemas"]["OpenOrdersQxtendFileDto"][];
         };
         OpenOrdersResponseDto: {
             /** Format: uuid */
@@ -1945,6 +1975,68 @@ export interface operations {
             };
             /** @description Bad Request */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ExportOpenOrdersQxtend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportOpenOrdersQxtendRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenOrdersQxtendResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

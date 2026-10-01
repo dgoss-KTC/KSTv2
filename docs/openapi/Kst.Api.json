@@ -830,6 +830,88 @@
         }
       }
     },
+    "/api/v1/workspaces/{assignmentId}/open-orders/qxtend-export": {
+      "post": {
+        "tags": [
+          "OpenOrders"
+        ],
+        "summary": "Freshly validates changed workspace lines and prepares applicable QXtend CSV files for human review.",
+        "operationId": "ExportOpenOrdersQxtend",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportOpenOrdersQxtendRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenOrdersQxtendResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{assignmentId}/open-orders/draft": {
       "get": {
         "tags": [
@@ -3076,6 +3158,28 @@
           }
         }
       },
+      "ExportOpenOrdersQxtendRequestDto": {
+        "required": [
+          "mpsSnapshotId",
+          "openOrdersSnapshotId",
+          "proposals"
+        ],
+        "type": "object",
+        "properties": {
+          "mpsSnapshotId": {
+            "type": "string"
+          },
+          "openOrdersSnapshotId": {
+            "type": "string"
+          },
+          "proposals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenOrderProposalDto"
+            }
+          }
+        }
+      },
       "ExportOpenOrdersReportRequestDto": {
         "required": [
           "mpsSnapshotId",
@@ -4787,6 +4891,39 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/OpenOrderDraftRowDto"
+            }
+          }
+        }
+      },
+      "OpenOrdersQxtendFileDto": {
+        "required": [
+          "kind",
+          "fileName",
+          "contentBase64"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "contentBase64": {
+            "type": "string"
+          }
+        }
+      },
+      "OpenOrdersQxtendResponseDto": {
+        "required": [
+          "files"
+        ],
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenOrdersQxtendFileDto"
             }
           }
         }

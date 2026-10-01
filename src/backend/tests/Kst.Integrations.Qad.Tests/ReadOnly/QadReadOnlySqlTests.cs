@@ -154,6 +154,9 @@ public sealed class QadReadOnlySqlTests
             return new List<string> { "T" };
         }
 
+        if (type == typeof(IReadOnlyList<Kst.Domain.OpenOrders.OpenOrderLineKey>))
+            return new List<Kst.Domain.OpenOrders.OpenOrderLineKey> { new("T", "T", 1) };
+
         throw new InvalidOperationException(
             $"S0.5 read-only guard: no representative value generator for parameter type {type} " +
             $"({parameter.Name}) of {builder.DeclaringType!.Name}.{builder.Name}. Add one here so the new " +
