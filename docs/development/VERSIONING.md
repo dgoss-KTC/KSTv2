@@ -29,6 +29,15 @@ This is a pre-1.0 build associated with Stage 13 work. The version advances to `
 `N` becomes the current stage being planned or implemented. It remains at that value through the
 stage until the project moves to another numbered stage.
 
+**13.6 verification (2026-10-01):** `scripts/check-version.ps1` passed with active Stage 13;
+the republished Tauri external binary returned `0.1.0-alpha.13` from `/health` and its Windows
+ProductVersion was `0.1.0-alpha.13`. The frontend production build uses the same package version.
+This is build/version evidence, not by itself evidence of QAD/QXtend success. The
+separate bounded live-read observations and owner-reported external QXtend outcomes are recorded
+in `docs/implementation/KST_v2_STAGE_13_CLOSEOUT.md`. The owner separately and explicitly accepted
+Checkpoint 13.6 and Stage 13 completion on 2026-10-01; the version stays `0.1.0-alpha.13` until a
+later separately authorized stage. Stage 14 is not begun or versioned by this closeout.
+
 ## Version format
 
 KST v2 uses [SemVer 2.0.0](https://semver.org/): `MAJOR.MINOR.PATCH[-PRERELEASE]`.

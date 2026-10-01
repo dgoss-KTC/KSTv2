@@ -5,8 +5,8 @@ owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
 **Current project position:** The owner approved the revised Release 1 scope and stage sequence on
 2026-09-29. Stage 12 is retired. Stage 13 Customer Open Orders has an owner-accepted bounded plan
-and precedes Stage 14 Planning Workbook; implementation is not yet authorized. Stage 16 is absorbed
-into Stage 18, while Stages 17 and 20 are retired. Stage 21 Export
+and precedes Stage 14 Planning Workbook; Stage 13 is complete and owner-accepted as of 2026-10-01. Stage 16
+is absorbed into Stage 18, while Stages 17 and 20 are retired. Stage 21 Export
 Completion and Stage 22 Refinement & Optimization are required before Stage 23 Quality and
 Hardening. Release readiness, pilot, rollout, and post-release planning are Stages 24–27.
 The supporting disposition matrix and deferred-work registry are in
@@ -815,7 +815,7 @@ accepted — see below).
   (`VersionPrefix`/`VersionSuffix`).
 - [x] Initial application version set: `0.1.0-alpha.1` (SemVer 2.0.0).
 - [x] Owner adopted stage-aligned alpha numbering on 2026-09-29: Stage `N` uses
-      `0.1.0-alpha.N`; the current Stage 13 planning version is `0.1.0-alpha.13`.
+      `0.1.0-alpha.N`; the current Stage 13 implementation version is `0.1.0-alpha.13`.
 - [x] `KstActiveStage` plus the version-consistency guard enforce the active-stage relationship.
 - [x] Version propagated to backend assemblies (`InformationalVersion`, system status/health
   endpoints, startup logs, frontend top bar), `src/tauri/Cargo.toml`, `src/frontend/package.json`.
@@ -1329,10 +1329,13 @@ locked Stage 9–11 algorithms. Retained refinements belong in Stage 22; missing
 Stage 21.
 
 
-## Stage 13 — Customer Open Orders — PLAN ACCEPTED / RELEASE 1 REQUIRED
+## Stage 13 — Customer Open Orders — COMPLETE / ACCEPTED — 2026-10-01
 
-Owner disposition — 2026-09-29: the bounded plan is accepted; implementation remains separately
-authorized. Stage 13 adds a workspace-scoped Customer Open Orders module before Component Orders.
+Owner disposition — 2026-09-29: the bounded plan was accepted. Checkpoints 13.1–13.5 were
+subsequently implemented and owner-accepted (13.5 commit `5ea47da`); the owner explicitly accepted
+Checkpoint 13.6 and Stage 13 completion on 2026-10-01, including the documented evidence limits
+and verification exceptions. Stage 13 delivers a workspace-scoped Customer Open Orders module
+before Component Orders.
 It does not provide cross-customer investigation; that capability belongs to Stage 18. Planning
 baseline: `docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`. Bounded implementation prompt:
 `docs/implementation/KST_v2_STAGE_13_IMPLEMENTATION_PROMPT.md`.
@@ -1349,26 +1352,48 @@ baseline: `docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`. Bounded implem
 - [x] Define the quantity, price, and date QXtend templates, grouping algorithm, and value formats.
 - [x] Distinguish the Stage 13 workspace report from Stage 18 cross-customer reporting and Stage 21
       product-wide export consistency work.
-- [ ] Verify legacy-only QAD source names, especially Dock Date, Partials, and Allocated, during the
+- [x] Verify legacy-only QAD source names, especially Dock Date, Partials, and Allocated, during the
       bounded source-contract checkpoint.
 
 ### 13.2 Backend and frontend
 
-- [ ] Create the parameterized, read-only workspace sales-order adapter and targeted validation read.
-- [ ] Define Open Order line, snapshot, editable-value, proposed-change, Reason Code, draft, and
+- [x] Create the parameterized, read-only workspace sales-order adapter and targeted validation read
+      (offline shape/behavior and one owner-selected live date-only path verified).
+- [x] Define Open Order line, snapshot, editable-value, proposed-change, Reason Code, draft, and
       export contracts through the C# DTO → OpenAPI → generated TypeScript workflow.
-- [ ] Add Open Orders snapshot orchestration, last-good report behavior, and fail-closed QXtend
+- [x] Add Open Orders snapshot orchestration, last-good report behavior, and fail-closed QXtend
       validation.
-- [ ] Build Customer Open Orders navigation, full-contract grid, legacy filters/sort, column
+- [x] Build Customer Open Orders navigation, full-contract grid, amended workspace filters/sort, column
       selection/reordering, and per-workspace layout persistence.
-- [ ] Build Planning Mode, editable value previews, reasons, undo/clear behavior, and optional
+- [x] Build Planning Mode, editable value previews, reasons, undo/clear behavior, and optional
       workspace-specific saved drafts.
-- [ ] Create the workspace Excel report and exact quantity, price, and date QXtend CSV exporters.
-- [ ] Verify complete-result performance without silent truncation and add rendering paging/windowing
-      only if measurement requires it.
-- [ ] Validate read-only safety, file cancellation/failure, accessibility, stale conflicts, QAD
-      unavailability, golden QXtend bytes, and legacy comparison evidence.
-- [ ] Owner acceptance.
+- [x] Create the workspace Excel report and template-header quantity, price, and date QXtend CSV exporters
+      (synthetic golden bytes accepted; owner separately reports external acceptance for all three file types).
+- [x] Verify offline nontruncation query shape and complete-result client paging; the page size limits
+      rendered rows only, not acquired/exported rows.
+- [x] Record the one approved small-workspace report refresh (6 parents, 4 rows, 103 ms HTTP;
+      87 ms batch) and the owner's decision to accept that bounded evidence without another
+      larger-workspace run. This is not a broader performance measurement; live cache-hit
+      filter/sort/page interaction timing was not measured. No additional windowing was justified.
+- [x] Validate read-only query shape, file cancellation/failure, keyboard access, stale conflicts,
+      unavailable-source handling, and synthetic golden QXtend bytes in accepted tests/desktop review.
+- [x] Exercise one owner-selected, read-only targeted current-line validation with an accepted
+      date-only proposal: one validated, 114 ms, HTTP 200, date CSV prepared in memory only.
+- [x] Record identical-scope legacy parity as **not verified** (the legacy builder lacks an exact
+      parent-list restriction) and the owner's decision not to run another comparison.
+- [x] Record the owner's report that the external QXtend process accepted **date, quantity and
+      price** file types; KST did not submit or import them. No environment/time/row count inferred.
+- [x] Record the owner's Stage 13 closeout exceptions: full lint **failed** on two unchanged locked
+      Stage 10 files although changed-scope lint passed; `cargo fmt --check` **failed** on existing
+      broader Rust formatting. Neither failed command is recorded as a pass.
+- [x] Owner acceptance — Checkpoint 13.6 and Stage 13 COMPLETE / ACCEPTED — 2026-10-01.
+
+13.6 accepted closeout: the single approved small-workspace refresh/targeted read, owner-reported
+external outcomes, accepted evidence limits and failed-check exceptions are recorded. Identical-scope legacy
+parity was **not verified**; live cache-hit timing was **not measured**. See
+`docs/implementation/KST_v2_STAGE_13_CLOSEOUT.md`. The accepted 13.3 filter amendment replaces
+legacy exact text matches in the UI. The owner explicitly accepted 13.6 and Stage 13 with these
+limitations and exceptions; no Stage 14 authorization is inferred.
 
 Completion gate: A scheduler can open the Customer Open Orders module for a workspace, inspect and
 export its complete scoped report, customize and retain its layout, stage and optionally retain
@@ -1906,7 +1931,8 @@ product baseline is frozen for Stage 23.
 ### Approved future roadmap
 
 - [~] Stage 12 — Multi-Part Shortage Analysis — **RETIRED / SUPERSEDED**.
-- [ ] Stage 13 — Customer Open Orders — plan accepted; implementation not yet authorized.
+- [x] Stage 13 — Customer Open Orders — COMPLETE / ACCEPTED — 2026-10-01; bounded evidence,
+      owner-reported external outcomes and accepted verification exceptions in the Stage 13 closeout.
 - [ ] Stage 14 — Planning Workbook.
 - [ ] Stage 15 — Finished Goods.
 - [~] Stage 16 — General Open Orders — **ABSORBED into Stage 18**.

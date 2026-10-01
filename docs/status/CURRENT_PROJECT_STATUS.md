@@ -1,10 +1,13 @@
 # Current Project Status
 
-Date: 2026-09-29
+Date: 2026-10-01
 Workstation: Windows (`C:\Dev\kst_v2`)
-Current implementation position: **Stages 1–11 COMPLETE / ACCEPTED; Stages 9–11 LOCKED.**
+Current implementation position: **Stages 1–11 and 13 COMPLETE / ACCEPTED; Stages 9–11 LOCKED; Stage 12 RETIRED.**
 The revised Release 1 roadmap is owner-approved. **Stage 13 — Customer Open Orders** has an
-owner-accepted bounded plan as of 2026-09-29, but implementation is not yet authorized.
+owner-accepted bounded plan; checkpoints 13.1–13.5 are implemented and owner-accepted (13.5
+commit `5ea47da`). **Checkpoint 13.6 and Stage 13 are COMPLETE / OWNER-ACCEPTED — 2026-10-01**;
+bounded live results, owner-reported external outcomes and accepted verification exceptions are
+documented in `docs/implementation/KST_v2_STAGE_13_CLOSEOUT.md`. Stage 14 has not begun or been authorized.
 UI Navigation & Keyboard Ergonomics A: **COMPLETE / ACCEPTED — 2026-08-21**
 Active cross-cutting effort: **R0 — Repository / Documentation Reconciliation — COMPLETE /
 ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation Status` below and
@@ -99,6 +102,24 @@ usability, export, cold-load performance, and cached performance validated. Its 
 Sunday–Saturday with Monday as the visible label. Individual Component MRP is not unfinished Stage
 11 scope; it is retained in Stage 18 as a standalone Excel report generator.
 
+Stage 13.6 (2026-10-01): integrated checks and a republished matching desktop sidecar are recorded
+in `docs/implementation/KST_v2_STAGE_13_CLOSEOUT.md`. On an owner-approved single live pass for
+MSA/Neutronics, the already-loaded six-parent workspace returned a fresh four-row report in one
+refresh (103 ms HTTP; one batch, 87 ms) and one owner-selected date-only targeted validation
+succeeded (one line, HTTP 200, 114 ms, date family prepared in memory only). Direct legacy parity
+was not attempted: its unmodified query cannot restrict to the exact parent list. Cache-hit UI
+timing and broader-workspace performance remain unverified. A standalone default-timeout frontend
+rerun passed 431 tests with five skipped; earlier Stage 13 timeouts did not recur. Synthetic
+golden-byte results and these live reads do **not** themselves prove external QXtend acceptance.
+The owner separately reports that the external QXtend process **accepted date, quantity and price
+file types**; no environment, timestamp, row count or additional validation evidence is asserted.
+KST did not submit or import files. The owner accepts these evidence limits and requests no further
+exact-scope legacy comparison or larger-workspace timing. Full lint still **failed** on two unchanged
+locked Stage 10 files (changed-scope lint passed); `cargo fmt --check` still **failed** on broader
+pre-existing Rust formatting. The owner accepts these as documented Stage 13 closeout exceptions,
+not passing checks. The owner explicitly accepted Checkpoint 13.6 and Stage 13 completion on
+2026-10-01 with those limits. Stage 14 has not begun. Version remains `0.1.0-alpha.13`.
+
 The owner approved the revised Release 1 roadmap on 2026-09-29:
 
 - Stage 12 Multi-Part Shortage Analysis is **RETIRED / SUPERSEDED** by accepted Workspace Shortages.
@@ -129,9 +150,9 @@ Stage 22 does not silently reopen locked algorithms. A change to accepted Stage 
 behavior requires an explicit owner-approved amendment. New standalone capabilities also require an
 explicit roadmap disposition rather than entering Stage 22 as unbounded refinement.
 
-No implementation stage is authorized by this documentation update. Stage-specific discovery,
-business-rule decisions, security/dependency admission, implementation, and owner acceptance remain
-required when each retained stage is authorized.
+This roadmap disposition did not itself authorize an implementation stage. Stage 13 checkpoints
+13.1–13.6 subsequently received separate owner authorization and acceptance; Stage 13 is complete
+and accepted as of 2026-10-01. Future stages require their own authorization and acceptance.
 
 ### Accepted Stage 11 closeout and historical foundation status
 
@@ -653,15 +674,16 @@ R0 overall: **COMPLETE / ACCEPTED — 2026-08-21.** Full detail:
 
 ## Next Action
 
-The next planned product stage is **Stage 13 — Customer Open Orders**. Its bounded plan was accepted
-by the owner on 2026-09-29. It adds a workspace report plus Planning Mode for staged date, quantity,
-and price changes and external QXtend CSV generation. Cross-customer Open Orders is deferred to
-Stage 18. Planning approval does not authorize implementation: Stage 13 must begin only after the
-owner separately authorizes the first checkpoint in the implementation prompt.
+**Stage 13 is COMPLETE / ACCEPTED — 2026-10-01.** The report, Plan Mode, drafts and export files
+are implemented. The accepted closeout records one approved six-parent/four-row refresh, one
+targeted date-only validation, the owner's report of external acceptance for all three QXtend
+file types, and accepted limits/exceptions without treating failed or unmeasured checks as passes.
+Stage 14 has not begun and requires separate authorization. Cross-customer Open Orders remains Stage 18.
 
 The accepted planning baseline is `docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`. The
 bounded implementation prompt is `docs/implementation/KST_v2_STAGE_13_IMPLEMENTATION_PROMPT.md`.
 
-Preserve the three existing untracked Stage 11 reference files unless the owner separately
-dispositions them. Do not begin Stage 13 implementation, perform live source investigation,
-introduce dependencies, or commit/push until separately authorized.
+Preserve the three untracked owner QXtend templates and the pre-existing local/generated work.
+The one-pass read approval has been used; further transactional QAD validation queries, QXtend
+submission/import and Stage 14 require separate owner authorization. The Stage 13.6 closeout
+commit/push is separately authorized as part of its owner acceptance.

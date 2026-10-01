@@ -699,12 +699,13 @@ mod capability_guard {
             .unwrap_or_else(|e| panic!("failed to parse {} as JSON: {e}", path.display()))
     }
 
-    /// The effective capability must grant exactly `core:default` to the `main`
-    /// window. This fails if `shell:allow-execute`, `shell:allow-open` (or any
-    /// `shell:*` permission, including scoped/object forms) is reintroduced, if a
+    /// The effective capability must grant only core IPC and the accepted
+    /// user-mediated Save As permissions to the `main` window. This fails if
+    /// `shell:allow-execute`, `shell:allow-open` (or any `shell:*` permission,
+    /// including scoped/object forms) is reintroduced, if a
     /// new permission or scope entry is added, or if the window targeting drifts.
     #[test]
-    fn default_capability_grants_core_default_only() {
+    fn default_capability_grants_only_accepted_save_as_permissions() {
         let capability = read_manifest_file("capabilities/default.json");
 
         let permissions = capability
@@ -733,9 +734,13 @@ mod capability_guard {
 
         assert_eq!(
             granted,
-            vec!["core:default".to_string()],
-            "capability permission set drifted from the S0.4B accepted surface (core:default only); \
-             review against docs/security/S0_4B_TAURI_SHELL_CAPABILITY_REMEDIATION.md before changing"
+            vec![
+                "core:default".to_string(),
+                "dialog:allow-save".to_string(),
+                "fs:allow-write-file".to_string()
+            ],
+            "capability permission set drifted from the accepted user-mediated Save As surface; \
+             review the Stage 11 workbook and Stage 13 QXtend export permissions before changing"
         );
 
         let windows = capability.get("windows").and_then(Value::as_array);

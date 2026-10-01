@@ -1,6 +1,7 @@
-# Customer Open Orders — Stage 13.2 backend/API
+# Customer Open Orders — Stage 13 capability and API
 
-**Status:** 13.2, 13.3, and 13.4 accepted; 13.4 Planning Mode and draft persistence owner-accepted. Business baseline:
+**Status:** Checkpoints 13.1–13.6 and Stage 13 complete / owner-accepted — 2026-10-01,
+at the bounded evidence depth in `docs/implementation/KST_v2_STAGE_13_CLOSEOUT.md`. Business baseline:
 `docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`; source evidence:
 `docs/implementation/KST_v2_STAGE_13_SOURCE_CONTRACT_LEDGER.md`.
 Exact mechanical contract: `docs/openapi/Kst.Api.json`.
@@ -37,7 +38,7 @@ associated with a workspace and MPS snapshot. A normal GET uses the matching in-
 report; POST refreshes it. Failed refresh preserves only a *compatible* last-good report,
 sets `isStale=true`, and supplies a warning. A successful retry replaces the stale report
 with a new snapshot. Neither a stale report nor a cached read constitutes fresh
-operational/QXtend validation; there is no such validation or export endpoint at 13.2.
+operational/QXtend validation. The later 13.5 endpoint requires a fresh targeted reread.
 The cache is process-local.
 
 - 200: complete loaded report, possibly stale-with-warning after a failed refresh.
@@ -47,8 +48,8 @@ The cache is process-local.
 - 503: QAD unavailable with no compatible last-good report.
 
 Errors use normal Problem Details. Source exceptions, customer/order contents, and
-connection details are not emitted as response text or query logs. This capability
-does not write to QAD, submit QXtend updates, save files, or persist report data.
+connection details are not emitted as response text or query logs. The report-read endpoints
+do not write to QAD, submit QXtend updates, save files, or persist report data.
 
 ## Limitations and must not infer
 
@@ -57,8 +58,8 @@ comment rows, true consignment values, nonblank holds, or negative QOH. See the 
 for sanitized evidence. Do not infer stable order among comment records, inventory
 usability from Site QOH, successful external updates from a report, or export eligibility
 from a stale snapshot. The 13.2 backend delivered none of the desktop report, drafts,
-editing, XLSX, or QXtend files. The 13.3 desktop report and XLSX are described below;
-drafts, editing, and QXtend files are later checkpoints.
+editing, XLSX, or QXtend files. Later accepted checkpoints delivered these capabilities as
+described below; none of the 13.2 bounded samples validates full-workspace performance.
 
 ## Checkpoint 13.3 Report Mode
 
@@ -112,9 +113,9 @@ Plan Mode forces the four editable dates, total Order Qty, raw Price and row Rea
 
 **13.4 owner desktop correction (accepted):** Report refresh and filtered XLSX actions are disabled during Plan Mode, returning to their usual state in Report Mode. Plan Mode uses its own assignment-ID-scoped column layout (`kst.openOrders.planLayout.v1.{assignmentId}`), whose first-use/reset order is SO, PO, Line, Item Number, Open, Due Date, Perform Date, Required Date, Dock Date, Order Qty, Price. Reason Code follows Price; compact status and Undo follow as row actions. All eleven planning data columns remain visible; other report columns, including proposed Ext Price, may be selected and reordered. Report Mode layout stays under its accepted separate storage key. `GET .../draft/presence` checks only whether a draft file exists (no QAD read or JSON parse); only a positive result triggers fresh restoration and a compact in-progress indicator near Save Draft. The indicator ends for success, no draft, failure or superseded scope. Plan Mode dates are single text inputs accepting complete `M/d/yyyy` or `MM/dd/yyyy`; valid dates normalize to the existing ISO comparison/persistence value, blank means intentional null, and partial/invalid text remains visible without being staged as a cleared date. An incomplete date blocks saving and is marked not export-ready; Enter advances to the next editor when valid and Tab uses native focus order.
 
-## Checkpoint 13.5 — QXtend export (desktop behavior owner-accepted; external QXtend acceptance unverified)
+## Checkpoint 13.5 — QXtend export (desktop behavior owner-accepted)
 
-`POST /api/v1/workspaces/{assignmentId}/open-orders/qxtend-export` accepts `mpsSnapshotId`, `openOrdersSnapshotId`, and the complete set of changed proposals for the workspace. It rejects empty/no-op proposals, duplicate source identities, malformed decimal/date inputs, and missing or invalid Reason Codes (400). The backend requires the caller's current loaded MPS scope and matching non-stale Open Orders snapshot (409), checks proposed rows against that snapshot's site and resolved parents, then rereads **only the changed domain/order/line identities** at the workspace site using a bounded parameterized read-only QAD query. Missing/non-open lines or workspaces return 404; changed source values, site/part/scope or insufficient proposed total quantity against freshly read shipped quantity return 409; QAD failure returns 503. No CSV bytes are produced until the whole set passes. This query is offline-tested only; the earlier Stage 13.2 live-probe approval does not authorize executing this new read against transactional QAD data.
+`POST /api/v1/workspaces/{assignmentId}/open-orders/qxtend-export` accepts `mpsSnapshotId`, `openOrdersSnapshotId`, and the complete set of changed proposals for the workspace. It rejects empty/no-op proposals, duplicate source identities, malformed decimal/date inputs, and missing or invalid Reason Codes (400). The backend requires the caller's current loaded MPS scope and matching non-stale Open Orders snapshot (409), checks proposed rows against that snapshot's site and resolved parents, then rereads **only the changed domain/order/line identities** at the workspace site using a bounded parameterized read-only QAD query. Missing/non-open lines or workspaces return 404; changed source values, site/part/scope or insufficient proposed total quantity against freshly read shipped quantity return 409; QAD failure returns 503. No CSV bytes are produced until the whole set passes. This query was offline-tested at 13.5; a separately approved, single-line date-only live exercise at 13.6 is recorded below. The earlier 13.2 live-probe approval alone did not authorize that read.
 
 Successful responses contain one to three typed `files` (`kind`, `fileName`, `contentBase64`), omitting unchanged families. CSV bytes have owner-template headers, sorted order/line and first-row parent grouping, CRLF and UTF-8 without BOM. The date output uses the verified owner-template header (`sodDte01` Dock Date); the local owner reference file is named `QXtend_DateChange.csv`, while the planned output name `DateChange_with_dock.csv` differs, so the generated file is suggested as `DateChange.csv` without claiming the original filenames match. The quantity and price suggestions are `UpdateQuantities.csv` and `UpdatePrices.csv`.
 
@@ -123,3 +124,23 @@ Plan Mode Export All prepares the files after fresh backend validation. The owne
 **13.5 desktop correction (included in owner acceptance):** The desktop sidecar dated 2026-09-30 predates the 13.5 API route while the frontend build included it. The frontend's generic export error previously concealed HTTP status and Problem Details; a date-only proposal with a selected Reason Code was consequently reported as an apparent validation failure without evidence that validation ran. The current endpoint reports only a sanitized `issueCode` and `affectedRowCount` in Problem Details for invalid proposals, missing/non-open lines, stale snapshots/scope, changed originals, below-shipped proposals, duplicate source rows, and source unavailability. The UI maps these codes to actionable feedback and identifies an unrecognized 404 as a possible running-backend/route mismatch; it never renders raw source exceptions or response bodies. A synthetic API-path date-only test derives original values from GET, supplies a Reason Code and freshly read current-line facts, and verifies that only the date CSV is returned. It does not establish live QAD behavior or QXtend acceptance. Desktop retesting requires a republished current sidecar; no new live QAD read is authorized by this documentation.
 
 **13.5 owner display refinement:** In Plan Mode, whole-number Order Qty is shown without trailing decimal positions and fractional quantities retain their precision. Price displays exactly four decimal positions, visually rounded when the source has more; focusing a numeric editor reveals the unchanged raw value for editing. This is presentation-only: proposal originals, comparisons, draft persistence, fresh validation, and QXtend CSV values retain exact decimal values. A displayed four-place Price is not a change to the source value.
+
+## Checkpoint 13.6 — accepted verification boundary
+
+The current packaged Tauri external binary has been republished and checked offline with QAD
+disabled: it is byte-identical to the published sidecar and responds from the 13.5
+`qxtend-export` route with validation HTTP 400 for an empty request. The frontend production
+build includes the generated route client; OpenAPI and generated types are synchronized.
+These checks prevent a recurrence of the earlier desktop route mismatch in the tested artifacts,
+but the offline smoke itself demonstrates neither a successful QAD transaction nor an external
+QXtend import.
+An approved one-pass small-workspace refresh and date-only targeted reread succeeded (see
+`docs/implementation/KST_v2_STAGE_13_CLOSEOUT.md`); this does not prove identical-scope legacy
+parity or broader performance. The owner separately reports that the **external QXtend process
+accepted date, quantity and price file types**, without specifying an environment, timestamp,
+row count or other test detail. KST did not submit or import files. The owner accepts the current
+evidence limits: identical-scope legacy parity was not verified, the live refresh covered one
+six-parent/four-row workspace only, and live cache-hit interaction timing was not measured.
+The owner explicitly accepted 13.6 and Stage 13 with these evidence limits and the documented
+full-lint/Rust-formatting exceptions; failed checks remain failed. The three untracked owner
+templates remain reference evidence only; no file contents or customer rows belong in the review packet.
