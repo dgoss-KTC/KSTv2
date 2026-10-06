@@ -109,4 +109,3 @@ export function PlanningChangesPanel({ proposals, evaluation, snapshotId, hidden
     </aside>
   );
 }
-

@@ -855,3 +855,5 @@ started and requires separate authorization. The owner design inputs
 `docs/reference/MP_UI_update/master-plan-prototype.html` and `KSTv2_Planning_Redesign_Export.zip` are
 retained locally, **untracked** (prototype fonts of unverified provenance/licence; review archive);
 `DESIGN_SPEC.md` is tracked.
+
+**Checkpoint cleanup notes (2026-10-06).** (1) Wherever this ledger says full lint shows "only the two known Stage 10 errors", the two `react-hooks/set-state-in-effect` errors are, from the 2026-10-06 `eslint .` output, `src/frontend/src/components/ComponentOrdersPanel.tsx:40:7` and `src/frontend/src/hooks/useComponentOrders.ts:27:5` (both unchanged locked Stage 10 files). (2) The test-count discrepancy in this section (9 tests added versus a net +7, 570 to 577 passed) remains **unresolved**; no test has been inferred to account for it. (3) OpenAPI/TypeScript synchronization was re-verified: regenerating `src/frontend/src/generated/api.ts` from the committed `docs/openapi/Kst.Api.json` with `npm run generate:types` produced no change.
