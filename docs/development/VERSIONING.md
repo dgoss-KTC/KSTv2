@@ -22,14 +22,21 @@ the stage number into part of the permanent product identity.
 ## Current application version
 
 ```
-0.1.0-alpha.13
+0.1.0-alpha.14
 ```
 
-This is a pre-1.0 build associated with Stage 13 work. The version advances to `alpha.N` when Stage
+This is a pre-1.0 build associated with Stage 14 work. The version advances to `alpha.N` when Stage
 `N` becomes the current stage being planned or implemented. It remains at that value through the
 stage until the project moves to another numbered stage.
 
-**13.6 verification (2026-10-01):** `scripts/check-version.ps1` passed with active Stage 13;
+**Stage 14 version change (2026-10-02):** the owner directed the advance to `0.1.0-alpha.14` with
+Checkpoint 14.2 (`KstActiveStage` 14). `Directory.Build.props` was updated, `check-version.ps1 -Fix`
+updated `Cargo.toml` and `package.json`, and the application's own version entries in
+`src/tauri/Cargo.lock` and `src/frontend/package-lock.json` were edited directly (no dependency
+change). `tauri.conf.json` stays numeric-only `0.1.0`. The sidecar was not republished at 14.2, so
+no packaged-binary `/health` or ProductVersion evidence exists yet for `alpha.14`.
+
+**13.6 verification (2026-10-01, historical):** `scripts/check-version.ps1` passed with active Stage 13;
 the republished Tauri external binary returned `0.1.0-alpha.13` from `/health` and its Windows
 ProductVersion was `0.1.0-alpha.13`. The frontend production build uses the same package version.
 This is build/version evidence, not by itself evidence of QAD/QXtend success. The
@@ -60,9 +67,9 @@ The single authoritative source of truth for the application version is
 
 ```xml
 <PropertyGroup>
-  <KstActiveStage>13</KstActiveStage>
+  <KstActiveStage>14</KstActiveStage>
   <VersionPrefix>0.1.0</VersionPrefix>
-  <VersionSuffix>alpha.13</VersionSuffix>
+  <VersionSuffix>alpha.14</VersionSuffix>
   <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 </PropertyGroup>
 ```
@@ -73,7 +80,7 @@ enforce that relationship. This file is automatically imported by every backend 
 so no per-project edits are needed. The .NET SDK combines `VersionPrefix` and
 `VersionSuffix` into:
 
-- `Version` / `InformationalVersion` / `PackageVersion` → `0.1.0-alpha.13` (full SemVer
+- `Version` / `InformationalVersion` / `PackageVersion` → `0.1.0-alpha.14` (full SemVer
   string, including the pre-release suffix).
 - `AssemblyVersion` / `FileVersion` → `0.1.0.0` (numeric-only — Windows assembly/file
   version fields do not support a pre-release suffix; the SDK's default behavior of
@@ -86,7 +93,7 @@ drift from the plain SemVer string tracked in `Cargo.toml`/`tauri.conf.json`/
 `package.json`. Capturing a commit hash for build diagnostics is optional and not
 required by this project; the plain SemVer string is the required identifier.
 
-**Empirically verified** (published sidecar `Kst.Api.exe`, via
+**Empirically verified** at Stage 13 (published sidecar `Kst.Api.exe`, via
 `[System.Diagnostics.FileVersionInfo]::GetVersionInfo(...)`):
 
 | Field            | Value           |
@@ -98,10 +105,10 @@ required by this project; the plain SemVer string is the required identifier.
 
 | File | Expected value | What it drives |
 |------|-----------------|----------------|
-| `src/backend/Directory.Build.props` | `VersionPrefix`-`VersionSuffix` (currently `0.1.0-alpha.13`) plus `KstActiveStage` | Authoritative version and active-stage source. All backend assemblies' `Version`/`InformationalVersion`/`AssemblyVersion`/`FileVersion`. |
-| `src/tauri/Cargo.toml` (`[package].version`) | Full authoritative version (e.g. `0.1.0-alpha.13`) | The Tauri/Rust desktop host crate version. Cargo/SemVer has no problem with pre-release identifiers. |
+| `src/backend/Directory.Build.props` | `VersionPrefix`-`VersionSuffix` (currently `0.1.0-alpha.14`) plus `KstActiveStage` | Authoritative version and active-stage source. All backend assemblies' `Version`/`InformationalVersion`/`AssemblyVersion`/`FileVersion`. |
+| `src/tauri/Cargo.toml` (`[package].version`) | Full authoritative version (e.g. `0.1.0-alpha.14`) | The Tauri/Rust desktop host crate version. Cargo/SemVer has no problem with pre-release identifiers. |
 | `src/tauri/tauri.conf.json` (`.version`) | **Numeric-only** `VersionPrefix` (e.g. `0.1.0`, no suffix) | The packaged installer's product version (NSIS/MSI). See [Windows MSI/WiX numeric-only constraint](#windows-msiwix-numeric-only-constraint) below. |
-| `src/frontend/package.json` (`.version`) | Full authoritative version (e.g. `0.1.0-alpha.13`) | The frontend package version (also shown via `npm run`/build tooling). |
+| `src/frontend/package.json` (`.version`) | Full authoritative version (e.g. `0.1.0-alpha.14`) | The frontend package version (also shown via `npm run`/build tooling). |
 
 ### Windows MSI/WiX numeric-only constraint
 
@@ -118,10 +125,10 @@ The NSIS bundler does not have this restriction, but since `tauri.conf.json` has
 numeric-only (just `VersionPrefix`, e.g. `0.1.0`) so both installers can be built. This affects
 only the Tauri host binary's own file-version metadata and the installer's product version - it
 does **not** affect the application's actual reported/displayed version, which always comes from
-the backend's `InformationalVersion` (full `0.1.0-alpha.13`, see [Propagation](#propagation)
+the backend's `InformationalVersion` (full `0.1.0-alpha.14`, see [Propagation](#propagation)
 above) via the system-status API, independent of Tauri's own app/package version.
 
-Verified (release build, `target/release/kst-tauri.exe`):
+Verified at Stage 13 (release build, `target/release/kst-tauri.exe`):
 
 | Source | Value |
 |--------|-------|

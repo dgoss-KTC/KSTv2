@@ -13,6 +13,8 @@ using Kst.Infrastructure.Configuration;
 using Kst.Infrastructure.Workspaces;
 using Kst.Application.OpenOrders;
 using Kst.Infrastructure.OpenOrders;
+using Kst.Application.PlanningWorkbook;
+using Kst.Infrastructure.PlanningWorkbook;
 
 namespace Kst.Infrastructure;
 
@@ -33,6 +35,7 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton<IWorkspaceConfigurationStore, JsonWorkspaceConfigurationStore>();
         services.AddSingleton<IPreferencesStore, JsonPreferencesStore>();
         services.AddSingleton<IOpenOrdersDraftStore, JsonOpenOrdersDraftStore>();
+        services.AddSingleton<IPlanningWorkbookDraftStore, JsonPlanningWorkbookDraftStore>();
         return services;
     }
 }

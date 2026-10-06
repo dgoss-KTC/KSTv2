@@ -18,5 +18,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <!-- Stage 14.3: shared loader for the accepted Stage 14 deterministic fixture (test-only source link). -->
+    <Compile Include="../Kst.Domain.Tests/PlanningWorkbook/Stage14Fixture.cs" Link="PlanningWorkbook/Stage14Fixture.cs" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,201 @@
+{
+  "purpose": "Synthetic Stage 14.1 Planning Workbook calculation, validation, draft-restoration and Mass Updater CSV cases. Never production, customer or QAD data. Values were chosen by hand to exercise accepted rules; they do not establish that any live source check passed.",
+  "status": "Checkpoint 14.1 fixtures, owner-accepted 2026-10-02 with the forecast-quarter-sum amendment. Each case carries a basis: OC = owner-confirmed (Stage 14 planning request and owner decisions of 2026-10-02); OC-14.1 = choice proposed at 14.1 and accepted by the owner on 2026-10-02; P = still proposed, to be decided at a later checkpoint; RV-legacy = legacy reference behavior adopted only where the owner directed (forecast source). Authoritative rules: docs/implementation/KST_v2_STAGE_14_SOURCE_AND_DECISION_LEDGER.md.",
+  "conventions": {
+    "decimals": "All quantities, prices and dollars are exact decimal strings. Compare by decimal value, not by textual scale (\"75.0000\" equals \"75\"). Null means unpriced (no current price list or no tiers), which is distinct from a valid zero price.",
+    "dateBasis": "Due Date only (OC). MPS rows use mrp_due_date; sales-order lines use Stage 13 SourceValues.DueDate; forecast rows use their own mrp_due_date.",
+    "weeks": "Sunday-Saturday business weeks labelled by Monday (accepted MpsBusinessCalendar). Falldown = date before the current week's Sunday.",
+    "projection": "EstOnHand seed (Falldown) = NetQoh + Falldown MPS - Falldown SO (OC). EstOnHand[w] = EstOnHand[w-1] + MPS[w] - SO[w]. AdjOnHand[w] = AdjOnHand[w-1] + MPS[w] + Adjustment[w] - SO[w]; Falldown is not adjustable so AdjOnHand seed = EstOnHand seed. Forecast never participates (OC).",
+    "revenue": "MpsDollars = MPS x selected price; AdjustedMpsDollars = ProposedMps x the same selected price; selected price = first tier of the MOQ-ascending tier list (OC). SoDollars = Stage 13 ExtPrice (OC).",
+    "quarters": "Weekly flows (SO, SO $, MPS, MPS $, Adjustment, Proposed MPS, Adjusted MPS $) are summed per fiscal quarter; Falldown flows are included once in the current fiscal quarter (OC). Inventory quarter values are the balance of the quarter's last visible week, not a sum (OC). Forecast quarter sums are not required and are deliberately absent from quarter expectations (OC amendment 2026-10-02); weekly forecast quantities and the Falldown forecast display remain (OC-14.1). Null-dollar (unpriced) quarter totals stay null for that part (OC-14.1).",
+    "adjustmentInput": "Whole numbers only (OC). Accepted text form: optional leading '-' followed by ASCII digits (OC-14.1). Source MPS quantities and prices are never rounded (OC)."
+  },
+  "scope": {
+    "workspaceAssignmentId": "00000000-0000-0000-0000-000000001401",
+    "mpsSnapshotId": "00000000-0000-0000-0000-000000001402",
+    "domain": "TEST",
+    "site": "S1",
+    "resolvedParts": ["P-2", "P-1", "P-3"],
+    "resolvedPartsNote": "Retained MPS snapshot part order (deliberately not alphabetical). Workbook blocks and CSV rows follow this order (OC: worksheet part order; P: materialized as the retained snapshot order)."
+  },
+  "calendar": {
+    "today": "2026-09-16",
+    "currentWeekStartSunday": "2026-09-13",
+    "horizonWeeks": 4,
+    "weekLabels": ["2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05"],
+    "fiscalSettings": { "anchorFiscalYear": 2026, "anchorStartDate": "2025-06-29", "exceptions": [] },
+    "weekFiscalQuarters": [
+      { "weekLabel": "2026-09-14", "fiscalYear": 2027, "fiscalQuarter": 1 },
+      { "weekLabel": "2026-09-21", "fiscalYear": 2027, "fiscalQuarter": 1 },
+      { "weekLabel": "2026-09-28", "fiscalYear": 2027, "fiscalQuarter": 2 },
+      { "weekLabel": "2026-10-05", "fiscalYear": 2027, "fiscalQuarter": 2 }
+    ],
+    "currentFiscalQuarter": "FY27-Q1",
+    "note": "FY27 starts Sunday 2026-06-28; Q1 (P1-P3, 4+4+5 weeks) ends Saturday 2026-09-26, so the visible horizon crosses a quarter boundary. Q2 is partial at the horizon end."
+  },
+  "inputs": {
+    "netQoh": { "P-1": "40", "P-2": "0", "P-3": "5.5" },
+    "priceTiers": {
+      "P-1": [ { "minQty": "1", "price": "2.5000" }, { "minQty": "100", "price": "2.2500" } ],
+      "P-2": [ { "minQty": "1", "price": "0.0000" } ],
+      "P-3": []
+    },
+    "priceTiersNote": "Tiers are listed in the accepted Part Info order (MOQ ascending). P-1 selects 2.5000 (first tier, OC). P-2 has a valid zero price. P-3 has no current price list and is unpriced.",
+    "mpsSourceRows": [
+      { "part": "P-1", "dueDate": "2026-09-10", "quantity": "30", "mrpType": "SUPPLY", "workOrderState": "F", "bucket": "Falldown" },
+      { "part": "P-1", "dueDate": "2026-09-14", "quantity": "60", "mrpType": "SUPPLY", "workOrderState": "R", "bucket": "2026-09-14", "note": "Released WO in an adjusted week: no fence or released-WO restriction (OC)." },
+      { "part": "P-1", "dueDate": "2026-09-17", "quantity": "40", "mrpType": "SUPPLY", "workOrderState": "F", "bucket": "2026-09-14" },
+      { "part": "P-1", "dueDate": "2026-09-20", "quantity": "50", "mrpType": "SUPPLY", "workOrderState": "F", "bucket": "2026-09-21", "note": "Sunday: v2 week of 2026-09-21; the legacy Monday-Sunday week would have placed it in 2026-09-14." },
+      { "part": "P-1", "dueDate": "2026-09-24", "quantity": "25.5", "mrpType": "SUPPLYP", "workOrderState": "P", "bucket": "2026-09-21", "note": "Fractional source quantity is preserved." },
+      { "part": "P-1", "dueDate": "2026-09-27", "quantity": "100", "mrpType": "SUPPLY", "workOrderState": "F", "bucket": "2026-09-28", "note": "Sunday that starts FY27-Q2." },
+      { "part": "P-1", "dueDate": "2026-10-15", "quantity": "60", "mrpType": "SUPPLY", "workOrderState": "A", "bucket": "beyond-horizon" },
+      { "part": "P-2", "dueDate": "2026-09-30", "quantity": "100", "mrpType": "SUPPLY", "workOrderState": "F", "bucket": "2026-09-28" },
+      { "part": "P-3", "dueDate": "2026-10-07", "quantity": "10", "mrpType": "SUPPLY", "workOrderState": "F", "bucket": "2026-10-05" }
+    ],
+    "openOrderLines": [
+      { "salesOrder": "SO-1", "line": 1, "itemNumber": "P-1", "dueDate": "2026-09-08", "open": "10", "extPrice": "30.00", "bucket": "Falldown" },
+      { "salesOrder": "RA-5", "line": 1, "itemNumber": "P-1", "dueDate": "2026-09-15", "open": "5", "extPrice": "12.50", "bucket": "excluded", "reason": "Sales order number begins with RA: excluded from workbook demand, SO $ and projections (OC). Stage 13 Open Orders still includes it." },
+      { "salesOrder": "SO-2", "line": 1, "itemNumber": "P-1", "dueDate": "2026-09-16", "open": "80", "extPrice": "196.00", "bucket": "2026-09-14" },
+      { "salesOrder": "SO-3", "line": 1, "itemNumber": "P-1", "dueDate": "2026-09-26", "open": "70", "extPrice": "175.00", "bucket": "2026-09-21", "note": "Saturday: last day of FY27-Q1." },
+      { "salesOrder": "SO-8", "line": 1, "itemNumber": "P-1", "dueDate": "2026-10-20", "open": "5", "extPrice": "12.50", "bucket": "beyond-horizon" },
+      { "salesOrder": "SO-6", "line": 1, "itemNumber": "P-2", "dueDate": "2026-09-01", "open": "20", "extPrice": "1234.5678", "bucket": "Falldown" },
+      { "salesOrder": "SO-7", "line": 2, "itemNumber": "P-2", "dueDate": "2026-09-30", "open": "30", "extPrice": "90.00", "bucket": "2026-09-28" },
+      { "salesOrder": "SO-9", "line": 1, "itemNumber": "P-1", "dueDate": null, "open": "3", "extPrice": "7.50", "bucket": "Undated", "caseId": "N01", "note": "Owner decision Q-N1 (2026-10-02): retained as Undated; excluded from Falldown, weekly and quarter totals and projections." },
+      { "salesOrder": "RA-6", "line": 1, "itemNumber": "P-1", "dueDate": null, "open": "2", "extPrice": "5.00", "bucket": "excluded", "reason": "RA exclusion is applied before Undated totals (OC Q-N1)." },
+      { "salesOrder": "SO-10", "line": 1, "itemNumber": "P-3", "dueDate": null, "open": "4", "extPrice": "10.00", "bucket": "Undated", "note": "Undated SO $ comes from the order ExtPrice even though P-3 has no current price list." }
+    ],
+    "openOrderLinesNote": "Lines are Stage 13 OpenOrderLine facts; a null dueDate is Undated (OC Q-N1) (Open = OrderQty - ShippedQty; ExtPrice = raw Price x Open). The workbook does not re-query sales orders.",
+    "forecastRows": [
+      { "part": "P-1", "mrpDetail": "FORECAST", "dueDate": "2026-09-04", "mrpQty": "-15", "displayQty": "15", "bucket": "Falldown", "basis": "OC-14.1 (Falldown display)" },
+      { "part": "P-1", "mrpDetail": "FORECAST", "dueDate": "2026-09-22", "mrpQty": "-40", "displayQty": "40", "bucket": "2026-09-21", "basis": "OC source; ABS display transform (RV-legacy) accepted OC-14.1; source sign unverified (E1)" },
+      { "part": "P-1", "mrpDetail": "FORECAST", "dueDate": "2026-09-29", "mrpQty": "-40", "displayQty": "40", "bucket": "2026-09-28", "basis": "OC source; ABS display transform (RV-legacy) accepted OC-14.1; source sign unverified (E1)" }
+    ],
+    "forecastRowsNote": "Forecast rows are displayed at their own dates. They are not offset by Order Period or Safety Time and are not derived from MPS dates (OC). Removing every forecast row must leave every non-forecast expected value unchanged (OC: display-only)."
+  },
+  "adjustmentScenario": {
+    "basis": "OC formulas; P request shape",
+    "adjustments": [
+      { "part": "P-1", "weekLabel": "2026-09-14", "adjustment": "-50" },
+      { "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "10" },
+      { "part": "P-1", "weekLabel": "2026-10-05", "adjustment": "20" },
+      { "part": "P-2", "weekLabel": "2026-09-28", "adjustment": "-100" }
+    ],
+    "expectedCsvFile": "Stage14Fixtures/MpsAdjustments.expected.csv",
+    "expectedCsvRows": [
+      ["P-2", "-100", "9/28/2026"],
+      ["P-1", "-50", "9/14/2026"],
+      ["P-1", "10", "9/21/2026"],
+      ["P-1", "20", "10/5/2026"]
+    ],
+    "csvContract": {
+      "confirmed": "OC: columns Part, signed adjustment, weekly date; no header; M/d/yyyy without leading zeros; signed adjustment not resulting MPS; one row per part/week with nonzero adjustment; positive and negative included; Falldown and quarter summaries excluded; part order then week order; explicit user save.",
+      "acceptedAt14_1": "OC-14.1: date = the Monday week label of the adjusted bucket; UTF-8 without BOM; CRLF after every row including the last; invariant integer text with leading '-' only for negatives; RFC 4180 quoting only when a field contains comma, quote, CR or LF; no spreadsheet formula prefixing."
+    }
+  },
+  "expected": {
+    "parts": [
+      {
+        "part": "P-2", "selectedPrice": "0.0000", "priced": true,
+        "undated": { "so": "0", "soDollars": "0", "lineCount": 0 },
+        "falldown": { "so": "20", "soDollars": "1234.5678", "mps": "0", "mpsDollars": "0", "forecast": "0", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "-20", "adjOnHand": "-20" },
+        "weeks": [
+          { "weekLabel": "2026-09-14", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": "0", "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "-20", "adjOnHand": "-20" },
+          { "weekLabel": "2026-09-21", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": "0", "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "-20", "adjOnHand": "-20" },
+          { "weekLabel": "2026-09-28", "so": "30", "soDollars": "90.00", "mps": "100", "mpsDollars": "0", "forecast": "0", "adjustment": "-100", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "50", "adjOnHand": "-50" },
+          { "weekLabel": "2026-10-05", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": "0", "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "50", "adjOnHand": "-50" }
+        ],
+        "quarters": [
+          { "quarter": "FY27-Q1", "includesFalldown": true, "so": "20", "soDollars": "1234.5678", "mps": "0", "mpsDollars": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "-20", "adjOnHand": "-20" },
+          { "quarter": "FY27-Q2", "includesFalldown": false, "so": "30", "soDollars": "90.00", "mps": "100", "mpsDollars": "0", "adjustment": "-100", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "50", "adjOnHand": "-50" }
+        ]
+      },
+      {
+        "part": "P-1", "selectedPrice": "2.5000", "priced": true,
+        "undated": { "so": "3", "soDollars": "7.50", "lineCount": 1 },
+        "falldown": { "so": "10", "soDollars": "30.00", "mps": "30", "mpsDollars": "75.0000", "forecast": "15", "proposedMps": "30", "adjustedMpsDollars": "75.0000", "estOnHand": "60", "adjOnHand": "60" },
+        "weeks": [
+          { "weekLabel": "2026-09-14", "so": "80", "soDollars": "196.00", "mps": "100", "mpsDollars": "250.0000", "forecast": "0", "adjustment": "-50", "proposedMps": "50", "adjustedMpsDollars": "125.0000", "estOnHand": "80", "adjOnHand": "30" },
+          { "weekLabel": "2026-09-21", "so": "70", "soDollars": "175.00", "mps": "75.5", "mpsDollars": "188.75000", "forecast": "40", "adjustment": "10", "proposedMps": "85.5", "adjustedMpsDollars": "213.75000", "estOnHand": "85.5", "adjOnHand": "45.5" },
+          { "weekLabel": "2026-09-28", "so": "0", "soDollars": "0", "mps": "100", "mpsDollars": "250.0000", "forecast": "40", "adjustment": "0", "proposedMps": "100", "adjustedMpsDollars": "250.0000", "estOnHand": "185.5", "adjOnHand": "145.5" },
+          { "weekLabel": "2026-10-05", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": "0", "forecast": "0", "adjustment": "20", "proposedMps": "20", "adjustedMpsDollars": "50.0000", "estOnHand": "185.5", "adjOnHand": "165.5" }
+        ],
+        "quarters": [
+          { "quarter": "FY27-Q1", "includesFalldown": true, "so": "160", "soDollars": "401.00", "mps": "205.5", "mpsDollars": "513.75", "adjustment": "-40", "proposedMps": "165.5", "adjustedMpsDollars": "413.75", "estOnHand": "85.5", "adjOnHand": "45.5" },
+          { "quarter": "FY27-Q2", "includesFalldown": false, "so": "0", "soDollars": "0", "mps": "100", "mpsDollars": "250", "adjustment": "20", "proposedMps": "120", "adjustedMpsDollars": "300", "estOnHand": "185.5", "adjOnHand": "165.5" }
+        ]
+      },
+      {
+        "part": "P-3", "selectedPrice": null, "priced": false,
+        "undated": { "so": "4", "soDollars": "10.00", "lineCount": 1 },
+        "falldown": { "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": null, "forecast": "0", "proposedMps": "0", "adjustedMpsDollars": null, "estOnHand": "5.5", "adjOnHand": "5.5" },
+        "weeks": [
+          { "weekLabel": "2026-09-14", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": null, "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": null, "estOnHand": "5.5", "adjOnHand": "5.5" },
+          { "weekLabel": "2026-09-21", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": null, "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": null, "estOnHand": "5.5", "adjOnHand": "5.5" },
+          { "weekLabel": "2026-09-28", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": null, "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": null, "estOnHand": "5.5", "adjOnHand": "5.5" },
+          { "weekLabel": "2026-10-05", "so": "0", "soDollars": "0", "mps": "10", "mpsDollars": null, "forecast": "0", "adjustment": "0", "proposedMps": "10", "adjustedMpsDollars": null, "estOnHand": "15.5", "adjOnHand": "15.5" }
+        ],
+        "quarters": [
+          { "quarter": "FY27-Q1", "includesFalldown": true, "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": null, "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": null, "estOnHand": "5.5", "adjOnHand": "5.5" },
+          { "quarter": "FY27-Q2", "includesFalldown": false, "so": "0", "soDollars": "0", "mps": "10", "mpsDollars": null, "adjustment": "0", "proposedMps": "10", "adjustedMpsDollars": null, "estOnHand": "15.5", "adjOnHand": "15.5" }
+        ]
+      }
+    ]
+  },
+  "fiscalExceptionCase": {
+    "basis": "OC (accepted fiscal calendar behavior, quarter rules); configured 53-week exception",
+    "fiscalSettings": { "anchorFiscalYear": 2026, "anchorStartDate": "2025-06-29", "exceptions": [ { "fiscalYear": 2027, "extraWeekPeriod": 3 } ] },
+    "weekFiscalQuarters": [
+      { "weekLabel": "2026-09-14", "fiscalYear": 2027, "fiscalQuarter": 1 },
+      { "weekLabel": "2026-09-21", "fiscalYear": 2027, "fiscalQuarter": 1 },
+      { "weekLabel": "2026-09-28", "fiscalYear": 2027, "fiscalQuarter": 1 },
+      { "weekLabel": "2026-10-05", "fiscalYear": 2027, "fiscalQuarter": 2 }
+    ],
+    "expectedP1Quarters": [
+      { "quarter": "FY27-Q1", "includesFalldown": true, "so": "160", "soDollars": "401.00", "mps": "305.5", "mpsDollars": "763.75", "adjustment": "-40", "proposedMps": "265.5", "adjustedMpsDollars": "663.75", "estOnHand": "185.5", "adjOnHand": "145.5" },
+      { "quarter": "FY27-Q2", "includesFalldown": false, "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": "0", "adjustment": "20", "proposedMps": "20", "adjustedMpsDollars": "50", "estOnHand": "185.5", "adjOnHand": "165.5" }
+    ]
+  },
+  "validationCases": {
+    "note": "Each case is evaluated alone against the loaded MPS snapshot above (today 2026-09-16) unless it says otherwise. Export validation uses the workbook's loaded MPS data only; no fresh QAD reread is performed in Stage 14 (OC). Issue-code names are OC-14.1.",
+    "cases": [
+      { "id": "V01", "part": "P-1", "weekLabel": "2026-09-28", "adjustment": "-150", "existingMps": "100", "proposedMps": "-50", "result": "reject", "issueCode": "negative-result", "basis": "OC" },
+      { "id": "V02", "part": "P-1", "weekLabel": "2026-09-14", "adjustment": "-50", "existingMps": "100", "proposedMps": "50", "result": "valid", "basis": "OC; week contains a released WO and SO 80 exceeds proposed MPS: neither blocks" },
+      { "id": "V03", "part": "P-1", "weekLabel": "2026-09-14", "adjustment": "-100", "existingMps": "100", "proposedMps": "0", "result": "valid", "basis": "OC: zero resulting MPS is not negative" },
+      { "id": "V04", "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "-75", "existingMps": "75.5", "proposedMps": "0.5", "result": "valid", "basis": "OC: whole-number input against an unrounded fractional source" },
+      { "id": "V05", "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "-76", "existingMps": "75.5", "proposedMps": "-0.5", "result": "reject", "issueCode": "negative-result", "basis": "OC: source quantity is not rounded to pass" },
+      { "id": "V06", "part": "P-1", "weekLabel": "2026-10-05", "adjustment": "20", "existingMps": "0", "proposedMps": "20", "result": "valid", "basis": "OC: adjustment may create supply in an empty week" },
+      { "id": "V07", "part": "P-2", "weekLabel": "2026-09-28", "adjustment": "-100", "existingMps": "100", "proposedMps": "0", "result": "valid", "basis": "OC: negative projected inventory (AdjOnHand -50) does not block" },
+      { "id": "V08", "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "10.5", "result": "reject", "issueCode": "not-whole-number", "basis": "OC rule; OC-14.1 code" },
+      { "id": "V09", "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "10.0", "result": "reject", "issueCode": "not-whole-number", "basis": "OC-14.1: integer text form only" },
+      { "id": "V10", "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "1e3", "result": "reject", "issueCode": "invalid-number", "basis": "OC-14.1" },
+      { "id": "V11", "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "1,000", "result": "reject", "issueCode": "invalid-number", "basis": "OC-14.1" },
+      { "id": "V12", "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "+5", "result": "reject", "issueCode": "invalid-number", "basis": "OC-14.1" },
+      { "id": "V13", "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "abc", "result": "reject", "issueCode": "invalid-number", "basis": "OC-14.1" },
+      { "id": "V14", "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "0", "result": "no-op", "basis": "OC: only nonzero adjustments are exported; OC-14.1: a zero entry is not a proposal" },
+      { "id": "V15", "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "-0", "result": "no-op", "basis": "OC-14.1" },
+      { "id": "V16", "part": "P-1", "target": "Falldown", "adjustment": "5", "result": "reject", "issueCode": "not-adjustable", "basis": "OC: Falldown excluded from CSV; OC-14.1: not editable" },
+      { "id": "V17", "part": "P-1", "weekLabel": "2026-09-15", "adjustment": "5", "result": "reject", "issueCode": "not-a-week", "basis": "OC-14.1: week label must be a business-week Monday" },
+      { "id": "V18", "part": "P-1", "weekLabel": "2026-09-07", "adjustment": "5", "result": "reject", "issueCode": "week-passed", "basis": "OC-14.1: week now falls in Falldown" },
+      { "id": "V19", "part": "X-9", "weekLabel": "2026-09-21", "adjustment": "5", "result": "reject", "issueCode": "part-out-of-scope", "basis": "OC-14.1" },
+      { "id": "V20", "entries": [ { "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "5" }, { "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "6" } ], "result": "reject", "issueCode": "duplicate-identity", "basis": "OC-14.1" },
+      { "id": "V21", "requestMpsSnapshotId": "00000000-0000-0000-0000-000000009999", "part": "P-1", "weekLabel": "2026-09-21", "adjustment": "5", "result": "reject", "issueCode": "snapshot-changed", "basis": "OC-14.1: request must name the currently loaded MPS snapshot" },
+      { "id": "V22", "entries": "adjustmentScenario.adjustments plus V01", "result": "reject-whole-export", "issueCode": "negative-result", "affectedRowCount": 1, "csvBytesProduced": false, "basis": "OC: -150 blocks export; OC-14.1: any invalid entry blocks the whole file" }
+    ]
+  },
+  "draftRestoreCases": {
+    "note": "Drafts retain the signed adjustment and the MPS quantity it was last saved against (OC). Restoration compares the saved baseline with the currently loaded baseline (OC: retained comparison). No in-session concurrent-edit acknowledgment exists (OC). Reconciliation against the current loaded MPS snapshot and the retained/flagged entry codes are OC-14.1; storage mechanics remain P (14.5).",
+    "cases": [
+      { "id": "D01", "saved": { "part": "P-1", "weekLabel": "2026-09-21", "originalMpsQty": "75.5", "adjustment": "10" }, "currentMps": "75.5", "baselineChanged": false, "restoredAdjustment": "10", "proposedMps": "85.5", "exportEligible": true },
+      { "id": "D02", "saved": { "part": "P-1", "weekLabel": "2026-09-28", "originalMpsQty": "80", "adjustment": "-50" }, "currentMps": "100", "baselineChanged": true, "restoredAdjustment": "-50", "proposedMps": "50", "exportEligible": true, "basis": "OC: signed adjustment kept; not converted to an intended quantity of 30" },
+      { "id": "D03", "saved": { "part": "P-2", "weekLabel": "2026-09-28", "originalMpsQty": "150", "adjustment": "-120" }, "currentMps": "100", "baselineChanged": true, "restoredAdjustment": "-120", "proposedMps": "-20", "exportEligible": false, "issueCode": "negative-result", "basis": "OC: retained, blocks export until edited" },
+      { "id": "D04", "saved": { "part": "P-1", "weekLabel": "2026-09-07", "originalMpsQty": "40", "adjustment": "5" }, "retained": true, "exportEligible": false, "issueCode": "week-passed", "basis": "OC-14.1" },
+      { "id": "D05", "saved": { "part": "X-9", "weekLabel": "2026-09-21", "originalMpsQty": "0", "adjustment": "5" }, "retained": true, "exportEligible": false, "issueCode": "part-out-of-scope", "basis": "OC-14.1" },
+      { "id": "D06", "inSession": true, "before": { "part": "P-1", "weekLabel": "2026-09-14", "mps": "100", "adjustment": "-50", "proposedMps": "50" }, "afterMpsRefresh": { "mps": "120", "adjustment": "-50", "proposedMps": "70" }, "acknowledgmentRequired": false, "basis": "OC" }
+    ]
+  },
+  "undatedDecision": {
+    "basis": "OC (Q-N1, 2026-10-02)",
+    "rule": "Non-RA open sales-order lines with no Due Date are retained per part as Undated with separate SO quantity, SO $ and line-count totals (expected.parts[].undated). They are excluded from Falldown, weekly and fiscal-quarter totals and from Est/Adj On Hand. The RA exclusion is applied first.",
+    "resolvedCase": "N01 (formerly a pending-decision case) is now the SO-9 input line with asserted Undated outcomes. Adding the Undated lines changed no existing Falldown, weekly or quarter expected value."
+  }
+}

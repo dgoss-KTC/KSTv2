@@ -1114,6 +1114,430 @@
         }
       }
     },
+    "/api/v1/workspaces/{assignmentId}/planning-workbook": {
+      "get": {
+        "tags": [
+          "PlanningWorkbook"
+        ],
+        "summary": "Returns the workspace Planning Workbook for the supplied current MPS snapshot and horizon, reusing compatible cached source facts.",
+        "operationId": "GetPlanningWorkbook",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mpsSnapshotId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "horizonWeeks",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningWorkbookResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/planning-workbook/refresh": {
+      "post": {
+        "tags": [
+          "PlanningWorkbook"
+        ],
+        "summary": "Reacquires Open Orders, inventory, prices and forecast (not MPS) for the supplied current MPS snapshot.",
+        "operationId": "RefreshPlanningWorkbook",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mpsSnapshotId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "horizonWeeks",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningWorkbookResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/planning-workbook/draft/presence": {
+      "get": {
+        "tags": [
+          "PlanningWorkbook"
+        ],
+        "summary": "Reports whether a saved Planning draft file exists for the workspace (file existence only).",
+        "operationId": "GetPlanningWorkbookDraftPresence",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningWorkbookDraftPresenceDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/planning-workbook/draft": {
+      "get": {
+        "tags": [
+          "PlanningWorkbook"
+        ],
+        "summary": "Reads the saved Planning draft and compares each saved baseline with the workspace's currently loaded MPS snapshot.",
+        "operationId": "LoadPlanningWorkbookDraft",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mpsSnapshotId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningWorkbookDraftResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "PlanningWorkbook"
+        ],
+        "summary": "Saves signed Planning adjustments with their loaded MPS baselines. Does not apply anything to QAD.",
+        "operationId": "SavePlanningWorkbookDraft",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavePlanningWorkbookDraftRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningWorkbookDraftResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PlanningWorkbook"
+        ],
+        "summary": "Deletes the saved Planning draft file. In-memory proposals are not affected.",
+        "operationId": "DeletePlanningWorkbookDraft",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{assignmentId}/part-detail": {
       "get": {
         "tags": [
@@ -5137,6 +5561,383 @@
           }
         }
       },
+      "PlanningBucketDto": {
+        "required": [
+          "kind",
+          "weekLabel",
+          "salesOrderQuantity",
+          "salesOrderDollars",
+          "mps",
+          "mpsDollars",
+          "forecast",
+          "estimatedOnHand"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "weekLabel": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "salesOrderQuantity": {
+            "type": "string"
+          },
+          "salesOrderDollars": {
+            "type": "string"
+          },
+          "mps": {
+            "type": "string"
+          },
+          "mpsDollars": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "forecast": {
+            "type": "string"
+          },
+          "estimatedOnHand": {
+            "type": "string"
+          }
+        }
+      },
+      "PlanningDraftEntryRequestDto": {
+        "required": [
+          "part",
+          "weekLabel",
+          "adjustment"
+        ],
+        "type": "object",
+        "properties": {
+          "part": {
+            "type": "string"
+          },
+          "weekLabel": {
+            "type": "string",
+            "format": "date"
+          },
+          "adjustment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PlanningDraftRowDto": {
+        "required": [
+          "part",
+          "weekLabel",
+          "adjustment",
+          "savedMpsQuantity",
+          "currentMps",
+          "baselineChanged",
+          "proposedMps",
+          "issueCode"
+        ],
+        "type": "object",
+        "properties": {
+          "part": {
+            "type": "string"
+          },
+          "weekLabel": {
+            "type": "string",
+            "format": "date"
+          },
+          "adjustment": {
+            "type": "string"
+          },
+          "savedMpsQuantity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "currentMps": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "baselineChanged": {
+            "type": "boolean"
+          },
+          "proposedMps": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "issueCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PlanningPartBlockDto": {
+        "required": [
+          "part",
+          "description",
+          "netQuantityOnHand",
+          "priceTiers",
+          "selectedPrice",
+          "isPriced",
+          "falldown",
+          "weeks",
+          "undated"
+        ],
+        "type": "object",
+        "properties": {
+          "part": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "netQuantityOnHand": {
+            "type": "string"
+          },
+          "priceTiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningPriceTierDto"
+            }
+          },
+          "selectedPrice": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isPriced": {
+            "type": "boolean"
+          },
+          "falldown": {
+            "$ref": "#/components/schemas/PlanningBucketDto"
+          },
+          "weeks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningBucketDto"
+            }
+          },
+          "undated": {
+            "$ref": "#/components/schemas/PlanningUndatedDto"
+          }
+        }
+      },
+      "PlanningPriceTierDto": {
+        "required": [
+          "minimumOrderQuantity",
+          "unitPrice"
+        ],
+        "type": "object",
+        "properties": {
+          "minimumOrderQuantity": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "string"
+          }
+        }
+      },
+      "PlanningUndatedDto": {
+        "required": [
+          "salesOrderQuantity",
+          "salesOrderDollars",
+          "lineCount"
+        ],
+        "type": "object",
+        "properties": {
+          "salesOrderQuantity": {
+            "type": "string"
+          },
+          "salesOrderDollars": {
+            "type": "string"
+          },
+          "lineCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PlanningWorkbookDraftPresenceDto": {
+        "required": [
+          "exists"
+        ],
+        "type": "object",
+        "properties": {
+          "exists": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PlanningWorkbookDraftResponseDto": {
+        "required": [
+          "exists",
+          "isCorrupt",
+          "warning",
+          "savedAtUtc",
+          "savedMpsSnapshotId",
+          "savedSite",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "exists": {
+            "type": "boolean"
+          },
+          "isCorrupt": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "savedAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "savedMpsSnapshotId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "savedSite": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningDraftRowDto"
+            }
+          }
+        }
+      },
+      "PlanningWorkbookResponseDto": {
+        "required": [
+          "workspaceId",
+          "site",
+          "workbookSnapshotId",
+          "mpsSnapshotId",
+          "openOrdersSnapshotId",
+          "acquiredAtUtc",
+          "priceEffectiveDate",
+          "priceSelectionPolicy",
+          "today",
+          "horizonWeeks",
+          "isStale",
+          "warning",
+          "weekLabels",
+          "parts",
+          "minimumSelectableHorizonWeeks",
+          "maximumHorizonWeeks"
+        ],
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "site": {
+            "type": "string"
+          },
+          "workbookSnapshotId": {
+            "type": "string"
+          },
+          "mpsSnapshotId": {
+            "type": "string"
+          },
+          "openOrdersSnapshotId": {
+            "type": "string"
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "priceEffectiveDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "priceSelectionPolicy": {
+            "type": "string"
+          },
+          "today": {
+            "type": "string",
+            "format": "date"
+          },
+          "horizonWeeks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "isStale": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "weekLabels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningPartBlockDto"
+            }
+          },
+          "minimumSelectableHorizonWeeks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "maximumHorizonWeeks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "PreferencesResponseDto": {
         "required": [
           "preferences",
@@ -5250,6 +6051,25 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/OpenOrderProposalDto"
+            }
+          }
+        }
+      },
+      "SavePlanningWorkbookDraftRequestDto": {
+        "required": [
+          "mpsSnapshotId",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "mpsSnapshotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningDraftEntryRequestDto"
             }
           }
         }
@@ -6150,6 +6970,9 @@
     },
     {
       "name": "OpenOrders"
+    },
+    {
+      "name": "PlanningWorkbook"
     },
     {
       "name": "PartDetail"

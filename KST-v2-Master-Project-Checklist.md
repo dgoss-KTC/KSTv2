@@ -5,7 +5,9 @@ owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
 **Current project position:** The owner approved the revised Release 1 scope and stage sequence on
 2026-09-29. Stage 12 is retired. Stage 13 Customer Open Orders has an owner-accepted bounded plan
-and precedes Stage 14 Planning Workbook; Stage 13 is complete and owner-accepted as of 2026-10-01. Stage 16
+and precedes Stage 14 Planning Workbook; Stage 13 is complete and owner-accepted as of 2026-10-01. Stage 14
+Checkpoint 14.1 (decision documentation and synthetic fixtures) is complete and owner-accepted as of
+2026-10-02; Checkpoints 14.2 and 14.3 are complete and owner-accepted as of 2026-10-02; 14.4 is owner-accepted with the zero-value display amendment as of 2026-10-02; 14.5 is owner-accepted with the Master plan redesign and presentation amendments as of 2026-10-06; 14.6 is not authorized and not started. Stage 16
 is absorbed into Stage 18, while Stages 17 and 20 are retired. Stage 21 Export
 Completion and Stage 22 Refinement & Optimization are required before Stage 23 Quality and
 Hardening. Release readiness, pilot, rollout, and post-release planning are Stages 24–27.
@@ -815,7 +817,7 @@ accepted — see below).
   (`VersionPrefix`/`VersionSuffix`).
 - [x] Initial application version set: `0.1.0-alpha.1` (SemVer 2.0.0).
 - [x] Owner adopted stage-aligned alpha numbering on 2026-09-29: Stage `N` uses
-      `0.1.0-alpha.N`; the current Stage 13 implementation version is `0.1.0-alpha.13`.
+      `0.1.0-alpha.N`; the current Stage 14 version is `0.1.0-alpha.14` (Stage 13 used `0.1.0-alpha.13`).
 - [x] `KstActiveStage` plus the version-consistency guard enforce the active-stage relationship.
 - [x] Version propagated to backend assemblies (`InformationalVersion`, system status/health
   endpoints, startup logs, frontend top bar), `src/tauri/Cargo.toml`, `src/frontend/package.json`.
@@ -1401,34 +1403,89 @@ approved date/quantity/price edits, and generate externally processed QXtend-com
 fresh validation. KST performs no direct write and no automatic import.
 
 
-## Stage 14 — Planning Workbook — PLANNED / RELEASE 1 REQUIRED
+## Stage 14 — Planning Workbook — 14.1–14.4 ACCEPTED / RELEASE 1 REQUIRED
+
+Checkpoint 14.1 (decision documentation, checklist corrections and synthetic fixtures) is **COMPLETE /
+OWNER-ACCEPTED — 2026-10-02**, with one amendment: forecast quarter sums are not required.
+Checkpoint 14.2 (pure Domain calculation core and fixture-driven tests; version `0.1.0-alpha.14`)
+is **COMPLETE / OWNER-ACCEPTED — 2026-10-02**, including the D06 and D04/D05 test corrections and the
+valid-zero-baseline test. Checkpoint 14.3 (read-only price/forecast adapters, workbook composition
+and workbook API) is **COMPLETE / OWNER-ACCEPTED — 2026-10-02**, including the four post-review
+corrections and the documented cache, stale-data and shared Open Orders refresh behavior.
+Checkpoint 14.4 (read-only Planning Workbook view and fiscal-quarter summaries, with the owner's
+2026-10-02 horizon, unpriced-total and Undated-display decisions) is **OWNER-ACCEPTED with the
+zero-value display amendment — 2026-10-02** (owner dev-mode review). Checkpoint 14.5 (Planning
+adjustment staging and saved drafts) was authorized 2026-10-02 and is **OWNER-ACCEPTED with Master
+plan redesign and presentation amendments — 2026-10-06** (ledger §16–§17; owner review, with
+offline/mocked automated evidence only); 14.6 is not authorized and not started. Live source evidence (E1–E5) remains unverified; the 14.2–14.5
+evidence is synthetic/offline only. Decisions,
+sources and unverified evidence: `docs/implementation/KST_v2_STAGE_14_SOURCE_AND_DECISION_LEDGER.md`.
+Fixtures: `docs/reference/STAGE_14_PLANNING_WORKBOOK_DETERMINISTIC_FIXTURES.json` and
+`docs/reference/Stage14Fixtures/MpsAdjustments.expected.csv`.
+
+Owner corrections (2026-10-02) to earlier checklist wording: the workbook uses **sales price and
+revenue only** ("unit cost" was a terminology error; no cost or margin); there is **no frozen or
+lead-time fence** and no rejection for released work orders; negative projected inventory and
+SO/MPS mismatches are displayed but never block export; forecasts are display-only; fresh QAD
+rereads before export are not part of Stage 14.
 
 ### 14.1 Field and rule discovery
 
-- [ ] Map sales-order, forecast, and MPS quantities.
-- [ ] Map unit price and unit cost; define SO value and MPS value.
-- [ ] Define demand selection, estimated on hand, adjusted on hand, and adjustment grain.
-- [ ] Define frozen-fence restrictions and validation rules.
-- [ ] Define mass-update file mappings and distinguish them from Stage 21 analytical exports.
+- [x] Map sales-order (Stage 13 lines, `RA%` excluded in the workbook only), display-only forecast
+      (MRP `FORECAST` rows at their own dates), and Due-Date MPS quantities.
+- [x] Map QAD sales price (first MOQ-ascending tier, tiers retained); define SO $ (Stage 13
+      `ExtPrice`), MPS $ and Adjusted MPS $; distinguish unpriced from zero price.
+- [x] Define Net QOH opening inventory, the Falldown seed, estimated and adjusted on hand, fiscal
+      quarter totals (no forecast quarter sums), and the signed whole-number part/week adjustment grain.
+- [x] Define validation rules: negative resulting MPS blocks export; no fence; validation against the
+      loaded MPS data; saved-draft baseline comparison on restoration.
+- [x] Define the Mass Updater CSV mapping (Part, signed adjustment, `M/d/yyyy` week date, no header)
+      and distinguish it from Stage 21 analytical exports.
+- [x] Owner acceptance of Checkpoint 14.1 — 2026-10-02.
 
 ### 14.2 Backend
 
-- [ ] Define `PlanningBucket` and `ProposedMpsAdjustment`.
-- [ ] Create planning-data and inventory-projection services.
-- [ ] Create price and cost adapters.
-- [ ] Create adjustment staging and validation services.
-- [ ] Create planning endpoints and the MPS mass-update exporter.
+- [x] Define `PlanningBucket` and `ProposedMpsAdjustment` — Domain core accepted at 14.2 (2026-10-02).
+- [x] Create planning-data and inventory-projection services — pure Domain projection accepted at
+      14.2 (2026-10-02); `PlanningWorkbookService` acquisition/composition accepted at 14.3
+      (2026-10-02).
+- [x] Create the batched price adapter and the forecast adapter — `QadPartPriceReader` and
+      `QadForecastReader` accepted at 14.3 (2026-10-02); live behavior (E1–E2) unverified.
+- [ ] Create adjustment staging and validation services — pure Domain validation and draft
+      comparison accepted at 14.2 (2026-10-02); saved-draft service/persistence implemented at 14.5
+      (owner-accepted 2026-10-06); export validation is 14.6.
+- [ ] Create planning endpoints and the MPS Mass Updater CSV exporter — read-only workbook GET and
+      refresh endpoints accepted at 14.3 (2026-10-02); saved-draft endpoints implemented at 14.5
+      (owner-accepted 2026-10-06); export endpoint and CSV exporter are 14.6.
+- [x] Owner acceptance of Checkpoint 14.2 (pure Domain core, fixture-driven tests, version
+      `0.1.0-alpha.14`) — 2026-10-02.
+- [x] Owner acceptance of Checkpoint 14.3 (read-only adapters, workbook composition, workbook API,
+      four post-review corrections) — 2026-10-02.
 
 ### 14.3 Frontend and validation
 
-- [ ] Build the Planning Workbook grid and grouped part blocks.
-- [ ] Build the editable adjustment row, staged-change highlighting, and clear confirmation.
-- [ ] Display last export and validate negative inventory, frozen periods, and invalid adjustments.
-- [ ] Validate the exported mass-update file.
-- [ ] Owner acceptance.
+- [x] Build the Planning Workbook grid and grouped part blocks — read-only view, fiscal-quarter
+      summaries and workspace totals accepted at 14.4 (2026-10-02, with zero-value display amendment);
+      adjustment rows at 14.5; replaced by the Master plan report/planning design and four
+      presentation amendments, owner-accepted 2026-10-06.
+- [x] Build the editable adjustment row, staged-change highlighting, and clear confirmation —
+      implemented at 14.5 with undo, confirmed Clear All, counts and saved drafts (owner-accepted
+      2026-10-06).
+- [ ] Show negative projected inventory without blocking; reject invalid adjustments and negative
+      resulting MPS; decide and implement any last-export display — staging validation implemented
+      at 14.5 (owner-accepted 2026-10-06); last-export display is 14.6 (Q-N3) — item stays open.
+- [ ] Validate the exported Mass Updater file.
+- [x] Owner acceptance of Checkpoint 14.4 (read-only view, fiscal-quarter summaries, owner horizon /
+      unpriced-total / Undated-display decisions, zero-value display amendment) — 2026-10-02.
+- [x] Owner acceptance of Checkpoint 14.5 (Planning adjustment staging and saved drafts, Master plan
+      redesign, review corrections and four presentation amendments) — 2026-10-06. Open: live-source
+      E1–E5, desktop/native confirmation, 14.6 decisions (including CSV column order).
+- [ ] Owner acceptance of Stage 14 (after 14.6).
 
-Completion gate: A scheduler can review supply and demand, stage MPS adjustments, validate them,
-and produce a QAD-compatible update file.
+
+Completion gate: A scheduler can review supply and demand, stage signed MPS adjustments, validate
+them against the loaded MPS data, and save a human-reviewable QAD Mass Updater CSV. KST performs no
+database write, submission or import.
 
 
 ## Stage 15 — Finished Goods — PLANNED / RELEASE 1 REQUIRED
@@ -1933,7 +1990,9 @@ product baseline is frozen for Stage 23.
 - [~] Stage 12 — Multi-Part Shortage Analysis — **RETIRED / SUPERSEDED**.
 - [x] Stage 13 — Customer Open Orders — COMPLETE / ACCEPTED — 2026-10-01; bounded evidence,
       owner-reported external outcomes and accepted verification exceptions in the Stage 13 closeout.
-- [ ] Stage 14 — Planning Workbook.
+- [ ] Stage 14 — Planning Workbook — Checkpoints 14.1–14.3 COMPLETE / ACCEPTED 2026-10-02;
+      14.4 OWNER-ACCEPTED 2026-10-02 (zero-value display amendment); 14.5 OWNER-ACCEPTED 2026-10-06
+      (with Master plan redesign and presentation amendments); 14.6 not authorized / not started.
 - [ ] Stage 15 — Finished Goods.
 - [~] Stage 16 — General Open Orders — **ABSORBED into Stage 18**.
 - [~] Stage 17 — General WO Variance — **RETIRED / NO LONGER DESIRED**.

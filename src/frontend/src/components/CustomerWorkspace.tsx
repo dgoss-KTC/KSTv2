@@ -1,10 +1,12 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { WorkspaceAssignmentDto } from '../api/client';
 import { useMpsDashboard } from '../hooks/useMpsDashboard';
+import { usePlanningProposals } from '../hooks/usePlanningProposals';
 import { ComponentOrdersPanel } from './ComponentOrdersPanel';
 import { LongTermShortagesPanel } from './LongTermShortagesPanel';
 import { MpsWorkspace } from './MpsWorkspace';
 import { OpenOrdersPanel } from './OpenOrdersPanel';
+import { PlanningWorkbookPanel } from './PlanningWorkbookPanel';
 import './CustomerWorkspace.css';
 
 type CustomerModule = 'dashboard' | 'planning' | 'openOrders' | 'componentOrders' | 'longTermShortages' | 'finishedGoods';
@@ -18,8 +20,7 @@ const modules: ReadonlyArray<{ id: CustomerModule; label: string }> = [
   { id: 'finishedGoods', label: 'Finished Goods' },
 ];
 
-const unavailableCopy: Record<Exclude<CustomerModule, 'dashboard' | 'openOrders'>, string> = {
-  planning: 'Planning is not available yet. This module will be enabled when its accepted scheduling behavior is implemented.',
+const unavailableCopy: Record<Exclude<CustomerModule, 'dashboard' | 'openOrders' | 'planning'>, string> = {
   componentOrders: 'Component Orders is not available yet. This Stage 10 workspace surface will be populated after its purchase-order data and workflow are accepted.',
   longTermShortages: 'Workspace Shortages is not available yet. This module will be enabled when its accepted scheduling behavior is implemented.',
   finishedGoods: 'Finished Goods is not available yet. This module will be enabled when its accepted scheduling behavior is implemented.',
@@ -31,12 +32,31 @@ function formatTimestamp(value: string | null | undefined): string {
   return Number.isNaN(date.getTime()) ? 'Never' : date.toLocaleString();
 }
 
-export function CustomerWorkspace({ workspace, onPlanningDirtyChange }: { workspace: WorkspaceAssignmentDto; onPlanningDirtyChange?: (dirty: boolean) => void }) {
+export const OPEN_ORDERS_UNSAVED_MESSAGE = 'Unsaved Customer Open Orders planning changes will be discarded. Continue?';
+export const PLANNING_UNSAVED_MESSAGE = 'Unsaved Planning adjustments will be discarded. Continue?';
+
+function unsavedMessage(openOrders: boolean, planning: boolean): string | undefined {
+  if (openOrders && planning) return 'Unsaved Customer Open Orders planning changes and unsaved Planning adjustments will be discarded. Continue?';
+  if (planning) return PLANNING_UNSAVED_MESSAGE;
+  return openOrders ? OPEN_ORDERS_UNSAVED_MESSAGE : undefined;
+}
+
+export function CustomerWorkspace({ workspace, onPlanningDirtyChange }: { workspace: WorkspaceAssignmentDto; onPlanningDirtyChange?: (dirty: boolean, message?: string) => void }) {
   const [activeModule, setActiveModule] = useState<CustomerModule>('dashboard');
   const [planningDirty, setPlanningDirty] = useState(false);
-  const planningDirtyChanged = useCallback((dirty: boolean) => { setPlanningDirty(dirty); onPlanningDirtyChange?.(dirty); }, [onPlanningDirtyChange]);
   const mps = useMpsDashboard(workspace.assignmentId);
+  const snapshotId = mps.dashboard?.snapshot.snapshotId ?? null;
+  // Stage 14.5: Planning proposals live here so they survive module switches (for example reloading
+  // MPS on the Dashboard tab) and are reapplied to a replaced MPS snapshot.
+  const proposals = usePlanningProposals(workspace.assignmentId, snapshotId);
+  const planningDirtyChanged = useCallback((dirty: boolean) => setPlanningDirty(dirty), []);
   const title = workspace.displayName ?? workspace.site;
+
+  // Unsaved-change protection reported to the shell (workspace switch, General, archive/delete/reset).
+  const anyDirty = planningDirty || proposals.dirty;
+  const dirtyMessage = unsavedMessage(planningDirty, proposals.dirty);
+  useEffect(() => { onPlanningDirtyChange?.(anyDirty, dirtyMessage); }, [anyDirty, dirtyMessage, onPlanningDirtyChange]);
+  useEffect(() => () => { onPlanningDirtyChange?.(false); }, [onPlanningDirtyChange]);
 
   return (
     <div className="customer-workspace">
@@ -62,8 +82,8 @@ export function CustomerWorkspace({ workspace, onPlanningDirtyChange }: { worksp
             aria-selected={activeModule === module.id}
             className={`customer-workspace__module${activeModule === module.id ? ' customer-workspace__module--active' : ''}`}
             onClick={() => {
-              if (module.id !== 'openOrders' && planningDirty && !window.confirm('Unsaved Customer Open Orders planning changes will be discarded. Continue?')) return;
-              if (module.id !== 'openOrders') { setPlanningDirty(false); onPlanningDirtyChange?.(false); }
+              if (module.id !== 'openOrders' && planningDirty && !window.confirm(OPEN_ORDERS_UNSAVED_MESSAGE)) return;
+              if (module.id !== 'openOrders') setPlanningDirty(false);
               setActiveModule(module.id);
             }}
           >
@@ -88,11 +108,15 @@ export function CustomerWorkspace({ workspace, onPlanningDirtyChange }: { worksp
             refresh={mps.refresh}
           />
         </div>
-        {activeModule !== 'dashboard' && activeModule !== 'openOrders' && activeModule !== 'componentOrders' && activeModule !== 'longTermShortages' && (
+        {activeModule === 'finishedGoods' && (
           <section className="customer-workspace__unavailable" aria-labelledby={`${activeModule}-heading`}>
             <h3 id={`${activeModule}-heading`}>{modules.find((module) => module.id === activeModule)?.label}</h3>
             <p>{unavailableCopy[activeModule]}</p>
           </section>
+        )}
+        {activeModule === 'planning' && (
+          <PlanningWorkbookPanel assignmentId={workspace.assignmentId} site={workspace.site}
+            snapshotId={snapshotId} mpsLoading={mps.isLoading} proposals={proposals} />
         )}
         {activeModule === 'componentOrders' && (
           <ComponentOrdersPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null} />

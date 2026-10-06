@@ -44,6 +44,11 @@ export type OpenOrdersDraftPresenceDto = components['schemas']['OpenOrdersDraftP
 export type SaveOpenOrdersDraftRequestDto = components['schemas']['SaveOpenOrdersDraftRequestDto'];
 export type ExportOpenOrdersQxtendRequestDto = components['schemas']['ExportOpenOrdersQxtendRequestDto'];
 export type OpenOrdersQxtendResponseDto = components['schemas']['OpenOrdersQxtendResponseDto'];
+export type PlanningWorkbookResponseDto = components['schemas']['PlanningWorkbookResponseDto'];
+export type PlanningWorkbookDraftPresenceDto = components['schemas']['PlanningWorkbookDraftPresenceDto'];
+export type PlanningWorkbookDraftResponseDto = components['schemas']['PlanningWorkbookDraftResponseDto'];
+export type PlanningDraftRowDto = components['schemas']['PlanningDraftRowDto'];
+export type SavePlanningWorkbookDraftRequestDto = components['schemas']['SavePlanningWorkbookDraftRequestDto'];
 
 export class ApiError extends Error {
   constructor(
@@ -285,6 +290,30 @@ export class ApiClient {
 
   async exportOpenOrdersQxtend(assignmentId: string, request: ExportOpenOrdersQxtendRequestDto): Promise<OpenOrdersQxtendResponseDto> {
     return this.post<OpenOrdersQxtendResponseDto>(`/api/v1/workspaces/${assignmentId}/open-orders/qxtend-export`, request);
+  }
+
+  async getPlanningWorkbook(assignmentId: string, mpsSnapshotId: string, horizonWeeks: number): Promise<PlanningWorkbookResponseDto> {
+    return this.get<PlanningWorkbookResponseDto>(`/api/v1/workspaces/${assignmentId}/planning-workbook?mpsSnapshotId=${encodeURIComponent(mpsSnapshotId)}&horizonWeeks=${horizonWeeks}`);
+  }
+
+  async refreshPlanningWorkbook(assignmentId: string, mpsSnapshotId: string, horizonWeeks: number): Promise<PlanningWorkbookResponseDto> {
+    return this.postEmpty<PlanningWorkbookResponseDto>(`/api/v1/workspaces/${assignmentId}/planning-workbook/refresh?mpsSnapshotId=${encodeURIComponent(mpsSnapshotId)}&horizonWeeks=${horizonWeeks}`);
+  }
+
+  async getPlanningWorkbookDraftPresence(assignmentId: string): Promise<PlanningWorkbookDraftPresenceDto> {
+    return this.get<PlanningWorkbookDraftPresenceDto>(`/api/v1/workspaces/${assignmentId}/planning-workbook/draft/presence`);
+  }
+
+  async loadPlanningWorkbookDraft(assignmentId: string, mpsSnapshotId: string): Promise<PlanningWorkbookDraftResponseDto> {
+    return this.get<PlanningWorkbookDraftResponseDto>(`/api/v1/workspaces/${assignmentId}/planning-workbook/draft?mpsSnapshotId=${encodeURIComponent(mpsSnapshotId)}`);
+  }
+
+  async savePlanningWorkbookDraft(assignmentId: string, request: SavePlanningWorkbookDraftRequestDto): Promise<PlanningWorkbookDraftResponseDto> {
+    return this.put<PlanningWorkbookDraftResponseDto>(`/api/v1/workspaces/${assignmentId}/planning-workbook/draft`, request);
+  }
+
+  async deletePlanningWorkbookDraft(assignmentId: string): Promise<void> {
+    return this.delete(`/api/v1/workspaces/${assignmentId}/planning-workbook/draft`);
   }
 
   async getLongTermShortages(

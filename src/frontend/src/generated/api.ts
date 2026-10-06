@@ -312,6 +312,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{assignmentId}/planning-workbook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the workspace Planning Workbook for the supplied current MPS snapshot and horizon, reusing compatible cached source facts. */
+        get: operations["GetPlanningWorkbook"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/planning-workbook/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reacquires Open Orders, inventory, prices and forecast (not MPS) for the supplied current MPS snapshot. */
+        post: operations["RefreshPlanningWorkbook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/planning-workbook/draft/presence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reports whether a saved Planning draft file exists for the workspace (file existence only). */
+        get: operations["GetPlanningWorkbookDraftPresence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/planning-workbook/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reads the saved Planning draft and compares each saved baseline with the workspace's currently loaded MPS snapshot. */
+        get: operations["LoadPlanningWorkbookDraft"];
+        /** Saves signed Planning adjustments with their loaded MPS baselines. Does not apply anything to QAD. */
+        put: operations["SavePlanningWorkbookDraft"];
+        post?: never;
+        /** Deletes the saved Planning draft file. In-memory proposals are not affected. */
+        delete: operations["DeletePlanningWorkbookDraft"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{assignmentId}/part-detail": {
         parameters: {
             query?: never;
@@ -1124,6 +1194,93 @@ export interface components {
             /** Format: double */
             unitPrice: number | string;
         };
+        PlanningBucketDto: {
+            kind: string;
+            /** Format: date */
+            weekLabel: null | string;
+            salesOrderQuantity: string;
+            salesOrderDollars: string;
+            mps: string;
+            mpsDollars: null | string;
+            forecast: string;
+            estimatedOnHand: string;
+        };
+        PlanningDraftEntryRequestDto: {
+            part: string;
+            /** Format: date */
+            weekLabel: string;
+            adjustment: null | string;
+        };
+        PlanningDraftRowDto: {
+            part: string;
+            /** Format: date */
+            weekLabel: string;
+            adjustment: string;
+            savedMpsQuantity: null | string;
+            currentMps: null | string;
+            baselineChanged: boolean;
+            proposedMps: null | string;
+            issueCode: null | string;
+        };
+        PlanningPartBlockDto: {
+            part: string;
+            description: null | string;
+            netQuantityOnHand: string;
+            priceTiers: components["schemas"]["PlanningPriceTierDto"][];
+            selectedPrice: null | string;
+            isPriced: boolean;
+            falldown: components["schemas"]["PlanningBucketDto"];
+            weeks: components["schemas"]["PlanningBucketDto"][];
+            undated: components["schemas"]["PlanningUndatedDto"];
+        };
+        PlanningPriceTierDto: {
+            minimumOrderQuantity: string;
+            unitPrice: string;
+        };
+        PlanningUndatedDto: {
+            salesOrderQuantity: string;
+            salesOrderDollars: string;
+            /** Format: int32 */
+            lineCount: number | string;
+        };
+        PlanningWorkbookDraftPresenceDto: {
+            exists: boolean;
+        };
+        PlanningWorkbookDraftResponseDto: {
+            exists: boolean;
+            isCorrupt: boolean;
+            warning: null | string;
+            /** Format: date-time */
+            savedAtUtc: null | string;
+            savedMpsSnapshotId: null | string;
+            savedSite: null | string;
+            rows: components["schemas"]["PlanningDraftRowDto"][];
+        };
+        PlanningWorkbookResponseDto: {
+            /** Format: uuid */
+            workspaceId: string;
+            site: string;
+            workbookSnapshotId: string;
+            mpsSnapshotId: string;
+            openOrdersSnapshotId: string;
+            /** Format: date-time */
+            acquiredAtUtc: string;
+            /** Format: date */
+            priceEffectiveDate: string;
+            priceSelectionPolicy: string;
+            /** Format: date */
+            today: string;
+            /** Format: int32 */
+            horizonWeeks: number | string;
+            isStale: boolean;
+            warning: null | string;
+            weekLabels: string[];
+            parts: components["schemas"]["PlanningPartBlockDto"][];
+            /** Format: int32 */
+            minimumSelectableHorizonWeeks: number | string;
+            /** Format: int32 */
+            maximumHorizonWeeks: number | string;
+        };
         PreferencesResponseDto: {
             preferences: components["schemas"]["UserPreferencesDto"];
             configurationWarning: null | string;
@@ -1150,6 +1307,11 @@ export interface components {
             mpsSnapshotId: string;
             openOrdersSnapshotId: string;
             proposals: components["schemas"]["OpenOrderProposalDto"][];
+        };
+        SavePlanningWorkbookDraftRequestDto: {
+            /** Format: uuid */
+            mpsSnapshotId: string;
+            entries: components["schemas"]["PlanningDraftEntryRequestDto"][];
         };
         SnapshotStatusDto: {
             available: boolean;
@@ -2207,6 +2369,310 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["OpenOrdersDraftPresenceDto"];
                 };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPlanningWorkbook: {
+        parameters: {
+            query: {
+                mpsSnapshotId: string;
+                horizonWeeks: number | string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanningWorkbookResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RefreshPlanningWorkbook: {
+        parameters: {
+            query: {
+                mpsSnapshotId: string;
+                horizonWeeks: number | string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanningWorkbookResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPlanningWorkbookDraftPresence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanningWorkbookDraftPresenceDto"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    LoadPlanningWorkbookDraft: {
+        parameters: {
+            query: {
+                mpsSnapshotId: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanningWorkbookDraftResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SavePlanningWorkbookDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavePlanningWorkbookDraftRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanningWorkbookDraftResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DeletePlanningWorkbookDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Service Unavailable */
             503: {

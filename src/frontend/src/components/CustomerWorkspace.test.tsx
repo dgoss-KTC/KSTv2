@@ -9,8 +9,10 @@ vi.mock('../hooks/useMpsDashboard', () => ({
 vi.mock('./MpsWorkspace', () => ({ MpsWorkspace: () => <div>MPS dashboard</div> }));
 vi.mock('./ComponentOrdersPanel', () => ({ ComponentOrdersPanel: () => <div>Component Orders</div> }));
 vi.mock('./LongTermShortagesPanel', () => ({ LongTermShortagesPanel: () => <div>Workspace Shortages panel</div> }));
-vi.mock('./OpenOrdersPanel', () => ({ OpenOrdersPanel: ({ workspaceName, site }: { workspaceName: string | null; site: string }) =>
-  <div>Open Orders for {workspaceName ?? site}</div> }));
+vi.mock('./OpenOrdersPanel', () => ({ OpenOrdersPanel: ({ workspaceName, site, onDirtyChange }: { workspaceName: string | null; site: string; onDirtyChange?: (dirty: boolean) => void }) =>
+  <div>Open Orders for {workspaceName ?? site}<button type="button" onClick={() => onDirtyChange?.(true)}>make dirty</button></div> }));
+vi.mock('./PlanningWorkbookPanel', () => ({ PlanningWorkbookPanel: ({ assignmentId, site, snapshotId }: { assignmentId: string; site: string; snapshotId: string | null }) =>
+  <div>Planning workbook {assignmentId} {site} {snapshotId ?? 'no-mps'}</div> }));
 
 const workspace: WorkspaceAssignmentDto = {
   assignmentId: 'ws-1', displayName: 'Line 1', site: 'NW', productLineFrom: null, productLineTo: null,
@@ -34,5 +36,25 @@ describe('CustomerWorkspace', () => {
     expect(tabs.findIndex(tab => tab.textContent === 'Customer Open Orders')).toBeLessThan(tabs.findIndex(tab => tab.textContent === 'Component Orders'));
     fireEvent.click(screen.getByRole('tab', { name: 'Customer Open Orders' }));
     expect(screen.getByText('Open Orders for Line 1')).toBeInTheDocument();
+  });
+
+  it('replaces the Planning placeholder with the read-only Planning Workbook panel', () => {
+    render(<CustomerWorkspace workspace={workspace} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Planning' }));
+    expect(screen.getByText('Planning workbook ws-1 NW no-mps')).toBeInTheDocument();
+    expect(screen.queryByText(/Planning is not available yet/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the unsaved Open Orders confirmation when moving to Planning', () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    render(<CustomerWorkspace workspace={workspace} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Customer Open Orders' }));
+    fireEvent.click(screen.getByRole('button', { name: 'make dirty' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Planning' }));
+    expect(screen.getByText('Open Orders for Line 1')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Planning' }));
+    expect(screen.getByText(/Planning workbook ws-1/)).toBeInTheDocument();
+    expect(confirm).toHaveBeenCalledTimes(2);
+    confirm.mockRestore();
   });
 });

@@ -1,13 +1,23 @@
 # Current Project Status
 
-Date: 2026-10-01
+Date: 2026-10-02
 Workstation: Windows (`C:\Dev\kst_v2`)
 Current implementation position: **Stages 1–11 and 13 COMPLETE / ACCEPTED; Stages 9–11 LOCKED; Stage 12 RETIRED.**
 The revised Release 1 roadmap is owner-approved. **Stage 13 — Customer Open Orders** has an
 owner-accepted bounded plan; checkpoints 13.1–13.5 are implemented and owner-accepted (13.5
 commit `5ea47da`). **Checkpoint 13.6 and Stage 13 are COMPLETE / OWNER-ACCEPTED — 2026-10-01**;
 bounded live results, owner-reported external outcomes and accepted verification exceptions are
-documented in `docs/implementation/KST_v2_STAGE_13_CLOSEOUT.md`. Stage 14 has not begun or been authorized.
+documented in `docs/implementation/KST_v2_STAGE_13_CLOSEOUT.md`. **Stage 14 — Planning Workbook:
+Checkpoint 14.1 (decision documentation and synthetic fixtures) COMPLETE / OWNER-ACCEPTED —
+2026-10-02** (`docs/implementation/KST_v2_STAGE_14_SOURCE_AND_DECISION_LEDGER.md`). **Checkpoint
+14.2 (pure Domain calculation core and fixture-driven tests) COMPLETE / OWNER-ACCEPTED —
+2026-10-02**; the application version is `0.1.0-alpha.14`. **Checkpoint 14.3 (read-only
+adapters, workbook composition and workbook API) COMPLETE / OWNER-ACCEPTED — 2026-10-02**.
+**Checkpoint 14.4 (read-only Planning Workbook view and fiscal-quarter summaries) IMPLEMENTED /
+OWNER-ACCEPTED with zero-value display amendment — 2026-10-02**. **Checkpoint 14.5 (Planning
+adjustment staging and saved drafts) — OWNER-ACCEPTED with Master plan redesign and presentation
+amendments — 2026-10-06** (owner review; evidence is offline/mocked, live-source E1–E5 and
+desktop/native confirmation remain open); Checkpoint 14.6 is not authorized and not started.
 UI Navigation & Keyboard Ergonomics A: **COMPLETE / ACCEPTED — 2026-08-21**
 Active cross-cutting effort: **R0 — Repository / Documentation Reconciliation — COMPLETE /
 ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation Status` below and
@@ -91,7 +101,7 @@ Pre-Stage-10 customer-workspace UI foundation: **COMPLETE / ACCEPTED** (inter-st
 not a Stage 10 checkpoint; see `docs/implementation/KST_v2_PRE_STAGE_10_UI_FOUNDATION_CLOSEOUT.md`)
 Stage 7 status: **COMPLETE / ACCEPTED - 2026-08-13; reopened, amended, and closed by Stage 7R (Four-Week Work Order Planning Window) - 2026-09-01** - see [Stage 7R Amendment](#stage-7r-amendment-four-week-work-order-planning-window) below
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
-Application version: **`0.1.0-alpha.13`** — the alpha prerelease number identifies the current
+Application version: **`0.1.0-alpha.14`** — the alpha prerelease number identifies the current
 numbered project stage (see [Versioning Foundation](#versioning-foundation) below)
 
 ## Current Position
@@ -118,7 +128,124 @@ exact-scope legacy comparison or larger-workspace timing. Full lint still **fail
 locked Stage 10 files (changed-scope lint passed); `cargo fmt --check` still **failed** on broader
 pre-existing Rust formatting. The owner accepts these as documented Stage 13 closeout exceptions,
 not passing checks. The owner explicitly accepted Checkpoint 13.6 and Stage 13 completion on
-2026-10-01 with those limits. Stage 14 has not begun. Version remains `0.1.0-alpha.13`.
+2026-10-01 with those limits. Version remains `0.1.0-alpha.13`.
+
+Stage 14.1 (2026-10-02): the owner supplied the Planning Workbook business baseline and six
+decisions (RA% sales orders excluded inside the workbook; MRP `FORECAST` rows displayed at their own
+dates and display-only; projection seed Net QOH + Falldown MPS − Falldown SO with Falldown flows
+once in the current fiscal quarter; signed adjustments kept on baseline change with no in-session
+acknowledgment; whole-number adjustments; no fresh QAD reread before export). They are recorded in
+the Stage 14 decision ledger with synthetic fixtures. The owner accepted Checkpoint 14.1 on
+2026-10-02 together with the proposed 14.1 choices, amended so that forecast quarter sums are not
+required (weekly and Falldown forecast display remain). No live source check was run; forecast sign,
+price ties/currency, RA prefix case and Mass Updater format acceptance remain unverified.
+
+Stage 14.2 (2026-10-02): the owner decided that non-RA sales-order lines without a Due Date are kept
+as separate Undated quantity/SO $ totals outside Falldown, weekly/quarter totals and projections,
+and directed the version advance to `0.1.0-alpha.14`. Checkpoint 14.2 adds the pure
+`Kst.Domain.PlanningWorkbook` calculation, validation, draft-comparison and Mass Updater row
+derivation core with fixture-driven Domain tests. It adds no QAD adapter, application service,
+endpoint, persistence, CSV serializer or UI, and no backend fiscal-calendar logic. The owner accepted
+Checkpoint 14.2 on 2026-10-02, including the D06 and D04/D05 test corrections and the
+valid-zero-baseline test (backend suite 1,009/1,009). Verification limits stand: the evidence is
+synthetic-fixture only (live source evidence E1–E5 unverified); full-solution `dotnet format`
+still fails on 62 untouched files (the scoped check on new files passes); frontend checks,
+`cargo check` and the sidecar rebuild were not run, so no packaged `alpha.14` evidence exists.
+Details are in the Stage 14 ledger §13.
+
+Stage 14.3 (2026-10-02): complete and owner-accepted on 2026-10-02. It adds:
+
+- batched read-only `QadPartPriceReader` (the accepted Part Info price rule) and `QadForecastReader`
+  (MRP `FORECAST` rows);
+- `PlanningWorkbookService`, composing the accepted Domain builder from the loaded MPS snapshot,
+  Stage 13 Open Orders, Net QOH, prices and forecast;
+- an in-memory per-workspace snapshot store with stale last-good behavior;
+- `GET`/`POST refresh` `/api/v1/workspaces/{id}/planning-workbook` endpoints, regenerated OpenAPI
+  and TypeScript contracts, and `docs/api/PLANNING_WORKBOOK.md`.
+
+Refreshing the workbook also refreshes the shared Stage 13 Open Orders report. The owner accepted
+the checkpoint including four post-review corrections (a missing price row is a failed read; the
+workspace is re-read after the acquisition gate and before publication or stale fallback; both
+query parameters are required in OpenAPI; corrected cache documentation) and the documented cache,
+stale-data and shared Open Orders refresh behavior (backend suite 1,053/1,053). Verification limits
+stand: offline only, with no live QAD call, sidecar, Rust or desktop check; E1–E5 remain
+unverified; full-solution `dotnet format` still fails on 62 untouched files. Details are in the
+Stage 14 ledger §14.
+
+Stage 14.4 (2026-10-02): **owner-accepted on 2026-10-02 with the zero-value display amendment** (exact numeric zeros in grid cells display blank). It adds:
+
+- the read-only Planning Workbook view on the workspace Planning tab (replacing the placeholder),
+  with retained part order, Falldown and weekly columns, a fiscal-quarter summary column after each
+  quarter's last visible week (partial quarters marked), workspace weekly/quarterly flow totals,
+  stale/unavailable/empty/MPS-context states, late-response protection and a Refresh Planning
+  control that calls only the workbook refresh endpoint (it also refreshes the shared Stage 13
+  Open Orders report);
+- frontend-owned fiscal-quarter summaries using the accepted fiscal calendar and 53-week
+  exceptions, recomputed locally when fiscal settings change, with exact decimal arithmetic in a
+  shared `src/frontend/src/shared/exactDecimal.ts` (Stage 13 imports preserved by re-export);
+- owner decisions recorded 2026-10-02 (ledger §10 Q4, Q-N2, Q-N6): 12-week default/minimum and an
+  MPS-derived maximum `max(12, lastMpsWeekIndex + 2)` (targeted backend `PlanningHorizonRange`,
+  `minimumSelectableHorizonWeeks`/`maximumHorizonWeeks` response fields and 400 range validation;
+  no fixed 72-week cap; Dashboard horizon unchanged); blank workspace MPS $ totals when any part is
+  unpriced; no Undated display.
+
+Automated verification is offline only (mocked API responses; backend 1,066/1,066). After the
+2026-10-02 review corrections (guarded Refresh during loading, business-week rollover revalidation
+by GET, fiscal settings verified through the real settings workflow, green SO / yellow MPS row
+colours), frontend tests were 477 passed and 5 skipped. After the zero-value display amendment
+(exact numeric zeros in grid cells display blank; display only), they were 479 passed and 5
+skipped. Separately, the owner rebuilt and reviewed the app in dev mode before accepting. Live E1–E5
+and price-tie/currency questions remain unverified. The agent ran no sidecar, Rust or connected
+desktop check. Details are in the Stage 14 ledger §15.
+
+Stage 14.5 (2026-10-02): authorized after full 14.4 acceptance; **OWNER-ACCEPTED 2026-10-06 (with
+the Master plan redesign and presentation amendments)**. Text below records the implementation
+evidence at each step. It adds per-part weekly signed whole-number Adjustment inputs with read-only Proposed MPS,
+Adjusted MPS $ and Adj On Hand rows (exact decimals; quarter flows and ending balances; workspace
+Adjustment/Proposed MPS/Adjusted MPS $ totals, blank adjusted dollars when any part is unpriced);
+validation messages with removal, undo, confirmed Clear All and change counts; proposals kept across
+module switches, horizon changes, refresh, week rollover and MPS snapshot replacement (signed
+adjustments re-applied, newly invalid entries flagged); optional per-assignment saved drafts
+(`%LOCALAPPDATA%\KST\config\planning-workbook-draft-{assignmentId}.json`, atomic, corrupt files
+retained) with presence/load-reconcile/save/delete endpoints and review-before-restore; workspace
+delete/reset remove the draft, archive keeps it; and unsaved-change protection generalized from
+Open Orders to Planning. Review corrections (2026-10-02) invalidate obsolete draft reviews, isolate
+asynchronous results per workspace session and bound Undo to one cell-editing session. Offline
+verification: backend 1,084/1,084; frontend 541 passed, 5 skipped on clean full runs (intermittent
+failures only in unchanged Stage 11/13 tests are recorded in the ledger). No owner review, live QAD,
+sidecar, Rust or connected desktop check yet. No CSV export (14.6). Details are in the Stage 14
+ledger §16.
+
+Stage 14.5 Master plan UI redesign (2026-10-06): **OWNER-ACCEPTED 2026-10-06**. The Planning
+presentation was replaced with the owner's Master plan design (`docs/reference/MP_UI_update/`):
+report mode by default (Sales orders, MPS, Projected on hand) and a local planning mode (Adjust row;
+proposed MPS and adjusted inventory merged into the MPS and Projected on hand rows; Changes panel);
+a compact grid with one sticky header row, quarter totals after each quarter's last visible week,
+pinned model column, collapsible model blocks with health strips, struck-through loaded values on
+changed cells and whole-workspace totals pinned at the bottom; a View panel (models, rows, totals;
+preferences per assignment, filter chips not persisted); a Changes panel and a modal saved-draft
+comparison; an inert Import forecast stub; export disabled until 14.6. Owner decisions: totals cover
+the whole workspace with the two dollar totals pinned by default; Planning follows the global density
+preference; entries outside the visible horizon stay listed and are not by themselves
+export-blocking. A remaining draft-safety gap (an earlier visit's save/delete completing after a
+restore) was closed. Frontend only; no backend, contract or calculation-rule change; IBM Plex assets
+from the prototype were not bundled (unverifiable provenance/license). Offline verification: frontend
+559 passed, 5 skipped on three of four full runs (the other failed only the unchanged Stage 11 Edge
+scaling test); typecheck, scoped lint, build, version check and
+`git diff --check` passed; backend last 1,084/1,084 (not repeated). The 14.6 export column order
+(redesign: part, due date, change quantity vs the confirmed Part, adjustment, date) must be reconciled
+before 14.6. Review corrections (2026-10-06) recover obsolete saved-draft presence checks after
+A → B → A (single recheck per draft change, Retry on failure, no loop) and return keyboard focus
+after the saved-draft review to the Review control or the mode button; frontend 570 passed, 5 skipped
+on two consecutive full runs. The owner tested the Planning sheet and asked for four presentation
+amendments (row tint with a per-workspace View toggle, Projected-on-hand balance line, hover crosshair,
+content-sized value columns); they are implemented in the frontend only and reviewed by the owner
+on the amended screen (frontend 577 passed, 5 skipped on three consecutive runs; mocked browser checks
+found no clipped values and contrast ≥ 4.5:1; 570 → 577 passed is a net +7, 9 tests added — see
+ledger §17). The owner accepted the checkpoint including these amendments on 2026-10-06:
+**Checkpoint 14.5 — OWNER-ACCEPTED with Master plan redesign and presentation amendments —
+2026-10-06.** Open: live-source E1–E5, desktop/native confirmation, 14.6 decisions (including the
+CSV column order). Details are in the Stage 14 ledger §17.
 
 The owner approved the revised Release 1 roadmap on 2026-09-29:
 
@@ -638,8 +765,8 @@ Between Stage 6 and Stage 7, a lightweight application versioning foundation was
 established (inter-stage housekeeping, not a Stage 7 activity):
 
 - Product identity `KST v2` remains distinct from the semantic application version.
-- Current application version: **`0.1.0-alpha.13`** ([SemVer 2.0.0](https://semver.org/)). During
-  numbered alpha development, Stage `N` uses `0.1.0-alpha.N`; Stage 13 is the current planning stage.
+- Current application version: **`0.1.0-alpha.14`** ([SemVer 2.0.0](https://semver.org/)). During
+  numbered alpha development, Stage `N` uses `0.1.0-alpha.N`; Stage 14 is the current stage.
 - Historical note: the initial foundation used `0.1.0-alpha.1` and later
   `0.1.0-alpha.2` before the owner adopted stage-aligned alpha numbering on 2026-09-29.
 - Authoritative source: `src/backend/Directory.Build.props` (`VersionPrefix`/`VersionSuffix`),
@@ -678,12 +805,16 @@ R0 overall: **COMPLETE / ACCEPTED — 2026-08-21.** Full detail:
 are implemented. The accepted closeout records one approved six-parent/four-row refresh, one
 targeted date-only validation, the owner's report of external acceptance for all three QXtend
 file types, and accepted limits/exceptions without treating failed or unmeasured checks as passes.
-Stage 14 has not begun and requires separate authorization. Cross-customer Open Orders remains Stage 18.
+Stage 14 Checkpoints 14.1, 14.2 and 14.3 are complete and owner-accepted (2026-10-02). Checkpoint
+14.4 is owner-accepted with the zero-value display amendment (2026-10-02); Checkpoint 14.5 is
+owner-accepted with the Master plan redesign and presentation amendments (2026-10-06); Checkpoint
+14.6 requires separate authorization and is not started.
+Cross-customer Open Orders remains Stage 18.
 
 The accepted planning baseline is `docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`. The
 bounded implementation prompt is `docs/implementation/KST_v2_STAGE_13_IMPLEMENTATION_PROMPT.md`.
 
 Preserve the three untracked owner QXtend templates and the pre-existing local/generated work.
 The one-pass read approval has been used; further transactional QAD validation queries, QXtend
-submission/import and Stage 14 require separate owner authorization. The Stage 13.6 closeout
+submission/import and Stage 14 checkpoints after 14.5 require separate owner authorization. The Stage 13.6 closeout
 commit/push is separately authorized as part of its owner acceptance.

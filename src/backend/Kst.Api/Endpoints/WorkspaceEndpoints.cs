@@ -2,6 +2,7 @@ using Kst.Api.Dtos;
 using Kst.Application.Workspaces;
 using Kst.Domain.Workspaces;
 using Kst.Application.OpenOrders;
+using Kst.Application.PlanningWorkbook;
 
 namespace Kst.Api.Endpoints;
 
@@ -150,21 +151,23 @@ public static class WorkspaceEndpoints
         return result.NotFound ? Results.NotFound() : Results.Ok(ToDto(result.Workspace!));
     }
 
-    private static async Task<IResult> DeleteWorkspace(Guid assignmentId, IWorkspaceConfigurationService service, OpenOrdersDraftService drafts, CancellationToken ct)
+    private static async Task<IResult> DeleteWorkspace(Guid assignmentId, IWorkspaceConfigurationService service, OpenOrdersDraftService drafts,
+        PlanningWorkbookDraftService planningDrafts, CancellationToken ct)
     {
-        // Remove the draft first; on failure the assignment is still available for retry.
+        // Remove the drafts first; on failure the assignment is still available for retry.
         if (!(await service.GetWorkspacesAsync()).Workspaces.Any(w => w.AssignmentId == assignmentId)) return Results.NotFound();
-        try { await drafts.DeleteAsync(assignmentId, ct); }
+        try { await drafts.DeleteAsync(assignmentId, ct); await planningDrafts.DeleteAsync(assignmentId, ct); }
         catch (Exception) { return Results.Problem(title: "Workspace draft could not be removed", statusCode: 503); }
         var result = await service.DeleteWorkspaceAsync(assignmentId);
         return result.NotFound ? Results.NotFound() : Results.NoContent();
     }
 
-    private static async Task<IResult> ResetWorkspaces(IWorkspaceConfigurationService service, OpenOrdersDraftService drafts, CancellationToken ct)
+    private static async Task<IResult> ResetWorkspaces(IWorkspaceConfigurationService service, OpenOrdersDraftService drafts,
+        PlanningWorkbookDraftService planningDrafts, CancellationToken ct)
     {
         foreach (var workspace in (await service.GetWorkspacesAsync()).Workspaces)
         {
-            try { await drafts.DeleteAsync(workspace.AssignmentId, ct); }
+            try { await drafts.DeleteAsync(workspace.AssignmentId, ct); await planningDrafts.DeleteAsync(workspace.AssignmentId, ct); }
             catch (Exception) { return Results.Problem(title: "Workspace draft could not be removed", statusCode: 503); }
         }
         await service.ResetWorkspacesAsync();

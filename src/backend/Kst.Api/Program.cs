@@ -12,6 +12,8 @@ using Kst.Application.Inventory;
 using Kst.Application.LongTermShortages;
 using Kst.Application.Mps;
 using Kst.Application.OpenOrders;
+using Kst.Application.PlanningWorkbook;
+
 using Kst.Application.PartDetail;
 using Kst.Application.Preferences;
 using Kst.Application.Refresh;
@@ -31,6 +33,8 @@ using Kst.Infrastructure.Configuration;
 using Kst.Infrastructure.Identity;
 using Kst.Infrastructure.Mps;
 using Kst.Infrastructure.OpenOrders;
+using Kst.Infrastructure.PlanningWorkbook;
+
 using Kst.Infrastructure.LongTermShortages;
 using Kst.Infrastructure.PartDetail;
 using Kst.Infrastructure.SystemStatus;
@@ -46,6 +50,8 @@ using Kst.Integrations.Qad.Mps;
 using Kst.Integrations.Qad.LongTermShortages;
 using Kst.Integrations.Qad.Options;
 using Kst.Integrations.Qad.OpenOrders;
+using Kst.Integrations.Qad.PlanningWorkbook;
+
 using Kst.Integrations.Qad.PartDetail;
 using Kst.Integrations.Qad.Shortages;
 using Kst.Integrations.Qad.WorkOrders;
@@ -226,6 +232,32 @@ else
 builder.Services.AddSingleton<OpenOrdersService>();
 builder.Services.AddSingleton<OpenOrdersQxtendService>();
 builder.Services.AddSingleton<OpenOrdersDraftService>();
+
+// -- Planning Workbook (Stage 14.3) ---------------------------------------------
+// Inventory reuses the shared IPartInventoryReader registered with the BOM section below.
+builder.Services.AddSingleton<IPlanningWorkbookSnapshotStore, InMemoryPlanningWorkbookSnapshotStore>();
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadPartPriceReader>();
+    builder.Services.AddSingleton<QadForecastReader>();
+    builder.Services.AddSingleton<IPlanningPriceReader>(sp => new DelegatePlanningPriceReader(
+        async (site, parts, effectiveDate, ct) =>
+            (await sp.GetRequiredService<QadPartPriceReader>().ReadAsync(site, parts, effectiveDate, ct))
+                .Select(r => new PlanningPartPrice(r.PartNumber, r.Tiers)).ToList()));
+    builder.Services.AddSingleton<IPlanningForecastReader>(sp => new DelegatePlanningForecastReader(
+        (site, parts, ct) => sp.GetRequiredService<QadForecastReader>().ReadAsync(site, parts, ct)));
+}
+else
+{
+    builder.Services.AddSingleton<IPlanningPriceReader>(_ => new DelegatePlanningPriceReader(
+        (_, _, _, _) => throw new InvalidOperationException("QAD connection is not configured.")));
+    builder.Services.AddSingleton<IPlanningForecastReader>(_ => new DelegatePlanningForecastReader(
+        (_, _, _) => throw new InvalidOperationException("QAD connection is not configured.")));
+}
+builder.Services.AddSingleton<PlanningWorkbookService>();
+// Stage 14.5 saved Planning drafts (local files; IPlanningWorkbookDraftStore registered by AddInfrastructure).
+builder.Services.AddSingleton<PlanningWorkbookDraftService>();
+
 
 // -- Part Detail (Stage 6) -------------------------------------------------
 builder.Services.AddSingleton<IPartDetailCacheStore, InMemoryPartDetailCacheStore>();
@@ -463,6 +495,8 @@ app.MapWorkspaceEndpoints();
 app.MapPreferencesEndpoints();
 app.MapMpsEndpoints();
 app.MapOpenOrdersEndpoints();
+app.MapPlanningWorkbookEndpoints();
+
 app.MapPartDetailEndpoints();
 app.MapWorkOrderEndpoints();
 app.MapBomEndpoints();

@@ -9,6 +9,8 @@ using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
 using Kst.Application.LongTermShortages;
 using Kst.Application.OpenOrders;
+using Kst.Application.PlanningWorkbook;
+
 using Kst.Application.Preferences;
 using Kst.Application.Workspaces;
 using Kst.Application.Shortages;
@@ -63,6 +65,11 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
     public ILongTermShortageSourceReader? LongTermShortageSourceReader { get; set; }
     public IOpenOrdersSourceReader? OpenOrdersSourceReader { get; set; }
     public IOpenOrderCurrentLineReader? OpenOrderCurrentLineReader { get; set; }
+    public IPlanningPriceReader? PlanningPriceReader { get; set; }
+    /// <summary>Stage 14.5: in-memory Planning draft store (never the developer's real local app data).</summary>
+    internal InMemoryPlanningWorkbookDraftStore PlanningDraftStore { get; } = new();
+    public IPlanningForecastReader? PlanningForecastReader { get; set; }
+
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -98,6 +105,9 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
             var draftDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IOpenOrdersDraftStore));
             if (draftDescriptor is not null) services.Remove(draftDescriptor);
             services.AddSingleton<IOpenOrdersDraftStore, InMemoryOpenOrdersDraftStore>();
+            var planningDraftDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IPlanningWorkbookDraftStore));
+            if (planningDraftDescriptor is not null) services.Remove(planningDraftDescriptor);
+            services.AddSingleton<IPlanningWorkbookDraftStore>(PlanningDraftStore);
 
             // Stage 8D.3: optional deterministic BOM reader overrides for endpoint tests.
             var bomSourceReader = BomSourceReader;
@@ -156,6 +166,9 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
             ReplaceIfProvided(services, LongTermShortageSourceReader);
             ReplaceIfProvided(services, OpenOrdersSourceReader);
             ReplaceIfProvided(services, OpenOrderCurrentLineReader);
+            ReplaceIfProvided(services, PlanningPriceReader);
+            ReplaceIfProvided(services, PlanningForecastReader);
+
         });
 
         builder.ConfigureLogging(logging =>
@@ -171,6 +184,18 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
         if (descriptor is not null) services.Remove(descriptor);
         services.AddSingleton(replacement);
     }
+}
+
+internal sealed class InMemoryPlanningWorkbookDraftStore : IPlanningWorkbookDraftStore
+{
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, PlanningWorkbookDraft> _drafts = new();
+    public HashSet<Guid> Corrupt { get; } = [];
+    public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(_drafts.ContainsKey(id) || Corrupt.Contains(id));
+    public Task<PlanningWorkbookDraft?> LoadAsync(Guid id, CancellationToken ct) =>
+        Corrupt.Contains(id) ? throw new InvalidDataException("corrupt") : Task.FromResult(_drafts.GetValueOrDefault(id));
+    public Task SaveAsync(PlanningWorkbookDraft draft, CancellationToken ct) { _drafts[draft.WorkspaceId] = draft; return Task.CompletedTask; }
+    public Task DeleteAsync(Guid id, CancellationToken ct) { _drafts.TryRemove(id, out _); Corrupt.Remove(id); return Task.CompletedTask; }
+    public PlanningWorkbookDraft? Get(Guid id) => _drafts.GetValueOrDefault(id);
 }
 
 internal sealed class InMemoryOpenOrdersDraftStore : IOpenOrdersDraftStore

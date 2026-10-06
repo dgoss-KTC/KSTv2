@@ -85,6 +85,33 @@ public sealed class QadReadOnlySqlTests
         }
     }
 
+    /// <summary>
+    /// Stage 14.3: the two Planning Workbook query builders must be discovered by the convention scan
+    /// above and must emit read-only SQL with representative arguments.
+    /// </summary>
+    [Fact]
+    public void Planning_Workbook_Query_Builders_Are_Discovered_And_ReadOnly()
+    {
+        var builders = typeof(QadConnectionFactory).Assembly.GetTypes()
+            .Where(t => !t.IsInterface)
+            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static))
+            .Where(IsSqlBuilder)
+            .Where(m => m.DeclaringType!.FullName is
+                "Kst.Integrations.Qad.PlanningWorkbook.QadPartPriceReader" or
+                "Kst.Integrations.Qad.PlanningWorkbook.QadForecastReader")
+            .ToList();
+
+        Assert.Equal(
+            ["QadForecastReader.BuildBatchQuery", "QadPartPriceReader.BuildBatchQuery"],
+            builders.Select(b => $"{b.DeclaringType!.Name}.{b.Name}").Order(StringComparer.Ordinal));
+        foreach (var builder in builders)
+        {
+            var sql = NormalizeSqlForVerbScan(InvokeBuilder(builder));
+            Assert.Contains("SELECT", sql);
+            Assert.Empty(FindMutatingVerbTokens(sql));
+        }
+    }
+
     private static bool IsSqlBuilder(MethodInfo method)
     {
         // The established production convention: public static (string Sql, DynamicParameters Parameters).

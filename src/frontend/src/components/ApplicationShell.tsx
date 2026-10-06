@@ -48,8 +48,14 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const planningDirtyRef = useRef(false);
-  const planningDirtyChanged = useCallback((dirty: boolean) => { planningDirtyRef.current = dirty; }, []);
-  const confirmDiscardPlanning = () => !planningDirtyRef.current || window.confirm('Unsaved Customer Open Orders planning changes will be discarded. Continue?');
+  const planningDirtyMessageRef = useRef<string | undefined>(undefined);
+  // Stage 13 Open Orders and Stage 14.5 Planning unsaved changes, reported by CustomerWorkspace.
+  const planningDirtyChanged = useCallback((dirty: boolean, message?: string) => {
+    planningDirtyRef.current = dirty;
+    planningDirtyMessageRef.current = message;
+  }, []);
+  const confirmDiscardPlanning = () => !planningDirtyRef.current
+    || window.confirm(planningDirtyMessageRef.current ?? 'Unsaved Customer Open Orders planning changes will be discarded. Continue?');
 
   // Focus-restoration targets are DOM elements, not application state — stored in refs per the
   // repository focus-management convention (see Stage 8D.6 Component Information).
