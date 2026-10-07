@@ -12,11 +12,11 @@ namespace Kst.Domain.PlanningWorkbook;
 /// </summary>
 public static class PlanningWorkbookBuilder
 {
-    /// <summary>Workbook-only RMA exclusion: sales order numbers beginning with <c>RA</c> (ordinal).</summary>
+    /// <summary>Workbook-only RMA exclusion: sales order numbers beginning with <c>RA</c>, case-insensitive (RA, ra, Ra, rA; owner follow-up 2026-10-07). No trimming or other patterns.</summary>
     public static bool IsExcludedReturnOrder(OpenOrderLine line)
     {
         ArgumentNullException.ThrowIfNull(line);
-        return line.Key.SalesOrder.StartsWith("RA", StringComparison.Ordinal);
+        return line.Key.SalesOrder.StartsWith("RA", StringComparison.OrdinalIgnoreCase);
     }
 
     public static PlanningWorkbook Build(PlanningWorkbookInput input)
@@ -129,7 +129,7 @@ public static class PlanningWorkbookBuilder
 
     private static PlanningBucket Bucket(
         MpsBucketKind kind, DateOnly? label, decimal so, decimal soDollars, decimal mps, decimal forecast,
-        decimal adjustment, decimal? price, decimal estimated, decimal adjusted)
+        decimal adjustment, decimal price, decimal estimated, decimal adjusted)
     {
         var proposed = mps + adjustment;
         return new PlanningBucket(

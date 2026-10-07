@@ -59,9 +59,5 @@ public static class OpenOrdersQxtendCsv
 
     private static string Number(decimal value) => value.ToString("0.############################", CultureInfo.InvariantCulture);
     private static string Date(DateOnly? value) => value?.ToString("M/d/yyyy", CultureInfo.InvariantCulture) ?? "";
-    private static string Escape(string? value)
-    {
-        value ??= "";
-        return value.IndexOfAny([',', '"', '\r', '\n']) < 0 ? value : $"\"{value.Replace("\"", "\"\"")}\"";
-    }
+    private static string Escape(string? value) => CsvText.Escape(value);
 }

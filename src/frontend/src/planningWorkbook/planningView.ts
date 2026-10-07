@@ -3,8 +3,8 @@
  * accepted exact-decimal workbook evaluation (planningAdjustments.ts / planningWorkbookSummary.ts);
  * nothing here changes a calculation, and no value is converted to a JavaScript number.
  */
-import { equalDecimal, formatDecimal, isNegativeDecimal, multiply, sumDecimals } from '../shared/exactDecimal';
-import type { AdjustedBucket, AdjustedPart, AdjustedWorkspaceFlowTotals, EntryEvaluation } from './planningAdjustments';
+import { equalDecimal, formatDecimal, isNegativeDecimal, sumDecimals } from '../shared/exactDecimal';
+import { exactProduct, type AdjustedBucket, type AdjustedPart, type AdjustedWorkspaceFlowTotals, type EntryEvaluation } from './planningAdjustments';
 
 /* ---------------------------------------------------------------------------------------------- */
 /* Formatting                                                                                      */
@@ -175,10 +175,7 @@ export interface CellView {
   changed?: boolean;
   negative?: boolean;
   invalid?: boolean;
-  unpriced?: boolean;
 }
-
-const UNPRICED: CellView = { text: '\u2014', title: 'Unpriced part', unpriced: true };
 
 const blankZero = (value: string, format: (v: string) => string) => (isExactZero(value) ? '' : format(value));
 
@@ -211,8 +208,8 @@ export function onHandCell(estimated: string, adjusted: string, mode: PlanningMo
 
 /** Weekly / Falldown / quarter cell for a non-input row. `adjustment` is the staged nonzero change for the cell or quarter. */
 export function metricCell(row: Exclude<GridRowId, 'adjust' | 'customerForecast'>, source: {
-  salesOrderQuantity: string; salesOrderDollars: string; mps: string; mpsDollars: string | null; proposedMps: string;
-  adjustedMpsDollars: string | null; estimatedOnHand: string; adjustedOnHand: string; adjustment: string; forecast?: string;
+  salesOrderQuantity: string; salesOrderDollars: string; mps: string; mpsDollars: string; proposedMps: string;
+  adjustedMpsDollars: string; estimatedOnHand: string; adjustedOnHand: string; adjustment: string; forecast?: string;
 }, mode: PlanningMode, kind: 'falldown' | 'week' | 'quarter'): CellView {
   const quarter = kind === 'quarter';
   const changed = mode === 'planning' && kind !== 'falldown' && !isExactZero(source.adjustment) && !equalDecimal(source.mps, source.proposedMps);
@@ -225,8 +222,7 @@ export function metricCell(row: Exclude<GridRowId, 'adjust' | 'customerForecast'
       return cell.negative ? { ...cell, invalid: true, title: `Proposed MPS cannot be negative. ${cell.title}` } : cell;
     }
     case 'mpsDollars': {
-      if (source.mpsDollars === null || source.adjustedMpsDollars === null) return UNPRICED;
-      // A genuine zero price leaves dollars unchanged by a quantity change: show them as loaded.
+      // A zero price (genuine, or $0 for a part with no list price) leaves dollars unchanged by a quantity change: show them as loaded.
       if (!changed || equalDecimal(source.mpsDollars, source.adjustedMpsDollars)) return plain(source.mpsDollars, money);
       const cell = changedCell(source.mpsDollars, source.adjustedMpsDollars, money);
       return cell.negative ? { ...cell, invalid: true } : cell;
@@ -241,18 +237,18 @@ export function metricCell(row: Exclude<GridRowId, 'adjust' | 'customerForecast'
 /* Workspace totals                                                                                */
 /* ---------------------------------------------------------------------------------------------- */
 
-export const UNPRICED_TOTAL_NOTE = (count: number) =>
-  `Blank: ${count === 1 ? '1 part in this workspace is' : `${count} parts in this workspace are`} unpriced, so workspace MPS $ totals cannot be complete. Priced parts still show their own dollars; SO $ totals come from sales-order lines.`;
+/** Explains parts counted at $0 (owner-approved amendment 2026-10-07): they stay in the totals; nothing is blank. */
+export const NO_LIST_PRICE_TOTAL_NOTE = (count: number) =>
+  `${count === 1 ? '1 part in this workspace has' : `${count} parts in this workspace have`} no eligible QAD list price and count as $0 in workspace MPS $ totals. Maintain list prices in QAD to include them; SO $ totals come from sales-order lines.`;
 
 /** Total cell for the complete workspace (independent of hidden models and filters). Inventory is never summed. */
-export function totalCell(total: TotalId, flows: AdjustedWorkspaceFlowTotals, mode: PlanningMode, unpricedNote: string): CellView {
+export function totalCell(total: TotalId, flows: AdjustedWorkspaceFlowTotals, mode: PlanningMode): CellView {
   switch (total) {
     case 'so': return plain(flows.salesOrderQuantity, qty);
     case 'soDollars': return plain(flows.salesOrderDollars, money);
     case 'mps':
       return mode === 'planning' && !equalDecimal(flows.mps, flows.proposedMps) ? changedCell(flows.mps, flows.proposedMps, qty) : plain(flows.mps, qty);
     case 'mpsDollars': {
-      if (flows.mpsDollars === null || flows.adjustedMpsDollars === null) return { text: '', title: unpricedNote, unpriced: true };
       return mode === 'planning' && !equalDecimal(flows.mpsDollars, flows.adjustedMpsDollars)
         ? changedCell(flows.mpsDollars, flows.adjustedMpsDollars, money) : plain(flows.mpsDollars, money);
     }
@@ -266,24 +262,25 @@ export function totalCell(total: TotalId, flows: AdjustedWorkspaceFlowTotals, mo
 
 export interface NetChange {
   units: string;
-  /** Sum over valid entries of priced, in-scope parts only. */
-  pricedDollars: string;
-  /** Valid entries whose part is unpriced or not in the loaded workbook (excluded from dollars). */
-  unpricedEntries: number;
+  /** Sum over valid entries at each part's list price ($0 when the part has no eligible list price). */
+  dollars: string;
+  /** Valid entries for parts with no eligible list price, which count as $0. */
+  noListPriceEntries: number;
   validEntries: number;
 }
 
 /** Net change across every valid, nonzero staged entry (hidden ones included; entries with issues excluded). */
 export function netChange(entries: readonly EntryEvaluation[], parts: readonly AdjustedPart[]): NetChange {
-  const prices = new Map(parts.map(p => [p.part.toUpperCase(), p.isPriced ? p.selectedPrice : null]));
+  const prices = new Map(parts.map(p => [p.part.toUpperCase(), p] as const));
   const valid = entries.filter(e => e.value !== null && e.issue === null);
   const units = sumDecimals(valid.map(e => e.value as string));
   const dollars: string[] = [];
-  let unpriced = 0;
+  let noListPrice = 0;
   for (const e of valid) {
-    const unit = prices.get(e.part.toUpperCase()) ?? null;
-    const amount = unit === null ? null : multiply(e.value as string, unit);
-    if (amount === null) unpriced++; else dollars.push(amount);
+    const part = prices.get(e.part.toUpperCase());
+    if (part === undefined) continue; // not in the loaded workbook: such an entry carries an issue and is never valid
+    if (!part.isPriced) noListPrice++;
+    dollars.push(exactProduct(e.value as string, part.selectedPrice));
   }
-  return { units, pricedDollars: sumDecimals(dollars), unpricedEntries: unpriced, validEntries: valid.length };
+  return { units, dollars: sumDecimals(dollars), noListPriceEntries: noListPrice, validEntries: valid.length };
 }

@@ -31,9 +31,9 @@ function EntryCard({ entry, modelHidden, onRemove }: { entry: EntryEvaluation; m
 function netLine(net: NetChange): { units: string; dollars: string; note: string | null } {
   return {
     units: `${isExactZero(net.units) ? '0' : signedQty(net.units)} units`,
-    dollars: net.validEntries - net.unpricedEntries === 0 ? '\u2014' : isExactZero(net.pricedDollars) ? '$0.00' : signedMoney(net.pricedDollars),
-    note: net.unpricedEntries > 0
-      ? `Dollars cover priced parts only; ${net.unpricedEntries} ${net.unpricedEntries === 1 ? 'change is' : 'changes are'} for unpriced or out-of-scope parts and excluded.`
+    dollars: net.validEntries === 0 ? '\u2014' : isExactZero(net.dollars) ? '$0.00' : signedMoney(net.dollars),
+    note: net.noListPriceEntries > 0
+      ? `Dollars count ${net.noListPriceEntries} ${net.noListPriceEntries === 1 ? 'change' : 'changes'} for parts with no eligible QAD list price at $0.`
       : null,
   };
 }
@@ -85,7 +85,7 @@ export function PlanningChangesPanel({ proposals, evaluation, snapshotId, hidden
         )}
         <div className="pwb-net">
           <span>Net change</span>
-          <span className="pwb-net__value">{net && listed.length > 0 ? `${net.units} \u00b7 ${net.dollars}${net.note ? ' (priced parts only)' : ''}` : 'None'}</span>
+          <span className="pwb-net__value">{net && listed.length > 0 ? `${net.units} \u00b7 ${net.dollars}${net.note ? ' (some parts at $0)' : ''}` : 'None'}</span>
         </div>
         {net?.note && listed.length > 0 && <p className="pwb-net__note">{net.note}</p>}
         <div className="pwb-side__actions">

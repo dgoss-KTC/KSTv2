@@ -150,23 +150,29 @@ describe('Planning Workbook panel: grid presentation', () => {
     expect(screen.queryByText(/undated/i)).not.toBeInTheDocument();
   });
 
-  it('shows unpriced versus zero-price parts and blanks workspace MPS $ when any part is unpriced', () => {
+  it('a part with no list price shows $0 and a No list price badge; workspace MPS $ totals still sum every part (amendment 2026-10-07)', () => {
     render(<PlanningWorkbookGrid workbook={fixtureToWorkbook(fixture)} settings={DEFAULT_FISCAL_CALENDAR_SETTINGS} prefs={ALL} />);
     const p3 = within(screen.getByRole('rowgroup', { name: 'Part P-3' }));
-    expect(p3.getByText('Unpriced')).toBeInTheDocument();
-    expect(within(p3.getByRole('row', { name: /^MPS \$/ })).getAllByRole('cell').every(c => c.textContent === '\u2014')).toBe(true);
+    expect(p3.getByText('No list price')).toBeInTheDocument();
+    expect(p3.queryByText('Unpriced')).not.toBeInTheDocument();
+    expect(p3.getByText('$0.0000')).toBeInTheDocument();
+    // Exact-zero dollars follow the ordinary zero presentation: blank, never a dash or unpriced styling.
+    expect(within(p3.getByRole('row', { name: /^MPS \$/ })).getAllByRole('cell').every(c => c.textContent === '')).toBe(true);
     const p2 = within(screen.getByRole('rowgroup', { name: 'Part P-2' }));
     expect(p2.getByText('$0.0000')).toBeInTheDocument();
-    // Valid zero price: priced (header shows $0.0000), MPS $ cells are exact zeros and so display blank, not '—'.
+    expect(p2.queryByText('No list price')).not.toBeInTheDocument(); // a genuine zero price is a priced part
     const p2MpsDollars = within(p2.getByRole('row', { name: /^MPS \$/ })).getAllByRole('cell');
-    expect(p2MpsDollars.every(c => c.textContent === '' && !c.classList.contains('pwb-cell--unpriced'))).toBe(true);
+    expect(p2MpsDollars.every(c => c.textContent === '')).toBe(true);
     const totals = within(screen.getByRole('rowgroup', { name: 'Workspace totals' }));
-    expect(within(totals.getByRole('row', { name: /^Total MPS \$/ })).getAllByRole('cell').every(c => c.textContent === '')).toBe(true);
+    // Mixed workspace: P-1 prices normally, P-2 (zero price) and P-3 (no list price) contribute $0.
+    const mpsDollarTotals = within(totals.getByRole('row', { name: /^Total MPS \$/ })).getAllByRole('cell');
+    expect(mpsDollarTotals[3]).toHaveTextContent('$513.75');
+    expect(mpsDollarTotals.every(c => c.textContent !== '\u2014')).toBe(true);
     expect(within(totals.getByRole('row', { name: /^Total SO \$/ })).getAllByRole('cell')[3]).toHaveTextContent('$1,635.57');
     expect(within(totals.getByRole('row', { name: /^Total MPS (?!\$)/ })).getAllByRole('cell')[6]).toHaveTextContent('210');
     expect(totals.queryByRole('row', { name: /on hand/i })).not.toBeInTheDocument();
-    expect(screen.getByTestId('mps-dollar-note')).toHaveTextContent('1 unpriced');
-    expect(screen.getByTestId('mps-dollar-note')).toHaveTextContent('1 part in this workspace is unpriced, so workspace MPS $ totals cannot be complete');
+    expect(screen.getByTestId('mps-dollar-note')).toHaveTextContent('1 at $0');
+    expect(screen.getByTestId('mps-dollar-note')).toHaveTextContent('1 part in this workspace has no eligible QAD list price and count as $0 in workspace MPS $ totals');
   });
 
   it('totals workspace MPS $ when every part is priced (zero price included) and highlights negative inventory', () => {
@@ -393,8 +399,8 @@ describe('Planning Workbook panel: neutral rows with colour keys (redesign; supe
     expect(key(totals.getByRole('row', { name: /^Total SO \$/ }))).toBe('pwb-key--demand');
     expect(key(totals.getByRole('row', { name: /^Total MPS \$/ }))).toBe('pwb-key--supply');
     for (const row of screen.getAllByRole('row')) expect(row.className).not.toMatch(/pwb-row--(demand|supply|neutral)/);
-    // Blank workspace MPS $ cells (one part unpriced) stay blank.
-    expect(within(totals.getByRole('row', { name: /^Total MPS \$/ })).getAllByRole('cell').every(c => c.textContent === '')).toBe(true);
+    // Mixed workspace: the no-list-price part adds $0, so totals are never blank because of it.
+    expect(within(totals.getByRole('row', { name: /^Total MPS \$/ })).getAllByRole('cell')[3]).toHaveTextContent('$513.75');
   });
 });
 
@@ -407,14 +413,15 @@ describe('Planning Workbook panel: zero-value display (14.4 owner amendment)', (
   function zeroWorkbook(parts: PlanningPart[]): PlanningWorkbook {
     return workbook(2, { weekLabels: [label(0), label(1)], parts });
   }
-  function zeroPart(name: string, priced: boolean, price: string | null): PlanningPart {
+  function zeroPart(name: string, priced: boolean, price: string): PlanningPart {
+    // `priced: false` = the lookup found no eligible list price, so the price is exactly $0 (amendment 2026-10-07).
     return part(name, {
-      netQuantityOnHand: '0', selectedPrice: price, isPriced: priced, priceTiers: price === null ? [] : [{ minimumOrderQuantity: '1', unitPrice: price }],
-      falldown: { ...flows({ kind: 'falldown', mpsDollars: priced ? '-0.00' : null }) },
+      netQuantityOnHand: '0', selectedPrice: price, isPriced: priced, priceTiers: priced ? [{ minimumOrderQuantity: '1', unitPrice: price }] : [],
+      falldown: { ...flows({ kind: 'falldown', mpsDollars: priced ? '-0.00' : '0.00' }) },
       weeks: [
-        { ...flows({ weekLabel: label(0), mpsDollars: priced ? '0' : null }) },
+        { ...flows({ weekLabel: label(0), mpsDollars: priced ? '0' : '0' }) },
         { ...flows({ weekLabel: label(1), salesOrderQuantity: '-2', salesOrderDollars: '0.004', mps: '0.5',
-          mpsDollars: priced ? '-0.004' : null, forecast: '3', estimatedOnHand: '-1.5' }) },
+          mpsDollars: priced ? '-0.004' : '0.0', forecast: '3', estimatedOnHand: '-1.5' }) },
       ],
     });
   }
@@ -444,20 +451,21 @@ describe('Planning Workbook panel: zero-value display (14.4 owner amendment)', (
     expect(within(screen.getByRole('rowgroup', { name: 'Part Z-1' })).getByText('0', { selector: 'strong' })).toBeInTheDocument();
   });
 
-  it('keeps zero-price parts priced, unpriced indicators, blank workspace MPS $ and cell styling', () => {
-    render(<PlanningWorkbookGrid workbook={zeroWorkbook([zeroPart('ZP', true, '0'), zeroPart('UP', false, null)])} settings={DEFAULT_FISCAL_CALENDAR_SETTINGS} prefs={ALL} />);
+  it('keeps zero-price parts priced, no-list-price parts at $0 (badge, blank zero cells, totals included) and cell styling', () => {
+    render(<PlanningWorkbookGrid workbook={zeroWorkbook([zeroPart('ZP', true, '0'), zeroPart('UP', false, '0')])} settings={DEFAULT_FISCAL_CALENDAR_SETTINGS} prefs={ALL} />);
     const zp = within(screen.getByRole('rowgroup', { name: 'Part ZP' }));
     expect(zp.getByText('$0.0000')).toBeInTheDocument();
-    expect(zp.queryByText('Unpriced')).not.toBeInTheDocument();
+    expect(zp.queryByText('No list price')).not.toBeInTheDocument();
     const up = within(screen.getByRole('rowgroup', { name: 'Part UP' }));
-    expect(up.getByText('Unpriced')).toBeInTheDocument();
+    expect(up.getByText('No list price')).toBeInTheDocument();
+    expect(up.getByText('$0.0000')).toBeInTheDocument();
     const upMpsDollars = row('Part UP', /^MPS \$/).getAllByRole('cell');
-    expect(upMpsDollars.every(c => c.textContent === '\u2014' && c.classList.contains('pwb-cell--unpriced'))).toBe(true);
+    expect(upMpsDollars.every(c => c.textContent === '' && !c.classList.contains('pwb-cell--unpriced'))).toBe(true);
 
-    // Any unpriced part: workspace MPS $ stays blank for every column even where the sum is nonzero.
+    // Workspace MPS $ always totals every part: the no-list-price part contributes $0, nothing is a dash.
     const totalsMpsDollars = row('Workspace totals', /^Total MPS \$/).getAllByRole('cell');
-    expect(totalsMpsDollars.every(c => c.textContent === '' && c.classList.contains('pwb-cell--unpriced'))).toBe(true);
-
+    expect(totalsMpsDollars.map(c => c.textContent)).toEqual(['', '', '$0.00', '$0.00']);
+    expect(totalsMpsDollars.every(c => !c.classList.contains('pwb-cell--unpriced'))).toBe(true);
     // Blank zero cells keep their row key, Falldown boundary and quarter styling.
     const soCells = row('Part ZP', /^Sales orders/).getAllByRole('cell');
     expect(soCells[0].closest('tr')?.querySelector('.pwb-key--demand')).not.toBeNull();

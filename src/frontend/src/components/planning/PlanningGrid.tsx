@@ -5,7 +5,7 @@ import { hoverColumnCss, sizePlanningColumns } from './planningColumnSizing';
 import { ISSUE_MESSAGES, type AdjustedBucket, type AdjustedPart, type AdjustedQuarterSummary, type adjustedWorkspaceTotals } from '../../planningWorkbook/planningAdjustments';
 import {
   isExactZero, metricCell, onHandCell, onHandFor, price, qty, ROW_DEFS, ROW_ORDER, shortWeekCount, shortWeekLabel, signedQty,
-  TOTAL_DEFS, totalCell, UNPRICED_TOTAL_NOTE, type CellView, type GridRowId, type PlanningMode, type RowId, type TotalId,
+  TOTAL_DEFS, totalCell, NO_LIST_PRICE_TOTAL_NOTE, type CellView, type GridRowId, type PlanningMode, type RowId, type TotalId,
 } from '../../planningWorkbook/planningView';
 
 type Totals = ReturnType<typeof adjustedWorkspaceTotals>;
@@ -13,7 +13,7 @@ type ColumnKind = 'falldown' | 'week' | 'quarter';
 
 function cellClass(cell: CellView, kind: ColumnKind, current: boolean, extra = '') {
   return ['pwb-cell', `pwb-cell--${kind}`, current && 'pwb-cell--current', cell.changed && 'pwb-cell--changed',
-    cell.negative && 'pwb-cell--negative', cell.invalid && 'pwb-cell--invalid', cell.unpriced && 'pwb-cell--unpriced', extra]
+    cell.negative && 'pwb-cell--negative', cell.invalid && 'pwb-cell--invalid', extra]
     .filter(Boolean).join(' ');
 }
 
@@ -113,9 +113,8 @@ function ModelBlock({ part, props, summaries }: { part: AdjustedPart; props: Pla
             </span>
             <span className="pwb-model__meta">
               On hand <strong>{qty(part.netQuantityOnHand)}</strong>{' \u00b7 '}
-              {part.isPriced && part.selectedPrice !== null
-                ? <span title={`Selected price ${part.selectedPrice}`}>{price(part.selectedPrice)}</span>
-                : <strong className="pwb-badge pwb-badge--unpriced">Unpriced</strong>}
+              <span title={part.isPriced ? `Selected price ${part.selectedPrice}` : 'No eligible QAD list price was found; $0 is used for MPS $'}>{price(part.selectedPrice)}</span>
+              {!part.isPriced && <strong className="pwb-badge pwb-badge--unpriced" title="No eligible QAD list price was found; $0 is used for MPS $">No list price</strong>}
               {short > 0 && <span className="pwb-badge pwb-badge--short">{short} {short === 1 ? 'wk' : 'wks'} short</span>}
               {mode === 'planning' && changes > 0 && <span className="pwb-badge pwb-badge--changes">{changes} {changes === 1 ? 'change' : 'changes'}</span>}
             </span>
@@ -180,7 +179,7 @@ const clearHoverColumn = (event: ReactPointerEvent<HTMLDivElement>) => event.cur
 export function PlanningGrid(props: PlanningGridProps) {
   const { workbook, shown, columns, totals, mode, totalRows, collapsed, tint = true } = props;
   const anyOpen = shown.some(p => !collapsed.has(p.part.toUpperCase()));
-  const unpriced = workbook.parts.filter(p => !p.isPriced).length;
+  const noListPrice = workbook.parts.filter(p => !p.isPriced).length;
   const visibleTotals = totalRows.filter(t => !TOTAL_DEFS[t].planningOnly || mode === 'planning');
   const columnCount = 2 + columns.length;
   const hoverCss = useMemo(() => hoverColumnCss(columnCount), [columnCount]);
@@ -264,7 +263,7 @@ export function PlanningGrid(props: PlanningGridProps) {
           <tfoot aria-label="Workspace totals">
             {visibleTotals.map((id, i) => {
               const def = TOTAL_DEFS[id];
-              const note = UNPRICED_TOTAL_NOTE(unpriced);
+              const note = NO_LIST_PRICE_TOTAL_NOTE(noListPrice);
               return (
                 <tr key={id} className={`pwb-total pwb-total--${id}`} style={{ '--pwb-foot-i': visibleTotals.length - 1 - i } as CSSProperties}>
                   <th scope="row" className="pwb-label pwb-total__label">
@@ -273,16 +272,16 @@ export function PlanningGrid(props: PlanningGridProps) {
                     <span className="pwb-total__scope" title="Totals always cover every model in the workspace, including hidden or filtered models.">
                       all {props.modelCount} {props.modelCount === 1 ? 'model' : 'models'}
                     </span>
-                    {(id === 'mpsDollars') && unpriced > 0 && (
+                    {(id === 'mpsDollars') && noListPrice > 0 && (
                       <span className="pwb-total__warn" data-testid="mps-dollar-note" title={note}>
-                        {unpriced} unpriced<span className="pwb-sr-only">{`. ${note}`}</span>
+                        {noListPrice} at $0<span className="pwb-sr-only">{`. ${note}`}</span>
                       </span>
                     )}
                   </th>
-                  <GridCell kind="falldown" cell={totalCell(id, totals.falldown, mode, note)} />
+                  <GridCell kind="falldown" cell={totalCell(id, totals.falldown, mode)} />
                   {columns.map(column => column.kind === 'week'
-                    ? <GridCell key={`w${column.index}`} kind="week" current={column.index === 0} cell={totalCell(id, totals.weeks[column.index], mode, note)} />
-                    : <GridCell key={`q${column.position}`} kind="quarter" cell={totalCell(id, totals.quarters[column.position], mode, note)} />)}
+                    ? <GridCell key={`w${column.index}`} kind="week" current={column.index === 0} cell={totalCell(id, totals.weeks[column.index], mode)} />
+                    : <GridCell key={`q${column.position}`} kind="quarter" cell={totalCell(id, totals.quarters[column.position], mode)} />)}
                 </tr>
               );
             })}

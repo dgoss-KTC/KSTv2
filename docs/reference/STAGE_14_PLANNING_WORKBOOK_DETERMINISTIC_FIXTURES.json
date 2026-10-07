@@ -2,12 +2,12 @@
   "purpose": "Synthetic Stage 14.1 Planning Workbook calculation, validation, draft-restoration and Mass Updater CSV cases. Never production, customer or QAD data. Values were chosen by hand to exercise accepted rules; they do not establish that any live source check passed.",
   "status": "Checkpoint 14.1 fixtures, owner-accepted 2026-10-02 with the forecast-quarter-sum amendment. Each case carries a basis: OC = owner-confirmed (Stage 14 planning request and owner decisions of 2026-10-02); OC-14.1 = choice proposed at 14.1 and accepted by the owner on 2026-10-02; P = still proposed, to be decided at a later checkpoint; RV-legacy = legacy reference behavior adopted only where the owner directed (forecast source). Authoritative rules: docs/implementation/KST_v2_STAGE_14_SOURCE_AND_DECISION_LEDGER.md.",
   "conventions": {
-    "decimals": "All quantities, prices and dollars are exact decimal strings. Compare by decimal value, not by textual scale (\"75.0000\" equals \"75\"). Null means unpriced (no current price list or no tiers), which is distinct from a valid zero price.",
+    "decimals": "All quantities, prices and dollars are exact decimal strings. Compare by decimal value, not by textual scale (\"75.0000\" equals \"75\"). Amendment 2026-10-07 (owner-approved): a successful lookup with no current price list or no tiers uses an exact zero price (selectedPrice 0, priced false = no list price found); there are no null dollar values. A genuine zero price is priced true. Failed or incomplete price acquisition is an error, never zero.",
     "dateBasis": "Due Date only (OC). MPS rows use mrp_due_date; sales-order lines use Stage 13 SourceValues.DueDate; forecast rows use their own mrp_due_date.",
     "weeks": "Sunday-Saturday business weeks labelled by Monday (accepted MpsBusinessCalendar). Falldown = date before the current week's Sunday.",
     "projection": "EstOnHand seed (Falldown) = NetQoh + Falldown MPS - Falldown SO (OC). EstOnHand[w] = EstOnHand[w-1] + MPS[w] - SO[w]. AdjOnHand[w] = AdjOnHand[w-1] + MPS[w] + Adjustment[w] - SO[w]; Falldown is not adjustable so AdjOnHand seed = EstOnHand seed. Forecast never participates (OC).",
     "revenue": "MpsDollars = MPS x selected price; AdjustedMpsDollars = ProposedMps x the same selected price; selected price = first tier of the MOQ-ascending tier list (OC). SoDollars = Stage 13 ExtPrice (OC).",
-    "quarters": "Weekly flows (SO, SO $, MPS, MPS $, Adjustment, Proposed MPS, Adjusted MPS $) are summed per fiscal quarter; Falldown flows are included once in the current fiscal quarter (OC). Inventory quarter values are the balance of the quarter's last visible week, not a sum (OC). Forecast quarter sums are not required and are deliberately absent from quarter expectations (OC amendment 2026-10-02); weekly forecast quantities and the Falldown forecast display remain (OC-14.1). Null-dollar (unpriced) quarter totals stay null for that part (OC-14.1).",
+    "quarters": "Weekly flows (SO, SO $, MPS, MPS $, Adjustment, Proposed MPS, Adjusted MPS $) are summed per fiscal quarter; Falldown flows are included once in the current fiscal quarter (OC). Inventory quarter values are the balance of the quarter's last visible week, not a sum (OC). Forecast quarter sums are not required and are deliberately absent from quarter expectations (OC amendment 2026-10-02); weekly forecast quantities and the Falldown forecast display remain (OC-14.1). Parts with no list price contribute exact zero dollars to quarter totals (amendment 2026-10-07; supersedes the OC-14.1 null-total rule).",
     "adjustmentInput": "Whole numbers only (OC). Accepted text form: optional leading '-' followed by ASCII digits (OC-14.1). Source MPS quantities and prices are never rounded (OC)."
   },
   "scope": {
@@ -40,7 +40,7 @@
       "P-2": [ { "minQty": "1", "price": "0.0000" } ],
       "P-3": []
     },
-    "priceTiersNote": "Tiers are listed in the accepted Part Info order (MOQ ascending). P-1 selects 2.5000 (first tier, OC). P-2 has a valid zero price. P-3 has no current price list and is unpriced.",
+    "priceTiersNote": "Tiers are listed in the accepted Part Info order (MOQ ascending). P-1 selects 2.5000 (first tier, OC). P-2 has a valid zero price. P-3 has no current price list: after the 2026-10-07 amendment it uses a $0 price (priced false), so its dollar values are exact zero.",
     "mpsSourceRows": [
       { "part": "P-1", "dueDate": "2026-09-10", "quantity": "30", "mrpType": "SUPPLY", "workOrderState": "F", "bucket": "Falldown" },
       { "part": "P-1", "dueDate": "2026-09-14", "quantity": "60", "mrpType": "SUPPLY", "workOrderState": "R", "bucket": "2026-09-14", "note": "Released WO in an adjusted week: no fence or released-WO restriction (OC)." },
@@ -125,18 +125,18 @@
         ]
       },
       {
-        "part": "P-3", "selectedPrice": null, "priced": false,
+        "part": "P-3", "selectedPrice": "0", "priced": false,
         "undated": { "so": "4", "soDollars": "10.00", "lineCount": 1 },
-        "falldown": { "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": null, "forecast": "0", "proposedMps": "0", "adjustedMpsDollars": null, "estOnHand": "5.5", "adjOnHand": "5.5" },
+        "falldown": { "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": "0", "forecast": "0", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "5.5", "adjOnHand": "5.5" },
         "weeks": [
-          { "weekLabel": "2026-09-14", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": null, "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": null, "estOnHand": "5.5", "adjOnHand": "5.5" },
-          { "weekLabel": "2026-09-21", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": null, "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": null, "estOnHand": "5.5", "adjOnHand": "5.5" },
-          { "weekLabel": "2026-09-28", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": null, "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": null, "estOnHand": "5.5", "adjOnHand": "5.5" },
-          { "weekLabel": "2026-10-05", "so": "0", "soDollars": "0", "mps": "10", "mpsDollars": null, "forecast": "0", "adjustment": "0", "proposedMps": "10", "adjustedMpsDollars": null, "estOnHand": "15.5", "adjOnHand": "15.5" }
+          { "weekLabel": "2026-09-14", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": "0", "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "5.5", "adjOnHand": "5.5" },
+          { "weekLabel": "2026-09-21", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": "0", "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "5.5", "adjOnHand": "5.5" },
+          { "weekLabel": "2026-09-28", "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": "0", "forecast": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "5.5", "adjOnHand": "5.5" },
+          { "weekLabel": "2026-10-05", "so": "0", "soDollars": "0", "mps": "10", "mpsDollars": "0", "forecast": "0", "adjustment": "0", "proposedMps": "10", "adjustedMpsDollars": "0", "estOnHand": "15.5", "adjOnHand": "15.5" }
         ],
         "quarters": [
-          { "quarter": "FY27-Q1", "includesFalldown": true, "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": null, "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": null, "estOnHand": "5.5", "adjOnHand": "5.5" },
-          { "quarter": "FY27-Q2", "includesFalldown": false, "so": "0", "soDollars": "0", "mps": "10", "mpsDollars": null, "adjustment": "0", "proposedMps": "10", "adjustedMpsDollars": null, "estOnHand": "15.5", "adjOnHand": "15.5" }
+          { "quarter": "FY27-Q1", "includesFalldown": true, "so": "0", "soDollars": "0", "mps": "0", "mpsDollars": "0", "adjustment": "0", "proposedMps": "0", "adjustedMpsDollars": "0", "estOnHand": "5.5", "adjOnHand": "5.5" },
+          { "quarter": "FY27-Q2", "includesFalldown": false, "so": "0", "soDollars": "0", "mps": "10", "mpsDollars": "0", "adjustment": "0", "proposedMps": "10", "adjustedMpsDollars": "0", "estOnHand": "15.5", "adjOnHand": "15.5" }
         ]
       }
     ]

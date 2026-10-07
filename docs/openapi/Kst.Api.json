@@ -1538,6 +1538,88 @@
         }
       }
     },
+    "/api/v1/workspaces/{assignmentId}/planning-workbook/mass-updater-export": {
+      "post": {
+        "tags": [
+          "PlanningWorkbook"
+        ],
+        "summary": "Validates every staged adjustment against the complete loaded MPS snapshot and returns the QAD Mass Updater CSV (Part, signed adjustment, Monday date; no header). Any invalid entry rejects the whole export. Nothing is applied to QAD.",
+        "operationId": "ExportPlanningMassUpdaterCsv",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportPlanningMassUpdaterRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningMassUpdaterExportResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{assignmentId}/part-detail": {
       "get": {
         "tags": [
@@ -3633,6 +3715,29 @@
           }
         }
       },
+      "ExportPlanningMassUpdaterRequestDto": {
+        "required": [
+          "mpsSnapshotId",
+          "site",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "mpsSnapshotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "site": {
+            "type": "string"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningMassUpdaterEntryRequestDto"
+            }
+          }
+        }
+      },
       "HealthResponse": {
         "required": [
           "status",
@@ -5594,10 +5699,7 @@
             "type": "string"
           },
           "mpsDollars": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string"
           },
           "forecast": {
             "type": "string"
@@ -5682,6 +5784,64 @@
           }
         }
       },
+      "PlanningMassUpdaterEntryRequestDto": {
+        "required": [
+          "part",
+          "weekLabel",
+          "adjustment"
+        ],
+        "type": "object",
+        "properties": {
+          "part": {
+            "type": "string"
+          },
+          "weekLabel": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "adjustment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PlanningMassUpdaterExportResponseDto": {
+        "required": [
+          "fileName",
+          "contentBase64",
+          "rowCount",
+          "mpsSnapshotId",
+          "site"
+        ],
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "contentBase64": {
+            "type": "string"
+          },
+          "rowCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mpsSnapshotId": {
+            "type": "string"
+          },
+          "site": {
+            "type": "string"
+          }
+        }
+      },
       "PlanningPartBlockDto": {
         "required": [
           "part",
@@ -5715,10 +5875,7 @@
             }
           },
           "selectedPrice": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string"
           },
           "isPriced": {
             "type": "boolean"

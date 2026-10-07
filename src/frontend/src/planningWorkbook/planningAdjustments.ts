@@ -4,12 +4,22 @@
  * - Adjustments are signed whole numbers: optional '-' followed by ASCII digits. '+', decimals,
  *   exponents, grouping and whitespace are rejected; blank, 0 and -0 are no-ops (not proposals).
  * - Proposed MPS = existing MPS + adjustment; Adjusted MPS $ = Proposed MPS × the same selected price
- *   (null when unpriced). Falldown is not adjustable: its proposed supply equals existing supply.
+ *   ($0 price when no list price exists). Falldown is not adjustable: its proposed supply equals existing supply.
  * - Adj On Hand = Est. On Hand + cumulative visible adjustments (same Falldown seed).
  * - A negative Proposed MPS is invalid; zero is valid. Negative inventory never invalidates.
  * Source quantities and prices are never rounded and never converted to JavaScript Number.
  */
 import { add, multiply, sumDecimals } from '../shared/exactDecimal';
+
+/**
+ * Exact quantity x price. A malformed numeric string is a contract violation, never zero: it throws instead of
+ * silently pricing at $0 (only a successful lookup with no list price is $0, and the backend sends that as "0").
+ */
+export function exactProduct(quantity: string, unitPrice: string): string {
+  const product = multiply(quantity, unitPrice);
+  if (product === null) throw new Error('Planning price or quantity is not an exact decimal.');
+  return product;
+}
 import {
   partQuarterSummaries,
   type PartQuarterSummary,
@@ -88,8 +98,8 @@ export interface EntryEvaluation {
 export interface AdjustedBucket extends PlanningBucket {
   adjustment: string;
   proposedMps: string;
-  /** Null when the part is unpriced. */
-  adjustedMpsDollars: string | null;
+  /** Proposed MPS x list price; $0 price for a part with no eligible list price (amendment 2026-10-07). */
+  adjustedMpsDollars: string;
   adjustedOnHand: string;
   /** Raw input text for weekly cells (falldown: always ''). */
   input: string;
@@ -137,8 +147,7 @@ export function evaluatePlanning(workbook: PlanningWorkbook, entries: Adjustment
   const byCell = new Map(parsed.map(p => [adjustmentKey(p.entry.part, p.entry.weekLabel), p]));
 
   const parts: AdjustedPart[] = workbook.parts.map(part => {
-    const price = part.isPriced && part.selectedPrice !== null ? part.selectedPrice : null;
-    const dollars = (quantity: string) => (price === null ? null : multiply(quantity, price));
+    const dollars = (quantity: string) => exactProduct(quantity, part.selectedPrice);
     const falldown: AdjustedBucket = {
       ...part.falldown, adjustment: '0', proposedMps: part.falldown.mps, adjustedMpsDollars: dollars(part.falldown.mps),
       adjustedOnHand: part.falldown.estimatedOnHand, input: '', inputIssue: null,
@@ -204,7 +213,7 @@ export function summarizeEntries(entries: AdjustmentEntries) {
 export interface AdjustedQuarterSummary extends PartQuarterSummary {
   adjustment: string;
   proposedMps: string;
-  adjustedMpsDollars: string | null;
+  adjustedMpsDollars: string;
   /** Ending balance at the quarter's last visible week; never a sum. */
   adjustedOnHand: string;
 }
@@ -224,8 +233,7 @@ export function adjustedQuarterSummaries(part: AdjustedPart, quarters: readonly 
       ...summary,
       adjustment: sumDecimals(buckets.map(b => b.adjustment)),
       proposedMps: sumDecimals(buckets.map(b => b.proposedMps)),
-      adjustedMpsDollars: part.isPriced && buckets.every(b => b.adjustedMpsDollars !== null)
-        ? sumDecimals(buckets.map(b => b.adjustedMpsDollars as string)) : null,
+      adjustedMpsDollars: sumDecimals(buckets.map(b => b.adjustedMpsDollars)),
       adjustedOnHand: last.adjustedOnHand,
     };
   });
@@ -234,15 +242,12 @@ export function adjustedQuarterSummaries(part: AdjustedPart, quarters: readonly 
 export interface AdjustedWorkspaceFlowTotals extends WorkspaceFlowTotals {
   adjustment: string;
   proposedMps: string;
-  /** Null when any retained part is unpriced (same owner-confirmed rule as workspace MPS $). */
-  adjustedMpsDollars: string | null;
+  adjustedMpsDollars: string;
 }
 
 function adjustedWorkspaceFlows(parts: readonly AdjustedPart[], pick: (part: AdjustedPart) => AdjustedBucket[]): AdjustedWorkspaceFlowTotals {
   const all = parts.flatMap(pick);
-  const anyUnpriced = parts.some(p => !p.isPriced);
-  const dollars = (get: (b: AdjustedBucket) => string | null) =>
-    anyUnpriced || all.some(b => get(b) === null) ? null : sumDecimals(all.map(b => get(b) as string));
+  const dollars = (get: (b: AdjustedBucket) => string) => sumDecimals(all.map(get));
   return {
     salesOrderQuantity: sumDecimals(all.map(b => b.salesOrderQuantity)),
     salesOrderDollars: sumDecimals(all.map(b => b.salesOrderDollars)),

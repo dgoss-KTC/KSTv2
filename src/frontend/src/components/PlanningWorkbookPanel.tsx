@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFiscalCalendarSettings } from '../hooks/useFiscalCalendarSettings';
 import { usePlanningWorkbook } from '../hooks/usePlanningWorkbook';
 import { usePlanningProposals, type PlanningProposals } from '../hooks/usePlanningProposals';
+import { usePlanningExport } from '../hooks/usePlanningExport';
 import { usePlanningViewPreferences } from '../hooks/usePlanningViewPreferences';
 import type { FiscalCalendarSettings } from '../fiscal/types';
 import {
@@ -32,6 +33,8 @@ import { PlanningToolbar, type SidePanel } from './planning/PlanningToolbar';
 import { PlanningViewPanel } from './planning/PlanningViewPanel';
 import { PlanningChangesPanel } from './planning/PlanningChangesPanel';
 import { PlanningDraftReviewDialog, PlanningForecastImportDialog } from './planning/PlanningDialogs';
+import { PlanningExportDialog } from './planning/PlanningExportDialog';
+import { ConfirmDialog } from './ConfirmDialog';
 import { errorCopy } from './planning/planningLabels';
 import './PlanningWorkbookPanel.css';
 
@@ -145,6 +148,7 @@ function PlanningWorkbookView({ assignmentId, site, snapshotId, mpsLoading = fal
   const { workbook } = planning;
   const evaluation = useMemo(() => (workbook ? evaluatePlanning(workbook, proposals.entries) : null), [workbook, proposals.entries]);
   const { checkDraft } = proposals;
+  const exporter = usePlanningExport({ assignmentId, site, snapshotId, businessWeek: planning.businessWeek, evaluation, proposals });
   const { prefs: storedPrefs, update: updateStoredPrefs } = usePlanningViewPreferences(assignmentId);
   const [rawUi, setUi] = useState(() => initialUi(assignmentId));
   if (rawUi.assignmentId !== assignmentId) setUi(initialUi(assignmentId));
@@ -185,6 +189,14 @@ function PlanningWorkbookView({ assignmentId, site, snapshotId, mpsLoading = fal
       ?? root.querySelector<HTMLElement>('[data-planning-mode-toggle]:not(:disabled)');
   }, []);
 
+  /* The export dialog returns focus to its trigger, or to the mode button when Clear left nothing to export. */
+  const exportReturnFocus = useCallback(() => {
+    const root = sectionRef.current;
+    if (!root?.isConnected) return null;
+    return root.querySelector<HTMLElement>('[data-planning-export-trigger]:not(:disabled)')
+      ?? root.querySelector<HTMLElement>('[data-planning-mode-toggle]:not(:disabled)');
+  }, []);
+
   const chips: { id: ModelFilter; label: string; count: number }[] = filtered ? [
     { id: 'all', label: 'All models', count: filtered.counts.all },
     { id: 'short', label: 'Short', count: filtered.counts.short },
@@ -204,11 +216,13 @@ function PlanningWorkbookView({ assignmentId, site, snapshotId, mpsLoading = fal
         horizon={{ value: planning.horizonWeeks, minimum: planning.minimumHorizonWeeks, maximum: planning.maximumHorizonWeeks, set: planning.setHorizonWeeks }}
         canRefresh={planning.canRefresh}
         isRefreshing={planning.isRefreshing}
+        canExport={exporter.canExport}
         onRefresh={() => void planning.refresh()}
         onStartPlanning={startPlanning}
         onBackToReport={backToReport}
         onTogglePanel={togglePanel}
         onOpenForecast={() => setUiState({ forecastOpen: true })}
+        onOpenExport={exporter.open}
       />
 
       <div className="pwb-filterbar">
@@ -277,6 +291,19 @@ function PlanningWorkbookView({ assignmentId, site, snapshotId, mpsLoading = fal
       </div>
 
       <PlanningDraftReviewDialog proposals={proposals} returnFocus={draftReviewReturnFocus} />
+      <PlanningExportDialog exporter={exporter} evaluation={evaluation} returnFocus={exportReturnFocus} />
+      {proposals.draft.confirm && (
+        <ConfirmDialog
+          title={proposals.draft.confirm.kind === 'delete' ? 'Delete saved draft?' : 'Replace current adjustments?'}
+          body={proposals.draft.confirm.kind === 'delete'
+            ? 'Delete the saved Planning draft? Adjustments in this session are not affected.'
+            : `Replace the ${proposals.draft.confirm.count} adjustment(s) in this session with the saved draft?`}
+          confirmLabel={proposals.draft.confirm.kind === 'delete' ? 'Delete' : 'Replace'}
+          destructive
+          onConfirm={() => proposals.resolveConfirmation(true)}
+          onCancel={() => proposals.resolveConfirmation(false)}
+        />
+      )}
       {ui.forecastOpen && <PlanningForecastImportDialog onClose={() => setUiState({ forecastOpen: false })} />}
     </section>
   );

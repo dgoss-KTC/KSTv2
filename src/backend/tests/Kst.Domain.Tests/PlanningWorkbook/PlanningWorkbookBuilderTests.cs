@@ -82,6 +82,41 @@ public sealed class PlanningWorkbookBuilderTests
         Assert.Equal(12.50m, counted.Undated.SalesOrderDollars);
     }
 
+    [Theory]
+    [InlineData("RA-")]
+    [InlineData("ra-")]
+    [InlineData("Ra-")]
+    [InlineData("rA-")]
+    public void Return_Order_Prefix_Is_Case_Insensitive_Across_Quantities_And_Dollars(string prefix)
+    {
+        var baseline = PlanningWorkbookBuilder.Build(Fixture.Input());
+        var variant = Fixture.SalesOrderLines
+            .Select(l => l with { Key = l.Key with { SalesOrder = l.Key.SalesOrder.Replace("RA-", prefix, StringComparison.Ordinal) } })
+            .ToList();
+        Assert.Equal(2, variant.Count(l => l.Key.SalesOrder.StartsWith(prefix, StringComparison.Ordinal)));
+        var workbook = PlanningWorkbookBuilder.Build(Fixture.Input(salesOrders: variant));
+        // Excluded before Falldown, weekly, undated and every dollar/quantity figure: identical to the uppercase result.
+        Assert.Equal(baseline.Parts.Select(Snapshot), workbook.Parts.Select(Snapshot));
+        Assert.Equal(baseline.Parts.Select(p => p.Undated), workbook.Parts.Select(p => p.Undated));
+        Assert.Equal(baseline.Parts.Select(p => p.Falldown.SalesOrderQuantity), workbook.Parts.Select(p => p.Falldown.SalesOrderQuantity));
+        Assert.Equal(baseline.Parts.Select(p => p.Falldown.SalesOrderDollars), workbook.Parts.Select(p => p.Falldown.SalesOrderDollars));
+    }
+
+    [Theory]
+    [InlineData("SO-RA-")]
+    [InlineData("XRA-")]
+    [InlineData(" RA-")]   // no trimming: a leading space is not the RA prefix
+    [InlineData("R-A-")]
+    public void Orders_That_Do_Not_Start_With_Ra_Remain_Included(string prefix)
+    {
+        var variant = Fixture.SalesOrderLines
+            .Select(l => l with { Key = l.Key with { SalesOrder = l.Key.SalesOrder.Replace("RA-", prefix, StringComparison.Ordinal) } })
+            .ToList();
+        var counted = PlanningWorkbookBuilder.Build(Fixture.Input(salesOrders: variant)).Parts.Single(p => p.Part == "P-1");
+        Assert.Equal(85m, counted.Weeks[0].SalesOrderQuantity);
+        Assert.Equal(5m, counted.Undated.SalesOrderQuantity);
+        Assert.Equal(12.50m, counted.Undated.SalesOrderDollars);
+    }
     [Fact]
     public void Forecast_Is_Absolute_Display_Only_Including_Falldown()
     {
@@ -123,16 +158,20 @@ public sealed class PlanningWorkbookBuilderTests
     }
 
     [Fact]
-    public void Unpriced_Parts_Have_Null_Dollars_While_Zero_Price_Is_Valid()
+    public void Part_Without_List_Price_Uses_Exact_Zero_Dollars_And_Genuine_Zero_Price_Stays_Priced()
     {
         var workbook = PlanningWorkbookBuilder.Build(Fixture.Input());
         var zero = workbook.Parts.Single(p => p.Part == "P-2");
         var unpriced = workbook.Parts.Single(p => p.Part == "P-3");
 
         Assert.Equal(0m, zero.SelectedPrice);
+        Assert.True(zero.IsPriced);
         Assert.All(zero.Weeks, w => { Assert.Equal(0m, w.MpsDollars); Assert.Equal(0m, w.AdjustedMpsDollars); });
-        Assert.Null(unpriced.SelectedPrice);
-        Assert.All(unpriced.Weeks.Append(unpriced.Falldown), w => { Assert.Null(w.MpsDollars); Assert.Null(w.AdjustedMpsDollars); });
+        Assert.Equal(0m, unpriced.SelectedPrice);
+        Assert.False(unpriced.IsPriced); // no eligible list price found: $0 is used (amendment 2026-10-07)
+        Assert.All(unpriced.Weeks.Append(unpriced.Falldown), w => { Assert.Equal(0m, w.MpsDollars); Assert.Equal(0m, w.AdjustedMpsDollars); });
+        Assert.Contains(unpriced.Weeks, w => w.Mps != 0m); // non-zero quantity still prices at exactly zero
+        Assert.All(unpriced.Weeks.Where(w => w.Mps != 0m), w => Assert.Equal(0m, w.AdjustedMpsDollars));
         Assert.Equal(10.00m, unpriced.Undated.SalesOrderDollars);
     }
 
@@ -161,7 +200,7 @@ public sealed class PlanningWorkbookBuilderTests
     {
         IReadOnlyList<PartPriceBreak> tiers = [new(100m, 2.25m), new(1m, 2.5m), new(50m, 2.4m)];
         Assert.Equal(2.5m, PlanningPriceSelection.Select(tiers));
-        Assert.Null(PlanningPriceSelection.Select([]));
+        Assert.Equal(0m, PlanningPriceSelection.Select([])); // successful absence of a list price
         Assert.Equal(0m, PlanningPriceSelection.Select([new PartPriceBreak(1m, 0m)]));
     }
 
@@ -225,6 +264,19 @@ public sealed class PlanningWorkbookBuilderTests
 
         var noPrice = Fixture.Input() with { PriceTiers = new Dictionary<string, IReadOnlyList<PartPriceBreak>> { ["P-1"] = [] } };
         Assert.Throws<ArgumentException>(() => PlanningWorkbookBuilder.Build(noPrice));
+    }
+
+    [Fact]
+    public void Empty_Tier_Lists_For_Every_Part_Succeed_With_Zero_Dollars_And_Unchanged_Quantities()
+    {
+        var baseline = PlanningWorkbookBuilder.Build(Fixture.Input());
+        var allEmpty = Fixture.Input() with { PriceTiers = Fixture.ResolvedParts.ToDictionary(p => p.ParentPart, _ => (IReadOnlyList<PartPriceBreak>)[]) };
+        var workbook = PlanningWorkbookBuilder.Build(allEmpty);
+        Assert.All(workbook.Parts, p => { Assert.False(p.IsPriced); Assert.Equal(0m, p.SelectedPrice); });
+        Assert.All(workbook.Parts.SelectMany(p => p.Weeks.Append(p.Falldown)), b => { Assert.Equal(0m, b.MpsDollars); Assert.Equal(0m, b.AdjustedMpsDollars); });
+        // Quantities, inventory and sales-order dollars are unaffected by the price amendment.
+        Assert.Equal(baseline.Parts.SelectMany(p => p.Weeks.Select(w => (w.Mps, w.ProposedMps, w.EstimatedOnHand, w.AdjustedOnHand, w.SalesOrderDollars))),
+            workbook.Parts.SelectMany(p => p.Weeks.Select(w => (w.Mps, w.ProposedMps, w.EstimatedOnHand, w.AdjustedOnHand, w.SalesOrderDollars))));
     }
 
     [Fact]

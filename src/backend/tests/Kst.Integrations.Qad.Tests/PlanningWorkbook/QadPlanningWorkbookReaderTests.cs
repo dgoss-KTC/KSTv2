@@ -80,7 +80,8 @@ public sealed class QadPartPriceReaderTests
         Assert.Equal([new PartPriceBreak(1m, 0m)], results[2].Tiers);
 
         Assert.Equal(12.345678m, Kst.Domain.PlanningWorkbook.PlanningPriceSelection.Select(results[0].Tiers));
-        Assert.Null(Kst.Domain.PlanningWorkbook.PlanningPriceSelection.Select(results[1].Tiers));
+        Assert.Empty(results[1].Tiers); // successful absence: Planning selects $0
+        Assert.Equal(0m, Kst.Domain.PlanningWorkbook.PlanningPriceSelection.Select(results[1].Tiers));
         Assert.Equal(0m, Kst.Domain.PlanningWorkbook.PlanningPriceSelection.Select(results[2].Tiers));
     }
 

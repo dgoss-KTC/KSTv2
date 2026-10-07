@@ -12,11 +12,13 @@ public enum PlanningPriceSelectionPolicy
 public static class PlanningPriceSelection
 {
     /// <summary>
-    /// Returns the selected unit sales price, or null when the part is unpriced (no current tiers).
-    /// A tier with a zero price is a valid zero price, not unpriced. Tiers are ordered by MOQ
+    /// Returns the selected unit sales price. An empty tier list is a successful lookup that found no
+    /// eligible list price and yields exactly zero (owner-approved amendment 2026-10-07); a failed or
+    /// incomplete acquisition is rejected upstream and never reaches this method. A tier with a zero
+    /// price is a genuine zero price. Tiers are ordered by MOQ
     /// ascending (stable for equal MOQs, preserving source order); prices are never rounded.
     /// </summary>
-    public static decimal? Select(
+    public static decimal Select(
         IReadOnlyList<PartPriceBreak> tiers,
         PlanningPriceSelectionPolicy policy = PlanningPriceSelectionPolicy.FirstTier)
     {
@@ -24,7 +26,7 @@ public static class PlanningPriceSelection
         return policy switch
         {
             PlanningPriceSelectionPolicy.FirstTier => tiers.Count == 0
-                ? null
+                ? 0m
                 : tiers.OrderBy(t => t.MinimumOrderQuantity).First().UnitPrice,
             _ => throw new ArgumentOutOfRangeException(nameof(policy))
         };

@@ -41,7 +41,12 @@ function unsavedMessage(openOrders: boolean, planning: boolean): string | undefi
   return openOrders ? OPEN_ORDERS_UNSAVED_MESSAGE : undefined;
 }
 
-export function CustomerWorkspace({ workspace, onPlanningDirtyChange }: { workspace: WorkspaceAssignmentDto; onPlanningDirtyChange?: (dirty: boolean, message?: string) => void }) {
+export function CustomerWorkspace({ workspace, onPlanningDirtyChange, confirmDiscard }: {
+  workspace: WorkspaceAssignmentDto;
+  onPlanningDirtyChange?: (dirty: boolean, message?: string) => void;
+  /** In-app discard confirmation supplied by the shell. Without it (isolated rendering) the browser confirm is used. */
+  confirmDiscard?: (message: string) => Promise<boolean>;
+}) {
   const [activeModule, setActiveModule] = useState<CustomerModule>('dashboard');
   const [planningDirty, setPlanningDirty] = useState(false);
   const mps = useMpsDashboard(workspace.assignmentId);
@@ -81,8 +86,11 @@ export function CustomerWorkspace({ workspace, onPlanningDirtyChange }: { worksp
             role="tab"
             aria-selected={activeModule === module.id}
             className={`customer-workspace__module${activeModule === module.id ? ' customer-workspace__module--active' : ''}`}
-            onClick={() => {
-              if (module.id !== 'openOrders' && planningDirty && !window.confirm(OPEN_ORDERS_UNSAVED_MESSAGE)) return;
+            onClick={async () => {
+              if (module.id !== 'openOrders' && planningDirty) {
+                const proceed = confirmDiscard ? await confirmDiscard(OPEN_ORDERS_UNSAVED_MESSAGE) : window.confirm(OPEN_ORDERS_UNSAVED_MESSAGE);
+                if (!proceed) return;
+              }
               if (module.id !== 'openOrders') setPlanningDirty(false);
               setActiveModule(module.id);
             }}

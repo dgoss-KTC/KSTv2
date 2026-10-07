@@ -18,8 +18,8 @@ namespace Kst.Integrations.Qad.PlanningWorkbook;
 /// No currency/UoM filter or conversion is applied and no tie-breaker is added for equal
 /// <c>pi_start</c> or equal MOQ: like the accepted rule, such ties are not deterministic in SQL
 /// (unverified evidence E2 / question Q-N4). Every distinct requested part receives exactly one
-/// result; an empty tier list means "no current price list or no tiers" (unpriced), never a
-/// failure. A zero <c>pid_amt</c> is a valid price. Query failures propagate.
+/// result; an empty tier list means "no current price list or no tiers" (a successful absence: Planning uses a $0 price, owner-approved amendment 2026-10-07), never a
+/// failure. A zero <c>pid_amt</c> is a valid price. Query failures, missing parts and malformed rows throw (never become $0).
 /// </summary>
 public sealed class QadPartPriceReader
 {

@@ -4,6 +4,7 @@ import { resolveBackendBaseUrl } from '../api/tauri-bridge';
 import { saveLongTermShortagesWorkbook } from '../longTermShortages/saveLongTermShortagesWorkbook';
 import { COLUMNS, DATE_COLUMNS, NUMERIC_COLUMNS, defaultLayout, emptyFilters, formatReportDate, formatReportTimestamp, loadLayout, reportRows, saveLayout, type Filters, type Layout, type ColumnId } from '../openOrders/report';
 import { FilterBuilder } from '../openOrders/FilterBuilder';
+import { ConfirmDialog } from './ConfirmDialog';
 import { openOrdersFileName } from '../openOrders/reportFileName';
 import { changed, equalDecimal, issues, keyOf, multiply, parsePlanningDate, planningNumberDisplay, subtract, valuesOf, REASONS, type Editable, type Proposal } from '../openOrders/planning';
 import { loadPlanLayout, planDefaultLayout, PLAN_REQUIRED, savePlanLayout, type LayoutForPlan, type PlanColumnId } from '../openOrders/planLayout';
@@ -39,6 +40,8 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
   const [clearConfirmation, setClearConfirmation] = useState(false);
   const [saveVersion, setSaveVersion] = useState(0);
   const [saveOffPending, setSaveOffPending] = useState(false);
+  /** Assignment whose 'Save Draft off' confirmation is open (the desktop confirm() is asynchronous, so the decision is held in-app). */
+  const [saveOffConfirm, setSaveOffConfirm] = useState<string | null>(null);
   const [dateInputs, setDateInputs] = useState<Record<string, string>>({});
   const [focusedNumber, setFocusedNumber] = useState<string | null>(null);
   const [dateTouched, setDateTouched] = useState<Record<string, boolean>>({});
@@ -46,8 +49,10 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
   const saveGate = useRef(Promise.resolve());
   const saveGeneration = useRef(0);
   const restoredFor = useRef<string | null>(null);
+  const proposalAssignmentRef = useRef(assignmentId);
+  useEffect(() => { proposalAssignmentRef.current = assignmentId; }, [assignmentId]);
   if (proposalAssignment !== assignmentId) {
-    setProposalAssignment(assignmentId); setProposals({}); setSaveDraft(false); setSavedState('idle');
+    setProposalAssignment(assignmentId); setProposals({}); setSaveDraft(false); setSavedState('idle'); setSaveOffConfirm(null);
     setPlanMode(false); setRestoreCandidate(null); setRestoreIssues({}); setLastDraftMps(snapshotId);
     setDateInputs({}); setDateTouched({}); setFocusedNumber(null);
   }
@@ -267,14 +272,9 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
   return <section className="open-orders" aria-label={`Customer Open Orders ${planMode ? 'Plan' : 'Report'} Mode`}>
     <header className="open-orders__toolbar"><h3>Customer Open Orders <span>{planMode ? 'Plan Mode' : 'Report Mode'}</span></h3>
       <label><input type="checkbox" checked={planMode} onChange={e => setPlanMode(e.target.checked)} /> Plan Mode</label>
-      <label><input type="checkbox" checked={saveDraft} disabled={!!restoreCandidate || savedState === 'unavailable' || savedState === 'presence-error' || saveOffPending} onChange={e => {
+      <label><input type="checkbox" checked={saveDraft} disabled={!!restoreCandidate || savedState === 'unavailable' || savedState === 'presence-error' || saveOffPending || saveOffConfirm !== null} onChange={e => {
         if (e.target.checked) { setSaveDraft(true); setDraftError(null); persist(proposals, true); }
-        else if (window.confirm('Turn Save Draft off and delete the saved copy? In-memory changes will remain.')) {
-          setSaveOffPending(true);
-          void (async () => { await saveGate.current; await new ApiClient(await resolveBackendBaseUrl()).deleteOpenOrdersDraft(assignmentId); })().then(() => {
-            saveGeneration.current++; setSaveDraft(false); setSavedState('none'); setDraftError(null);
-          }).catch(() => setDraftError('Saved draft could not be deleted; Save Draft remains on.')).finally(() => setSaveOffPending(false));
-        }
+        else if (!saveOffPending) setSaveOffConfirm(assignmentId); // the checkbox stays on until the user confirms
       }} /> Save Draft</label>
       {checkingDraftFor === identity && savedState === 'checking' && <span className="open-orders__draft-progress" role="status">Checking saved draft…</span>}
       <button type="button" disabled={planMode || pending} onClick={() => { if (!planMode) void refresh(); }}>{pending ? 'Refreshing…' : 'Refresh report'}</button>
@@ -405,5 +405,16 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
         </div>
       </>}
     </>}
+    {saveOffConfirm === assignmentId && <ConfirmDialog title="Turn Save Draft off?" body="Turn Save Draft off and delete the saved copy? In-memory changes will remain." confirmLabel="Turn off and delete" destructive
+      onCancel={() => setSaveOffConfirm(null)}
+      onConfirm={() => {
+        setSaveOffConfirm(null);
+        if (saveOffPending) return;
+        setSaveOffPending(true);
+        void (async () => { await saveGate.current; await new ApiClient(await resolveBackendBaseUrl()).deleteOpenOrdersDraft(assignmentId); })().then(() => {
+          if (proposalAssignmentRef.current !== assignmentId) return;
+          saveGeneration.current++; setSaveDraft(false); setSavedState('none'); setDraftError(null);
+        }).catch(() => { if (proposalAssignmentRef.current === assignmentId) setDraftError('Saved draft could not be deleted; Save Draft remains on.'); }).finally(() => setSaveOffPending(false));
+      }} />}
   </section>;
 }

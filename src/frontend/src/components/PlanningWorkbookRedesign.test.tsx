@@ -48,7 +48,7 @@ function fixtureWorkbook(snapshot = SNAP, horizon = 12): PlanningWorkbook {
     ...base, mpsSnapshotId: snapshot, horizonWeeks: horizon, weekLabels: labels, maximumHorizonWeeks: 20,
     parts: base.parts.map(p => ({ ...p, weeks: labels.map((label, i) => p.weeks[i] ?? {
       ...p.weeks[p.weeks.length - 1], weekLabel: label, salesOrderQuantity: '0', salesOrderDollars: '0', mps: '0',
-      mpsDollars: p.isPriced ? '0' : null, forecast: '0',
+      mpsDollars: '0', forecast: '0',
     }) })),
   };
 }
@@ -121,12 +121,12 @@ describe('Master plan: report and planning modes', { timeout: 20_000 }, () => {
     expect(getWorkbook.mock.calls.length).toBe(requests);
   });
 
-  it('keeps export unavailable until 14.6 and offers only the inert forecast-import stub', async () => {
+  it('keeps export disabled until an adjustment is staged and offers only the inert forecast-import stub', async () => {
     await renderPanel();
     click('Start planning');
     const exportButton = screen.getByRole('button', { name: 'Review and export' });
     expect(exportButton).toBeDisabled();
-    expect(exportButton).toHaveAccessibleDescription(/arrives in Stage 14\.6/);
+    expect(exportButton).toHaveAccessibleDescription(/Stage at least one adjustment/);
 
     const opener = screen.getByRole('button', { name: /Import forecast/ });
     opener.focus();
@@ -153,10 +153,11 @@ describe('Master plan: report and planning modes', { timeout: 20_000 }, () => {
 });
 
 describe('Master plan: whole-workspace totals, filters and collapse', { timeout: 20_000 }, () => {
-  it('totals cover the whole workspace regardless of hidden models and filter chips; a hidden unpriced model keeps MPS $ totals blank', async () => {
+  it('totals cover the whole workspace regardless of hidden models and filter chips; a hidden no-list-price model still counts at $0 in MPS $ totals', async () => {
     await renderPanel();
     const so = totalCells(/^Total SO \$/);
-    expect(totalCells(/^Total MPS \$/).every(v => v === '')).toBe(true); // P-3 is unpriced
+    const mpsTotals = totalCells(/^Total MPS \$/);
+    expect(mpsTotals.some(v => v !== '')).toBe(true); // P-3 has no list price and adds $0: totals are not blank
     click('View');
     const view = screen.getByRole('complementary', { name: 'View' });
     fireEvent.click(within(view).getByRole('checkbox', { name: /P-3/ }));
@@ -164,7 +165,7 @@ describe('Master plan: whole-workspace totals, filters and collapse', { timeout:
     expect(blocks()).toEqual(['Part P-2']);
     expect(screen.getByRole('button', { name: 'View \u00b7 1 of 3 models' })).toBeInTheDocument();
     expect(totalCells(/^Total SO \$/)).toEqual(so);
-    expect(totalCells(/^Total MPS \$/).every(v => v === '')).toBe(true); // never a priced-only subtotal
+    expect(totalCells(/^Total MPS \$/)).toEqual(mpsTotals); // whole-workspace totals, never a subtotal of the visible models
     expect(totals().getByRole('row', { name: /^Total SO \$/ })).toHaveTextContent('all 3 models');
 
     fireEvent.click(within(view).getByRole('button', { name: 'Show all' }));
@@ -329,14 +330,14 @@ describe('Master plan: View preferences', { timeout: 20_000 }, () => {
 });
 
 describe('Master plan: Changes panel', { timeout: 20_000 }, () => {
-  it('labels the net-dollar figure as priced-only when an entry is for an unpriced part', async () => {
+  it('counts a change for a part with no list price at $0 and says so in the net-dollar figure', async () => {
     await renderPanel();
     click('Start planning');
     type(input('P-1', '2026-09-14'), '-50');
     expect(screen.getByText('Net change').nextSibling).toHaveTextContent('-50 units \u00b7 -$125.00');
     type(input('P-3', '2026-09-14'), '5');
-    expect(screen.getByText('Net change').nextSibling).toHaveTextContent('-45 units \u00b7 -$125.00 (priced parts only)');
-    expect(screen.getByText(/Dollars cover priced parts only; 1 change is for unpriced or out-of-scope parts and excluded/)).toBeInTheDocument();
+    expect(screen.getByText('Net change').nextSibling).toHaveTextContent('-45 units \u00b7 -$125.00 (some parts at $0)');
+    expect(screen.getByText(/Dollars count 1 change for parts with no eligible QAD list price at \$0\./)).toBeInTheDocument();
   });
 
   it('closes with its button and keeps the session; drafts and Discard all remain available in the panel', async () => {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
 
@@ -8,7 +8,15 @@ import App from '../App';
  * ApplicationShell â†’ CustomerWorkspace â†’ PlanningWorkbookPanel). All traffic is mocked: there is no MPS
  * refresh, no Planning refresh and no QAD access.
  */
-vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn(async () => () => {}) }));
+const { invokeMock, closeHandlers } = vi.hoisted(() => ({ invokeMock: vi.fn(async (..._args: unknown[]) => null as unknown), closeHandlers: new Set<() => void>() }));
+vi.mock('@tauri-apps/api/core', () => ({ invoke: invokeMock }));
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: vi.fn(async (event: string, handler: () => void) => {
+    if (event !== 'kst-close-requested') return () => {};
+    closeHandlers.add(handler);
+    return () => { closeHandlers.delete(handler); };
+  }),
+}));
 
 const PLANNING_MESSAGE = 'Unsaved Planning adjustments will be discarded. Continue?';
 const status = {
@@ -59,6 +67,7 @@ describe('Planning unsaved adjustments through the application workflow', { time
     fetchMock.mock.calls.filter(([url, opts]) => predicate(String(url), (opts as RequestInit | undefined)?.method ?? 'GET'));
 
   beforeEach(() => {
+    invokeMock.mockClear();
     failSave = false;
     holdSave = null;
     window.localStorage.clear();
@@ -105,40 +114,57 @@ describe('Planning unsaved adjustments through the application workflow', { time
   }
   const cell = () => screen.getByRole('textbox', { name: 'Adjustment for ABC100, week of 9/21/2026' }) as HTMLInputElement;
 
-  it('keeps proposals across module switches; confirms before leaving for General; cancel keeps them, accept discards them', async () => {
+  // The desktop dialog plugin replaces window.confirm with an asynchronous call that returns a Promise
+  // (always truthy). Reproduce that so any remaining synchronous `!window.confirm(...)` guard would
+  // silently proceed, exactly as the owner observed in the Tauri window.
+  function installDesktopConfirm() {
+    return vi.spyOn(window, 'confirm').mockImplementation((() => Promise.resolve(false)) as unknown as typeof window.confirm);
+  }
+  const discardDialog = () => screen.queryByRole('alertdialog', { name: 'Discard unsaved changes?' });
+  const dialogButton = (name: string) => within(screen.getByRole('alertdialog', { name: 'Discard unsaved changes?' })).getByRole('button', { name });
+  const guardCalls = () => invokeMock.mock.calls.filter(([command]) => command === 'set_close_guard').map(([, args]) => (args as { active: boolean }).active);
+  const lastGuard = () => { const all = guardCalls(); return all[all.length - 1]; };
+  const closeCalls = () => invokeMock.mock.calls.filter(([command]) => command === 'confirm_window_close');
+  const requestNativeClose = async () => { await act(async () => { closeHandlers.forEach(handler => handler()); }); };
+
+  it('keeps proposals across module switches; asks before leaving for General; cancel keeps them, discard drops them', async () => {
+    const confirm = installDesktopConfirm();
     await start();
     await openPlanning();
     await user.type(cell(), '-12');
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
 
     await user.click(screen.getByRole('tab', { name: 'Dashboard' }));
     await openPlanning();
     expect(cell().value).toBe('-12');
-    expect(confirm).not.toHaveBeenCalled();
+    expect(discardDialog()).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: /general/i }));
-    expect(confirm).toHaveBeenLastCalledWith(PLANNING_MESSAGE);
+    expect(screen.getByRole('alertdialog', { name: 'Discard unsaved changes?' })).toHaveTextContent(PLANNING_MESSAGE);
+    await user.click(dialogButton('Cancel'));
+    expect(discardDialog()).not.toBeInTheDocument();
     expect(cell().value).toBe('-12');
 
     await user.click(screen.getByRole('tab', { name: /general/i }));
-    expect(confirm).toHaveBeenCalledTimes(2);
+    await user.click(dialogButton('Discard changes'));
+    expect(discardDialog()).not.toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Line 1' }));
     await screen.findByText('ABC100');
     await openPlanning();
     expect(cell().value).toBe('');
+    expect(confirm).not.toHaveBeenCalled();
     expect(calls((url, method) => url.includes('/planning-workbook/draft') && method === 'PUT')).toHaveLength(0);
   });
 
   it('a saved draft needs no confirmation; newer edits and a failed save do', async () => {
+    const confirm = installDesktopConfirm();
     await start();
     await openPlanning();
     await user.type(cell(), '7');
     await user.click(screen.getByRole('button', { name: 'Save draft' }));
     await screen.findByText('Draft saved. Nothing has been applied to QAD.');
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     await user.click(screen.getByRole('tab', { name: /general/i }));
-    expect(confirm).not.toHaveBeenCalled();
+    expect(discardDialog()).not.toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Line 1' }));
     await screen.findByText('ABC100');
     // The saved draft is on disk; this session's in-memory proposals were kept by the workspace.
@@ -146,34 +172,42 @@ describe('Planning unsaved adjustments through the application workflow', { time
 
     await user.type(cell(), '8');
     await user.click(screen.getByRole('tab', { name: /general/i }));
-    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(discardDialog()).toBeInTheDocument();
+    await user.click(dialogButton('Cancel'));
 
     failSave = true;
     await user.click(screen.getByRole('button', { name: 'Save draft' }));
     await screen.findByText(/Save Draft failed/);
     await user.click(screen.getByRole('tab', { name: /general/i }));
-    expect(confirm).toHaveBeenCalledTimes(2);
-    expect(confirm).toHaveBeenLastCalledWith(PLANNING_MESSAGE);
+    expect(screen.getByRole('alertdialog', { name: 'Discard unsaved changes?' })).toHaveTextContent(PLANNING_MESSAGE);
+    expect(confirm).not.toHaveBeenCalled();
   });
 
-  it('isolates proposals per workspace and protects a workspace switch', async () => {
+  it('isolates proposals per workspace and asks before a workspace switch; cancel keeps the workspace and adjustments', async () => {
+    const confirm = installDesktopConfirm();
     await start();
     await openPlanning();
     await user.type(cell(), '5');
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
     await user.click(screen.getByRole('tab', { name: 'Line 2' }));
-    expect(confirm).toHaveBeenCalledWith(PLANNING_MESSAGE);
+    expect(screen.getByRole('alertdialog', { name: 'Discard unsaved changes?' })).toHaveTextContent(PLANNING_MESSAGE);
+    await user.click(dialogButton('Cancel'));
+    expect(screen.getByRole('tab', { name: 'Line 1' })).toHaveAttribute('aria-selected', 'true');
     expect(cell().value).toBe('5');
+    expect(calls(url => url.includes('/workspaces/ws-2/planning-workbook?'))).toHaveLength(0);
+
     await user.click(screen.getByRole('tab', { name: 'Line 2' }));
+    await user.click(dialogButton('Discard changes'));
     await waitFor(() => expect(calls(url => url.includes('/workspaces/ws-2/planning-workbook?')).length).toBeGreaterThan(0));
     await screen.findByRole('region', { name: 'Planning workbook grid' });
     await user.click(screen.getByRole('button', { name: 'Start planning' })); // Line 2 opens in report mode
     expect(cell().value).toBe('');
-    const saves = calls((url, method) => url.includes('/planning-workbook/draft') && method === 'PUT');
-    expect(saves).toHaveLength(0);
+    expect(discardDialog()).not.toBeInTheDocument();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(calls((url, method) => url.includes('/planning-workbook/draft') && method === 'PUT')).toHaveLength(0);
   });
 
   it('A \u2192 B \u2192 A: a delayed save from the earlier session leaves the new session unsaved and protected', async () => {
+    installDesktopConfirm();
     await start();
     await openPlanning();
     const held = { release: () => {} };
@@ -184,13 +218,12 @@ describe('Planning unsaved adjustments through the application workflow', { time
     await user.click(screen.getByRole('button', { name: 'Save draft' }));
     await waitFor(() => expect(calls((url, method) => url.includes('/planning-workbook/draft') && method === 'PUT')).toHaveLength(1));
 
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    await user.click(screen.getByRole('tab', { name: 'Line 2' })); // the save is still pending: confirmed discard
-    expect(confirm).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('tab', { name: 'Line 2' })); // the save is still pending: asks before discarding
+    await user.click(dialogButton('Discard changes'));
     await waitFor(() => expect(calls(url => url.includes('/workspaces/ws-2/planning-workbook?')).length).toBeGreaterThan(0));
     await screen.findByRole('region', { name: 'Planning workbook grid' });
     await user.click(screen.getByRole('tab', { name: 'Line 1' }));
-    expect(confirm).toHaveBeenCalledTimes(1); // Line 2 had nothing unsaved
+    expect(discardDialog()).not.toBeInTheDocument(); // Line 2 had nothing unsaved
     await screen.findByRole('region', { name: 'Planning workbook grid' });
     await user.click(screen.getByRole('button', { name: 'Start planning' })); // a new Line 1 session opens in report mode
     await waitFor(() => expect(cell().value).toBe(''));
@@ -202,10 +235,87 @@ describe('Planning unsaved adjustments through the application workflow', { time
     expect(screen.queryByText(/Draft saved/)).not.toBeInTheDocument();
     expect(screen.getByTestId('planning-change-count')).toHaveTextContent('not saved');
 
-    confirm.mockReturnValue(false);
     await user.click(screen.getByRole('tab', { name: /general/i }));
-    expect(confirm).toHaveBeenCalledTimes(2);
-    expect(confirm).toHaveBeenLastCalledWith(PLANNING_MESSAGE);
+    expect(screen.getByRole('alertdialog', { name: 'Discard unsaved changes?' })).toHaveTextContent(PLANNING_MESSAGE);
+    await user.click(dialogButton('Cancel'));
     expect(cell().value).toBe('9');
+  });
+
+  it('modules in one workspace keep adjustments with no prompt, and a repeated switch request shows one dialog', async () => {
+    installDesktopConfirm();
+    await start();
+    await openPlanning();
+    await user.type(cell(), '3');
+    await user.click(screen.getByRole('tab', { name: 'Finished Goods' }));
+    await openPlanning();
+    expect(discardDialog()).not.toBeInTheDocument();
+    expect(cell().value).toBe('3');
+
+    await user.click(screen.getByRole('tab', { name: 'Line 2' }));
+    await user.click(screen.getByRole('tab', { name: 'Line 2' }));
+    expect(screen.getAllByRole('alertdialog')).toHaveLength(1);
+    await user.click(dialogButton('Cancel'));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(cell().value).toBe('3');
+  });
+
+  describe('native desktop window close', () => {
+    it('reports unsaved/saved state to the host; saved draft is clean, editing after saving is unsaved again', async () => {
+      installDesktopConfirm();
+      await start();
+      await openPlanning();
+      await waitFor(() => expect(guardCalls()).toEqual([]));
+      await user.type(cell(), '7');
+      await waitFor(() => expect(lastGuard()).toBe(true));
+      await user.click(screen.getByRole('button', { name: 'Save draft' }));
+      await screen.findByText('Draft saved. Nothing has been applied to QAD.');
+      await waitFor(() => expect(lastGuard()).toBe(false));
+      await user.type(cell(), '8');
+      await waitFor(() => expect(lastGuard()).toBe(true));
+    });
+
+    it('a close request with unsaved adjustments asks first; cancel keeps the window and adjustments, a second request asks again', async () => {
+      installDesktopConfirm();
+      await start();
+      await openPlanning();
+      await user.type(cell(), '4');
+      await waitFor(() => expect(lastGuard()).toBe(true));
+
+      await requestNativeClose();
+      expect(screen.getByRole('alertdialog', { name: 'Discard unsaved changes?' })).toHaveTextContent(PLANNING_MESSAGE);
+      await requestNativeClose(); // a repeated request joins the pending prompt
+      expect(screen.getAllByRole('alertdialog')).toHaveLength(1);
+      await user.click(dialogButton('Cancel'));
+      expect(closeCalls()).toHaveLength(0);
+      expect(cell().value).toBe('4');
+
+      await requestNativeClose();
+      expect(discardDialog()).toBeInTheDocument();
+    });
+
+    it('confirming closes exactly once, clearing the guard first, with no further prompt', async () => {
+      installDesktopConfirm();
+      await start();
+      await openPlanning();
+      await user.type(cell(), '4');
+      await waitFor(() => expect(lastGuard()).toBe(true));
+      const before = invokeMock.mock.calls.length;
+
+      await requestNativeClose();
+      await user.click(dialogButton('Discard changes'));
+      await waitFor(() => expect(closeCalls()).toHaveLength(1));
+      const after = invokeMock.mock.calls.slice(before).map(([command, args]) => `${command}:${JSON.stringify(args ?? null)}`);
+      expect(after.indexOf('set_close_guard:{"active":false}')).toBeGreaterThanOrEqual(0);
+      expect(after.indexOf('set_close_guard:{"active":false}')).toBeLessThan(after.indexOf('confirm_window_close:null'));
+      expect(discardDialog()).not.toBeInTheDocument();
+    });
+
+    it('a close request with nothing unsaved asks nothing', async () => {
+      installDesktopConfirm();
+      await start();
+      await openPlanning();
+      await requestNativeClose();
+      expect(discardDialog()).not.toBeInTheDocument();
+    });
   });
 });

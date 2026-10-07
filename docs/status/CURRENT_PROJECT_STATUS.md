@@ -1,6 +1,6 @@
 # Current Project Status
 
-Date: 2026-10-02
+Date: 2026-10-07
 Workstation: Windows (`C:\Dev\kst_v2`)
 Current implementation position: **Stages 1–11 and 13 COMPLETE / ACCEPTED; Stages 9–11 LOCKED; Stage 12 RETIRED.**
 The revised Release 1 roadmap is owner-approved. **Stage 13 — Customer Open Orders** has an
@@ -16,8 +16,15 @@ adapters, workbook composition and workbook API) COMPLETE / OWNER-ACCEPTED — 2
 **Checkpoint 14.4 (read-only Planning Workbook view and fiscal-quarter summaries) IMPLEMENTED /
 OWNER-ACCEPTED with zero-value display amendment — 2026-10-02**. **Checkpoint 14.5 (Planning
 adjustment staging and saved drafts) — OWNER-ACCEPTED with Master plan redesign and presentation
-amendments — 2026-10-06** (owner review; evidence is offline/mocked, live-source E1–E5 and
-desktop/native confirmation remain open); Checkpoint 14.6 is not authorized and not started.
+amendments — 2026-10-06** (owner review; at that checkpoint's close, automated evidence was offline/mocked
+and later live-source/desktop confirmations remained pending); **Checkpoint 14.6 (Mass Updater CSV export) — OWNER-ACCEPTED —
+2026-10-07** (owner review completed after the 14.6 frontend corrections and in-app export testing;
+offline/mocked automation evidence remains separate from owner testing; desktop/sidecar integrated
+verification and closeout are 14.7 scope). **Checkpoint 14.7 (integrated verification, sidecar
+refresh and closeout) — OWNER-ACCEPTED — 2026-10-07; Stage 14 overall — COMPLETE / OWNER-ACCEPTED —
+2026-10-07.** Owner evidence: sidecar rebuilt and desktop behavior verified; the owner confirmed the
+desktop checklist covering close-warning, case-insensitive RA exclusion and repaired Planning/Open
+Orders confirmations. This owner evidence is separate from automated verification in the Stage 14 ledger.
 UI Navigation & Keyboard Ergonomics A: **COMPLETE / ACCEPTED — 2026-08-21**
 Active cross-cutting effort: **R0 — Repository / Documentation Reconciliation — COMPLETE /
 ACCEPTED — 2026-08-21** (see `R0 — Repository / Documentation Reconciliation Status` below and
@@ -137,8 +144,8 @@ once in the current fiscal quarter; signed adjustments kept on baseline change w
 acknowledgment; whole-number adjustments; no fresh QAD reread before export). They are recorded in
 the Stage 14 decision ledger with synthetic fixtures. The owner accepted Checkpoint 14.1 on
 2026-10-02 together with the proposed 14.1 choices, amended so that forecast quarter sums are not
-required (weekly and Falldown forecast display remain). No live source check was run; forecast sign,
-price ties/currency, RA prefix case and Mass Updater format acceptance remain unverified.
+required (weekly and Falldown forecast display remain). No live source check was run at 14.1; later
+owner confirmations and the offline `master_plan.py` reference comparison are recorded in ledger §11.
 
 Stage 14.2 (2026-10-02): the owner decided that non-RA sales-order lines without a Due Date are kept
 as separate Undated quantity/SO $ totals outside Falldown, weekly/quarter totals and projections,
@@ -168,8 +175,9 @@ the checkpoint including four post-review corrections (a missing price row is a 
 workspace is re-read after the acquisition gate and before publication or stale fallback; both
 query parameters are required in OpenAPI; corrected cache documentation) and the documented cache,
 stale-data and shared Open Orders refresh behavior (backend suite 1,053/1,053). Verification limits
-stand: offline only, with no live QAD call, sidecar, Rust or desktop check; E1–E5 remain
-unverified; full-solution `dotnet format` still fails on 62 untouched files. Details are in the
+at that checkpoint: offline only, with no live QAD call, sidecar, Rust or desktop check. The owner
+later confirmed E1–E5 items in the Stage 14 ledger §11; these are owner confirmations rather than
+agent-run live queries. Full-solution `dotnet format` still fails on 62 untouched files. Details are in the
 Stage 14 ledger §14.
 
 Stage 14.4 (2026-10-02): **owner-accepted on 2026-10-02 with the zero-value display amendment** (exact numeric zeros in grid cells display blank). It adds:
@@ -244,8 +252,56 @@ on the amended screen (frontend 577 passed, 5 skipped on three consecutive runs;
 found no clipped values and contrast ≥ 4.5:1; 570 → 577 passed is a net +7, 9 tests added — see
 ledger §17). The owner accepted the checkpoint including these amendments on 2026-10-06:
 **Checkpoint 14.5 — OWNER-ACCEPTED with Master plan redesign and presentation amendments —
-2026-10-06.** Open: live-source E1–E5, desktop/native confirmation, 14.6 decisions (including the
-CSV column order). Details are in the Stage 14 ledger §17.
+2026-10-06.** At that checkpoint closeout, later decisions and desktop checks were still pending;
+they are recorded in ledger §11 and §18–§21.
+
+Stage 14.6 (2026-10-06): **OWNER-ACCEPTED — 2026-10-07**. Owner decisions recorded in the
+Stage 14 ledger (§7, §10, §18): the Mass Updater CSV columns are **Part, Qty, Date** (no header); **Qty is the
+signed adjustment** to the existing MPS quantity; after a *successfully saved* export the user is asked
+*Clear the staged adjustments included in this export?* (Clear / Keep; declining or dismissing keeps; cancelled
+or failed saves never clear or prompt); saved drafts stay unchanged. It adds `MpsMassUpdateService` (validates
+every staged adjustment — including weeks hidden by the horizon, View or filters — against the complete loaded
+MPS snapshot for the current workspace, site and snapshot; whole-file rejection; **no QAD access**, MPS
+refresh, database write, submission or import), `Kst.Exports.MpsMassUpdateCsv` (golden-byte format: UTF-8 no BOM,
+CRLF after every row, `M/d/yyyy`, no leading `+`, no formula prefix), the
+`POST /planning-workbook/mass-updater-export` endpoint (regenerated OpenAPI/TypeScript contracts,
+`docs/api/PLANNING_WORKBOOK.md`), and the enabled *Review and export* flow (preview parsed from the actual
+file bytes, explicit Save As through the existing Tauri capabilities — none added — saved / cancelled / failed
+outcomes, prepared-export invalidation on session, adjustment, MPS snapshot, site or business-week change, and
+the Clear / Keep prompt, offered only after a confirmed native file write; a browser-fallback download is reported honestly as a
+started download, keeps every adjustment and offers no Clear / Keep). Export success means the file was saved, not that QAD
+applied it. Review corrections (2026-10-06): Clear removes only untouched exported entries (an entry edited back to the
+exported value or removed and re-entered is kept), and the export dialog keeps keyboard focus on a usable control through
+every step. Offline verification: backend 1,135/1,135 (unchanged by the review corrections, not rerun); frontend
+642 passed, 5 skipped on two consecutive full runs (a third run had one failure in the unrelated, unchanged
+Long-Term Shortages Edge-helper test; an earlier run had a load-related timeout in the unchanged Stage 13 Save As test);
+typecheck, scoped lint, production build, version
+check and `git diff --check` passed; full lint still shows only the two known Stage 10 errors. **Not verified at 14.6 closeout:**
+desktop Tauri Save As, the packaged sidecar (not rebuilt), the external QAD Mass Updater trial (E5), live-source
+E1–E5. Subsequent owner confirmations and final desktop acceptance are recorded in the Stage 14 ledger §11 and
+§19–§21. Version remains `0.1.0-alpha.14`. Details are in §18.
+
+Stage 14.7 (2026-10-07): **OWNER-ACCEPTED — 2026-10-07**. Integrated verification was run on
+the current checkout without starting 14.8: backend restore/build/tests; OpenAPI regeneration +
+TypeScript contract regeneration/sync; frontend typecheck/tests/lint/build; Rust `cargo check`,
+`cargo test --locked --offline` and `cargo build`; sidecar publish via `scripts/build-sidecar.ps1`.
+The sidecar identity was verified by matching SHA256 for `publish/backend-sidecar/Kst.Api.exe` and
+`src/tauri/binaries/Kst.Api-x86_64-pc-windows-msvc.exe`
+(`30D9151A564F74ACDCC2486FA7C6135AA32C58A6044FC1E1E8D28A0784CD74AB`). Runtime probes against a
+local backend instance confirmed `/health` and `/api/v1/system/status` report
+`0.1.0-alpha.14`; a Mass Updater export route probe returned sanitized 404 `workspace-missing`,
+confirming endpoint reachability and error contract behavior. Frontend full-suite run 1 had three
+timeouts in unchanged files (`OpenOrdersPanel` Save As workflow test, `PlanningWorkbookAdjustments`
+fixture-merge test, `PlanningWorkbookPanel` unpriced/zero-price test); isolated reruns of those
+files then passed and a subsequent full run passed. Full lint still reports only the two known
+locked Stage 10 errors; full-solution `dotnet format --verify-no-changes` still reports broad
+pre-existing formatting/EOL failures, and scoped format including `OpenOrdersQxtendCsv.cs` confirms
+its pre-existing LF/EOL mismatch. Gitleaks/DevSkim were unavailable on PATH and were not installed.
+At this checkpoint's initial closeout, native desktop behavior and external Mass Updater acceptance
+were awaiting owner checks; the owner subsequently completed and accepted those checks on 2026-10-07.
+Owner and automated evidence are recorded separately in Stage 14 ledger §19–§21. Details are in
+Stage 14 ledger §19 and
+`C:\Dev\kst_v2_tmp\Stage14\STAGE_14_7_CHECKPOINT_COMPLETION_REPORT.md`.
 
 The owner approved the revised Release 1 roadmap on 2026-09-29:
 
@@ -801,20 +857,33 @@ R0 overall: **COMPLETE / ACCEPTED — 2026-08-21.** Full detail:
 
 ## Next Action
 
-**Stage 13 is COMPLETE / ACCEPTED — 2026-10-01.** The report, Plan Mode, drafts and export files
-are implemented. The accepted closeout records one approved six-parent/four-row refresh, one
-targeted date-only validation, the owner's report of external acceptance for all three QXtend
-file types, and accepted limits/exceptions without treating failed or unmeasured checks as passes.
-Stage 14 Checkpoints 14.1, 14.2 and 14.3 are complete and owner-accepted (2026-10-02). Checkpoint
-14.4 is owner-accepted with the zero-value display amendment (2026-10-02); Checkpoint 14.5 is
-owner-accepted with the Master plan redesign and presentation amendments (2026-10-06); Checkpoint
-14.6 requires separate authorization and is not started.
+**Stage 13 is COMPLETE / OWNER-ACCEPTED — 2026-10-01.** Stage 14 is COMPLETE / OWNER-ACCEPTED —
+2026-10-07: Checkpoints 14.1–14.7 accepted (details and owner evidence in the Stage 14 ledger §11 and
+§19–§21). Historical checkpoint detail follows.
+
+**Stage 14 owner-desktop findings (2026-10-07).** Initial owner testing passed review/export, Save As,
+Keep/Clear and saved-draft persistence but found missing warnings on workspace switch and native close. The
+desktop plugin's asynchronous `window.confirm` and the Rust close lifecycle were fixed with an in-app prompt and
+close guard (ledger §19.1). The owner later confirmed the desktop checklist and accepted Checkpoint 14.7 and
+Stage 14 overall on 2026-10-07. Follow-up fixes added in-app confirmation for Planning draft restore/delete and
+Open Orders Save Draft off, plus case-insensitive RA exclusion; the owner confirmed and accepted these on
+2026-10-07 (ledger §21). The owner accepts the observed Undo behavior (Undo does not restore discarded
+adjustments); it was not changed or re-tested. Automated evidence remains separately recorded in the ledger.
+
+**Stage 14 pricing amendment — OWNER-ACCEPTED — 2026-10-07.** A successful price lookup with no eligible list price uses $0 for Planning MPS $, Adjusted MPS $ and weekly/Falldown/quarter/workspace totals; acquisition failures remain errors. The owner rebuilt the sidecar and verified desktop behavior. This owner evidence is separate from automated test evidence; no agent live-QAD query was performed. The earlier unpriced/blank-total behavior remains only as historical evidence. See ledger §20.
+
+**Stage 14 owner-confirmed evidence register (2026-10-07; ledger §11).** Forecast quantities are positive and use the `FORECAST` selection/reference in `master_plan.py`; v2's detail predicate and `Math.Abs` display transform match that offline source. Successful absence of an eligible list price uses $0; acquisition failures remain errors. Sales-order due dates are required and RA prefixes may vary in case. Sunday-date investigation is unnecessary. The owner confirms the external Mass Updater works with KST output. Existing price-tie behavior is retained, MOQ price switching is deferred, and all relevant prices are USD. These are owner confirmations/reference comparison, not agent-run live-QAD queries.
+
+Immediate next stage: Stage 15 — Finished Goods (planned / Release 1 required), beginning with 15.1 field and
+rule discovery; implementation requires its separate stage authorization. The current laptop checklist defines
+the scope: as-of date, due orders/units, finished-goods on hand, location, lot, shipping/hold locations, RMA
+classification, nettable status, inventory value and demand coverage; then adapters/domain/API, summary and
+location/lot UI, date selector, Stage 21 export requirements, validation and owner acceptance.
+
 Cross-customer Open Orders remains Stage 18.
 
-The accepted planning baseline is `docs/prompts/STAGE_13_OPEN_ORDERS_PLANNING_PROMPT.md`. The
-bounded implementation prompt is `docs/implementation/KST_v2_STAGE_13_IMPLEMENTATION_PROMPT.md`.
-
 Preserve the three untracked owner QXtend templates and the pre-existing local/generated work.
-The one-pass read approval has been used; further transactional QAD validation queries, QXtend
-submission/import and Stage 14 checkpoints after 14.5 require separate owner authorization. The Stage 13.6 closeout
-commit/push is separately authorized as part of its owner acceptance.
+The one-pass read approval has been used; transactional QAD validation queries, QXtend
+submission/import, external Mass Updater trials and any post-14.7 Stage 14 work require separate
+owner authorization. The Stage 13.6 closeout commit/push is separately authorized as part of its
+owner acceptance.

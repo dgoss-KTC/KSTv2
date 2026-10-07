@@ -156,6 +156,8 @@ export function usePlanningWorkbook(assignmentId: string, site: string, snapshot
 
   const error = failure?.identity === identity ? failure.value : null;
   return {
+    /** Local Sunday business-week start currently in effect (rollover-checked); part of export currency. */
+    businessWeek: weekStart,
     horizonWeeks,
     minimumHorizonWeeks: MIN_PLANNING_HORIZON_WEEKS,
     maximumHorizonWeeks: knownMaximum,

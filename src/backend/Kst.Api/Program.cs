@@ -257,6 +257,8 @@ else
 builder.Services.AddSingleton<PlanningWorkbookService>();
 // Stage 14.5 saved Planning drafts (local files; IPlanningWorkbookDraftStore registered by AddInfrastructure).
 builder.Services.AddSingleton<PlanningWorkbookDraftService>();
+// Stage 14.6 Mass Updater export validation: loaded MPS snapshot only; deliberately no QAD reader dependency.
+builder.Services.AddSingleton<MpsMassUpdateService>();
 
 
 // -- Part Detail (Stage 6) -------------------------------------------------

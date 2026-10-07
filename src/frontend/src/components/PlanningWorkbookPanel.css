@@ -510,7 +510,6 @@
 .pwb-grid td.pwb-cell--changed { --pwb-state: var(--p-bg); color: var(--pwb-changed-tx); font-weight: 600; }
 .pwb-grid td.pwb-cell--negative { --pwb-state: var(--danger-bg); color: var(--pwb-negative-tx); font-weight: 600; }
 .pwb-grid td.pwb-cell--invalid:not(.pwb-cell--input) { color: var(--pwb-negative-tx); }
-.pwb-grid td.pwb-cell--unpriced { color: var(--pwb-muted-tx); }
 .pwb-grid .pwb-head__sub,
 .pwb-grid .pwb-total__scope,
 .pwb-grid .pwb-model__desc,
@@ -697,3 +696,10 @@
   .pwb-side { flex-basis: 268px; width: 268px; }
   .pwb-model__desc { display: none; }
 }
+
+/* Stage 14.6 Review and export dialog */
+.pwb-export-status { padding: 6px 10px; border: 1px solid var(--bd); border-radius: 6px; background: var(--chip); }
+.pwb-export-status--saved { border-color: var(--p-bd); }
+.pwb-export-status--error { border-color: var(--danger-tx); color: var(--danger-tx); }
+.pwb-export-prompt { padding: 8px 12px; border: 1px solid var(--p-bd); border-radius: 6px; margin-bottom: 10px; }
+.pwb-export-prompt p:last-child { margin-bottom: 0; }

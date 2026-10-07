@@ -8,6 +8,7 @@ import {
   adjustedWorkspaceTotals,
   adjustmentKey,
   evaluatePlanning,
+  exactProduct,
   parseAdjustment,
   type AdjustmentEntries,
 } from './planningAdjustments';
@@ -19,8 +20,8 @@ import { fixtureToWorkbook, type Stage14Fixture } from './stage14FixtureAdapter.
  * deterministic fixture (docs/reference/STAGE_14_PLANNING_WORKBOOK_DETERMINISTIC_FIXTURES.json), which
  * is independent of this implementation; comparisons use exact decimal equality.
  */
-interface AdjustedFixtureBucket { weekLabel?: string; adjustment?: string; proposedMps: string; adjustedMpsDollars: string | null; adjOnHand: string }
-interface AdjustedFixtureQuarter { quarter: string; adjustment: string; proposedMps: string; adjustedMpsDollars: string | null; adjOnHand: string; includesFalldown: boolean }
+interface AdjustedFixtureBucket { weekLabel?: string; adjustment?: string; proposedMps: string; adjustedMpsDollars: string; adjOnHand: string }
+interface AdjustedFixtureQuarter { quarter: string; adjustment: string; proposedMps: string; adjustedMpsDollars: string; adjOnHand: string; includesFalldown: boolean }
 interface FixtureCase { id: string; part?: string; weekLabel?: string; target?: string; adjustment?: string; existingMps?: string; proposedMps?: string; result?: string; issueCode?: string }
 type Fixture = Stage14Fixture & {
   adjustmentScenario: { adjustments: { part: string; weekLabel: string; adjustment: string }[] };
@@ -112,22 +113,27 @@ describe('evaluatePlanning reproduces the accepted fixture adjustment scenario',
     }
   });
 
-  it('totals workspace flows from the fixture parts and blanks adjusted dollars when any part is unpriced', () => {
+  it('totals workspace flows from the fixture parts; a part with no list price adds exactly $0 instead of blanking adjusted dollars', () => {
     const quarters = planningQuarters(workbook.weekLabels, DEFAULT_FISCAL_CALENDAR_SETTINGS);
     const totals = adjustedWorkspaceTotals(result.parts, workbook.weekLabels.length, quarters);
     workbook.weekLabels.forEach((_, i) => {
       const sum = (field: 'adjustment' | 'proposedMps') => sumDecimals(expectedParts.map(p => p.weeks[i][field] ?? '0'));
       expect(equalDecimal(totals.weeks[i].adjustment, sum('adjustment'))).toBe(true);
       expect(equalDecimal(totals.weeks[i].proposedMps, sum('proposedMps'))).toBe(true);
-      expect(totals.weeks[i].adjustedMpsDollars).toBeNull(); // P-3 is unpriced
     });
     expect(totals.falldown.adjustment).toBe('0');
     expect('adjustedOnHand' in totals.falldown).toBe(false);
 
     const priced = adjustedWorkspaceTotals(result.parts.filter(p => p.isPriced), workbook.weekLabels.length, quarters);
-    // P-1 adjusted $ week 2026-09-14 = 125, P-2 zero price = 0.
-    expect(equalDecimal(priced.weeks[0].adjustedMpsDollars!, '125')).toBe(true);
-    expect(equalDecimal(priced.weeks[2].adjustedMpsDollars!, '250')).toBe(true);
+    // P-1 adjusted $ week 2026-09-14 = 125, P-2 zero price = 0, P-3 (no list price) = 0.
+    expect(equalDecimal(priced.weeks[0].adjustedMpsDollars, '125')).toBe(true);
+    expect(equalDecimal(priced.weeks[2].adjustedMpsDollars, '250')).toBe(true);
+    // Mixed workspace: the no-list-price part contributes zero, so full totals equal the priced-only totals.
+    workbook.weekLabels.forEach((_, i) => expect(equalDecimal(totals.weeks[i].adjustedMpsDollars, priced.weeks[i].adjustedMpsDollars)).toBe(true));
+    totals.quarters.forEach((q, i) => expect(equalDecimal(q.adjustedMpsDollars, priced.quarters[i].adjustedMpsDollars)).toBe(true));
+    const p3 = result.parts.find(p => p.part === 'P-3')!;
+    expect([p3.falldown, ...p3.weeks].every(b => equalDecimal(b.adjustedMpsDollars, '0'))).toBe(true);
+    expect(adjustedQuarterSummaries(p3, quarters).every(q => equalDecimal(q.adjustedMpsDollars, '0'))).toBe(true);
   });
 
   it('keeps forecast display-only: changing forecast changes no adjusted value', () => {
@@ -140,6 +146,25 @@ describe('evaluatePlanning reproduces the accepted fixture adjustment scenario',
   });
 });
 
+describe('no-list-price parts and malformed price data (amendment 2026-10-07)', () => {
+  const w = fixtureToWorkbook(fixture);
+  const p3Change = entries([{ part: 'P-3', weekLabel: w.weekLabels[3], adjustment: '5' }]);
+
+  it('a staged change on a no-list-price part keeps dollars at exactly zero while quantities change', () => {
+    const p3 = w.parts.find(p => p.part === 'P-3')!;
+    expect(p3.isPriced).toBe(false);
+    const week = evaluatePlanning(w, p3Change).parts.find(p => p.part === 'P-3')!.weeks[3];
+    expect(equalDecimal(week.proposedMps, '15')).toBe(true);
+    expect(equalDecimal(week.adjustedMpsDollars, '0')).toBe(true);
+  });
+
+  it('a malformed price or dollar string is never mistaken for $0', () => {
+    expect(() => exactProduct('5', 'not-a-number')).toThrow();
+    expect(exactProduct('5', '0')).toBe('0');
+    const broken: PlanningWorkbook = { ...w, parts: w.parts.map(p => p.part === 'P-1' ? { ...p, selectedPrice: 'abc' } : p) };
+    expect(() => evaluatePlanning(broken, scenario)).toThrow();
+  });
+});
 describe('evaluatePlanning validation (fixture V01–V07, V16–V19)', () => {
   const workbook = fixtureToWorkbook(fixture);
   const single = (c: FixtureCase) => evaluatePlanning(workbook, entries([{ part: c.part!, weekLabel: c.weekLabel!, adjustment: c.adjustment! }])).entries[0];

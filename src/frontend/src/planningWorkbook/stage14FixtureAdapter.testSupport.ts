@@ -6,9 +6,9 @@
  */
 import type { PlanningWorkbook } from './planningWorkbookSummary';
 
-interface FixtureBucket { weekLabel?: string; so: string; soDollars: string; mps: string; mpsDollars: string | null; forecast: string; estOnHand: string }
+interface FixtureBucket { weekLabel?: string; so: string; soDollars: string; mps: string; mpsDollars: string; forecast: string; estOnHand: string }
 interface FixturePart {
-  part: string; selectedPrice: string | null; priced: boolean;
+  part: string; selectedPrice: string; priced: boolean;
   undated: { so: string; soDollars: string; lineCount: number };
   falldown: FixtureBucket; weeks: FixtureBucket[];
 }
@@ -20,7 +20,7 @@ export interface Stage14Fixture {
   fiscalExceptionCase: { fiscalSettings: { anchorFiscalYear: number; anchorStartDate: string; exceptions: { fiscalYear: number; extraWeekPeriod: number }[] }; expectedP1Quarters: FixtureQuarter[] };
 }
 export interface FixtureQuarter {
-  quarter: string; includesFalldown: boolean; so: string; soDollars: string; mps: string; mpsDollars: string | null; estOnHand: string;
+  quarter: string; includesFalldown: boolean; so: string; soDollars: string; mps: string; mpsDollars: string; estOnHand: string;
 }
 
 function bucket(kind: 'falldown' | 'weekly', value: FixtureBucket) {
@@ -57,7 +57,7 @@ export function fixtureToWorkbook(fixture: Stage14Fixture): PlanningWorkbook {
         description: null,
         netQuantityOnHand: fixture.inputs.netQoh[name],
         priceTiers: (fixture.inputs.priceTiers[name] ?? []).map(t => ({ minimumOrderQuantity: t.minQty, unitPrice: t.price })),
-        selectedPrice: part.priced ? part.selectedPrice : null,
+        selectedPrice: part.selectedPrice,
         isPriced: part.priced,
         falldown: bucket('falldown', part.falldown),
         weeks: part.weeks.map(w => bucket('weekly', w)),

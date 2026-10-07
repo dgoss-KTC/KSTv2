@@ -49,6 +49,9 @@ export type PlanningWorkbookDraftPresenceDto = components['schemas']['PlanningWo
 export type PlanningWorkbookDraftResponseDto = components['schemas']['PlanningWorkbookDraftResponseDto'];
 export type PlanningDraftRowDto = components['schemas']['PlanningDraftRowDto'];
 export type SavePlanningWorkbookDraftRequestDto = components['schemas']['SavePlanningWorkbookDraftRequestDto'];
+export type ExportPlanningMassUpdaterRequestDto = components['schemas']['ExportPlanningMassUpdaterRequestDto'];
+export type PlanningMassUpdaterExportResponseDto = components['schemas']['PlanningMassUpdaterExportResponseDto'];
+
 
 export class ApiError extends Error {
   constructor(
@@ -315,6 +318,12 @@ export class ApiClient {
   async deletePlanningWorkbookDraft(assignmentId: string): Promise<void> {
     return this.delete(`/api/v1/workspaces/${assignmentId}/planning-workbook/draft`);
   }
+
+  /** Stage 14.6: validates against the loaded MPS snapshot and returns the Mass Updater CSV proposal (no QAD access). */
+  async exportPlanningMassUpdater(assignmentId: string, request: ExportPlanningMassUpdaterRequestDto): Promise<PlanningMassUpdaterExportResponseDto> {
+    return this.post<PlanningMassUpdaterExportResponseDto>(`/api/v1/workspaces/${assignmentId}/planning-workbook/mass-updater-export`, request);
+  }
+
 
   async getLongTermShortages(
     assignmentId: string,

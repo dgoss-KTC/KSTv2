@@ -118,19 +118,22 @@ describe('Planning Workbook fiscal quarters against the accepted Stage 14 fixtur
   });
 });
 
-describe('Workspace totals (owner-confirmed unpriced policy)', () => {
+describe('Workspace totals (owner-approved no-list-price $0 policy, 2026-10-07)', () => {
   const quarters = planningQuarters(workbook.weekLabels, DEFAULT_FISCAL_CALENDAR_SETTINGS);
 
-  it('blanks every workspace MPS $ total when any part is unpriced, keeping quantity and SO $ totals', () => {
+  it('sums every part into workspace MPS $: the no-list-price part P-3 contributes exactly $0 and nothing is blank', () => {
     const totals = workspaceTotals(workbook.parts, 4, quarters);
-    for (const flows of [totals.falldown, ...totals.weeks, ...totals.quarters]) expect(flows.mpsDollars).toBeNull();
-    // Quantities still include the unpriced part P-3 (week 3 MPS 10).
+    for (const flows of [totals.falldown, ...totals.weeks, ...totals.quarters]) expect(typeof flows.mpsDollars).toBe('string');
+    const pricedOnly = workspaceTotals(workbook.parts.filter(p => p.isPriced), 4, quarters);
+    [...totals.weeks, ...totals.quarters].forEach((flows, i) => expect(equalDecimal(flows.mpsDollars, [...pricedOnly.weeks, ...pricedOnly.quarters][i].mpsDollars)).toBe(true));
+    expect(workbook.parts.find(p => p.part === 'P-3')!.isPriced).toBe(false);
+    // Quantities still include P-3 (week 3 MPS 10) while its dollars are $0.
     expect(totals.weeks[3].mps).toBe('10');
     expect(totals.quarters[1].mps).toBe('210');
     expect(equalDecimal(totals.quarters[0].salesOrderDollars, add('1234.5678', '401.00')!)).toBe(true);
   });
 
-  it('totals MPS $ exactly when every part is priced, including a valid zero-price part', () => {
+  it('totals MPS $ exactly for priced parts, including a valid zero-price part', () => {
     const priced = workbook.parts.filter(p => p.isPriced);
     expect(priced.map(p => [p.part, p.selectedPrice])).toEqual([['P-2', '0.0000'], ['P-1', '2.5000']]);
     const totals = workspaceTotals(priced, 4, quarters);

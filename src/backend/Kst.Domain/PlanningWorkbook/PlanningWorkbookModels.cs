@@ -14,8 +14,9 @@ public sealed record PlanningForecastRow(string Part, DateOnly DueDate, decimal 
 public sealed record ProposedMpsAdjustment(string Part, DateOnly WeekLabel, decimal Adjustment);
 
 /// <summary>
-/// One Falldown or weekly Planning Workbook cell group for a part. Dollar values are null when the
-/// part is unpriced (no current price tier); a valid zero price yields zero dollars.
+/// One Falldown or weekly Planning Workbook cell group for a part. List-price dollars use the selected unit price;
+/// when a successful price lookup found no eligible list price the price is exactly zero (owner-approved
+/// amendment 2026-10-07), so dollars are zero. A failed or incomplete lookup never reaches this model.
 /// Falldown is not adjustable, so its <see cref="Adjustment"/> is always zero.
 /// </summary>
 public sealed record PlanningBucket(
@@ -24,11 +25,11 @@ public sealed record PlanningBucket(
     decimal SalesOrderQuantity,
     decimal SalesOrderDollars,
     decimal Mps,
-    decimal? MpsDollars,
+    decimal MpsDollars,
     decimal Forecast,
     decimal Adjustment,
     decimal ProposedMps,
-    decimal? AdjustedMpsDollars,
+    decimal AdjustedMpsDollars,
     decimal EstimatedOnHand,
     decimal AdjustedOnHand);
 
@@ -44,12 +45,13 @@ public sealed record PlanningPartBlock(
     string? Description,
     decimal NetQuantityOnHand,
     IReadOnlyList<PartPriceBreak> PriceTiers,
-    decimal? SelectedPrice,
+    decimal SelectedPrice,
     PlanningBucket Falldown,
     IReadOnlyList<PlanningBucket> Weeks,
     PlanningUndatedDemand Undated)
 {
-    public bool IsPriced => SelectedPrice is not null;
+    /// <summary>True when the successful lookup found an eligible list price (a genuine zero price counts); false means $0 is used because no list price exists.</summary>
+    public bool IsPriced => PriceTiers.Count > 0;
 }
 
 /// <summary>Weekly/Falldown Planning Workbook values. Fiscal-quarter grouping is frontend-owned.</summary>

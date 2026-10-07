@@ -89,8 +89,8 @@ export interface PartQuarterSummary {
   salesOrderQuantity: string;
   salesOrderDollars: string;
   mps: string;
-  /** Null when the part is unpriced. */
-  mpsDollars: string | null;
+  /** List-price dollars; a part with no eligible list price prices at exactly $0 (amendment 2026-10-07). */
+  mpsDollars: string;
   /** Balance at the quarter's last visible week; never a sum. */
   estimatedOnHand: string;
 }
@@ -110,33 +110,31 @@ export function partQuarterSummaries(part: PlanningPart, quarters: readonly Plan
       salesOrderQuantity: sumDecimals(buckets.map(b => b.salesOrderQuantity)),
       salesOrderDollars: sumDecimals(buckets.map(b => b.salesOrderDollars)),
       mps: sumDecimals(buckets.map(b => b.mps)),
-      mpsDollars: part.isPriced && buckets.every(b => b.mpsDollars !== null)
-        ? sumDecimals(buckets.map(b => b.mpsDollars as string)) : null,
+      mpsDollars: sumDecimals(buckets.map(b => b.mpsDollars)),
       estimatedOnHand: lastWeek.estimatedOnHand,
     };
   });
 }
 
 /**
- * Workspace flow totals. Owner-confirmed policy (2026-10-02): when any retained part is unpriced,
- * the workspace MPS $ total is null (blank) for every weekly and quarterly column; no priced-part
- * subtotal is shown. A valid zero price is priced. SO $ always totals (it comes from sales-order lines).
+ * Workspace flow totals. Owner-approved amendment (2026-10-07, supersedes the 2026-10-02 blank-total rule):
+ * a part whose successful lookup found no eligible list price contributes exactly $0 to MPS $, so the
+ * workspace MPS $ total always sums every part. SO $ comes from sales-order lines.
  */
 export interface WorkspaceFlowTotals {
   salesOrderQuantity: string;
   salesOrderDollars: string;
   mps: string;
-  mpsDollars: string | null;
+  mpsDollars: string;
 }
 
 function workspaceFlows(parts: readonly PlanningPart[], pick: (part: PlanningPart) => PlanningBucket[]): WorkspaceFlowTotals {
   const all = parts.flatMap(pick);
-  const anyUnpriced = parts.some(p => !p.isPriced);
   return {
     salesOrderQuantity: sumDecimals(all.map(b => b.salesOrderQuantity)),
     salesOrderDollars: sumDecimals(all.map(b => b.salesOrderDollars)),
     mps: sumDecimals(all.map(b => b.mps)),
-    mpsDollars: anyUnpriced || all.some(b => b.mpsDollars === null) ? null : sumDecimals(all.map(b => b.mpsDollars as string)),
+    mpsDollars: sumDecimals(all.map(b => b.mpsDollars)),
   };
 }
 

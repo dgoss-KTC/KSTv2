@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useEffectEvent, useRef, useCallback } from 'react';
 import { useBackendStatus } from '../hooks/useBackendStatus';
 import { useWorkspaces } from '../hooks/useWorkspaces';
 import { usePreferences } from '../hooks/usePreferences';
@@ -14,6 +14,8 @@ import { ToastStack } from './ToastStack';
 import { CustomerWorkspace } from './CustomerWorkspace';
 import { GeneralWorkspace } from './GeneralWorkspace';
 import { BottomStatusBar } from './BottomStatusBar';
+import { confirmDesktopClose, onDesktopCloseRequested, reportCloseGuard } from '../shared/desktopCloseGuard';
+
 import './ApplicationShell.css';
 
 interface ConfirmState {
@@ -50,12 +52,61 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   const planningDirtyRef = useRef(false);
   const planningDirtyMessageRef = useRef<string | undefined>(undefined);
   // Stage 13 Open Orders and Stage 14.5 Planning unsaved changes, reported by CustomerWorkspace.
+  const reportedGuardRef = useRef(false);
+  const syncCloseGuard = useCallback((dirty: boolean) => {
+    if (reportedGuardRef.current === dirty) return;
+    reportedGuardRef.current = dirty;
+    void reportCloseGuard(dirty);
+  }, []);
   const planningDirtyChanged = useCallback((dirty: boolean, message?: string) => {
     planningDirtyRef.current = dirty;
     planningDirtyMessageRef.current = message;
-  }, []);
-  const confirmDiscardPlanning = () => !planningDirtyRef.current
-    || window.confirm(planningDirtyMessageRef.current ?? 'Unsaved Customer Open Orders planning changes will be discarded. Continue?');
+    syncCloseGuard(dirty);
+  }, [syncCloseGuard]);
+
+  // In-app discard confirmation. The browser confirm() is not usable here: the desktop dialog plugin
+  // replaces window.confirm with an asynchronous call, so a synchronous `!window.confirm(..)` check
+  // never blocked anything. One request at a time: a second request joins the pending one, so a
+  // repeated action or close request cannot stack duplicate prompts.
+  const discardPendingRef = useRef<Promise<boolean> | null>(null);
+  const confirmCancelRef = useRef<(() => void) | null>(null);
+  const askDiscard = (message: string): Promise<boolean> => {
+    if (discardPendingRef.current) return discardPendingRef.current;
+    const returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const pending = new Promise<boolean>((resolve) => {
+      const settle = (result: boolean) => {
+        discardPendingRef.current = null;
+        confirmCancelRef.current = null;
+        resolve(result);
+      };
+      confirmCancelRef.current = () => { settle(false); setTimeout(() => focusIfConnected(returnFocusTo), 0); };
+      setConfirmState({
+        title: 'Discard unsaved changes?',
+        body: message,
+        confirmLabel: 'Discard changes',
+        destructive: true,
+        onConfirm: async () => { settle(true); setConfirmState(null); },
+      });
+    });
+    discardPendingRef.current = pending;
+    return pending;
+  };
+  const confirmDiscardPlanning = (): Promise<boolean> => !planningDirtyRef.current
+    ? Promise.resolve(true)
+    : askDiscard(planningDirtyMessageRef.current ?? 'Unsaved Customer Open Orders planning changes will be discarded. Continue?');
+  const markPlanningDiscarded = () => { planningDirtyRef.current = false; syncCloseGuard(false); };
+
+  // Native window close with unsaved work: the host holds the close and asks here; Cancel keeps the
+  // window and every adjustment, Discard clears the guard and asks the host to close exactly once.
+  const handleNativeCloseRequest = useEffectEvent(() => {
+    void (async () => {
+      if (!(await confirmDiscardPlanning())) return;
+      markPlanningDiscarded();
+      await reportCloseGuard(false);
+      try { await confirmDesktopClose(); } catch { /* the window stays open; the next close request asks again */ }
+    })();
+  });
+  useEffect(() => onDesktopCloseRequested(() => handleNativeCloseRequest()), []);
 
   // Focus-restoration targets are DOM elements, not application state — stored in refs per the
   // repository focus-management convention (see Stage 8D.6 Component Information).
@@ -102,14 +153,16 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
     }
   }, [connectionState, load]);
 
-  const handleSelectWorkspace = (id: string) => {
-    if (id !== workspacesState.activeId && !confirmDiscardPlanning()) return;
-    if (id !== workspacesState.activeId) planningDirtyRef.current = false;
+  const handleSelectWorkspace = async (id: string) => {
+    if (id !== workspacesState.activeId) {
+      if (!(await confirmDiscardPlanning())) return;
+      markPlanningDiscarded();
+    }
     setIsGeneralActive(false);
     selectWorkspace(id);
   };
 
-  const handleSelectGeneral = () => { if (confirmDiscardPlanning()) { planningDirtyRef.current = false; setIsGeneralActive(true); } };
+  const handleSelectGeneral = async () => { if (await confirmDiscardPlanning()) { markPlanningDiscarded(); setIsGeneralActive(true); } };
 
   const handleOpenAddDialog = (triggerEl: HTMLElement) => {
     addDialogSavingRef.current = false;
@@ -181,6 +234,9 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   };
 
   const handleCancelConfirm = () => {
+    const cancelPending = confirmCancelRef.current;
+    confirmCancelRef.current = null;
+    cancelPending?.();
     setConfirmState(null);
     restoreFocusAfterConfirmClose();
   };
@@ -214,8 +270,8 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
     return () => document.removeEventListener('keydown', handleDocumentEscape, true);
   });
 
-  const handleArchiveRequest = (ws: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => {
-    if (ws.assignmentId === workspacesState.activeId && !confirmDiscardPlanning()) return;
+  const handleArchiveRequest = async (ws: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => {
+    if (ws.assignmentId === workspacesState.activeId && !(await confirmDiscardPlanning())) return;
     confirmBusyRef.current = false;
     confirmReturnFocusRef.current = triggerEl;
     setConfirmState({
@@ -237,8 +293,8 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
     });
   };
 
-  const handleDeleteRequest = (ws: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => {
-    if (ws.assignmentId === workspacesState.activeId && !confirmDiscardPlanning()) return;
+  const handleDeleteRequest = async (ws: WorkspaceAssignmentDto, triggerEl: HTMLElement | null) => {
+    if (ws.assignmentId === workspacesState.activeId && !(await confirmDiscardPlanning())) return;
     confirmBusyRef.current = false;
     confirmReturnFocusRef.current = triggerEl;
     setConfirmState({
@@ -269,8 +325,8 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
     }
   };
 
-  const handleResetRequest = (triggerEl: HTMLElement) => {
-    if (!confirmDiscardPlanning()) return;
+  const handleResetRequest = async (triggerEl: HTMLElement) => {
+    if (!(await confirmDiscardPlanning())) return;
     confirmBusyRef.current = false;
     confirmReturnFocusRef.current = triggerEl;
     setConfirmState({
@@ -366,7 +422,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
         ) : activeWorkspaces.length === 0 ? (
           <EmptyWorkspace />
         ) : activeWorkspace ? (
-          <CustomerWorkspace workspace={activeWorkspace} onPlanningDirtyChange={planningDirtyChanged} />
+          <CustomerWorkspace workspace={activeWorkspace} onPlanningDirtyChange={planningDirtyChanged} confirmDiscard={askDiscard} />
         ) : null}
       </main>
 

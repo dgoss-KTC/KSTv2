@@ -1,6 +1,7 @@
 import {
   ApiClient,
   ApiError,
+  type ExportPlanningMassUpdaterRequestDto,
   type PlanningWorkbookDraftResponseDto,
   type PlanningWorkbookResponseDto,
   type SavePlanningWorkbookDraftRequestDto,
@@ -112,4 +113,52 @@ export async function savePlanningDraft(assignmentId: string, request: SavePlann
 
 export async function deletePlanningDraft(assignmentId: string): Promise<void> {
   await new ApiClient(await resolveBackendBaseUrl()).deletePlanningWorkbookDraft(assignmentId);
+}
+
+// --- Stage 14.6 Mass Updater export (validated against the loaded MPS snapshot; no QAD access) ----
+
+/** Typed export-preparation failures. Only sanitized issue codes and counts ever cross the API boundary. */
+export type PlanningExportError =
+  | { type: 'rejected'; code: string | null; count: number | null }
+  | { type: 'not-found' }
+  | { type: 'mps-not-loaded' }
+  | { type: 'snapshot-changed' }
+  | { type: 'site-changed' }
+  | { type: 'network' }
+  | { type: 'error' };
+
+export function toPlanningExportError(err: unknown): PlanningExportError {
+  if (!(err instanceof ApiError)) return { type: 'network' };
+  let body: { issueCode?: unknown; affectedRowCount?: unknown } = {};
+  try { body = JSON.parse(err.message) as typeof body; } catch { /* not Problem Details JSON */ }
+  const code = typeof body.issueCode === 'string' ? body.issueCode : null;
+  const count = typeof body.affectedRowCount === 'number' && Number.isSafeInteger(body.affectedRowCount) && body.affectedRowCount >= 0
+    ? body.affectedRowCount : null;
+  if (err.status === 400) return { type: 'rejected', code, count };
+  if (err.status === 404) return { type: 'not-found' };
+  if (err.status === 409) {
+    if (code === 'mps-not-loaded') return { type: 'mps-not-loaded' };
+    if (code === 'site-changed') return { type: 'site-changed' };
+    return { type: 'snapshot-changed' };
+  }
+  return { type: 'error' };
+}
+
+export interface PreparedMassUpdaterFile {
+  fileName: string;
+  contentBase64: string;
+  rowCount: number;
+  mpsSnapshotId: string;
+  site: string;
+}
+
+/** Validates the staged entries against the loaded MPS snapshot and returns the exact CSV bytes (base64). */
+export async function prepareMassUpdaterExport(assignmentId: string, request: ExportPlanningMassUpdaterRequestDto): Promise<PreparedMassUpdaterFile> {
+  const value = await new ApiClient(await resolveBackendBaseUrl()).exportPlanningMassUpdater(assignmentId, request);
+  const rowCount = Number(value?.rowCount);
+  if (typeof value?.fileName !== 'string' || typeof value.contentBase64 !== 'string' || !Number.isSafeInteger(rowCount) || rowCount < 1
+    || typeof value.mpsSnapshotId !== 'string' || typeof value.site !== 'string') {
+    throw new Error('Received an unexpected Mass Updater export response shape.');
+  }
+  return { fileName: value.fileName, contentBase64: value.contentBase64, rowCount, mpsSnapshotId: value.mpsSnapshotId, site: value.site };
 }

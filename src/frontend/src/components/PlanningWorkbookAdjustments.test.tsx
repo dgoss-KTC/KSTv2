@@ -47,7 +47,7 @@ function fixtureWorkbook(snapshot = SNAP, horizon = 12, maximum = 20): PlanningW
     ...base, mpsSnapshotId: snapshot, horizonWeeks: horizon, weekLabels: labels, maximumHorizonWeeks: maximum,
     parts: base.parts.map(p => ({ ...p, weeks: labels.map((label, i) => p.weeks[i] ?? {
       ...p.weeks[p.weeks.length - 1], weekLabel: label, salesOrderQuantity: '0', salesOrderDollars: '0', mps: '0',
-      mpsDollars: p.isPriced ? '0' : null, forecast: '0',
+      mpsDollars: '0', forecast: '0',
     }) })),
   };
 }
@@ -132,10 +132,11 @@ describe('Planning adjustments: editing and derived rows', { timeout: 20_000 }, 
     expect(val(p2AdjOnHand)).toBe('-50');
     expect(p2AdjOnHand).toHaveClass('pwb-cell--negative');
     expect(p2AdjOnHand).not.toHaveClass('pwb-cell--invalid'); // negative inventory never blocks
-    // P-3 unpriced: dollars show the unpriced indicator; workspace MPS $ totals stay blank.
-    expect(cells(partRow('P-3', /^MPS \$/)).every(c => c.textContent === '\u2014')).toBe(true);
+    // P-3 has no list price: dollars are exact $0 (blank like any zero), never a dash; workspace MPS $ totals still sum.
+    expect(cells(partRow('P-3', /^MPS \$/)).every(c => c.textContent === '')).toBe(true);
     const totals = within(screen.getByRole('rowgroup', { name: 'Workspace totals' }));
-    expect(cells(totals.getByRole('row', { name: /^Total MPS \$/ })).every(c => val(c) === '')).toBe(true);
+    expect(cells(totals.getByRole('row', { name: /^Total MPS \$/ })).some(c => val(c) !== '')).toBe(true);
+    expect(cells(totals.getByRole('row', { name: /^Total MPS \$/ })).every(c => val(c) !== '\u2014')).toBe(true);
     expect(cells(totals.getByRole('row', { name: /^Total adjust/ }))[WEEK_CELL[2]]).toHaveTextContent('-100');
     expect(val(cells(totals.getByRole('row', { name: /^Total MPS (?!\$)/ }))[WEEK_CELL[0]])).toBe('50');
     expect(totals.queryByRole('row', { name: /on hand/i })).not.toBeInTheDocument();
@@ -264,6 +265,8 @@ describe('Planning adjustments: MPS snapshot replacement and rollover', { timeou
   });
 });
 
+const decide = (name: 'Delete' | 'Replace' | 'Cancel') => fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name }));
+
 describe('Planning saved drafts', { timeout: 20_000 }, () => {
   const draftRows = () => fixture.draftRestoreCases.cases.filter(c => c.saved).map(c => ({
     part: c.saved!.part, weekLabel: c.saved!.weekLabel, adjustment: c.saved!.adjustment, savedMpsQuantity: c.saved!.originalMpsQty,
@@ -298,11 +301,20 @@ describe('Planning saved drafts', { timeout: 20_000 }, () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Review saved draft' }));
     await screen.findByRole('table', { name: 'Saved draft comparison' });
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    // Desktop-compatible: the plugin's confirm() is asynchronous (always truthy); the app must not depend on it.
+    const nativeConfirm = vi.spyOn(window, 'confirm').mockImplementation((() => Promise.resolve(true)) as unknown as typeof window.confirm);
     fireEvent.click(screen.getByRole('button', { name: 'Restore saved draft' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Restore saved draft' })); // repeated request: still one dialog
+    expect(screen.getAllByRole('alertdialog')).toHaveLength(1);
+    expect(screen.getByRole('alertdialog')).toHaveTextContent(/Replace the \d+ adjustment\(s\) in this session with the saved draft\?/);
+    expect(input('P-3', '2026-09-14').value).toBe('7'); // nothing happens until the user decides
+    decide('Cancel');
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(input('P-3', '2026-09-14').value).toBe('7'); // declined replacement keeps current proposals
+    expect(screen.getByRole('table', { name: 'Saved draft comparison' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Restore saved draft' }));
-    expect(confirm).toHaveBeenCalledTimes(2);
+    decide('Replace');
+    expect(nativeConfirm).not.toHaveBeenCalled();
     expect(input('P-3', '2026-09-14').value).toBe('');
     expect(input('P-1', '2026-09-21').value).toBe('10');
     expect(input('P-1', '2026-09-28').value).toBe('-50');
@@ -374,12 +386,20 @@ describe('Planning saved drafts', { timeout: 20_000 }, () => {
     expect(input('P-1', '2026-09-14').value).toBe('2');
 
     deleteDraft.mockResolvedValueOnce(undefined);
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    // Desktop-compatible: the plugin's confirm() is asynchronous (always truthy); the app must not depend on it.
+    const nativeConfirm = vi.spyOn(window, 'confirm').mockImplementation((() => Promise.resolve(true)) as unknown as typeof window.confirm);
     fireEvent.click(screen.getByRole('button', { name: 'Delete saved draft' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete saved draft' })); // repeated request: still one dialog
+    expect(screen.getAllByRole('alertdialog')).toHaveLength(1);
+    expect(deleteDraft).not.toHaveBeenCalled(); // nothing happens until the user decides
+    decide('Cancel');
     expect(deleteDraft).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Delete saved draft' }));
+    decide('Delete');
     expect(await screen.findByText(/Saved draft deleted. Adjustments in this session were kept/)).toBeInTheDocument();
-    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(nativeConfirm).not.toHaveBeenCalled();
+    expect(deleteDraft).toHaveBeenCalledTimes(1);
     expect(deleteDraft).toHaveBeenCalledWith(ID);
     expect(input('P-1', '2026-09-14').value).toBe('2');
     expect(screen.getByRole('button', { name: 'Save draft' })).toBeEnabled();
@@ -420,6 +440,22 @@ describe('Planning saved drafts', { timeout: 20_000 }, () => {
     await waitFor(() => expect(input('P-1', '2026-09-14').value).toBe(''));
   }
 
+  it('a pending delete or replace confirmation belongs to its workspace session: leaving drops it and nothing is deleted or replaced', async () => {
+    draftPresence.mockResolvedValue({ exists: true });
+    loadDraft.mockResolvedValue(draft());
+    const view = await renderPanel();
+    type(input('P-3', '2026-09-14'), '7');
+    fireEvent.click(await screen.findByRole('button', { name: 'Review saved draft' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Restore saved draft' }));
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    showWorkspace(view, OTHER_ID);
+    await waitFor(() => expect(draftPresence).toHaveBeenLastCalledWith(OTHER_ID));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    showWorkspace(view, ID);
+    await screen.findByRole('region', { name: 'Planning workbook grid' });
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument(); // a new session starts with no pending decision
+    expect(deleteDraft).not.toHaveBeenCalled();
+  });
   it('saving newer contents invalidates an open review and a pending review; restore is then unavailable', async () => {
     draftPresence.mockResolvedValue({ exists: true });
     loadDraft.mockResolvedValueOnce(draft());
@@ -483,8 +519,8 @@ describe('Planning saved drafts', { timeout: 20_000 }, () => {
     type(input('P-1', '2026-09-14'), '3');
     fireEvent.click(await screen.findByRole('button', { name: 'Review saved draft' }));
     deleteDraft.mockResolvedValueOnce(undefined);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     fireEvent.click(screen.getByRole('button', { name: 'Delete saved draft' }));
+    decide('Delete');
     expect(await screen.findByText(/Saved draft deleted/)).toBeInTheDocument();
 
     await act(async () => { pendingReview.resolve(draft()); await Promise.resolve(); });
@@ -537,9 +573,9 @@ describe('Planning saved drafts', { timeout: 20_000 }, () => {
     draftPresence.mockResolvedValue({ exists: true });
     const pendingDelete = deferred<undefined>();
     deleteDraft.mockReturnValueOnce(pendingDelete.promise);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const view = await renderPanel();
     fireEvent.click(await screen.findByRole('button', { name: 'Delete saved draft' }));
+    decide('Delete');
     await leaveAndReturn(view);
 
     loadDraft.mockResolvedValueOnce(draft());
@@ -686,9 +722,9 @@ describe('Planning saved drafts: obsolete presence checks are recovered', { time
     exists = true;
     const pendingDelete = deferred<undefined>();
     deleteDraft.mockReturnValueOnce(pendingDelete.promise);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const view = await renderPanel();
     fireEvent.click(await screen.findByRole('button', { name: 'Delete saved draft' }));
+    decide('Delete');
     await leaveAndReturn(view, false);
     // Read while the delete was still in progress: the old draft is reported available.
     expect(await screen.findByRole('button', { name: 'Review saved draft' })).toBeInTheDocument();
@@ -723,9 +759,9 @@ describe('Planning saved drafts: obsolete presence checks are recovered', { time
     exists = true;
     const pendingDelete = deferred<undefined>();
     deleteDraft.mockReturnValueOnce(pendingDelete.promise);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const view = await renderPanel();
     fireEvent.click(await screen.findByRole('button', { name: 'Delete saved draft' }));
+    decide('Delete');
     await leaveAndReturn(view, false);
     type(input('P-3', '2026-09-14'), '4');
     expect(await screen.findByRole('button', { name: 'Review saved draft' })).toBeInTheDocument();
@@ -799,11 +835,11 @@ describe('Planning saved-draft review: focus returns to a control in the current
   it('after Delete saved draft removes the Review control, focus goes to the mode button of this workspace', async () => {
     const pendingDelete = deferred<undefined>();
     deleteDraft.mockReturnValueOnce(pendingDelete.promise);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     await renderPanel();
     type(input('P-3', '2026-09-14'), '7');
     const dialog = await openReview();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete saved draft' }));
+    decide('Delete');
     expect(screen.queryByRole('dialog', { name: 'Saved draft' })).not.toBeInTheDocument();
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Back to report' })));
     draftPresence.mockResolvedValue({ exists: false });

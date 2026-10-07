@@ -129,7 +129,7 @@ public sealed class PlanningWorkbookEndpointTests
     }
 
     [Fact]
-    public async Task Loaded_Workbook_Serializes_Exact_Decimals_Null_Versus_Zero_Dollars_And_Stale_Refresh()
+    public async Task Loaded_Workbook_Serializes_Exact_Decimals_Missing_List_Price_Zero_Dollars_And_Stale_Refresh()
     {
         await using var factory = Factory();
         using var client = factory.CreateClient();
@@ -155,12 +155,12 @@ public sealed class PlanningWorkbookEndpointTests
         Assert.Equal(["P-1", "P-2"], parts.EnumerateArray().Select(p => p.GetProperty("part").GetString()));
         var unpriced = parts[0];
         Assert.False(unpriced.GetProperty("isPriced").GetBoolean());
-        Assert.Equal(JsonValueKind.Null, unpriced.GetProperty("selectedPrice").ValueKind);
+        Assert.Equal("0", unpriced.GetProperty("selectedPrice").GetString()); // no eligible list price: $0 (amendment 2026-10-07)
         Assert.Equal("10.125", unpriced.GetProperty("netQuantityOnHand").GetString());
         var week0 = unpriced.GetProperty("weeks")[0];
         Assert.Equal("weekly", week0.GetProperty("kind").GetString());
         Assert.Equal("12.5", week0.GetProperty("mps").GetString());
-        Assert.Equal(JsonValueKind.Null, week0.GetProperty("mpsDollars").ValueKind);
+        Assert.Equal("0.0", week0.GetProperty("mpsDollars").GetString()); // 12.5 x $0 (exact decimal scale kept; the client compares by value)
         Assert.Equal("3.5", week0.GetProperty("salesOrderQuantity").GetString());
         Assert.Equal("7.875", week0.GetProperty("salesOrderDollars").GetString()); // 3.5 x 2.25, RA line excluded
         Assert.Equal("4.5", week0.GetProperty("forecast").GetString());              // display-only absolute value

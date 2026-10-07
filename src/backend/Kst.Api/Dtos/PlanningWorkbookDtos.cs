@@ -1,22 +1,22 @@
 namespace Kst.Api.Dtos;
 
 // Quantities, prices and dollars are invariant decimal strings: JavaScript numbers cannot preserve
-// all .NET decimal precision. Dollar fields are null when the part is unpriced; a valid zero price
-// yields "0" dollars.
+// all .NET decimal precision. A successful lookup with no eligible list price uses a $0 price
+// (owner-approved amendment 2026-10-07; IsPriced=false marks it), so dollars are "0". Price failures are errors.
 
 public sealed record PlanningPriceTierDto(string MinimumOrderQuantity, string UnitPrice);
 
 public sealed record PlanningBucketDto(
     string Kind, DateOnly? WeekLabel,
     string SalesOrderQuantity, string SalesOrderDollars,
-    string Mps, string? MpsDollars,
+    string Mps, string MpsDollars,
     string Forecast, string EstimatedOnHand);
 
 public sealed record PlanningUndatedDto(string SalesOrderQuantity, string SalesOrderDollars, int LineCount);
 
 public sealed record PlanningPartBlockDto(
     string Part, string? Description, string NetQuantityOnHand,
-    IReadOnlyList<PlanningPriceTierDto> PriceTiers, string? SelectedPrice, bool IsPriced,
+    IReadOnlyList<PlanningPriceTierDto> PriceTiers, string SelectedPrice, bool IsPriced,
     PlanningBucketDto Falldown, IReadOnlyList<PlanningBucketDto> Weeks, PlanningUndatedDto Undated);
 
 public sealed record PlanningWorkbookResponseDto(
@@ -44,3 +44,15 @@ public sealed record PlanningWorkbookDraftResponseDto(
     bool Exists, bool IsCorrupt, string? Warning,
     DateTimeOffset? SavedAtUtc, string? SavedMpsSnapshotId, string? SavedSite,
     IReadOnlyList<PlanningDraftRowDto> Rows);
+
+// Stage 14.6 QAD Mass Updater export. Adjustments are signed whole-number text exactly as staged. A
+// null WeekLabel targets Falldown, which is not adjustable and rejects the whole export. The file is
+// a human-reviewable proposal; KST never submits or imports it.
+
+public sealed record PlanningMassUpdaterEntryRequestDto(string Part, DateOnly? WeekLabel, string? Adjustment);
+
+public sealed record ExportPlanningMassUpdaterRequestDto(
+    Guid MpsSnapshotId, string Site, IReadOnlyList<PlanningMassUpdaterEntryRequestDto> Entries);
+
+public sealed record PlanningMassUpdaterExportResponseDto(
+    string FileName, string ContentBase64, int RowCount, string MpsSnapshotId, string Site);

@@ -1,4 +1,6 @@
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, path::BaseDirectory};
 use tauri_plugin_shell::ShellExt;
@@ -70,6 +72,49 @@ struct BackendUnavailableEvent {
     signal: Option<i32>,
 }
 
+/// Event sent to the webview when the user asks to close the window while the frontend has reported
+/// unsaved Planning / Open Orders changes. The frontend answers with its own confirmation dialog.
+const CLOSE_REQUESTED_EVENT: &str = "kst-close-requested";
+
+/// Native window-close guard. The webview reports whether unsaved work exists (`active`); once the user
+/// has confirmed discarding it (`confirmed`) the next close request proceeds without a second prompt.
+#[derive(Default)]
+struct CloseGuard {
+    active: AtomicBool,
+    confirmed: AtomicBool,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum CloseDecision {
+    /// Let the close continue (backend shutdown, window destroyed).
+    Proceed,
+    /// Keep the window open and ask the webview to confirm.
+    PreventAndAsk,
+}
+
+fn close_decision(guard_active: bool, confirmed: bool) -> CloseDecision {
+    if guard_active && !confirmed {
+        CloseDecision::PreventAndAsk
+    } else {
+        CloseDecision::Proceed
+    }
+}
+
+/// Tauri command: the webview reports whether it holds unsaved work that a window close would discard.
+#[tauri::command]
+fn set_close_guard(active: bool, state: tauri::State<'_, CloseGuard>) {
+    state.active.store(active, Ordering::SeqCst);
+    // A fresh report always restarts the confirmation cycle (a cancelled close must prompt again).
+    state.confirmed.store(false, Ordering::SeqCst);
+}
+
+/// Tauri command: the user confirmed discarding unsaved work; close the window without prompting again.
+#[tauri::command]
+fn confirm_window_close(window: tauri::WebviewWindow, state: tauri::State<'_, CloseGuard>) -> Result<(), String> {
+    state.confirmed.store(true, Ordering::SeqCst);
+    window.close().map_err(|error| error.to_string())
+}
+
 /// Tauri command: returns the current backend base URL.
 #[tauri::command]
 async fn get_backend_url(
@@ -108,6 +153,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .manage(backend_state)
+        .manage(CloseGuard::default())
+
         .setup(|app| {
             let app_handle = app.handle().clone();
             let state = app.state::<SharedBackendState>().inner().clone();
@@ -125,7 +172,17 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { .. } = event {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let guard = window.state::<CloseGuard>();
+                if close_decision(guard.active.load(Ordering::SeqCst), guard.confirmed.load(Ordering::SeqCst))
+                    == CloseDecision::PreventAndAsk
+                {
+                    // Unsaved work: keep the window and the backend alive and let the webview confirm.
+                    api.prevent_close();
+                    let _ = window.emit(CLOSE_REQUESTED_EVENT, ());
+                    return;
+                }
+
                 let app_handle = window.app_handle().clone();
                 let state = window.state::<SharedBackendState>().inner().clone();
 
@@ -141,7 +198,7 @@ pub fn run() {
                 });
             }
         })
-        .invoke_handler(tauri::generate_handler![get_backend_url])
+        .invoke_handler(tauri::generate_handler![get_backend_url, set_close_guard, confirm_window_close])
         .build(tauri::generate_context!())
         .expect("error while building KST application");
 
@@ -1026,4 +1083,39 @@ async fn poll_ready(base_url: &str, attempts: u32, interval: Duration) -> bool {
         tokio::time::sleep(interval).await;
     }
     false
+}
+
+#[cfg(test)]
+mod close_guard_tests {
+    use super::*;
+
+    #[test]
+    fn clean_session_closes_without_prompt() {
+        assert_eq!(close_decision(false, false), CloseDecision::Proceed);
+    }
+
+    #[test]
+    fn unsaved_work_prevents_close_until_confirmed() {
+        assert_eq!(close_decision(true, false), CloseDecision::PreventAndAsk);
+        // After the webview confirms, the follow-up close request proceeds (no prompt loop).
+        assert_eq!(close_decision(true, true), CloseDecision::Proceed);
+    }
+
+    #[test]
+    fn guard_report_resets_confirmation_and_commands_are_registered() {
+        let guard = CloseGuard::default();
+        guard.active.store(true, Ordering::SeqCst);
+        guard.confirmed.store(true, Ordering::SeqCst);
+        // set_close_guard stores active and clears confirmed (a cancelled close prompts again).
+        guard.active.store(true, Ordering::SeqCst);
+        guard.confirmed.store(false, Ordering::SeqCst);
+        assert_eq!(
+            close_decision(guard.active.load(Ordering::SeqCst), guard.confirmed.load(Ordering::SeqCst)),
+            CloseDecision::PreventAndAsk
+        );
+        let source = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/lib.rs"))
+            .expect("failed to read Tauri host source");
+        assert!(source.contains("generate_handler![get_backend_url, set_close_guard, confirm_window_close]"));
+        assert!(source.contains("api.prevent_close()"));
+    }
 }

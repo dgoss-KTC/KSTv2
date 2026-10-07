@@ -382,6 +382,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{assignmentId}/planning-workbook/mass-updater-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validates every staged adjustment against the complete loaded MPS snapshot and returns the QAD Mass Updater CSV (Part, signed adjustment, Monday date; no header). Any invalid entry rejects the whole export. Nothing is applied to QAD. */
+        post: operations["ExportPlanningMassUpdaterCsv"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{assignmentId}/part-detail": {
         parameters: {
             query?: never;
@@ -780,6 +797,12 @@ export interface components {
             openOrdersSnapshotId: string;
             lineKeys: components["schemas"]["OpenOrderLineKeyDto"][];
             columns: string[];
+        };
+        ExportPlanningMassUpdaterRequestDto: {
+            /** Format: uuid */
+            mpsSnapshotId: string;
+            site: string;
+            entries: components["schemas"]["PlanningMassUpdaterEntryRequestDto"][];
         };
         HealthResponse: {
             status: string;
@@ -1201,7 +1224,7 @@ export interface components {
             salesOrderQuantity: string;
             salesOrderDollars: string;
             mps: string;
-            mpsDollars: null | string;
+            mpsDollars: string;
             forecast: string;
             estimatedOnHand: string;
         };
@@ -1222,12 +1245,26 @@ export interface components {
             proposedMps: null | string;
             issueCode: null | string;
         };
+        PlanningMassUpdaterEntryRequestDto: {
+            part: string;
+            /** Format: date */
+            weekLabel: null | string;
+            adjustment: null | string;
+        };
+        PlanningMassUpdaterExportResponseDto: {
+            fileName: string;
+            contentBase64: string;
+            /** Format: int32 */
+            rowCount: number | string;
+            mpsSnapshotId: string;
+            site: string;
+        };
         PlanningPartBlockDto: {
             part: string;
             description: null | string;
             netQuantityOnHand: string;
             priceTiers: components["schemas"]["PlanningPriceTierDto"][];
-            selectedPrice: null | string;
+            selectedPrice: string;
             isPriced: boolean;
             falldown: components["schemas"]["PlanningBucketDto"];
             weeks: components["schemas"]["PlanningBucketDto"][];
@@ -2676,6 +2713,68 @@ export interface operations {
             };
             /** @description Service Unavailable */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ExportPlanningMassUpdaterCsv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportPlanningMassUpdaterRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanningMassUpdaterExportResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

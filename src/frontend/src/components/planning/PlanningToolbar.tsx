@@ -2,7 +2,7 @@ import type { PlanningProposals } from '../../hooks/usePlanningProposals';
 import type { PlanningEvaluation } from '../../planningWorkbook/planningAdjustments';
 import { formatPlanningDate, formatPlanningTimestamp, type PlanningWorkbook } from '../../planningWorkbook/planningWorkbookSummary';
 import type { PlanningMode } from '../../planningWorkbook/planningView';
-import { EXPORT_UNAVAILABLE, REFRESH_NOTE } from './planningLabels';
+import { EXPORT_BUTTON_NOTE, EXPORT_NO_CHANGES, REFRESH_NOTE } from './planningLabels';
 
 export type SidePanel = 'none' | 'view' | 'changes';
 
@@ -23,8 +23,8 @@ function changeStatus(proposals: PlanningProposals, evaluation: PlanningEvaluati
 }
 
 /** Planning toolbar: title, mode, status/freshness, horizon stepper, View and mode-specific actions. */
-export function PlanningToolbar({ mode, workbook, proposals, evaluation, panel, viewLabel, horizon, canRefresh, isRefreshing,
-  onRefresh, onStartPlanning, onBackToReport, onTogglePanel, onOpenForecast }: {
+export function PlanningToolbar({ mode, workbook, proposals, evaluation, panel, viewLabel, horizon, canRefresh, isRefreshing, canExport,
+  onRefresh, onStartPlanning, onBackToReport, onTogglePanel, onOpenForecast, onOpenExport }: {
   mode: PlanningMode;
   workbook: PlanningWorkbook | null;
   proposals: PlanningProposals;
@@ -34,11 +34,14 @@ export function PlanningToolbar({ mode, workbook, proposals, evaluation, panel, 
   horizon: { value: number; minimum: number; maximum: number | null; set: (value: number) => void };
   canRefresh: boolean;
   isRefreshing: boolean;
+  /** Staged adjustments exist and the loaded MPS data is available: export can be reviewed. */
+  canExport: boolean;
   onRefresh: () => void;
   onStartPlanning: () => void;
   onBackToReport: () => void;
   onTogglePanel: (panel: Exclude<SidePanel, 'none'>) => void;
   onOpenForecast: () => void;
+  onOpenExport: () => void;
 }) {
   const total = proposals.stagedCount + proposals.invalidInputCount;
   const range = horizon.maximum !== null ? `${horizon.minimum}\u2013${horizon.maximum} weeks` : `From ${horizon.minimum} weeks`;
@@ -102,10 +105,11 @@ export function PlanningToolbar({ mode, workbook, proposals, evaluation, panel, 
             <button type="button" className={`pwb-btn${panel === 'changes' ? ' pwb-btn--planning-active' : ''}`} aria-expanded={panel === 'changes'}
               onClick={() => onTogglePanel('changes')}>Changes {'\u00b7'} {total}</button>
             <button type="button" className="pwb-btn" data-planning-mode-toggle onClick={onBackToReport}>Back to report</button>
-            <button type="button" className="pwb-btn pwb-btn--planning" disabled title={EXPORT_UNAVAILABLE} aria-describedby="planning-export-note">
+            <button type="button" className="pwb-btn pwb-btn--planning" data-planning-export-trigger disabled={!canExport}
+              title={canExport ? EXPORT_BUTTON_NOTE : EXPORT_NO_CHANGES} aria-describedby="planning-export-note" onClick={onOpenExport}>
               Review and export
             </button>
-            <span id="planning-export-note" className="pwb-sr-only">{EXPORT_UNAVAILABLE}</span>
+            <span id="planning-export-note" className="pwb-sr-only">{canExport ? EXPORT_BUTTON_NOTE : EXPORT_NO_CHANGES}</span>
           </>
         )}
       </div>

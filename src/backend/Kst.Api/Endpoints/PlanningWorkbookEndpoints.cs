@@ -4,12 +4,14 @@ using Kst.Application.PlanningWorkbook;
 using Kst.Domain.Common;
 using Kst.Domain.Mps;
 using Kst.Domain.PlanningWorkbook;
+using Kst.Exports;
 
 namespace Kst.Api.Endpoints;
 
 /// <summary>
-/// Stage 14.3 Planning Workbook read endpoints and Stage 14.5 saved-draft endpoints. No adjustment is
-/// ever applied to QAD; there is no export route here (14.6).
+/// Stage 14.3 Planning Workbook read endpoints, Stage 14.5 saved-draft endpoints and the Stage 14.6
+/// Mass Updater export endpoint. No adjustment is ever applied to QAD; the export validates against the
+/// loaded MPS snapshot only (no QAD access) and returns a human-reviewable file proposal.
 /// Problem Details are sanitized; no business rows, part lists, prices or SQL errors are exposed.
 /// </summary>
 public static class PlanningWorkbookEndpoints
@@ -67,7 +69,52 @@ public static class PlanningWorkbookEndpoints
             .WithSummary("Deletes the saved Planning draft file. In-memory proposals are not affected.")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
+        // Stage 14.6: validates against the workspace's loaded MPS snapshot only. No QAD read or write,
+        // no MPS refresh, no submission or import; saved drafts are never read or changed.
+        app.MapPost("/api/v1/workspaces/{assignmentId:guid}/planning-workbook/mass-updater-export", ExportMassUpdater)
+            .WithName("ExportPlanningMassUpdaterCsv").WithTags("PlanningWorkbook")
+            .WithSummary("Validates every staged adjustment against the complete loaded MPS snapshot and returns the QAD Mass Updater CSV (Part, signed adjustment, Monday date; no header). Any invalid entry rejects the whole export. Nothing is applied to QAD.")
+            .Produces<PlanningMassUpdaterExportResponseDto>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
     }
+
+    private static async Task<IResult> ExportMassUpdater(Guid assignmentId, ExportPlanningMassUpdaterRequestDto request,
+        MpsMassUpdateService service, CancellationToken ct)
+    {
+        if (request is null || request.MpsSnapshotId == Guid.Empty || string.IsNullOrWhiteSpace(request.Site) ||
+            request.Entries is null || request.Entries.Any(e => e is null))
+            return MassUpdaterProblem(StatusCodes.Status400BadRequest, "invalid-request", 0);
+        try
+        {
+            var entries = request.Entries.Select(e => new MpsAdjustmentEntry(e.Part, e.WeekLabel, e.Adjustment)).ToList();
+            var result = await service.PrepareAsync(assignmentId, request.Site, new SnapshotId(request.MpsSnapshotId), entries, ct);
+            if (result.Outcome != MpsMassUpdateOutcome.Ready)
+                return MassUpdaterProblem(result.Outcome switch
+                {
+                    MpsMassUpdateOutcome.UnknownWorkspace => StatusCodes.Status404NotFound,
+                    MpsMassUpdateOutcome.MpsNotLoaded or MpsMassUpdateOutcome.SnapshotChanged or MpsMassUpdateOutcome.SiteChanged =>
+                        StatusCodes.Status409Conflict,
+                    _ => StatusCodes.Status400BadRequest
+                }, result.IssueCode ?? "export-blocked", result.AffectedRowCount);
+
+            // No CSV bytes exist until every staged entry passed validation against the loaded snapshot.
+            var bytes = MpsMassUpdateCsv.Create(result.Rows!);
+            return Results.Ok(new PlanningMassUpdaterExportResponseDto(
+                MpsMassUpdateCsv.SuggestedFileName(result.WorkspaceLabel, result.BusinessDate!.Value),
+                Convert.ToBase64String(bytes), result.Rows!.Count, result.MpsSnapshotId!.Value.ToString(), request.Site));
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { return MassUpdaterProblem(StatusCodes.Status500InternalServerError, "export-failed", 0); }
+    }
+
+    // Only issue categories and counts cross the boundary; never return rows, parts or quantities.
+    private static IResult MassUpdaterProblem(int status, string code, int affectedRows) =>
+        Results.Problem(title: "Mass Updater export blocked", statusCode: status,
+            extensions: new Dictionary<string, object?> { ["issueCode"] = code, ["affectedRowCount"] = affectedRows });
 
     private static async Task<IResult> DraftPresence(Guid assignmentId, PlanningWorkbookDraftService drafts, CancellationToken ct)
     {

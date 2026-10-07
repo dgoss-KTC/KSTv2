@@ -208,7 +208,7 @@ describe('Customer Open Orders panel', () => {
     draftPresence.mockResolvedValue({ exists: true });
     restoreDraft.mockResolvedValue({ exists: true, restored: true, warning: null, freshReport: { ...data, openOrdersSnapshotId: 'fresh-2',
       lines: [{ ...data.lines[0], planningValues: { ...original, price: '0.2' } }] }, rows: [{ proposal: staged, issues: ['Source identity or original editable values changed.'] }] });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.spyOn(window, 'confirm').mockImplementation((() => Promise.resolve(true)) as unknown as typeof window.confirm);
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     expect(await screen.findByRole('button', { name: 'Restore saved draft and continue saving' })).toBeInTheDocument();
     expect(restoreDraft).toHaveBeenCalledWith('A', 'snap-1');
@@ -216,12 +216,42 @@ describe('Customer Open Orders panel', () => {
     expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
     expect(screen.getByText(/1 conflicts/)).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Save Draft' })).toBeChecked();
+    // Desktop-compatible: window.confirm is asynchronous there and must not decide anything.
     fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' })); // repeated request: still one dialog
+    expect(screen.getAllByRole('alertdialog')).toHaveLength(1);
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Turn Save Draft off and delete the saved copy? In-memory changes will remain.');
+    expect(deleteDraft).not.toHaveBeenCalled();
+    // Cancel: nothing deleted, setting unchanged, edits kept.
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(deleteDraft).not.toHaveBeenCalled();
+    expect(screen.getByRole('checkbox', { name: 'Save Draft' })).toBeChecked();
+    expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
+    // Confirm: deletes once.
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' }));
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Turn off and delete' }));
     await waitFor(() => expect(deleteDraft).toHaveBeenCalledWith('A'));
+    expect(deleteDraft).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Save Draft' })).not.toBeChecked());
     expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
     vi.restoreAllMocks();
   });
 
+  it('Save Draft off: a workspace change drops the pending confirmation and nothing is deleted', async () => {
+    const data = response(1); get.mockResolvedValue(data);
+    draftPresence.mockResolvedValue({ exists: false });
+    const { rerender } = render(<OpenOrdersPanel key="A" assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' })); // turn on
+    expect(screen.getByRole('checkbox', { name: 'Save Draft' })).toBeChecked();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' })); // ask to turn off
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    rerender(<OpenOrdersPanel key="B" assignmentId="B" snapshotId="snap-1" />);
+    await screen.findByRole('table');
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(deleteDraft).not.toHaveBeenCalled();
+  });
   it('shows compact draft progress only for an existing draft and clears it at every terminal state', async () => {
     const data = response(1); get.mockResolvedValue(data);
     let finish: (result: unknown) => void = () => {};

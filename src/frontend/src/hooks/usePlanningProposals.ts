@@ -8,7 +8,8 @@ import {
   toPlanningDraftError,
   type PlanningDraftError,
 } from '../api/planningWorkbookApi';
-import { adjustmentKey, parseAdjustment, summarizeEntries, type AdjustmentEntries } from '../planningWorkbook/planningAdjustments';
+import { adjustmentKey, parseAdjustment, summarizeEntries, type AdjustmentEntries, type AdjustmentEntry } from '../planningWorkbook/planningAdjustments';
+import { clearableKeys } from '../planningWorkbook/massUpdaterExport';
 
 const HISTORY_LIMIT = 50;
 
@@ -41,6 +42,9 @@ let nextSessionId = 0;
 
 export interface DraftMessage { tone: 'info' | 'error'; text: string }
 
+/** A decision the user must make before Planning replaces proposals or deletes the saved draft. */
+export type PlanningConfirmation = { kind: 'replace'; count: number } | { kind: 'delete' };
+
 interface State {
   assignmentId: string;
   /**
@@ -67,21 +71,27 @@ interface State {
   presence: DraftPresence;
   /**
    * Draft epoch at which `presence` was established (or, while 'checking', at which the check was
-   * issued). A later save or delete — including one from an earlier visit that finishes or fails
-   * afterwards — makes it obsolete, and the active session checks again once (see the recheck effect).
+   * issued). A later save or delete â€” including one from an earlier visit that finishes or fails
+   * afterwards â€” makes it obsolete, and the active session checks again once (see the recheck effect).
    */
   presenceEpoch: number;
   corrupt: boolean;
   review: DraftReview | null;
   reviewing: boolean;
   busy: 'save' | 'delete' | null;
+  /**
+   * Confirmation awaiting the user's decision. Held in the workspace session, so leaving the workspace
+   * drops it and a late decision can never be applied to another session. The desktop dialog plugin makes
+   * window.confirm asynchronous, so a synchronous boolean check never waits; this in-app state does.
+   */
+  confirm: PlanningConfirmation | null;
   savedAtUtc: string | null;
   message: DraftMessage | null;
 }
 
 const initial = (assignmentId: string): State => ({
   assignmentId, sessionId: ++nextSessionId, entries: {}, history: [], lastEditKey: null, editVersion: 0, savedVersion: -1, savedEpoch: -1,
-  presence: 'unknown', presenceEpoch: -1, corrupt: false, review: null, reviewing: false, busy: null, savedAtUtc: null, message: null,
+  presence: 'unknown', presenceEpoch: -1, corrupt: false, review: null, reviewing: false, busy: null, confirm: null, savedAtUtc: null, message: null,
 });
 
 function draftErrorText(error: PlanningDraftError, action: 'save' | 'load' | 'delete'): string {
@@ -162,6 +172,25 @@ export function usePlanningProposals(assignmentId: string, snapshotId: string | 
 
   const clearAll = useCallback(() => change(entries => (Object.keys(entries).length ? {} : entries), null), [change]);
 
+  /**
+   * Stage 14.6 post-export clearing. Applies only to the workspace session that prepared the export
+   * (`owner`); a late call from any other or earlier session is ignored. Removes only entries still
+   * still identical to the exported entry, so entries added, edited (even back to the same text) or re-entered since preparation survive. It is
+   * one undoable step and never touches a saved draft (no draft call is made).
+   */
+  const clearExported = useCallback((owner: number, exported: Readonly<Record<string, AdjustmentEntry>>) => {
+    update(owner, s => {
+      const keys = clearableKeys(s.entries, exported);
+      if (keys.length === 0) return s;
+      const entries = { ...s.entries };
+      for (const key of keys) delete entries[key];
+      return {
+        ...s, entries, history: [...s.history, s.entries].slice(-HISTORY_LIMIT), lastEditKey: null, editVersion: s.editVersion + 1,
+        message: { tone: 'info', text: `Cleared ${keys.length} exported ${keys.length === 1 ? 'adjustment' : 'adjustments'} from this session. Undo restores them. Any saved Planning draft is unchanged.` },
+      };
+    });
+  }, [update]);
+
   const undo = useCallback(() => {
     update(session, s => (s.history.length === 0 ? s : {
       ...s, entries: s.history[s.history.length - 1], history: s.history.slice(0, -1),
@@ -230,8 +259,7 @@ export function usePlanningProposals(assignmentId: string, snapshotId: string | 
    * Explicit restore after review. Replaces the session's adjustments with the saved signed
    * adjustments (flagged entries included); undo returns to the previous session state.
    */
-  const restoreDraft = useCallback((): boolean => {
-    const s = state;
+  const applyRestore = useCallback((s: State): boolean => {
     const review = s.review;
     if (!review) return false;
     if (review.snapshotId !== snapshotId) {
@@ -243,8 +271,6 @@ export function usePlanningProposals(assignmentId: string, snapshotId: string | 
       update(session, x => ({ ...x, review: null, message: { tone: 'error', text: 'The saved draft changed after it was reviewed. Review the saved draft again.' } }));
       return false;
     }
-    const { staged, invalid } = summarizeEntries(s.entries);
-    if ((staged > 0 || invalid > 0) && !window.confirm(`Replace the ${staged + invalid} adjustment(s) in this session with the saved draft?`)) return false;
     const entries: Record<string, { part: string; weekLabel: string; text: string }> = {};
     for (const row of review.draft.rows) entries[adjustmentKey(row.part, row.weekLabel)] = { part: row.part, weekLabel: row.weekLabel, text: row.adjustment };
     const flagged = review.draft.rows.filter(r => r.issueCode !== null).length;
@@ -254,7 +280,20 @@ export function usePlanningProposals(assignmentId: string, snapshotId: string | 
       message: { tone: 'info', text: `Saved draft restored: ${review.draft.rows.length} adjustment(s)${flagged ? `, ${flagged} need attention` : ''}. Nothing has been applied to QAD.` },
     }));
     return true;
-  }, [assignmentId, session, snapshotId, state, update]);
+  }, [assignmentId, session, snapshotId, update]);
+
+  /** Restores the reviewed draft; asks first (in-app, awaiting the decision) when it would replace session adjustments. */
+  const restoreDraft = useCallback((): boolean => {
+    const s = state;
+    if (!s.review || s.busy !== null) return false;
+    if (s.confirm) return false; // a decision is already pending: no second dialog
+    const { staged, invalid } = summarizeEntries(s.entries);
+    if (staged > 0 || invalid > 0) {
+      update(session, x => (x.confirm ? x : { ...x, confirm: { kind: 'replace', count: staged + invalid } }));
+      return false;
+    }
+    return applyRestore(s);
+  }, [applyRestore, session, state, update]);
 
   const saveDraft = useCallback(async () => {
     const owner = session;
@@ -295,10 +334,9 @@ export function usePlanningProposals(assignmentId: string, snapshotId: string | 
     }
   }, [assignmentId, beginMutation, session, snapshotId, state, update]);
 
-  const deleteDraft = useCallback(async () => {
+  const performDelete = useCallback(async () => {
     const owner = session;
     const id = assignmentId;
-    if (!window.confirm('Delete the saved Planning draft? Adjustments in this session are not affected.')) return;
     // A save still in flight must not report this session as saved afterwards.
     const token = beginMutation(owner, id, 'delete');
     try {
@@ -314,6 +352,25 @@ export function usePlanningProposals(assignmentId: string, snapshotId: string | 
       update(owner, x => (token !== tokens.current.mutation ? x : { ...x, busy: null, message: { tone: 'error', text: draftErrorText(toPlanningDraftError(err), 'delete') } }));
     }
   }, [assignmentId, beginMutation, session, update]);
+
+  /** Asks before deleting the saved draft; one pending dialog at a time and none while a save/delete runs. */
+  const deleteDraft = useCallback(() => {
+    if (state.busy !== null || state.confirm) return;
+    update(session, x => (x.confirm || x.busy ? x : { ...x, confirm: { kind: 'delete' } }));
+  }, [session, state.busy, state.confirm, update]);
+
+  /** The pending confirmation already decided: a double activation of Confirm/Cancel never acts twice. */
+  const decided = useRef<PlanningConfirmation | null>(null);
+  /** Cancel keeps everything as it was; Confirm performs the pending operation exactly once. */
+  const resolveConfirmation = useCallback((accept: boolean) => {
+    const pending = state.confirm;
+    if (!pending || decided.current === pending) return;
+    decided.current = pending;
+    update(session, x => ({ ...x, confirm: null }));
+    if (!accept) return;
+    if (pending.kind === 'replace') applyRestore(state);
+    else void performDelete();
+  }, [applyRestore, performDelete, session, state, update]);
 
   const { staged, invalid } = summarizeEntries(state.entries);
   // Re-render when any session's save/delete changes the draft file for this assignment.
@@ -343,6 +400,9 @@ export function usePlanningProposals(assignmentId: string, snapshotId: string | 
 
   return {
     assignmentId,
+    /** Identity of this workspace session and its adjustment revision (Stage 14.6 export currency). */
+    sessionId: state.sessionId,
+    editVersion: state.editVersion,
     entries: state.entries,
     stagedCount: staged,
     invalidInputCount: invalid,
@@ -352,6 +412,7 @@ export function usePlanningProposals(assignmentId: string, snapshotId: string | 
     endEdit,
     removeEntry,
     clearAll,
+    clearExported,
     undo,
     draft: {
       // Obsolete availability is never shown as current while it is being checked again.
@@ -360,6 +421,7 @@ export function usePlanningProposals(assignmentId: string, snapshotId: string | 
       review: state.review,
       reviewing: state.reviewing,
       busy: state.busy,
+      confirm: state.confirm,
       savedAtUtc: state.savedAtUtc,
       message: state.message,
       /** The session matches the saved draft (which may itself contain staged proposals). */
@@ -371,6 +433,7 @@ export function usePlanningProposals(assignmentId: string, snapshotId: string | 
     restoreDraft,
     saveDraft,
     deleteDraft,
+    resolveConfirmation,
   };
 }
 
