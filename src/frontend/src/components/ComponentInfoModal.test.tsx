@@ -7,6 +7,8 @@ import type { LongTermShortageRow } from '../api/longTermShortagesApi';
 import { compactFixture, projectionFixture } from '../longTermShortages/compactScreenFixture.test-support';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { fetchInventoryLocations } from '../api/inventoryLocationsApi';
+vi.mock('../api/inventoryLocationsApi', () => ({ fetchInventoryLocations: vi.fn().mockRejectedValue(new Error('offline fixture')) }));
 
 function makeDetail(overrides: Partial<ComponentDetailResponseDto> = {}): ComponentDetailResponseDto {
   return {
@@ -73,6 +75,32 @@ function fullShortage(overrides: Partial<LongTermShortageRow> = {}): LongTermSho
 function shortage(overrides: Partial<LongTermShortageRow> = {}) { return compactFixture(fullShortage(overrides)); }
 
 describe('ComponentInfoModal', () => {
+  it.each(['bom', 'shortages'] as const)('shows acquired inventory while preserving master fields and focus trap in %s context', async context => {
+    vi.mocked(fetchInventoryLocations).mockResolvedValueOnce({ workspaceId: 'ws', site: 'SW', componentPart: 'COMP-1',
+      mpsSnapshotId: 'snap', acquiredAtUtc: '2026-10-08T12:00:00Z', isStale: false, warning: null,
+      rows: [{ rowId: '0', location: 'BIN', lotSerial: 'RA', status: 'HOLD', quantityOnHand: '-1.2345678901' }] });
+    renderModal({ context, assignmentId: 'ws', mpsSnapshotId: 'snap', workspaceSite: 'SW' });
+    expect(await screen.findByRole('table', { name: 'Inventory / Lot Locations' })).toHaveTextContent('-1.235');
+    expect(screen.getByTitle('-1.2345678901')).toBeInTheDocument();
+    expect(screen.getByText('Net QOH')).toBeInTheDocument();
+    const scroll = screen.getByRole('region', { name: 'Scrollable inventory locations' });
+    scroll.focus();
+    await userEvent.keyboard('{Tab}');
+    expect(screen.getByRole('button', { name: 'Close Component Information' })).toHaveFocus();
+    await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+    expect(scroll).toHaveFocus();
+  });
+  it.each(['bom', 'shortages'] as const)('keeps inventory acquisition independent of master failure in %s context', async context => {
+    const close = vi.fn();
+    renderModal({ context, assignmentId: 'ws', mpsSnapshotId: 'snap', workspaceSite: 'SW', detail: null,
+      error: { type: 'error', detail: 'Master unavailable' }, onClose: close });
+    expect(screen.getByRole('heading', { name: 'Inventory / Lot Locations' })).toBeInTheDocument();
+    expect(await screen.findByText('Inventory locations could not be loaded. Please retry.')).toBeInTheDocument();
+    const inventoryRetry = screen.getByRole('button', { name: 'Retry inventory' });
+    inventoryRetry.focus();
+    await userEvent.keyboard('{Escape}');
+    expect(close).toHaveBeenCalledOnce();
+  });
   it('keeps master fields, manufacturer item and alternates in the first column, independent of location length', () => {
     renderModal({ context: 'shortages', shortage: shortage(), purchasing: { commentAvailable: true, currentComment: null, openPurchaseOrders: [] } });
     const dialog = screen.getByRole('dialog');
@@ -214,9 +242,9 @@ describe('ComponentInfoModal', () => {
     expect(screen.queryByRole('complementary', { name: 'Workspace Shortages details' })).not.toBeInTheDocument();
   });
 
-  it('keeps the location placeholder in the middle column for loaded BOM detail', () => {
+  it('keeps the inventory panel in the middle column for loaded BOM detail', () => {
     renderModal({ context: 'bom' });
-    expect(screen.getByLabelText('Inventory / Lot Locations column')).toHaveTextContent('Inventory location detail will be added in a later stage.');
+    expect(screen.getByLabelText('Inventory / Lot Locations column')).toHaveTextContent('Refresh inventory');
     expect(screen.queryByRole('complementary', { name: 'Workspace Shortages details' })).not.toBeInTheDocument();
     expect(screen.queryByText('Open Purchase Orders')).not.toBeInTheDocument();
   });
@@ -312,10 +340,10 @@ describe('ComponentInfoModal', () => {
     await user.click(mrpButton);
   });
 
-  it('renders the future Inventory / Lot Locations placeholder with no request implied', () => {
+  it('requires loaded workspace context before acquiring inventory', () => {
     renderModal();
     expect(screen.getByText('Inventory / Lot Locations')).toBeInTheDocument();
-    expect(screen.getByText(/inventory location detail will be added in a later stage/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Refresh inventory' })).toBeDisabled();
   });
 
   describe('Approved Vendors', () => {
@@ -430,10 +458,10 @@ describe('ComponentInfoModal', () => {
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('Inventory / Lot Locations placeholder remains unchanged alongside AVL', () => {
+    it('Inventory / Lot Locations remains independent alongside AVL', () => {
       renderModal();
       expect(screen.getByText('Inventory / Lot Locations')).toBeInTheDocument();
-      expect(screen.getByText(/inventory location detail will be added in a later stage/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Refresh inventory' })).toBeInTheDocument();
     });
   });
 
@@ -544,7 +572,7 @@ describe('ComponentInfoModal', () => {
     const user = userEvent.setup();
     renderModal();
     const dialog = screen.getByRole('dialog');
-    const focusable = within(dialog).getAllByRole('button');
+    const focusable = within(dialog).getAllByRole('button').filter(button => !button.hasAttribute('disabled'));
     focusable[focusable.length - 1].focus();
     await user.tab();
     expect(focusable[0]).toHaveFocus();

@@ -1,6 +1,6 @@
 # Current Project Status
 
-Date: 2026-10-07
+Date: 2026-10-08
 Workstation: Windows (`C:\Dev\kst_v2`)
 Current implementation position: **Stages 1–11 and 13 COMPLETE / ACCEPTED; Stages 9–11 LOCKED; Stage 12 RETIRED.**
 The revised Release 1 roadmap is owner-approved. **Stage 13 — Customer Open Orders** has an
@@ -112,6 +112,18 @@ Application version: **`0.1.0-alpha.15`** — the alpha prerelease number identi
 numbered project stage (see [Versioning Foundation](#versioning-foundation) below)
 
 ## Current Position
+
+**Stage 8 follow-up — Inventory / Lot Locations: COMPLETE / OWNER-ACCEPTED — 2026-10-08,
+including the quantity-display amendment.** Owner accepted desktop checklist items 1–5 and
+subsequently confirmed the amended display works and looks great.
+Owner-authorized brought-forward scope from deferred
+Stage 22, before Stage 18, fills the existing Component Information region in both callers with all
+selected-component/workspace-site/domain physical rows, exact decimal text, independent Refresh,
+localized errors and compatible stale acquisition metadata. Summary readers and locked algorithms
+are unchanged. Version stays `0.1.0-alpha.15`; Stage 18 is unstarted. Finished Goods export will be
+addressed in Stage 21. Whole quantities display without decimals; fractions round to three places,
+with exact source values retained. Evidence, verification exceptions, protected hashes and owner
+desktop checklist: `docs/implementation/KST_v2_STAGE_8_INVENTORY_LOCATIONS_FOLLOWUP.md`.
 
 Stages 1–11 are complete and owner-accepted at their documented depth. Stages 9, 10, and 11 are
 locked. Stage 11 Workspace Shortages was accepted on 2026-09-29 with its accuracy, display,

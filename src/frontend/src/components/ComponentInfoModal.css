@@ -187,6 +187,12 @@
 }
 
 .component-info-modal__right { min-width: 0; overflow-wrap: anywhere; }
+.component-info-modal__inventory-scroll { max-height: 360px; overflow: auto; margin-top: 8px; border: 1px solid var(--bd-soft); }
+.component-info-modal__inventory-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.component-info-modal__inventory-table th { position: sticky; top: 0; background: var(--panel); text-align: left; }
+.component-info-modal__inventory-table th, .component-info-modal__inventory-table td { padding: 5px 7px; border-bottom: 1px solid var(--bd-soft); white-space: pre-wrap; overflow-wrap: anywhere; }
+.component-info-modal__inventory-table .component-info-modal__inventory-qty { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.component-info-modal__inventory-time { font-size: 11px; color: var(--tx3); overflow-wrap: anywhere; }
 .component-info-modal__left .component-info-modal__section p { margin: 0; font-size: 12.5px; overflow-wrap: anywhere; }
 
 .component-info-modal__section h3 {

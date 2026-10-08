@@ -9,6 +9,8 @@ using Kst.Application.Bom;
 using Kst.Application.ComponentOrders;
 using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
+using Kst.Application.InventoryLocations;
+using Kst.Infrastructure.InventoryLocations;
 using Kst.Application.FinishedGoods;
 using Kst.Application.LongTermShortages;
 using Kst.Application.Mps;
@@ -367,6 +369,19 @@ else
 }
 
 builder.Services.AddSingleton<ComponentDetailService>();
+builder.Services.AddSingleton<IInventoryLocationsStore, InMemoryInventoryLocationsStore>();
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadInventoryLocationReader>();
+    builder.Services.AddSingleton<IInventoryLocationReader>(sp => new DelegateInventoryLocationReader(
+        (site, part, ct) => sp.GetRequiredService<QadInventoryLocationReader>().ReadAsync(site, part, ct)));
+}
+else
+{
+    builder.Services.AddSingleton<IInventoryLocationReader>(_ => new DelegateInventoryLocationReader(
+        (_, _, _) => throw new InvalidOperationException("QAD connection is not configured.")));
+}
+builder.Services.AddSingleton<InventoryLocationsService>();
 
 // -- Approved Vendors (Stage 8D.7) ---------------------------------------------------
 if (qadOptions.IsConfigured)
@@ -520,6 +535,7 @@ app.MapPartDetailEndpoints();
 app.MapWorkOrderEndpoints();
 app.MapBomEndpoints();
 app.MapComponentDetailEndpoints();
+app.MapInventoryLocationsEndpoints();
 app.MapApprovedVendorEndpoints();
 app.MapComponentOrderEndpoints();
 app.MapLongTermShortagesEndpoints();

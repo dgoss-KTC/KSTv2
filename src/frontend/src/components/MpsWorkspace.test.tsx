@@ -316,7 +316,7 @@ function makeComponentDetail(overrides: Partial<ComponentDetailResponseDto> = {}
 function componentDetailRequestCalls(fetchMock: ReturnType<typeof vi.fn>): string[] {
   return fetchMock.mock.calls
     .map(([url]) => url)
-    .filter((url): url is string => typeof url === 'string' && url.includes('/components/'));
+    .filter((url): url is string => typeof url === 'string' && url.includes('/components/') && !url.includes('/inventory-locations'));
 }
 
 describe('MpsWorkspace', () => {
@@ -362,6 +362,9 @@ describe('MpsWorkspace', () => {
       if (method === 'GET' && url.includes('/parts/') && url.endsWith('/bom')) {
         const result = handlers.onGetBom?.(url) ?? { ok: true, json: async () => makeBomResponse() };
         return Promise.resolve(result);
+      }
+      if (method === 'GET' && url.includes('/inventory-locations')) {
+        return { ok: false, status: 503, text: async () => '{}' };
       }
       if (method === 'GET' && url.includes('/components/')) {
         const result = handlers.onGetComponentDetail?.(url) ?? { ok: true, json: async () => makeComponentDetail() };
@@ -2657,7 +2660,7 @@ describe('MpsWorkspace', () => {
       await user.click(screen.getByText('COMP-A'));
       const dialog = await screen.findByRole('dialog');
       await waitFor(() => expect(within(dialog).getByText('DB is down.')).toBeInTheDocument());
-      expect(within(dialog).getByRole('button', { name: /retry/i })).toBeInTheDocument();
+      expect(within(dialog).getByRole('button', { name: /^retry$/i })).toBeInTheDocument();
       expect(within(dialog).getByRole('button', { name: /^close$/i })).toBeInTheDocument();
     });
 
@@ -2680,7 +2683,7 @@ describe('MpsWorkspace', () => {
       const dialog = await screen.findByRole('dialog');
       await waitFor(() => expect(within(dialog).getByText('DB is down.')).toBeInTheDocument());
 
-      await user.click(within(dialog).getByRole('button', { name: /retry/i }));
+      await user.click(within(dialog).getByRole('button', { name: /^retry$/i }));
       await waitFor(() => expect(within(dialog).getByText('Component A')).toBeInTheDocument());
       expect(componentDetailRequestCalls(fetchMock)).toHaveLength(2);
     });

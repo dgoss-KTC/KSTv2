@@ -104,6 +104,16 @@ Stage 8 is an **informational** Component/BOM investigation capability. It does 
   assigned to Stage 18.
 - **Architecture-test invariants (confirmed for Stage 7 and Stage 8):** `Kst.Domain` and `Kst.Application` remain free of ASP.NET Core and SQL-client infrastructure dependencies; `Kst.Integrations.Qad` and `Kst.Integrations.Shortages` have no dependency on `Kst.Api`. Future Work Order/Kitting and Component/BOM work must preserve this property.
 
+### Brought-forward Stage 8 Inventory / Lot Locations follow-up (2026-10-08)
+
+Complete / owner-accepted, including frontend quantity-display amendment. The independent `InventoryLocationsService`
+uses an Application reader/delegate and process-local Infrastructure store, with workspace/site/MPS
+compatibility checks and cancellation. `QadInventoryLocationReader` alone owns parameterized raw
+`ld_det` scope and site/domain translation. Domain carries informational physical rows; API owns
+DTO/Problem Details/OpenAPI. Exact quantities are nullable decimal strings end-to-end. Every physical
+row survives without summary classification or parent-list gating. The existing shared summary
+reader and locked Stage 9–11 algorithms are unchanged. See the Stage 8 follow-up evidence document.
+
 ## Stage 9 Immediate Work-Order Shortages Boundary
 
 - Stage 9 is **COMPLETE / ACCEPTED / LOCKED**. Its grain is Work Order + Component and its accepted

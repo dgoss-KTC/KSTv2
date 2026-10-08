@@ -193,6 +193,15 @@ None of the above were started in this pass.
 
 ## Post-acceptance amendments
 
+### 2026-10-08 — Inventory / Lot Locations brought-forward follow-up (complete / accepted)
+
+The owner separately authorized the deferred inventory region as a bounded Stage 8 follow-up before
+Stage 18. The owner accepted all five desktop checklist items and subsequently confirmed and
+accepted the quantity-display amendment. The follow-up is COMPLETE / OWNER-ACCEPTED. It is not retroactively part
+of the original accepted Stage 8 delivery. Source rules, independent acquisition, exact quantities,
+verification exceptions and desktop checklist are recorded in
+`KST_v2_STAGE_8_INVENTORY_LOCATIONS_FOLLOWUP.md`. Other deferred additions remain deferred.
+
 ### 2026-08-31 — BOM Description filter (accepted UX amendment)
 
 After the original Stage 8 acceptance, the project owner accepted a small BOM UX amendment: a

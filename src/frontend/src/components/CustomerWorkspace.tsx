@@ -126,7 +126,7 @@ export function CustomerWorkspace({ workspace, onPlanningDirtyChange, confirmDis
             workspaceName={workspace.displayName} site={workspace.site} onDirtyChange={planningDirtyChanged} />
         )}
         {activeModule === 'longTermShortages' && (
-          <LongTermShortagesPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null} />
+          <LongTermShortagesPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null} site={workspace.site} />
         )}
       </div>
     </div>

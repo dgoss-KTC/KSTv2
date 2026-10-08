@@ -32,6 +32,7 @@ export type WorkOrderImmediateMaterialSummaryResponseDto = components['schemas']
 export type BomLineDto = components['schemas']['BomLineDto'];
 export type BomResponseDto = components['schemas']['BomResponseDto'];
 export type ComponentDetailResponseDto = components['schemas']['ComponentDetailResponseDto'];
+export type InventoryLocationsResponseDto = components['schemas']['InventoryLocationsResponseDto'];
 export type ApprovedVendorDto = components['schemas']['ApprovedVendorDto'];
 export type ComponentOrdersResponseDto = components['schemas']['ComponentOrdersResponseDto'];
 export type LongTermShortagesResponseDto = components['schemas']['LongTermShortagesResponseDto'];
@@ -383,11 +384,16 @@ export class ApiClient {
     return { blob: await response.blob(), fileName };
   }
 
-  private async get<T>(path: string): Promise<T> {
+  async getInventoryLocations(assignmentId: string, part: string, snapshotId: string, signal?: AbortSignal): Promise<InventoryLocationsResponseDto> {
+    return this.get<InventoryLocationsResponseDto>(`/api/v1/workspaces/${assignmentId}/components/${encodeURIComponent(part)}/inventory-locations?mpsSnapshotId=${encodeURIComponent(snapshotId)}`, signal);
+  }
+
+  private async get<T>(path: string, signal?: AbortSignal): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: { Accept: 'application/json' },
+      signal,
     });
 
     if (!response.ok) {

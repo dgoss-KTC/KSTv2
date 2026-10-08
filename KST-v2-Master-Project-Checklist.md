@@ -921,7 +921,9 @@ material-requirement netting, shortage classification, or PO coverage.
 ### Intentionally deferred — not unfinished Stage 8 work
 
 - [~] Show MRP.
-- [~] Inventory / Lot Locations.
+- [x] Inventory / Lot Locations — brought forward as bounded Stage 8 follow-up before Stage 18;
+      COMPLETE / OWNER-ACCEPTED — 2026-10-08, including quantity-display amendment. See
+      `docs/implementation/KST_v2_STAGE_8_INVENTORY_LOCATIONS_FOLLOWUP.md`.
 - [~] Extended Requirement.
 - [~] Incoming Supply.
 - [~] Coverage / Material Status.
@@ -1722,7 +1724,7 @@ A substantial new standalone capability requires its own explicit roadmap dispos
 - [ ] Include accepted minor Stage 11 cosmetic refinements and fine-tuning.
 - [ ] Resolve UI Navigation & Keyboard Ergonomics B items.
 - [ ] Reconcile parent-part CSV import from the Stage 4 backlog.
-- [ ] Review deferred Component Information additions: Inventory/Lot Locations, Show MRP, Extended
+- [ ] Review deferred Component Information additions: Show MRP, Extended
       Requirement, Incoming Supply, Coverage, and Material Status.
 - [ ] Review PO-detail/drill-card behavior, previous/next navigation, and no-open-PO presentation.
 - [ ] Keep Current Comments read-only unless a separately approved, security-reviewed write-capable

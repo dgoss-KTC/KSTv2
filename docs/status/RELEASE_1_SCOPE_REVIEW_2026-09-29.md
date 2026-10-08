@@ -70,7 +70,7 @@ for provenance; later historical references do not need reinterpretation.
 | Cross-customer Open Order Report | Owner decision amended during Stage 13 planning | **Stage 18 — required report generator** | Stage 18 authorization | Yes |
 | Shipments-To-Go and S&OP | Existing master checklist + owner confirmation | **Stage 18 — required report generators** | Stage 18 authorization | Yes |
 | Historical Shipments report | Existing Stage 19 + owner confirmation | **Stage 19 — required** | Stage 19 authorization | Yes |
-| Inventory/Lot Locations in Component Information | Stage 8 deferred scope | **Stage 22 — review and disposition** | Stage 22 interactive walkthrough | Owner decides within Stage 22 |
+| Inventory/Lot Locations in Component Information | Stage 8 deferred scope; owner brought forward 2026-10-08 | **Bounded Stage 8 follow-up before Stage 18 — COMPLETE / OWNER-ACCEPTED, including quantity-display amendment** | Owner acceptance 2026-10-08; `KST_v2_STAGE_8_INVENTORY_LOCATIONS_FOLLOWUP.md` | Accepted |
 | Show MRP; Extended Requirement; Incoming Supply; Coverage / Material Status | Stage 8 deferred scope | **Stage 22 — review and disposition** | Stage 22 interactive walkthrough | Owner decides within Stage 22 |
 | Remaining component supply/PO coverage | Stage 8/9/10 deferred scope | **Stage 22 — review**; do not change locked algorithms silently | Demonstrated workflow gap | Owner decides within Stage 22 |
 | Configurable application-view exports | Older Stage 21 checklist | **Stage 21 — fresh inventory** | Stage 21 authorization | Yes where inventory approves an export |

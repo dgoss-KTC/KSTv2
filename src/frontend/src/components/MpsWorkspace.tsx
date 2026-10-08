@@ -661,6 +661,9 @@ export function MpsWorkspace({
 
       {inspectedComponent && (
         <ComponentInfoModal
+          assignmentId={assignmentId}
+          mpsSnapshotId={dashboard?.snapshot.snapshotId ?? null}
+          workspaceSite={dashboard?.snapshot.site ?? null}
           componentPart={inspectedComponent.componentPart}
           detail={componentDetail}
           isLoading={isComponentDetailLoading}

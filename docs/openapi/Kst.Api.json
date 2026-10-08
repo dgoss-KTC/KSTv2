@@ -2515,6 +2515,94 @@
         }
       }
     },
+    "/api/v1/workspaces/{assignmentId}/components/{componentPart}/inventory-locations": {
+      "get": {
+        "tags": [
+          "ComponentDetail"
+        ],
+        "summary": "Acquires all physical inventory rows for the selected component and workspace site.",
+        "operationId": "GetInventoryLocations",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "componentPart",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mpsSnapshotId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryLocationsResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{assignmentId}/components/{componentPart}/approved-vendors": {
       "get": {
         "tags": [
@@ -4052,6 +4140,92 @@
           "timestamp": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "InventoryLocationRowDto": {
+        "required": [
+          "rowId",
+          "location",
+          "lotSerial",
+          "status",
+          "quantityOnHand"
+        ],
+        "type": "object",
+        "properties": {
+          "rowId": {
+            "type": "string"
+          },
+          "location": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lotSerial": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "quantityOnHand": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "InventoryLocationsResponseDto": {
+        "required": [
+          "workspaceId",
+          "site",
+          "componentPart",
+          "mpsSnapshotId",
+          "acquiredAtUtc",
+          "isStale",
+          "warning",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "site": {
+            "type": "string"
+          },
+          "componentPart": {
+            "type": "string"
+          },
+          "mpsSnapshotId": {
+            "type": "string"
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isStale": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryLocationRowDto"
+            }
           }
         }
       },

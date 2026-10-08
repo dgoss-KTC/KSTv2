@@ -7,6 +7,7 @@ using Kst.Application.Bom;
 using Kst.Application.ComponentOrders;
 using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
+using Kst.Application.InventoryLocations;
 using Kst.Application.FinishedGoods;
 using Kst.Application.LongTermShortages;
 using Kst.Application.OpenOrders;
@@ -40,6 +41,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
     /// <summary>Optional deterministic <see cref="IPartInventoryReader"/> override (Stage 8D.3).</summary>
     public IPartInventoryReader? PartInventoryReader { get; set; }
+    public IInventoryLocationReader? InventoryLocationReader { get; set; }
 
     /// <summary>Optional deterministic <see cref="IComponentSourceReader"/> override (Stage 8D.5).</summary>
     public IComponentSourceReader? ComponentSourceReader { get; set; }
@@ -168,6 +170,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
             ReplaceIfProvided(services, LongTermShortageSourceReader);
             ReplaceIfProvided(services, OpenOrdersSourceReader);
             ReplaceIfProvided(services, FinishedGoodsSourceReader);
+            ReplaceIfProvided(services, InventoryLocationReader);
             ReplaceIfProvided(services, OpenOrderCurrentLineReader);
             ReplaceIfProvided(services, PlanningPriceReader);
             ReplaceIfProvided(services, PlanningForecastReader);

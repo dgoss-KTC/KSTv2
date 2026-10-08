@@ -6,8 +6,12 @@ import type { LongTermShortagePurchasing, LongTermShortageScreenRow, LongTermSho
 import { formatQuantity } from '../mps/mpsPresentation';
 import { ShortageInformationSections } from './LongTermShortageDetailModal';
 import './ComponentInfoModal.css';
+import { InventoryLocationsPanel } from './InventoryLocationsPanel';
 
 interface ComponentInfoModalProps {
+  assignmentId?: string;
+  mpsSnapshotId?: string | null;
+  workspaceSite?: string | null;
   context?: 'bom' | 'shortages';
   shortage?: LongTermShortageScreenRow;
   projectionDetail?: LongTermShortageProjectionDetail | null;
@@ -71,6 +75,9 @@ const FOCUSABLE_SELECTOR =
  * here.
  */
 export function ComponentInfoModal({
+  assignmentId,
+  mpsSnapshotId = null,
+  workspaceSite = null,
   context = 'bom',
   shortage,
   projectionDetail = null,
@@ -213,7 +220,7 @@ export function ComponentInfoModal({
             </div>
           )}
 
-          {!isLoading && !error && (detail || context === 'shortages') && (
+          {(
             <>
               {detail?.isStale && (
                 <div className="component-info-modal__banner" role="alert">
@@ -339,12 +346,8 @@ export function ComponentInfoModal({
                 </div>
 
                 <div className="component-info-modal__right" aria-label="Inventory / Lot Locations column">
-                  <section className="component-info-modal__section">
-                    <h3>Inventory / Lot Locations</h3>
-                    <p className="component-info-modal__placeholder">
-                      Inventory location detail will be added in a later stage.
-                    </p>
-                  </section>
+                  <InventoryLocationsPanel assignmentId={assignmentId ?? null} componentPart={componentPart}
+                    snapshotId={mpsSnapshotId} site={workspaceSite} />
                 </div>
                 {context === 'shortages' && shortage && <aside className="component-info-modal__shortage" aria-label="Workspace Shortages details"><ShortageInformationSections row={shortage} projection={projectionDetail} isProjectionLoading={isProjectionLoading} projectionError={projectionError} onRetryProjection={onRetryProjection} asOfDate={asOfDate} purchasing={purchasing} isLoading={isPurchasingLoading} error={purchasingError} onRetry={onRetryPurchasing} /></aside>}
               </div>

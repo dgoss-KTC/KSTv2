@@ -569,6 +569,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{assignmentId}/components/{componentPart}/inventory-locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Acquires all physical inventory rows for the selected component and workspace site. */
+        get: operations["GetInventoryLocations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{assignmentId}/components/{componentPart}/approved-vendors": {
         parameters: {
             query?: never;
@@ -874,6 +891,25 @@ export interface components {
             instanceId: string;
             /** Format: date-time */
             timestamp: string;
+        };
+        InventoryLocationRowDto: {
+            rowId: string;
+            location: null | string;
+            lotSerial: null | string;
+            status: null | string;
+            quantityOnHand: null | string;
+        };
+        InventoryLocationsResponseDto: {
+            /** Format: uuid */
+            workspaceId: string;
+            site: string;
+            componentPart: string;
+            mpsSnapshotId: string;
+            /** Format: date-time */
+            acquiredAtUtc: string;
+            isStale: boolean;
+            warning: null | string;
+            rows: components["schemas"]["InventoryLocationRowDto"][];
         };
         KittingSummaryDto: {
             /** Format: int32 */
@@ -3416,6 +3452,67 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComponentDetailResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetInventoryLocations: {
+        parameters: {
+            query: {
+                mpsSnapshotId: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+                componentPart: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryLocationsResponseDto"];
                 };
             };
             /** @description Bad Request */

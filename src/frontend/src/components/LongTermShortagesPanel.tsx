@@ -19,7 +19,7 @@ import { useApprovedVendors } from '../hooks/useApprovedVendors';
 import './LongTermShortagesPanel.css';
 import { ComponentInfoModal } from './ComponentInfoModal';
 
-export function LongTermShortagesPanel({ assignmentId, snapshotId }: { assignmentId: string; snapshotId: string | null }) {
+export function LongTermShortagesPanel({ assignmentId, snapshotId, site = null }: { assignmentId: string; snapshotId: string | null; site?: string | null }) {
   const [populationOptions, setPopulationOptions] = useState(DEFAULT_LONG_TERM_SHORTAGE_POPULATION_OPTIONS);
   const { data, loadedOptions, isLoading, isRefreshing, error, retry } = useLongTermShortages(assignmentId, snapshotId, populationOptions);
   const [filters, setFilters] = useState(EMPTY_LONG_TERM_SHORTAGES_FILTERS);
@@ -93,6 +93,7 @@ export function LongTermShortagesPanel({ assignmentId, snapshotId }: { assignmen
          </table>
        </div>}
     {selectedRow && <ComponentInfoModal key={selectedRow.componentPart} context="shortages" shortage={selectedRow} componentPart={selectedRow.componentPart}
+      assignmentId={assignmentId} mpsSnapshotId={snapshotId} workspaceSite={site}
       asOfDate={data.refreshDate}
       projectionDetail={projection.data} isProjectionLoading={projection.isLoading} projectionError={projection.error} onRetryProjection={projection.retry}
       purchasing={purchasing.data} isPurchasingLoading={purchasing.isLoading} purchasingError={purchasing.error} onRetryPurchasing={purchasing.retry}
