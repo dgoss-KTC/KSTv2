@@ -108,7 +108,7 @@ Pre-Stage-10 customer-workspace UI foundation: **COMPLETE / ACCEPTED** (inter-st
 not a Stage 10 checkpoint; see `docs/implementation/KST_v2_PRE_STAGE_10_UI_FOUNDATION_CLOSEOUT.md`)
 Stage 7 status: **COMPLETE / ACCEPTED - 2026-08-13; reopened, amended, and closed by Stage 7R (Four-Week Work Order Planning Window) - 2026-09-01** - see [Stage 7R Amendment](#stage-7r-amendment-four-week-work-order-planning-window) below
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
-Application version: **`0.1.0-alpha.14`** — the alpha prerelease number identifies the current
+Application version: **`0.1.0-alpha.15`** — the alpha prerelease number identifies the current
 numbered project stage (see [Versioning Foundation](#versioning-foundation) below)
 
 ## Current Position
@@ -874,11 +874,25 @@ adjustments); it was not changed or re-tested. Automated evidence remains separa
 
 **Stage 14 owner-confirmed evidence register (2026-10-07; ledger §11).** Forecast quantities are positive and use the `FORECAST` selection/reference in `master_plan.py`; v2's detail predicate and `Math.Abs` display transform match that offline source. Successful absence of an eligible list price uses $0; acquisition failures remain errors. Sales-order due dates are required and RA prefixes may vary in case. Sunday-date investigation is unnecessary. The owner confirms the external Mass Updater works with KST output. Existing price-tie behavior is retained, MOQ price switching is deferred, and all relevant prices are USD. These are owner confirmations/reference comparison, not agent-run live-QAD queries.
 
-Immediate next stage: Stage 15 — Finished Goods (planned / Release 1 required), beginning with 15.1 field and
-rule discovery; implementation requires its separate stage authorization. The current laptop checklist defines
-the scope: as-of date, due orders/units, finished-goods on hand, location, lot, shipping/hold locations, RMA
-classification, nettable status, inventory value and demand coverage; then adapters/domain/API, summary and
-location/lot UI, date selector, Stage 21 export requirements, validation and owner acceptance.
+Stage 15 — Finished Goods: **COMPLETE / OWNER-ACCEPTED — 2026-10-08.**
+**15.1 OWNER-ACCEPTED — 2026-10-07; 15.2 offline implementation,
+canonical reconciliation and alpha.15 transition AUTHORIZED — 2026-10-07; 15.2 IMPLEMENTED /
+OFFLINE-VERIFIED and OWNER-ACCEPTED by explicit owner statement 2026-10-07.**
+Owner scope amendment replaces older selected-date/demand/coverage/readiness/summary-card scope with
+a workspace-resolved positive current-inventory table: Product, Location, Lot, On Hand, Value;
+informational RA lot badge, exact USD domain/part MAX-price valuation and three local literal filters.
+Hold annotations removed; order Holds deferred to a later Open Orders enhancement. Refresh uses a
+compatible process-local snapshot with acquisition time and explicit stale/error handling.
+Stage 21 export/no-export remains PENDING. **15.3 AUTHORIZED for Taco normal desktop validation;
+bounded Taco QADPRO2/Analysis verification and correction subsequently explicitly AUTHORIZED.**
+Case-sensitive adapter site guard corrected after InventoryScopeInvalid evidence: three case-variant rows.
+Matching corrected alpha.15 Tauri child loads/refreshed Taco17-parent/16-row scope; ten-field metadata and
+exact source multiset comparison pass. Owner confirms visible loading, mixed-case partial filters,
+cached timestamp/Refresh, scroll/density/keyboard and compatible workspace/MPS switching on 2026-10-08;
+accepts unobserved edge cases as synthetic evidence and explicitly accepts Stage15. Historical artifact
+discrepancy and Taco-only/time-bound limits retained; no installer validation or subsequent-stage authority.
+See `docs/implementation/KST_v2_STAGE_15_SOURCE_AND_DECISION_LEDGER.md` and implementation plan.
+Accepted closeout: `docs/implementation/KST_v2_STAGE_15_CLOSEOUT.md`.
 
 Cross-customer Open Orders remains Stage 18.
 

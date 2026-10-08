@@ -7,6 +7,7 @@ using Kst.Application.Bom;
 using Kst.Application.ComponentOrders;
 using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
+using Kst.Application.FinishedGoods;
 using Kst.Application.LongTermShortages;
 using Kst.Application.OpenOrders;
 using Kst.Application.PlanningWorkbook;
@@ -64,6 +65,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
     /// <summary>Optional deterministic Stage 11-A source reader override for endpoint tests.</summary>
     public ILongTermShortageSourceReader? LongTermShortageSourceReader { get; set; }
     public IOpenOrdersSourceReader? OpenOrdersSourceReader { get; set; }
+    public IFinishedGoodsSourceReader? FinishedGoodsSourceReader { get; set; }
     public IOpenOrderCurrentLineReader? OpenOrderCurrentLineReader { get; set; }
     public IPlanningPriceReader? PlanningPriceReader { get; set; }
     /// <summary>Stage 14.5: in-memory Planning draft store (never the developer's real local app data).</summary>
@@ -165,6 +167,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
             ReplaceIfProvided(services, ComponentOrderEnrichmentReader);
             ReplaceIfProvided(services, LongTermShortageSourceReader);
             ReplaceIfProvided(services, OpenOrdersSourceReader);
+            ReplaceIfProvided(services, FinishedGoodsSourceReader);
             ReplaceIfProvided(services, OpenOrderCurrentLineReader);
             ReplaceIfProvided(services, PlanningPriceReader);
             ReplaceIfProvided(services, PlanningForecastReader);

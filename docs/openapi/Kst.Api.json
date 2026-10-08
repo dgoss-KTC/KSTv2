@@ -1620,6 +1620,168 @@
         }
       }
     },
+    "/api/v1/workspaces/{assignmentId}/finished-goods": {
+      "get": {
+        "tags": [
+          "FinishedGoods"
+        ],
+        "summary": "Returns current inventory for the supplied loaded MPS scope, reusing a compatible process-local snapshot.",
+        "operationId": "GetFinishedGoods",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mpsSnapshotId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinishedGoodsResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspaces/{assignmentId}/finished-goods/refresh": {
+      "post": {
+        "tags": [
+          "FinishedGoods"
+        ],
+        "summary": "Reacquires Finished Goods detail and MAX prices only; never refreshes MPS or Open Orders.",
+        "operationId": "RefreshFinishedGoods",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mpsSnapshotId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinishedGoodsResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workspaces/{assignmentId}/part-detail": {
       "get": {
         "tags": [
@@ -3735,6 +3897,124 @@
             "items": {
               "$ref": "#/components/schemas/PlanningMassUpdaterEntryRequestDto"
             }
+          }
+        }
+      },
+      "FinishedGoodsResponseDto": {
+        "required": [
+          "workspaceId",
+          "site",
+          "mpsSnapshotId",
+          "finishedGoodsSnapshotId",
+          "acquiredAtUtc",
+          "currency",
+          "isStale",
+          "warning",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "site": {
+            "type": "string"
+          },
+          "mpsSnapshotId": {
+            "type": "string"
+          },
+          "finishedGoodsSnapshotId": {
+            "type": "string"
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "isStale": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinishedGoodsRowDto"
+            }
+          }
+        }
+      },
+      "FinishedGoodsRowDto": {
+        "required": [
+          "rowId",
+          "domain",
+          "product",
+          "sourceLocation",
+          "location",
+          "lot",
+          "reference",
+          "onHand",
+          "unitPrice",
+          "value",
+          "isMissingPrice",
+          "isRma"
+        ],
+        "type": "object",
+        "properties": {
+          "rowId": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string"
+          },
+          "sourceLocation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "location": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lot": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "onHand": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "isMissingPrice": {
+            "type": "boolean"
+          },
+          "isRma": {
+            "type": "boolean"
           }
         }
       },
@@ -7130,6 +7410,9 @@
     },
     {
       "name": "PlanningWorkbook"
+    },
+    {
+      "name": "FinishedGoods"
     },
     {
       "name": "PartDetail"

@@ -48,7 +48,7 @@ for provenance; later historical references do not need reinterpretation.
 | 12 — Multi-Part Shortage Analysis | **RETIRED / SUPERSEDED** | Accepted Stage 11 supplies the relevant workspace capability. |
 | 13 — Customer Open Orders | **PLAN ACCEPTED / REQUIRED** | Workspace-scoped report and Planning Mode for staged date, quantity, and price changes. Implementation is not yet authorized. |
 | 14 — Planning Workbook | **PLANNED / REQUIRED** | Reordered behind Open Orders. |
-| 15 — Finished Goods | **PLANNED / REQUIRED** | Immediate-demand coverage using accepted source rules established during the stage. |
+| 15 — Finished Goods | **REQUIRED; 15.1 ACCEPTED / 15.2 AUTHORIZED — 2026-10-07 amendment** | Workspace-scoped current-inventory inspection/filtering; replaces original immediate-demand coverage. Five columns, informational RMA, exact USD MAX valuation. Hold deferred to Open Orders; no date/demand/readiness/coverage. |
 | 16 — General Open Orders | **ABSORBED** | Its cross-customer report outcome is included in Stage 18, not workspace Stage 13. |
 | 17 — General WO Variance | **RETIRED / NO LONGER DESIRED** | Existing Stage 7 capability remains; no standalone search/report. |
 | 18 — Standalone Excel Report Generators | **PLANNED / REQUIRED** | Component MRP, cross-customer Open Order Report, Shipments-To-Go, and S&OP. |

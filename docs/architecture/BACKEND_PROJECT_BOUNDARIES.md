@@ -136,6 +136,16 @@ Stage 8 is an **informational** Component/BOM investigation capability. It does 
   Stage 11 export.
 - Individual Component MRP is not unfinished Stage 11 scope. It is a Stage 18 standalone report.
 
+## Stage 15.2 Finished Goods Boundary
+
+Stage 15.2 Finished Goods (implemented/offline-verified, OWNER-ACCEPTED — 2026-10-07)
+uses a separate positive inventory-detail/MAX-price reader rather than changing the shared Site+Part
+summary. Domain owns exact valuation/informational RA classification; Application owns loaded-MPS
+scope, snapshot and last-good lifecycle; QAD owns parameterized detail and separate grouped price
+acquisition, bridged through Application delegates in API; Infrastructure stores process-local reports.
+API owns DTO/Problem Details/OpenAPI; frontend owns literal filtering/table presentation using generated
+types. No status/Hold/readiness/allocation logic or locked-module change. See `docs/api/FINISHED_GOODS.md`.
+
 ## Stage 13.2 Customer Open Orders Boundary
 
 - Domain owns full report-line identity, source/editable values, and exact decimal calculations.

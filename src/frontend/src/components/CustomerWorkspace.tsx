@@ -7,6 +7,7 @@ import { LongTermShortagesPanel } from './LongTermShortagesPanel';
 import { MpsWorkspace } from './MpsWorkspace';
 import { OpenOrdersPanel } from './OpenOrdersPanel';
 import { PlanningWorkbookPanel } from './PlanningWorkbookPanel';
+import { FinishedGoodsPanel } from './FinishedGoodsPanel';
 import './CustomerWorkspace.css';
 
 type CustomerModule = 'dashboard' | 'planning' | 'openOrders' | 'componentOrders' | 'longTermShortages' | 'finishedGoods';
@@ -19,12 +20,6 @@ const modules: ReadonlyArray<{ id: CustomerModule; label: string }> = [
   { id: 'longTermShortages', label: 'Workspace Shortages' },
   { id: 'finishedGoods', label: 'Finished Goods' },
 ];
-
-const unavailableCopy: Record<Exclude<CustomerModule, 'dashboard' | 'openOrders' | 'planning'>, string> = {
-  componentOrders: 'Component Orders is not available yet. This Stage 10 workspace surface will be populated after its purchase-order data and workflow are accepted.',
-  longTermShortages: 'Workspace Shortages is not available yet. This module will be enabled when its accepted scheduling behavior is implemented.',
-  finishedGoods: 'Finished Goods is not available yet. This module will be enabled when its accepted scheduling behavior is implemented.',
-};
 
 function formatTimestamp(value: string | null | undefined): string {
   if (!value) return 'Never';
@@ -117,10 +112,7 @@ export function CustomerWorkspace({ workspace, onPlanningDirtyChange, confirmDis
           />
         </div>
         {activeModule === 'finishedGoods' && (
-          <section className="customer-workspace__unavailable" aria-labelledby={`${activeModule}-heading`}>
-            <h3 id={`${activeModule}-heading`}>{modules.find((module) => module.id === activeModule)?.label}</h3>
-            <p>{unavailableCopy[activeModule]}</p>
-          </section>
+          <FinishedGoodsPanel assignmentId={workspace.assignmentId} snapshotId={snapshotId} site={workspace.site} />
         )}
         {activeModule === 'planning' && (
           <PlanningWorkbookPanel assignmentId={workspace.assignmentId} site={workspace.site}

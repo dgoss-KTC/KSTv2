@@ -399,6 +399,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{assignmentId}/finished-goods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns current inventory for the supplied loaded MPS scope, reusing a compatible process-local snapshot. */
+        get: operations["GetFinishedGoods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/finished-goods/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reacquires Finished Goods detail and MAX prices only; never refreshes MPS or Open Orders. */
+        post: operations["RefreshFinishedGoods"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{assignmentId}/part-detail": {
         parameters: {
             query?: never;
@@ -803,6 +837,33 @@ export interface components {
             mpsSnapshotId: string;
             site: string;
             entries: components["schemas"]["PlanningMassUpdaterEntryRequestDto"][];
+        };
+        FinishedGoodsResponseDto: {
+            /** Format: uuid */
+            workspaceId: string;
+            site: string;
+            mpsSnapshotId: string;
+            finishedGoodsSnapshotId: string;
+            /** Format: date-time */
+            acquiredAtUtc: string;
+            currency: string;
+            isStale: boolean;
+            warning: null | string;
+            rows: components["schemas"]["FinishedGoodsRowDto"][];
+        };
+        FinishedGoodsRowDto: {
+            rowId: string;
+            domain: string;
+            product: string;
+            sourceLocation: null | string;
+            location: null | string;
+            lot: null | string;
+            reference: null | string;
+            onHand: string;
+            unitPrice: string;
+            value: string;
+            isMissingPrice: boolean;
+            isRma: boolean;
         };
         HealthResponse: {
             status: string;
@@ -2775,6 +2836,126 @@ export interface operations {
             };
             /** @description Internal Server Error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetFinishedGoods: {
+        parameters: {
+            query: {
+                mpsSnapshotId: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinishedGoodsResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RefreshFinishedGoods: {
+        parameters: {
+            query: {
+                mpsSnapshotId: string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinishedGoodsResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

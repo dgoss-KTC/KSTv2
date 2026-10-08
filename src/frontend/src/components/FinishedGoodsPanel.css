@@ -1,0 +1,38 @@
+.finished-goods {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0 20px 14px;
+  padding: 14px 18px;
+  background: var(--grid);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  color: var(--tx);
+}
+.finished-goods__toolbar, .finished-goods__filters, .finished-goods__page { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.finished-goods__toolbar h3 { margin: 0 auto 0 0; font-size: 13.5px; }
+.finished-goods__meta { color: var(--tx3); font-size: 11.5px; }
+.finished-goods__filters { margin-bottom: 10px; }
+.finished-goods__filters label { display: grid; gap: 4px; color: var(--tx2); font-size: 12px; }
+.finished-goods button, .finished-goods input {
+  height: var(--density-control-height);
+  padding: 0 10px;
+  background: var(--panel2);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  color: var(--tx);
+  font: inherit;
+}
+.finished-goods button { cursor: pointer; }
+.finished-goods button:disabled { opacity: 0.55; cursor: not-allowed; }
+.finished-goods button:focus-visible, .finished-goods input:focus-visible, .finished-goods__grid:focus-visible { outline: 2px solid var(--accent-solid); outline-offset: 2px; }
+.finished-goods__warning { padding: 8px 10px; border-left: 3px solid var(--danger-tx); color: var(--danger-tx); background: var(--danger-bg); }
+.finished-goods__grid { overflow: auto; min-height: 0; border: 1px solid var(--bd); border-radius: 6px; }
+.finished-goods table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+.finished-goods th { position: sticky; top: 0; z-index: 1; background: var(--panel2); text-align: left; }
+.finished-goods th, .finished-goods td { padding: var(--density-cell-padding-y) 12px; border-bottom: 1px solid var(--bd); white-space: nowrap; }
+.finished-goods tbody tr:hover { background: var(--panel2); }
+.finished-goods__number { text-align: right; font-variant-numeric: tabular-nums; }
+.finished-goods__rma { margin-left: 6px; padding: 1px 5px; border: 1px solid var(--bd); border-radius: 4px; color: var(--tx2); background: var(--panel2); font-size: 10px; }
+.finished-goods__page { margin-top: 8px; font-size: 12px; }

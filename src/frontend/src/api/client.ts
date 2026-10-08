@@ -38,6 +38,7 @@ export type LongTermShortagesResponseDto = components['schemas']['LongTermShorta
 export type LongTermShortagePurchasingDto = components['schemas']['LongTermShortagePurchasingDto'];
 export type ExportLongTermShortagesRequestDto = components['schemas']['ExportLongTermShortagesRequestDto'];
 export type OpenOrdersResponseDto = components['schemas']['OpenOrdersResponseDto'];
+export type FinishedGoodsResponseDto = components['schemas']['FinishedGoodsResponseDto'];
 export type ExportOpenOrdersReportRequestDto = components['schemas']['ExportOpenOrdersReportRequestDto'];
 export type OpenOrdersDraftResponseDto = components['schemas']['OpenOrdersDraftResponseDto'];
 export type OpenOrdersDraftPresenceDto = components['schemas']['OpenOrdersDraftPresenceDto'];
@@ -259,6 +260,14 @@ export class ApiClient {
 
   async getOpenOrders(assignmentId: string, mpsSnapshotId: string): Promise<OpenOrdersResponseDto> {
     return this.get<OpenOrdersResponseDto>(`/api/v1/workspaces/${assignmentId}/open-orders?mpsSnapshotId=${encodeURIComponent(mpsSnapshotId)}`);
+  }
+
+  async getFinishedGoods(assignmentId: string, mpsSnapshotId: string): Promise<FinishedGoodsResponseDto> {
+    return this.get<FinishedGoodsResponseDto>(`/api/v1/workspaces/${assignmentId}/finished-goods?mpsSnapshotId=${encodeURIComponent(mpsSnapshotId)}`);
+  }
+
+  async refreshFinishedGoods(assignmentId: string, mpsSnapshotId: string): Promise<FinishedGoodsResponseDto> {
+    return this.postEmpty<FinishedGoodsResponseDto>(`/api/v1/workspaces/${assignmentId}/finished-goods/refresh?mpsSnapshotId=${encodeURIComponent(mpsSnapshotId)}`);
   }
 
   async refreshOpenOrders(assignmentId: string, mpsSnapshotId: string): Promise<OpenOrdersResponseDto> {

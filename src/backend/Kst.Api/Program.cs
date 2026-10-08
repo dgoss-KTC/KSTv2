@@ -9,6 +9,7 @@ using Kst.Application.Bom;
 using Kst.Application.ComponentOrders;
 using Kst.Application.ComponentDetail;
 using Kst.Application.Inventory;
+using Kst.Application.FinishedGoods;
 using Kst.Application.LongTermShortages;
 using Kst.Application.Mps;
 using Kst.Application.OpenOrders;
@@ -27,6 +28,7 @@ using Kst.Application.Snapshots;
 using Kst.Application.Shortages;
 using Kst.Infrastructure;
 using Kst.Infrastructure.Bom;
+using Kst.Infrastructure.FinishedGoods;
 using Kst.Infrastructure.ComponentOrders;
 using Kst.Infrastructure.ComponentDetail;
 using Kst.Infrastructure.Configuration;
@@ -46,6 +48,7 @@ using Kst.Integrations.Qad.ComponentOrders;
 using Kst.Integrations.Qad.ComponentDetail;
 using Kst.Integrations.Qad.Connectivity;
 using Kst.Integrations.Qad.Inventory;
+using Kst.Integrations.Qad.FinishedGoods;
 using Kst.Integrations.Qad.Mps;
 using Kst.Integrations.Qad.LongTermShortages;
 using Kst.Integrations.Qad.Options;
@@ -230,6 +233,19 @@ else
         (_, _, _) => throw new InvalidOperationException("QAD connection is not configured.")));
 }
 builder.Services.AddSingleton<OpenOrdersService>();
+builder.Services.AddSingleton<IFinishedGoodsSnapshotStore, InMemoryFinishedGoodsSnapshotStore>();
+if (qadOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<QadFinishedGoodsReader>();
+    builder.Services.AddSingleton<IFinishedGoodsSourceReader>(sp => new DelegateFinishedGoodsSourceReader(
+        (site, parts, ct) => sp.GetRequiredService<QadFinishedGoodsReader>().ReadAsync(site, parts, ct)));
+}
+else
+{
+    builder.Services.AddSingleton<IFinishedGoodsSourceReader>(_ => new DelegateFinishedGoodsSourceReader(
+        (_, _, _) => throw new InvalidOperationException("QAD connection is not configured.")));
+}
+builder.Services.AddSingleton<FinishedGoodsService>();
 builder.Services.AddSingleton<OpenOrdersQxtendService>();
 builder.Services.AddSingleton<OpenOrdersDraftService>();
 
@@ -498,6 +514,7 @@ app.MapPreferencesEndpoints();
 app.MapMpsEndpoints();
 app.MapOpenOrdersEndpoints();
 app.MapPlanningWorkbookEndpoints();
+app.MapFinishedGoodsEndpoints();
 
 app.MapPartDetailEndpoints();
 app.MapWorkOrderEndpoints();

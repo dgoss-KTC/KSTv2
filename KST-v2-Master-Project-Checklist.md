@@ -1501,39 +1501,42 @@ them against the loaded MPS data, and save a human-reviewable QAD Mass Updater C
 database write, submission or import.
 
 
-## Stage 15 — Finished Goods — PLANNED / RELEASE 1 REQUIRED (NEXT STAGE; separate authorization required)
+## Stage 15 — Finished Goods — COMPLETE / OWNER-ACCEPTED — 2026-10-08
 
 ### 15.1 Field and rule discovery
 
-- [ ] Define as-of date
-- [ ] Map due orders
-- [ ] Map due units
-- [ ] Map finished-goods on hand
-- [ ] Map location
-- [ ] Map lot
-- [ ] Define shipping locations
-- [ ] Define hold locations
-- [ ] Define RMA classification
-- [ ] Define nettable status
-- [ ] Define inventory value
-- [ ] Define demand coverage
+- [x] 15.1 OWNER-ACCEPTED — 2026-10-07; final decisions in the Stage 15 source/decision ledger.
+- [x] Map workspace-resolved parts/site/domain and positive location/lot/reference detail rows.
+- [x] Define exact USD MAX-price valuation, missing/mixed-null/all-null/error distinctions.
+- [x] Define informational case-insensitive RA lot identification, local literal AND filters and freshness.
+- [x] Amend older date/demand/coverage/readiness/Hold/summary-card scope — owner decision 2026-10-07.
+
+Hold applies to orders; deferred Open Orders enhancement, not Stage 15 inventory annotations.
+No lot/status adapters are required merely because the older checklist named them.
 ### 15.2 Backend and frontend
 
-- [ ] Create finished-goods adapter
-- [ ] Create lot adapter
-- [ ] Create inventory-status adapter
-- [ ] Define FinishedGoodsPosition
-- [ ] Create coverage service
-- [ ] Create Finished Goods endpoint
-- [ ] Build summary cards
-- [ ] Build location and lot grid
-- [ ] Build date selector
-- [ ] Provide Stage 21 with the Finished Goods export requirements and disposition.
-- [ ] Validate nettable inventory
-- [ ] Validate RMA exclusion
-- [ ] Owner acceptance
-Completion gate: A scheduler can determine whether available finished goods cover immediate
-customer demand.
+15.2 offline implementation, canonical reconciliation and alpha.15 transition AUTHORIZED — 2026-10-07.
+- [x] Focused detail/MAX adapter, exact Domain calculation and scope-gated Application/store.
+- [x] Authoritative C# DTO/spec, generated OpenAPI/TypeScript, typed GET/Refresh API.
+- [x] Five-column Product/Location/Lot/On Hand/Value table, RMA badge, three filters and freshness states.
+- [x] Offline fixture/mocked verification, preserved accepted modules and owner work.
+- [x] Alpha.15 propagation and sidecar republish without launch.
+- [x] Owner acceptance of 15.2 — explicit owner statement 2026-10-07.
+
+### 15.3 Validation and acceptance — COMPLETE / OWNER-ACCEPTED — 2026-10-08
+- [x] Separately authorized desktop/source validation and explicit final owner acceptance.
+- [x] Document targeted live-source precision/grain/collation/timings for Taco; preserve time-bound,
+      READ UNCOMMITTED and unobserved-case limits without asserting source-key uniqueness or an SLA.
+- [x] Correct Taco case-sensitive inventory site guard with safe diagnostics and regression evidence.
+- [x] Verify corrected actual Tauri sidecar, Taco acquisition/cache/POST refresh and bounded ten-field
+      source multiset/quantity/MAX/value reconciliation (17 loaded parents,16 rows; Taco-only/time-bound).
+- [x] Owner confirms visible loading, mixed-case partial filters, cached time/Refresh, scroll/density/
+      keyboard and compatible workspace/MPS switching; accepts synthetic evidence for unobserved cases
+      and explicitly accepts Stage15 — 2026-10-08. Stage21 disposition remains pending.
+- [ ] Stage 21 export/no-export disposition — PENDING; no FG export implemented in 15.2.
+
+Completion gate: A scheduler can inspect and filter current Finished Goods inventory by product,
+location and lot. Ledger/plan: `docs/implementation/KST_v2_STAGE_15_*`.
 
 
 ## Stage 16 — General Open Orders — ABSORBED INTO STAGE 18

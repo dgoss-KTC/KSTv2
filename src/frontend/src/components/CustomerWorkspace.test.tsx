@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { WorkspaceAssignmentDto } from '../api/client';
 import { CustomerWorkspace } from './CustomerWorkspace';
 
@@ -9,6 +9,7 @@ vi.mock('../hooks/useMpsDashboard', () => ({
 vi.mock('./MpsWorkspace', () => ({ MpsWorkspace: () => <div>MPS dashboard</div> }));
 vi.mock('./ComponentOrdersPanel', () => ({ ComponentOrdersPanel: () => <div>Component Orders</div> }));
 vi.mock('./LongTermShortagesPanel', () => ({ LongTermShortagesPanel: () => <div>Workspace Shortages panel</div> }));
+vi.mock('./FinishedGoodsPanel', () => ({ FinishedGoodsPanel: ({ site }: { site: string }) => <div>Finished Goods inventory {site}</div> }));
 vi.mock('./OpenOrdersPanel', () => ({ OpenOrdersPanel: ({ workspaceName, site, onDirtyChange }: { workspaceName: string | null; site: string; onDirtyChange?: (dirty: boolean) => void }) =>
   <div>Open Orders for {workspaceName ?? site}<button type="button" onClick={() => onDirtyChange?.(true)}>make dirty</button></div> }));
 vi.mock('./PlanningWorkbookPanel', () => ({ PlanningWorkbookPanel: ({ assignmentId, site, snapshotId }: { assignmentId: string; site: string; snapshotId: string | null }) =>
@@ -20,6 +21,18 @@ const workspace: WorkspaceAssignmentDto = {
 };
 
 describe('CustomerWorkspace', () => {
+  it('replaces only Finished Goods and awaits the in-app unsaved Open Orders decision', async () => {
+    const confirmDiscard = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    render(<CustomerWorkspace workspace={workspace} confirmDiscard={confirmDiscard} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Customer Open Orders' }));
+    fireEvent.click(screen.getByRole('button', { name: 'make dirty' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Finished Goods' }));
+    await waitFor(() => expect(confirmDiscard).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Finished Goods inventory NW')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Finished Goods' }));
+    await screen.findByText('Finished Goods inventory NW');
+    expect(confirmDiscard).toHaveBeenCalledTimes(2);
+  });
   it('labels the Stage 11-A workspace tab as Workspace Shortages', () => {
     render(<CustomerWorkspace workspace={workspace} />);
 
