@@ -126,6 +126,11 @@ builder.Services.AddInfrastructure();
 builder.Services.AddSingleton<IExportService, PlaceholderExportService>();
 
 builder.Services.AddSingleton(qadOptions);
+builder.Services.AddSingleton<Kst.Integrations.Qad.ComponentMrp.QadComponentMrpReader>();
+builder.Services.AddSingleton<Kst.Application.ComponentMrp.IComponentMrpReader>(sp =>
+    new Kst.Application.ComponentMrp.DelegateComponentMrpReader(sp.GetRequiredService<Kst.Integrations.Qad.ComponentMrp.QadComponentMrpReader>().ReadAsync));
+builder.Services.AddSingleton<Kst.Application.ComponentMrp.ComponentMrpService>();
+builder.Services.AddSingleton<Kst.Api.ComponentMrpPreparations>();
 if (qadOptions.IsConfigured)
     builder.Services.AddSingleton<IQadConnectivityCheck, SqlServerQadConnectivityCheck>();
 else
@@ -523,6 +528,7 @@ app.UseCors(FrontendCorsPolicy);
 app.MapOpenApi();
 
 app.MapDiagnosticEndpoints();
+app.MapComponentMrpEndpoints();
 app.MapSystemEndpoints();
 app.MapWorkspaceEndpoints();
 app.MapPreferencesEndpoints();

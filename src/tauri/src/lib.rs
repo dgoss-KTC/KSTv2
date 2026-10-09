@@ -1,4 +1,9 @@
 use std::sync::Arc;
+mod component_mrp;
+mod component_mrp_chooser;
+mod component_mrp_native;
+#[cfg(test)]
+mod component_mrp_native_tests;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use std::time::Duration;
@@ -173,6 +178,11 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.state::<component_mrp::ReportPreferences>().defer_close() {
+                    api.prevent_close();
+                    let _ = window.emit("component-mrp-close-waiting", ());
+                    return;
+                }
                 let guard = window.state::<CloseGuard>();
                 if close_decision(guard.active.load(Ordering::SeqCst), guard.confirmed.load(Ordering::SeqCst))
                     == CloseDecision::PreventAndAsk
@@ -198,12 +208,28 @@ pub fn run() {
                 });
             }
         })
-        .invoke_handler(tauri::generate_handler![get_backend_url, set_close_guard, confirm_window_close])
+            .manage(component_mrp::ReportPreferences::default())
+            .invoke_handler(tauri::generate_handler![get_backend_url, set_close_guard, confirm_window_close,
+                component_mrp::component_mrp_open_preference, component_mrp::component_mrp_remember_open_preference,
+                component_mrp::component_mrp_begin, component_mrp::component_mrp_generate,
+                component_mrp::component_mrp_save, component_mrp::component_mrp_status, component_mrp::component_mrp_open,
+                component_mrp::component_mrp_cancel_close])
         .build(tauri::generate_context!())
         .expect("error while building KST application");
 
     app.run(|app_handle, event| match event {
-        tauri::RunEvent::ExitRequested { .. } => {
+        tauri::RunEvent::ExitRequested { api, .. } => {
+            if app_handle.state::<component_mrp::ReportPreferences>().defer_close() {
+                api.prevent_exit();
+                if let Some(window) = app_handle.get_webview_window("main") { let _ = window.emit("component-mrp-close-waiting", ()); }
+                return;
+            }
+            let guard = app_handle.state::<CloseGuard>();
+            if close_decision(guard.active.load(Ordering::SeqCst), guard.confirmed.load(Ordering::SeqCst)) == CloseDecision::PreventAndAsk {
+                api.prevent_exit();
+                if let Some(window) = app_handle.get_webview_window("main") { let _ = window.emit(CLOSE_REQUESTED_EVENT, ()); }
+                return;
+            }
             let app_handle = app_handle.clone();
             let state = app_handle.state::<SharedBackendState>().inner().clone();
 

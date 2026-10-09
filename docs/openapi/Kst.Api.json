@@ -47,6 +47,118 @@
         }
       }
     },
+    "/api/v1/reports/component-mrp": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "GenerateComponentMrp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComponentMrpRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentMrpPreparedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/component-mrp/preparations/{id}/bytes": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "GetComponentMrpPreparedBytes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/system/status": {
       "get": {
         "tags": [
@@ -3634,6 +3746,88 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ComponentMrpPreparedDto": {
+        "required": [
+          "preparationId",
+          "fileName",
+          "asOfDate",
+          "acquiredAtUtc",
+          "expiresAtUtc",
+          "warning",
+          "period",
+          "includeUnconfirmed",
+          "forecastEndExclusive"
+        ],
+        "type": "object",
+        "properties": {
+          "preparationId": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "warning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "period": {
+            "type": "string"
+          },
+          "includeUnconfirmed": {
+            "type": "boolean"
+          },
+          "forecastEndExclusive": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "ComponentMrpRequestDto": {
+        "required": [
+          "site",
+          "part"
+        ],
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "horizonWeeks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32",
+            "default": 26
+          },
+          "includeUnconfirmed": {
+            "type": "boolean",
+            "default": true
+          },
+          "period": {
+            "type": "string",
+            "default": "Week"
           }
         }
       },
@@ -7566,6 +7760,9 @@
   "tags": [
     {
       "name": "Diagnostics"
+    },
+    {
+      "name": "Reports"
     },
     {
       "name": "System"

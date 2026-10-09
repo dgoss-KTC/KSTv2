@@ -1558,7 +1558,14 @@ considered in Stage 22; a future standalone variance capability requires a new o
 case.
 
 
-## Stage 18 — Standalone Excel Report Generators — PLANNED / RELEASE 1 REQUIRED
+## Stage 18 — Standalone Excel Report Generators — IN PROGRESS / RELEASE 1 REQUIRED
+
+Component MRP COMPLETE / OWNER-ACCEPTED — 2026-10-09. Owner generated reports and observed saving
+working well; not every desktop/print/numerical check is claimed executed. Evidence/limits:
+`docs/implementation/KST_v2_STAGE_18_COMPONENT_MRP_CLOSEOUT.md`. Remaining report order:
+**Shipments-To-Go (next discovery in separate session), S&OP, Open Order Report**.
+Concrete protected save foundation delivered with Component MRP; broader shared requirements below
+remain to be reconciled against subsequent real report uses, without speculative extraction.
 
 ### 18.1 Shared report infrastructure
 
@@ -1571,14 +1578,15 @@ case.
 - [ ] Define cancellation behavior
 - [ ] Define error cleanup
 - [ ] Define workbook validation tests
-### 18.2 Component MRP
+### 18.2 Component MRP — COMPLETE / OWNER-ACCEPTED
 
-- [ ] Confirm the report's individual/single-component request scope and inputs.
-- [ ] Inventory the legacy inputs, calculations, output columns, and formatting.
-- [ ] Identify authoritative source data and accepted business rules.
-- [ ] Implement workbook generation without changing locked Stage 9–11 algorithms.
-- [ ] Compare with the legacy workbook and validate with stakeholders.
-- [ ] Owner acceptance.
+- [x] Confirm the report's individual/single-component request scope and inputs.
+- [x] Inventory the legacy inputs, calculations, output columns, and formatting.
+- [x] Identify authoritative source data and accepted business rules.
+- [x] Implement workbook generation without changing locked Stage 9–11 algorithms.
+- [~] Legacy/source differences documented; synthetic calculation/layout evidence and owner generation/
+      save observations retained. Comprehensive live numerical/legacy parity not claimed.
+- [x] Owner acceptance — 2026-10-09; see closeout for explicit evidence boundaries.
 
 ### 18.3 Open Order Report
 
@@ -2016,7 +2024,7 @@ product baseline is frozen for Stage 23.
 - [ ] Stage 15 — Finished Goods.
 - [~] Stage 16 — General Open Orders — **ABSORBED into Stage 18**.
 - [~] Stage 17 — General WO Variance — **RETIRED / NO LONGER DESIRED**.
-- [ ] Stage 18 — Standalone Excel Report Generators.
+- [~] Stage 18 — Standalone Excel Report Generators; Component MRP accepted, remaining three reports pending.
 - [ ] Stage 19 — Historical Shipments.
 - [~] Stage 20 — Legacy Simulation — **RETIRED / NO LONGER DESIRED**.
 - [ ] Stage 21 — Cross-Cutting Export Completion.

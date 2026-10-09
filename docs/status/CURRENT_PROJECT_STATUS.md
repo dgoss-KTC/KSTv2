@@ -1,7 +1,31 @@
 # Current Project Status
 
-Date: 2026-10-08
+Date: 2026-10-09
 Workstation: Windows (`C:\Dev\kst_v2`)
+Active work: **Stage 18 IN PROGRESS — Component MRP COMPLETE / OWNER-ACCEPTED (2026-10-09).**
+Next: **Shipments-To-Go discovery in a separate session**, then S&OP, then Open Order Report.
+Owner: “I ran the app and generated a few reports. Saving works well now.” Generation/saving
+observations do not imply every desktop, printing or numerical check was performed. See
+`docs/implementation/KST_v2_STAGE_18_COMPONENT_MRP_CLOSEOUT.md` for acceptance and evidence limits.
+Direct-part report/workbook/UI and host-owned Save As, remembered
+folder, optional opening and status reconciliation implemented. Owner removed continuous preventive
+namespace binding prerequisite; deliberate local-program folder/link manipulation documented limitation.
+I3 adds five-row customer export, default included unconfirmed POs/amber, Day/Week/calendarMonth
+and host-confirmed overwrite. See `docs/implementation/KST_v2_STAGE_18_I3_IMPLEMENTATION.md`.
+I3 review R1–R3 lifecycle and R4 print corrections are recorded in
+`docs/implementation/KST_v2_STAGE_18_I31_IMPLEMENTATION.md`; combined review resolved original
+R1/R2/R4 at its evidenced depth and supported I3.3's chooser.
+See `docs/implementation/KST_v2_STAGE_18_I32_IMPLEMENTATION.md` for D31–D33 and the installed
+chooser's historical path-only gap. `docs/implementation/KST_v2_STAGE_18_I33_IMPLEMENTATION.md`
+records the host native candidate-bound correction and isolated Windows interaction evidence.
+Combined I3.1–I3.3 review resolved original R1/R2/R4 at evidenced depth and supported I3.3;
+F1 stale successful replies blocked readiness. Correction/evidence are in
+`docs/implementation/KST_v2_STAGE_18_I34_IMPLEMENTATION.md`; independent F1 review adjudicated
+Resolved and ready for bounded owner verification. Component MRP now owner-accepted; limits retained.
+Application now `0.1.0-alpha.18`; numeric installer `0.1.0`. Stage18 is not complete. See
+`docs/implementation/KST_v2_STAGE_18_I2F_FORMATTING.md` for the owner-authorized compact workbook
+presentation history/synthetic previews; current acceptance/evidence limits are in the closeout.
+`docs/implementation/KST_v2_STAGE_18_I2_IMPLEMENTATION.md` for scope, synthetic evidence and limitations.
 Current implementation position: **Stages 1–11 and 13 COMPLETE / ACCEPTED; Stages 9–11 LOCKED; Stage 12 RETIRED.**
 The revised Release 1 roadmap is owner-approved. **Stage 13 — Customer Open Orders** has an
 owner-accepted bounded plan; checkpoints 13.1–13.5 are implemented and owner-accepted (13.5

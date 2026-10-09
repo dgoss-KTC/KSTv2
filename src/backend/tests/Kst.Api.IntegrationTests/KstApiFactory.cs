@@ -68,6 +68,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
     public ILongTermShortageSourceReader? LongTermShortageSourceReader { get; set; }
     public IOpenOrdersSourceReader? OpenOrdersSourceReader { get; set; }
     public IFinishedGoodsSourceReader? FinishedGoodsSourceReader { get; set; }
+    public Kst.Application.ComponentMrp.IComponentMrpReader? ComponentMrpReader { get; set; }
     public IOpenOrderCurrentLineReader? OpenOrderCurrentLineReader { get; set; }
     public IPlanningPriceReader? PlanningPriceReader { get; set; }
     /// <summary>Stage 14.5: in-memory Planning draft store (never the developer's real local app data).</summary>
@@ -90,6 +91,12 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
+            if (ComponentMrpReader is not null)
+            {
+                var descriptor = services.Single(d => d.ServiceType == typeof(Kst.Application.ComponentMrp.IComponentMrpReader));
+                services.Remove(descriptor);
+                services.AddSingleton(ComponentMrpReader);
+            }
             // Replace the JSON file stores with in-memory stores for tests.
             var workspaceDescriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(IWorkspaceConfigurationStore));

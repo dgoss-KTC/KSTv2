@@ -13,6 +13,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { ToastStack } from './ToastStack';
 import { CustomerWorkspace } from './CustomerWorkspace';
 import { GeneralWorkspace } from './GeneralWorkspace';
+import { ReportsPanel } from './ReportsPanel';
 import { BottomStatusBar } from './BottomStatusBar';
 import { confirmDesktopClose, onDesktopCloseRequested, reportCloseGuard } from '../shared/desktopCloseGuard';
 
@@ -44,6 +45,7 @@ type TopmostDialog = 'add' | 'manage' | 'confirm' | null;
 
 export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   const [isGeneralActive, setIsGeneralActive] = useState(false);
+  const [isReportsActive, setIsReportsActive] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<WorkspaceAssignmentDto | null>(null);
   const [showManageDialog, setShowManageDialog] = useState(false);
@@ -98,9 +100,14 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
 
   // Native window close with unsaved work: the host holds the close and asks here; Cancel keeps the
   // window and every adjustment, Discard clears the guard and asks the host to close exactly once.
+  const [reportCloseWaiting, setReportCloseWaiting] = useState(false);
   const handleNativeCloseRequest = useEffectEvent(() => {
+    setReportCloseWaiting(false);
     void (async () => {
-      if (!(await confirmDiscardPlanning())) return;
+      if (!(await confirmDiscardPlanning())) {
+        void import('@tauri-apps/api/core').then(({ invoke }) => invoke('component_mrp_cancel_close')).catch(() => {});
+        return;
+      }
       markPlanningDiscarded();
       await reportCloseGuard(false);
       try { await confirmDesktopClose(); } catch { /* the window stays open; the next close request asks again */ }
@@ -154,15 +161,27 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   }, [connectionState, load]);
 
   const handleSelectWorkspace = async (id: string) => {
+    if (reportBusy.current) return;
     if (id !== workspacesState.activeId) {
       if (!(await confirmDiscardPlanning())) return;
       markPlanningDiscarded();
     }
     setIsGeneralActive(false);
+    setIsReportsActive(false);
     selectWorkspace(id);
   };
 
-  const handleSelectGeneral = async () => { if (await confirmDiscardPlanning()) { markPlanningDiscarded(); setIsGeneralActive(true); } };
+  const reportBusy = useRef(false);
+  const handleReportBusy = (busy: boolean) => { reportBusy.current = busy; };
+  useEffect(() => {
+    let dispose: (() => void) | undefined;
+    let alive = true;
+    void import('@tauri-apps/api/event').then(({ listen }) => listen('component-mrp-close-waiting', () => setReportCloseWaiting(true)))
+      .then(unlisten => { if (alive) dispose = unlisten; else unlisten(); }).catch(() => {});
+    return () => { alive = false; dispose?.(); };
+  }, []);
+  const handleSelectGeneral = async () => { if (reportBusy.current) return; if (await confirmDiscardPlanning()) { markPlanningDiscarded(); setIsReportsActive(false); setIsGeneralActive(true); } };
+  const handleSelectReports = async () => { if (await confirmDiscardPlanning()) { markPlanningDiscarded(); setIsGeneralActive(false); setIsReportsActive(true); } };
 
   const handleOpenAddDialog = (triggerEl: HTMLElement) => {
     addDialogSavingRef.current = false;
@@ -394,7 +413,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
 
       <WorkspaceTabBar
         workspaces={activeWorkspaces}
-        activeId={isGeneralActive ? null : workspacesState.activeId}
+        activeId={isGeneralActive || isReportsActive ? null : workspacesState.activeId}
         onSelect={handleSelectWorkspace}
         onAdd={handleOpenAddDialog}
         onManage={handleOpenManageDialog}
@@ -404,10 +423,16 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
         onReorder={handleReorder}
         isGeneralActive={isGeneralActive}
         onSelectGeneral={handleSelectGeneral}
+        isReportsActive={isReportsActive}
+        onSelectReports={handleSelectReports}
       />
 
       <main className="shell__content">
-        {isGeneralActive ? (
+        {reportCloseWaiting && <div role="status">Waiting for the report save/open operation to finish before closing.
+          <button onClick={() => { void import('@tauri-apps/api/core').then(({ invoke }) => invoke('component_mrp_cancel_close'))
+            .then(() => setReportCloseWaiting(false)).catch(() => {}); }}>Cancel closing</button></div>}
+        <div hidden={!isReportsActive}><ReportsPanel onBusyChange={handleReportBusy} /></div>
+        {!isReportsActive && (isGeneralActive ? (
           <GeneralWorkspace
             preferences={preferences}
             onSetTheme={(theme) => handleUpdatePreference({ theme })}
@@ -423,7 +448,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
           <EmptyWorkspace />
         ) : activeWorkspace ? (
           <CustomerWorkspace workspace={activeWorkspace} onPlanningDirtyChange={planningDirtyChanged} confirmDiscard={askDiscard} />
-        ) : null}
+        ) : null)}
       </main>
 
       <BottomStatusBar

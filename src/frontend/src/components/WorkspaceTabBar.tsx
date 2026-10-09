@@ -14,6 +14,8 @@ interface WorkspaceTabBarProps {
   onReorder: (orderedIds: string[]) => void;
   isGeneralActive: boolean;
   onSelectGeneral: () => void;
+  isReportsActive?: boolean;
+  onSelectReports?: () => void;
 }
 
 export function WorkspaceTabBar({
@@ -28,6 +30,8 @@ export function WorkspaceTabBar({
   onReorder,
   isGeneralActive,
   onSelectGeneral,
+  isReportsActive = false,
+  onSelectReports,
 }: WorkspaceTabBarProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -227,6 +231,9 @@ export function WorkspaceTabBar({
       >
         General
       </button>
+      {onSelectReports && <button role="tab" aria-selected={isReportsActive}
+        className={`tab-bar__tab${isReportsActive ? ' tab-bar__tab--active' : ''}`}
+        onClick={onSelectReports}>Reports</button>}
     </div>
   );
 }
