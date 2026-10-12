@@ -42,4 +42,13 @@ public sealed class ComponentMrpPreparations
     {
         foreach (var key in _entries.Where(p => p.Value.Expires <= DateTimeOffset.UtcNow).Select(p => p.Key).ToArray()) _entries.Remove(key);
     }
+
+    public void Discard(string owner, string reportKind)
+    {
+        lock (_gate)
+        {
+            foreach (var key in _entries.Where(p => p.Value.Owner == owner && p.Value.ReportKind == reportKind).Select(p => p.Key).ToArray())
+                _entries.Remove(key);
+        }
+    }
 }

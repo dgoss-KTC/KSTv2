@@ -143,6 +143,10 @@ builder.Services.AddSingleton<Kst.Application.Sop.ISopReader>(sp =>
     new Kst.Application.Sop.DelegateSopReader(sp.GetRequiredService<Kst.Integrations.Qad.Sop.QadSopReader>().ReadAsync));
 builder.Services.AddSingleton<Kst.Application.Sop.SopService>();
 builder.Services.AddSingleton<Kst.Api.SopAcquisitions>();
+builder.Services.AddSingleton<Kst.Integrations.Qad.OpenOrderReport.QadOpenOrderReportReader>();
+builder.Services.AddSingleton<Kst.Application.OpenOrderReport.IOpenOrderReportReader>(sp =>
+    new Kst.Application.OpenOrderReport.DelegateOpenOrderReportReader(sp.GetRequiredService<Kst.Integrations.Qad.OpenOrderReport.QadOpenOrderReportReader>().ReadAsync));
+builder.Services.AddSingleton<Kst.Application.OpenOrderReport.OpenOrderReportService>();
 if (qadOptions.IsConfigured)
     builder.Services.AddSingleton<IQadConnectivityCheck, SqlServerQadConnectivityCheck>();
 else
@@ -542,6 +546,7 @@ app.MapOpenApi();
 app.MapDiagnosticEndpoints();
 app.MapComponentMrpEndpoints();
 app.MapShipmentsToGoEndpoints();
+app.MapOpenOrderReportEndpoints();
 app.MapSopEndpoints();
 app.MapSystemEndpoints();
 app.MapWorkspaceEndpoints();

@@ -5,11 +5,14 @@ import { generateSop, type SopPrepared, type SopRequest } from '../api/sopApi';
 import { fiscalChangedEvent, fiscalStorageKey, sopCalendarFingerprint } from '../reports/sopPresentation';
 import './ReportsPanel.css';
 import { SopInputs } from '../reports/SopInputs';
+import { generateOpenOrderReport, type OpenOrderReportPrepared, type OpenOrderReportRequest } from '../api/openOrderReportApi';
+import { OpenOrderReportInputs } from '../reports/OpenOrderReportInputs';
+import { initialOor, oorPreferenceKey } from '../reports/openOrderReportPreferences';
 
 const sites = ['SW', 'NW', 'AR', 'MN', 'MS', 'KV'] as const;
 const siteKey = 'kst.componentMrp.site.v1';
-type ReportKind = 'ComponentMrp' | 'ShipmentsToGo' | 'Sop';
-type PreparedReport = ComponentMrpPrepared | ShipmentsToGoPrepared | SopPrepared;
+type ReportKind = 'ComponentMrp' | 'ShipmentsToGo' | 'Sop' | 'OpenOrderReport';
+type PreparedReport = ComponentMrpPrepared | ShipmentsToGoPrepared | SopPrepared | OpenOrderReportPrepared;
 const sopPreferenceKey = 'kst.sop.inputs.v1';
 function initialSop(): SopRequest {
   try {
@@ -63,18 +66,20 @@ const desktopPort: ReportSavePort = {
   async discard() { const { invoke } = await import('@tauri-apps/api/core'); await invoke('report_discard'); },
 };
 
-export function ReportsPanel({ generate = generateComponentMrp, generateStg = generateShipmentsToGo, generateSopReport = generateSop, savePort = desktopPort, onBusyChange, active = true }: {
+export function ReportsPanel({ generate = generateComponentMrp, generateStg = generateShipmentsToGo, generateSopReport = generateSop, generateOor = generateOpenOrderReport, savePort = desktopPort, onBusyChange, active = true }: {
   generate?: (request: ComponentMrpRequest, signal?: AbortSignal) => Promise<ComponentMrpPrepared>;
   savePort?: ReportSavePort;
   onBusyChange?: (busy: boolean) => void;
   generateStg?: (request: ShipmentsToGoRequest, signal?: AbortSignal) => Promise<ShipmentsToGoPrepared>;
   generateSopReport?: (request: SopRequest, signal?: AbortSignal) => Promise<SopPrepared>;
+  generateOor?: (request: OpenOrderReportRequest, signal?: AbortSignal) => Promise<OpenOrderReportPrepared>;
   active?: boolean;
 }) {
   const [site, setSite] = useState(initialSite);
   const [kind, setKind] = useState<ReportKind>('ComponentMrp');
   const [stg, setStg] = useState(initialStg);
   const [sop, setSop] = useState(initialSop);
+  const [oor, setOor] = useState(initialOor);
   const preparedCalendar = useRef<string | null>(null);
   const [part, setPart] = useState('');
   const [horizon, setHorizon] = useState(26);
@@ -213,9 +218,10 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
       const result = kind === 'ComponentMrp'
         ? await generate({ site, part, horizonWeeks: horizon, includeUnconfirmed, period }, controller.signal)
         : kind === 'ShipmentsToGo' ? await generateStg({ sites: stg.sites, includeNextWeek: stg.includeNextWeek }, controller.signal)
+        : kind === 'OpenOrderReport' ? await generateOor(oor, controller.signal)
         : await generateSopReport({ ...sop, ranges: sop.ranges.filter(r => r.from || r.to) }, controller.signal);
       if (!mounted.current || generation.current !== token || !activeRef.current) return;
-      if ('outcome' in result && result.outcome === 'noData') { setMessage(kind === 'Sop' ? 'No S&OP data found for the selected ranges.' : 'No shipments to go found for the selected sites.'); return; }
+      if ('outcome' in result && result.outcome === 'noData') { setMessage(kind === 'Sop' ? 'No S&OP data found for the selected ranges.' : kind === 'OpenOrderReport' ? 'No open orders found for the specified filters.' : 'No shipments to go found for the selected sites.'); return; }
       if (kind === 'Sop') preparedCalendar.current = sopCalendarFingerprint();
       setPrepared(result); setMessage('Workbook prepared. Save As retains these exact bytes for retry.');
     } catch (error) {
@@ -264,15 +270,15 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
     } catch { if (isCurrent(operationId)) setMessage('Operation status unavailable. Do not replay the save.'); }
     finally { finishBusy(busyToken); }
   }
-  return <section className={`reports-panel${kind === 'Sop' ? ' reports-panel--sop' : ''}`} aria-label="Reports">
+  return <section className={`reports-panel${kind === 'Sop' ? ' reports-panel--sop' : kind === 'OpenOrderReport' ? ' reports-panel--oor' : ''}`} aria-label="Reports">
     <nav className="reports-panel__selector" aria-label="Report selector">
       <button aria-current={kind === 'ComponentMrp' ? 'page' : undefined} onClick={() => selectReport('ComponentMrp')}>Component MRP</button>
       <button aria-current={kind === 'ShipmentsToGo' ? 'page' : undefined} onClick={() => selectReport('ShipmentsToGo')}>Shipments-To-Go</button>
       <button aria-current={kind === 'Sop' ? 'page' : undefined} onClick={() => selectReport('Sop')}>{'S&OP'}</button>
-      <button disabled>Open Order Report — coming later</button>
+      <button aria-current={kind === 'OpenOrderReport' ? 'page' : undefined} onClick={() => selectReport('OpenOrderReport')}>Open Order Report</button>
     </nav>
     <div className="reports-panel__body">
-      <h1>{kind === 'ComponentMrp' ? 'Component MRP' : kind === 'Sop' ? 'S&OP' : 'Shipments-To-Go'}</h1><p>Independent report generation outside workspace populations.</p>
+      <h1>{kind === 'ComponentMrp' ? 'Component MRP' : kind === 'Sop' ? 'S&OP' : kind === 'OpenOrderReport' ? 'Open Order Report' : 'Shipments-To-Go'}</h1><p>Independent report generation outside workspace populations.</p>
       <form onSubmit={event => { event.preventDefault(); void prepare(); }}>
         <fieldset disabled={saving || operationActive || unknownCommit}>
           {kind === 'ComponentMrp' ? <>
@@ -287,7 +293,11 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
             {['Day', 'Week', 'Month'].map(value => <option key={value}>{value}</option>)}
           </select></label>
           <label><input type="checkbox" checked={includeUnconfirmed} onChange={event => { invalidate(); setIncludeUnconfirmed(event.target.checked); }} />Include Unconfirmed POs</label>
-           </> : kind === 'Sop' ? <SopInputs value={sop} onChange={changeSop} /> : <>
+           </> : kind === 'Sop' ? <SopInputs value={sop} onChange={changeSop} /> : kind === 'OpenOrderReport' ? <OpenOrderReportInputs value={oor} onChange={value => {
+             invalidate(); setOor(value);
+             try { localStorage.setItem(oorPreferenceKey, JSON.stringify(value.optionalFields)); }
+             catch { setPreferenceWarning('Column selections could not be remembered; the session choice is retained.'); }
+           }} /> : <>
             <div role="group" aria-label="Select sites">{sites.map(value => <label key={value}>
               <input type="checkbox" checked={stg.sites.includes(value)} onChange={event => changeStg({ ...stg,
                 sites: event.target.checked ? [...stg.sites, value] : stg.sites.filter(site => site !== value) })} />{value}</label>)}</div>
@@ -295,6 +305,7 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
           </>}
           <button type="submit" disabled={generating || unknownCommit || (kind === 'ComponentMrp' ? !part.trim() : kind === 'Sop'
             ? !sop.ranges.some(r => r.from || r.to) || sop.ranges.some(r => !!(r.from || r.to) && (!/^[0-9]{4}$/.test(r.from) || !/^[0-9]{4}$/.test(r.to)))
+            : kind === 'OpenOrderReport' ? ![oor.customerName, oor.customerNumber, oor.salespersonId, oor.productLineFrom, oor.productLineTo, oor.ios, oor.site].some(v => v?.trim())
             : stg.sites.length === 0)}>Generate</button>
         </fieldset>
       </form>

@@ -71,6 +71,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
     public Kst.Application.ComponentMrp.IComponentMrpReader? ComponentMrpReader { get; set; }
     public Kst.Application.ShipmentsToGo.IShipmentsToGoReader? ShipmentsToGoReader { get; set; }
     public Kst.Application.Sop.ISopReader? SopReader { get; set; }
+    public Kst.Application.OpenOrderReport.IOpenOrderReportReader? OpenOrderReportReader { get; set; }
     public IOpenOrderCurrentLineReader? OpenOrderCurrentLineReader { get; set; }
     public IPlanningPriceReader? PlanningPriceReader { get; set; }
     /// <summary>Stage 14.5: in-memory Planning draft store (never the developer's real local app data).</summary>
@@ -93,6 +94,11 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
+            if (OpenOrderReportReader is not null)
+            {
+                services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Application.OpenOrderReport.IOpenOrderReportReader)));
+                services.AddSingleton(OpenOrderReportReader);
+            }
             if (SopReader is not null)
             {
                 services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Application.Sop.ISopReader)));

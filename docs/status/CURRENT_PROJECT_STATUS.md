@@ -2,7 +2,7 @@
 
 Date: 2026-10-12
 Workstation: Windows (`C:\Dev\kst_v2`)
-Active work: **Stage 18 IN PROGRESS — Component MRP COMPLETE / OWNER-ACCEPTED (2026-10-09).**
+Active work: **Stage 18 IN PROGRESS — all four report deliverables OWNER-ACCEPTED; S&OP legacy-workbook comparison remains open.**
 Current: **Stage 18.4 Shipments-To-Go COMPLETE / OWNER-ACCEPTED — closeout 2026-10-12**.
 Python authority, KS/KTS summary removal, multisite defaults and report-departure discard/recovery
 are recorded in `docs/implementation/KST_v2_STAGE_18_STG_IMPLEMENTATION.md`.
@@ -12,8 +12,14 @@ resolved the finding; owner confirmed acceptance and local-only commit authoriza
 Stage 18.5 S&OP COMPLETE / OWNER-ACCEPTED — closeout 2026-10-12. Owner reports generated workbook
 good and accepted S&OP overall; reviewed/accepted the corrected Product lines form. Closeout and
 evidence limits are in `docs/implementation/KST_v2_STAGE_18_SOP_CLOSEOUT.md`.
-Open Order Report is next at owner-designated Stage18.6; master checklist retains its historical
-18.3 section number pending explicit numbering reconciliation. Stage18 overall remains in progress.
+Open Order Report Stage 18.6 is **COMPLETE / OWNER-ACCEPTED — closeout 2026-10-12**. Sol's implementation
+is retained with Sonnet's accepted presentation adaptation. Owner accepted UI/output and observed export/
+saving in tested cases. Final focused review established no bounded blocking defect; shared SQL guard
+fixture gap resolved (self-reviewed correction; retained 7 passing tests, exit 0). See
+`docs/implementation/KST_v2_STAGE_18_OOR_CLOSEOUT.md` for separately recorded offline evidence, owner
+observations and unperformed exhaustive live parity/printing/full desktop checks. Historical checklist
+18.3 corresponds to owner designation 18.6. Shared 18.1 definitions are reconciled against actual uses;
+S&OP's unchecked legacy-workbook comparison prevents Stage 18 overall completion. No waiver is inferred.
 Owner: “I ran the app and generated a few reports. Saving works well now.” Generation/saving
 observations do not imply every desktop, printing or numerical check was performed. See
 `docs/implementation/KST_v2_STAGE_18_COMPONENT_MRP_CLOSEOUT.md` for acceptance and evidence limits.
@@ -32,7 +38,7 @@ Combined I3.1–I3.3 review resolved original R1/R2/R4 at evidenced depth and su
 F1 stale successful replies blocked readiness. Correction/evidence are in
 `docs/implementation/KST_v2_STAGE_18_I34_IMPLEMENTATION.md`; independent F1 review adjudicated
 Resolved and ready for bounded owner verification. Component MRP now owner-accepted; limits retained.
-Application now `0.1.0-alpha.18`; numeric installer `0.1.0`. Stage18 is not complete. See
+Application now `0.1.0-alpha.18`; numeric installer `0.1.0`. Stage18 is not complete: S&OP legacy-workbook comparison remains open. See
 `docs/implementation/KST_v2_STAGE_18_I2F_FORMATTING.md` for the owner-authorized compact workbook
 presentation history/synthetic previews; current acceptance/evidence limits are in the closeout.
 `docs/implementation/KST_v2_STAGE_18_I2_IMPLEMENTATION.md` for scope, synthetic evidence and limitations.

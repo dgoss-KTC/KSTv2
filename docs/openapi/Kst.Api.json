@@ -261,6 +261,108 @@
         }
       }
     },
+    "/api/v1/reports/open-orders": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "GenerateOpenOrderReport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenOrderReportRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenOrderReportPreparedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/open-orders/preparations/{id}/bytes": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "GetOpenOrderReportPreparedBytes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/sop/acquisitions": {
       "post": {
         "tags": [
@@ -6316,6 +6418,126 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "OpenOrderReportPreparedDto": {
+        "required": [
+          "outcome",
+          "preparationId",
+          "fileName",
+          "asOfDate",
+          "acquiredAtUtc",
+          "expiresAtUtc"
+        ],
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string"
+          },
+          "preparationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fileName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "OpenOrderReportRequestDto": {
+        "required": [
+          "customerName",
+          "customerNumber",
+          "salespersonId",
+          "productLineFrom",
+          "productLineTo",
+          "ios",
+          "dueDateFrom",
+          "dueDateTo",
+          "site",
+          "optionalFields"
+        ],
+        "type": "object",
+        "properties": {
+          "customerName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "customerNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "salespersonId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "productLineFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "productLineTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ios": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dueDateFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dueDateTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "site": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "optionalFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

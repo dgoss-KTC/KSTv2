@@ -18,6 +18,7 @@ pub enum ReportKind {
     ComponentMrp,
     ShipmentsToGo,
     Sop,
+    OpenOrderReport,
 }
 impl ReportKind {
     fn route(self) -> &'static str {
@@ -25,6 +26,7 @@ impl ReportKind {
             Self::ComponentMrp => "component-mrp",
             Self::ShipmentsToGo => "shipments-to-go",
             Self::Sop => "sop",
+            Self::OpenOrderReport => "open-orders",
         }
     }
 }
@@ -342,6 +344,7 @@ pub async fn component_mrp_generate(
     include_next_week: Option<bool>,
     sop_request: Option<serde_json::Value>,
     sop_prepare: Option<serde_json::Value>,
+    oor_request: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     require_main(&window)?;
     let kind = report_kind.unwrap_or_default();
@@ -396,7 +399,9 @@ pub async fn component_mrp_generate(
         .build()
         .map_err(|_| "Transport unavailable.")?;
     let route = kind.route();
-    let request = if kind == ReportKind::Sop {
+    let request = if kind == ReportKind::OpenOrderReport {
+        oor_request.ok_or("Missing Open Order Report inputs.")?
+    } else if kind == ReportKind::Sop {
         if let Some(ref preparation) = sop_prepare {
             let id = preparation["acquisitionId"]
                 .as_str()
@@ -442,6 +447,38 @@ pub async fn component_mrp_generate(
         .await
         .map_err(|_| "Generation transport failed.")?;
     if !response.status().is_success() {
+        if kind == ReportKind::OpenOrderReport {
+            // Only the backend's validation messages cross this fixed route; source details never do.
+            return Err(if response.status().as_u16() == 400 {
+                let mut raw = Vec::new();
+                while let Some(chunk) = response
+                    .chunk()
+                    .await
+                    .map_err(|_| "Validation response incomplete.")?
+                {
+                    if raw.len() + chunk.len() > 8192 {
+                        return Err("Validation response exceeds capacity.".into());
+                    }
+                    raw.extend_from_slice(&chunk);
+                }
+                let body = serde_json::from_slice::<serde_json::Value>(&raw).unwrap_or_default();
+                body["errors"]["inputs"]
+                    .as_array()
+                    .map(|v| {
+                        v.iter()
+                            .filter_map(|m| m.as_str())
+                            .collect::<Vec<_>>()
+                            .join(" ")
+                    })
+                    .filter(|s| !s.is_empty() && s.len() <= 4096)
+                    .unwrap_or_else(|| {
+                        "Invalid Open Order Report inputs. Review filters and Generate again."
+                            .into()
+                    })
+            } else {
+                "Open Order Report acquisition/preparation failed: source/schema failure or report capacity. No workbook was prepared.".into()
+            });
+        }
         if kind == ReportKind::Sop {
             return Err(if response.status().as_u16() == 400 {
                 "S&OP inputs or fiscal presentation are invalid. Review settings and Generate again."
@@ -894,6 +931,8 @@ mod tests {
         assert_eq!(ReportKind::ComponentMrp.route(), "component-mrp");
         assert_eq!(ReportKind::ShipmentsToGo.route(), "shipments-to-go");
         assert_eq!(ReportKind::Sop.route(), "sop");
+        assert_eq!(ReportKind::OpenOrderReport.route(), "open-orders");
+        assert_ne!(ReportKind::OpenOrderReport, ReportKind::ShipmentsToGo);
         assert_ne!(ReportKind::Sop, ReportKind::ShipmentsToGo);
         assert!(serde_json::from_str::<ReportKind>("\"https://other\"").is_err());
         let mut s = State::default();
@@ -932,6 +971,27 @@ mod tests {
         assert_eq!(s.operations["o"].outcome, "unknown");
         assert_eq!(s.operation_kinds["o"], ReportKind::ShipmentsToGo);
         assert_ne!(s.operation_kinds["o"], ReportKind::ComponentMrp);
+    }
+    #[test]
+    fn open_order_preparation_and_recovery_are_kind_bound_on_departure() {
+        let mut s = State::default();
+        s.prepared = Some(Preparation {
+            kind: ReportKind::OpenOrderReport,
+            id: "oor".into(),
+            bytes: Arc::new(vec![1]),
+            name: "Open-Orders_2026-10-12_01.xlsx".into(),
+            created: Instant::now(),
+            backend: "managed".into(),
+        });
+        assert_ne!(s.prepared.as_ref().unwrap().kind, ReportKind::Sop);
+        s.operation_kinds
+            .insert("op".into(), ReportKind::OpenOrderReport);
+        s.record_operation("op".into(), Outcome::new("unknown", "Do not replay"));
+        s.discard();
+        assert!(s.prepared.is_none());
+        assert!(s.departed);
+        assert_eq!(s.operation_kinds["op"], ReportKind::OpenOrderReport);
+        assert_eq!(s.operations["op"].outcome, "unknown");
     }
     #[test]
     fn production_retry_grant_is_bounded_and_deduplicated_and_close_can_cancel() {

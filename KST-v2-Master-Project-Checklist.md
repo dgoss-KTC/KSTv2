@@ -1562,26 +1562,28 @@ case.
 
 Component MRP COMPLETE / OWNER-ACCEPTED — 2026-10-09. Owner generated reports and observed saving
 working well; not every desktop/print/numerical check is claimed executed. Evidence/limits:
-`docs/implementation/KST_v2_STAGE_18_COMPONENT_MRP_CLOSEOUT.md`. Remaining report order:
+`docs/implementation/KST_v2_STAGE_18_COMPONENT_MRP_CLOSEOUT.md`. Subsequent reports:
 Shipments-To-Go COMPLETE / OWNER-ACCEPTED (closeout2026-10-12); see
 `docs/implementation/KST_v2_STAGE_18_STG_CLOSEOUT.md`. S&OP COMPLETE / OWNER-ACCEPTED
 (closeout2026-10-12); see `docs/implementation/KST_v2_STAGE_18_SOP_CLOSEOUT.md`. Open Order
-Report is next under owner-designated Stage18.6; the existing checklist section remains historically
-numbered18.3 pending deliberate reconciliation. Stage18 overall remains in progress.
-Concrete protected save foundation delivered with Component MRP; broader shared requirements below
-remain to be reconciled against subsequent real report uses, without speculative extraction.
+Report COMPLETE / OWNER-ACCEPTED (closeout2026-10-12); see
+`docs/implementation/KST_v2_STAGE_18_OOR_CLOSEOUT.md`. Owner designation18.6 corresponds to historical
+section18.3; no unrelated renumbering. All four reports are accepted; Stage18 overall remains in
+progress because S&OP's explicit legacy-workbook comparison remains open. Shared definitions below
+are reconciled against the accepted concrete save foundation and actual report uses, not an untested
+generic abstraction. Synthetic/owner evidence and retained live/desktop/printing limits stay distinct.
 
 ### 18.1 Shared report infrastructure
 
-- [ ] Define report request pattern
-- [ ] Define output-directory behavior
-- [ ] Define filename conventions
-- [ ] Define overwrite behavior
-- [ ] Define workbook metadata
-- [ ] Define progress reporting
-- [ ] Define cancellation behavior
-- [ ] Define error cleanup
-- [ ] Define workbook validation tests
+- [x] Define report request pattern — typed independent requests, fixed report kinds and owner-scoped preparation.
+- [x] Define output-directory behavior — host-owned Save As, first-use/fallback chooser, remembered successful folder.
+- [x] Define filename conventions — report-specific dated names and host-owned numbering.
+- [x] Define overwrite behavior — candidate-bound host confirmation for replacement; new-file attempts remain no-replace.
+- [x] Define workbook metadata — report-specific accepted headers/layout; OOR deliberately adds no metadata.
+- [x] Define progress reporting — generation/save/open phases and observational recovery status; no percentage claim.
+- [x] Define cancellation behavior — acquisition cancellation, chooser cancel and bounded save/close coordination.
+- [x] Define error cleanup — operation-owned artifacts, protected destination and separate save/open outcomes.
+- [x] Define workbook validation tests — retained report-specific synthetic layout/type/formula tests; no exhaustive live/print claim.
 ### 18.2 Component MRP — COMPLETE / OWNER-ACCEPTED
 
 - [x] Confirm the report's individual/single-component request scope and inputs.
@@ -1592,16 +1594,22 @@ remain to be reconciled against subsequent real report uses, without speculative
       save observations retained. Comprehensive live numerical/legacy parity not claimed.
 - [x] Owner acceptance — 2026-10-09; see closeout for explicit evidence boundaries.
 
-### 18.3 Open Order Report — OWNER DESIGNATION: NEXT AS STAGE 18.6
+### 18.3 Open Order Report — OWNER DESIGNATION: STAGE 18.6 / COMPLETE / OWNER-ACCEPTED
 
-- [ ] Implement the full cross-customer report outside individual workspace scope.
-- [ ] Confirm report inputs, authorized site/customer scope, filters, output columns, grouping,
+Owner-designated18.6 accepted2026-10-12 under the approved common specification. Sol implementation
+with Sonnet presentation retained; UI/output accepted and export/saving observed by owner. Final review/
+resolved self-reviewed SQL fixture and evidence limits: `docs/implementation/KST_v2_STAGE_18_OOR_CLOSEOUT.md`.
+Historical section18.3 retained; no unrelated renumbering. Exhaustive live parity is not claimed.
+
+- [x] Implement the full cross-customer report outside individual workspace scope.
+- [x] Confirm report inputs, authorized site/customer scope, filters, output columns, grouping,
       sorting, and formatting.
-- [ ] Reuse accepted Stage 13 field mappings where applicable without inheriting its workspace-only
-      parent population.
-- [ ] Implement standalone workbook generation.
-- [ ] Compare with the legacy report and validate with stakeholders.
-- [ ] Owner acceptance.
+- [x] Preserve applicable source field meanings without inheriting Stage 13 workspace population;
+      independent Python-authoritative nullable query/model/writer where semantics differ.
+- [x] Implement standalone workbook generation.
+- [~] Python source/mapping/layout comparison and owner UI/output validation retained;
+      exhaustive matched live numerical/legacy parity unperformed, not claimed.
+- [x] Owner acceptance — 2026-10-12; bounded export/saving observations and retained limits in closeout.
 
 ### 18.4 Shipments-To-Go — COMPLETE / OWNER-ACCEPTED
 
@@ -1626,7 +1634,8 @@ scoped verification and explicit limits: `docs/implementation/KST_v2_STAGE_18_ST
 - [x] Determine use of MPS procedure data (owner authorizes fixed dbo.sp_QAD_ktmpswkm; internals unavailable)
 - [x] Extract aggregation rules and approved current-calendar/period-total amendments
 - [x] Implement workbook generation and accepted layout follow-up (I1/UI)
-- [ ] Compare with legacy workbook
+- [ ] Compare with legacy workbook — still open at 18.6 closeout; owner output acceptance and static/
+      synthetic evidence do not establish this comparison. No waiver inferred; separately scoped work/disposition required.
 - [x] Validate monthly period behavior synthetically (frontend calendar + isolated Excel; no live parity claim)
 - [x] Owner acceptance — owner reports generated workbook good and accepted S&OP overall; corrected Product lines form reviewed/accepted. Limits in S&OP closeout.
 Completion gate: Component MRP, Open Order Report, Shipments-To-Go, and S&OP workbooks can be
@@ -2033,7 +2042,8 @@ product baseline is frozen for Stage 23.
 - [ ] Stage 15 — Finished Goods.
 - [~] Stage 16 — General Open Orders — **ABSORBED into Stage 18**.
 - [~] Stage 17 — General WO Variance — **RETIRED / NO LONGER DESIRED**.
-- [~] Stage 18 — Standalone Excel Report Generators; Component MRP accepted, remaining three reports pending.
+- [~] Stage 18 — Standalone Excel Report Generators; all four reports owner-accepted, shared definitions
+      reconciled; S&OP legacy-workbook comparison remains open. Stage18 overall IN PROGRESS.
 - [ ] Stage 19 — Historical Shipments.
 - [~] Stage 20 — Legacy Simulation — **RETIRED / NO LONGER DESIRED**.
 - [ ] Stage 21 — Cross-Cutting Export Completion.
