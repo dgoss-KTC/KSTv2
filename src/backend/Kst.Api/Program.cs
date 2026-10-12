@@ -138,6 +138,11 @@ builder.Services.AddSingleton<Kst.Application.ShipmentsToGo.IShipmentsToGoReader
     return new Kst.Application.ShipmentsToGo.DelegateShipmentsToGoReader(reader.ReadOrdersAsync, reader.ReadShippedTodayAsync);
 });
 builder.Services.AddSingleton<Kst.Application.ShipmentsToGo.ShipmentsToGoService>();
+builder.Services.AddSingleton<Kst.Integrations.Qad.Sop.QadSopReader>();
+builder.Services.AddSingleton<Kst.Application.Sop.ISopReader>(sp =>
+    new Kst.Application.Sop.DelegateSopReader(sp.GetRequiredService<Kst.Integrations.Qad.Sop.QadSopReader>().ReadAsync));
+builder.Services.AddSingleton<Kst.Application.Sop.SopService>();
+builder.Services.AddSingleton<Kst.Api.SopAcquisitions>();
 if (qadOptions.IsConfigured)
     builder.Services.AddSingleton<IQadConnectivityCheck, SqlServerQadConnectivityCheck>();
 else
@@ -537,6 +542,7 @@ app.MapOpenApi();
 app.MapDiagnosticEndpoints();
 app.MapComponentMrpEndpoints();
 app.MapShipmentsToGoEndpoints();
+app.MapSopEndpoints();
 app.MapSystemEndpoints();
 app.MapWorkspaceEndpoints();
 app.MapPreferencesEndpoints();

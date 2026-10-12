@@ -35,6 +35,34 @@ namespace Kst.Integrations.Qad.Tests.ReadOnly;
 /// </summary>
 public sealed class QadReadOnlySqlTests
 {
+    [Fact]
+    public void StoredProcedure_mechanism_is_restricted_to_fixed_Sop_adapter()
+    {
+        var root = FindQadProjectDirectory();
+        foreach (var file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Split(Path.DirectorySeparatorChar).Any(s => s is "bin" or "obj")))
+        {
+            var source = File.ReadAllText(file);
+            if (!source.Contains("CommandType.StoredProcedure", StringComparison.Ordinal)) continue;
+            Assert.Equal(Path.Combine(root, "Sop", "QadSopReader.cs"), file);
+            Assert.Contains("command.CommandText = Procedure;", source);
+            Assert.Contains("public const string Procedure = \"dbo.sp_QAD_ktmpswkm\";", source);
+            Assert.Contains("command.ExecuteReaderAsync(cancel)", source);
+        }
+        using var connection = new Microsoft.Data.SqlClient.SqlConnection();
+        using var command = Kst.Integrations.Qad.Sop.QadSopReader.BuildCommand(connection, "KV", new("2140", "2142"), 600);
+        Assert.Equal(System.Data.CommandType.StoredProcedure, command.CommandType);
+        Assert.Equal("dbo.sp_QAD_ktmpswkm", command.CommandText);
+        Assert.Equal(60, command.CommandTimeout);
+        Assert.Equal(new[] { "@Domain", "@Site", "@pl1", "@pl2", "@hours_units" }, command.Parameters.Cast<Microsoft.Data.SqlClient.SqlParameter>().Select(p => p.ParameterName));
+        Assert.Equal("KTV", command.Parameters["@Domain"].Value);
+        Assert.Equal("KV", command.Parameters["@Site"].Value);
+        Assert.Equal("2140", command.Parameters["@pl1"].Value);
+        Assert.Equal("2142", command.Parameters["@pl2"].Value);
+        Assert.Equal(0, command.Parameters["@hours_units"].Value);
+        Assert.Throws<ArgumentException>(() => Kst.Integrations.Qad.Sop.QadSopReader.BuildCommand(connection, "KS", new("2140", "2142"), 60));
+        Assert.Throws<ArgumentException>(() => Kst.Integrations.Qad.Sop.QadSopReader.BuildCommand(connection, "SW", new("EXEC", "1234"), 60));
+    }
     /// <summary>
     /// SQL Server statement verbs that mutate data, structure, or execute code.
     /// Deliberately does NOT include session/setting statements such as SET
@@ -178,7 +206,7 @@ public sealed class QadReadOnlySqlTests
             && type.GetGenericArguments()[0] == typeof(string)
             && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
         {
-            return new List<string> { "T" };
+            return new List<string> { parameter.Name == "sites" ? "SW" : "T" };
         }
 
         if (type == typeof(IReadOnlyList<Kst.Domain.OpenOrders.OpenOrderLineKey>))

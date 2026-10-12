@@ -261,6 +261,202 @@
         }
       }
     },
+    "/api/v1/reports/sop/acquisitions": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "AcquireSop",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SopRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SopAcquiredDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/sop/preparations": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "PrepareSop",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SopPrepareDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SopPreparedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/sop/acquisitions/{id}": {
+      "delete": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "DiscardSopAcquisition",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/sop/preparations/{id}/bytes": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "GetSopPreparedBytes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/system/status": {
       "get": {
         "tags": [
@@ -7071,6 +7267,267 @@
             "type": "string"
           }
         }
+      },
+      "SopAcquiredDto": {
+        "required": [
+          "outcome",
+          "acquisitionId",
+          "weekLabels",
+          "asOfDate",
+          "acquiredAtUtc",
+          "expiresAtUtc"
+        ],
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string"
+          },
+          "acquisitionId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "weekLabels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SopCalendarExceptionDto": {
+        "required": [
+          "fiscalYear",
+          "extraWeekPeriod"
+        ],
+        "type": "object",
+        "properties": {
+          "fiscalYear": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "extraWeekPeriod": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SopPeriodDto": {
+        "required": [
+          "fiscalYear",
+          "period",
+          "quarter",
+          "startSunday",
+          "weekCount",
+          "weekLabels"
+        ],
+        "type": "object",
+        "properties": {
+          "fiscalYear": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "period": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "quarter": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "startSunday": {
+            "type": "string",
+            "format": "date"
+          },
+          "weekCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "weekLabels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SopPreparedDto": {
+        "required": [
+          "outcome",
+          "preparationId",
+          "fileName",
+          "asOfDate",
+          "acquiredAtUtc",
+          "expiresAtUtc"
+        ],
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string"
+          },
+          "preparationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fileName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SopPrepareDto": {
+        "required": [
+          "acquisitionId",
+          "presentation"
+        ],
+        "type": "object",
+        "properties": {
+          "acquisitionId": {
+            "type": "string"
+          },
+          "presentation": {
+            "$ref": "#/components/schemas/SopPresentationDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SopPresentationDto": {
+        "required": [
+          "anchorFiscalYear",
+          "anchorStartDate",
+          "exceptions",
+          "periods"
+        ],
+        "type": "object",
+        "properties": {
+          "anchorFiscalYear": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "anchorStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "exceptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SopCalendarExceptionDto"
+            }
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SopPeriodDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SopRangeDto": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SopRequestDto": {
+        "required": [
+          "site",
+          "groupBy",
+          "ranges"
+        ],
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string"
+          },
+          "groupBy": {
+            "type": "string"
+          },
+          "ranges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SopRangeDto"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "SystemStatusResponse": {
         "required": [

@@ -1564,8 +1564,10 @@ Component MRP COMPLETE / OWNER-ACCEPTED — 2026-10-09. Owner generated reports 
 working well; not every desktop/print/numerical check is claimed executed. Evidence/limits:
 `docs/implementation/KST_v2_STAGE_18_COMPONENT_MRP_CLOSEOUT.md`. Remaining report order:
 Shipments-To-Go COMPLETE / OWNER-ACCEPTED (closeout2026-10-12); see
-`docs/implementation/KST_v2_STAGE_18_STG_CLOSEOUT.md`. Remaining reports: **S&OP, Open Order Report**,
-awaiting separate authorization. Stage18 overall remains in progress.
+`docs/implementation/KST_v2_STAGE_18_STG_CLOSEOUT.md`. S&OP COMPLETE / OWNER-ACCEPTED
+(closeout2026-10-12); see `docs/implementation/KST_v2_STAGE_18_SOP_CLOSEOUT.md`. Open Order
+Report is next under owner-designated Stage18.6; the existing checklist section remains historically
+numbered18.3 pending deliberate reconciliation. Stage18 overall remains in progress.
 Concrete protected save foundation delivered with Component MRP; broader shared requirements below
 remain to be reconciled against subsequent real report uses, without speculative extraction.
 
@@ -1590,7 +1592,7 @@ remain to be reconciled against subsequent real report uses, without speculative
       save observations retained. Comprehensive live numerical/legacy parity not claimed.
 - [x] Owner acceptance — 2026-10-09; see closeout for explicit evidence boundaries.
 
-### 18.3 Open Order Report
+### 18.3 Open Order Report — OWNER DESIGNATION: NEXT AS STAGE 18.6
 
 - [ ] Implement the full cross-customer report outside individual workspace scope.
 - [ ] Confirm report inputs, authorized site/customer scope, filters, output columns, grouping,
@@ -1617,16 +1619,16 @@ scoped verification and explicit limits: `docs/implementation/KST_v2_STAGE_18_ST
 - [x] Owner comparison with legacy output; no exhaustive numerical/printing claim
 - [x] Validate with owner and separate-context F1 review
 - [x] Owner acceptance; documentation closeout2026-10-12
-### 18.5 S&OP
+### 18.5 S&OP — COMPLETE / OWNER-ACCEPTED (2026-10-12)
 
-- [ ] Inventory current inputs
-- [ ] Inventory current output columns
-- [ ] Determine use of MPS procedure data
-- [ ] Extract aggregation rules
-- [ ] Implement workbook generation
+- [x] Inventory current inputs (Python/source-inspected D1)
+- [x] Inventory current output columns (static supplied workbook/source)
+- [x] Determine use of MPS procedure data (owner authorizes fixed dbo.sp_QAD_ktmpswkm; internals unavailable)
+- [x] Extract aggregation rules and approved current-calendar/period-total amendments
+- [x] Implement workbook generation and accepted layout follow-up (I1/UI)
 - [ ] Compare with legacy workbook
-- [ ] Validate monthly period behavior
-- [ ] Owner acceptance
+- [x] Validate monthly period behavior synthetically (frontend calendar + isolated Excel; no live parity claim)
+- [x] Owner acceptance — owner reports generated workbook good and accepted S&OP overall; corrected Product lines form reviewed/accepted. Limits in S&OP closeout.
 Completion gate: Component MRP, Open Order Report, Shipments-To-Go, and S&OP workbooks can be
 generated and validated independently from KST v2. These report generators are distinct from the
 application-view export inventory and conformance work in Stage 21.

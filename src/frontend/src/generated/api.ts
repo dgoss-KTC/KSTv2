@@ -102,6 +102,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/sop/acquisitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AcquireSop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/sop/preparations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PrepareSop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/sop/acquisitions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["DiscardSopAcquisition"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/sop/preparations/{id}/bytes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetSopPreparedBytes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/status": {
         parameters: {
             query?: never;
@@ -1562,6 +1626,68 @@ export interface components {
             createdAt: null | string;
             status: string;
         };
+        SopAcquiredDto: {
+            outcome: string;
+            acquisitionId: null | string;
+            weekLabels: string[];
+            /** Format: date */
+            asOfDate: string;
+            /** Format: date-time */
+            acquiredAtUtc: string;
+            /** Format: date-time */
+            expiresAtUtc: null | string;
+        };
+        SopCalendarExceptionDto: {
+            /** Format: int32 */
+            fiscalYear: number | string;
+            /** Format: int32 */
+            extraWeekPeriod: number | string;
+        };
+        SopPeriodDto: {
+            /** Format: int32 */
+            fiscalYear: number | string;
+            /** Format: int32 */
+            period: number | string;
+            /** Format: int32 */
+            quarter: number | string;
+            /** Format: date */
+            startSunday: string;
+            /** Format: int32 */
+            weekCount: number | string;
+            weekLabels: string[];
+        };
+        SopPreparedDto: {
+            outcome: string;
+            preparationId: null | string;
+            fileName: null | string;
+            /** Format: date */
+            asOfDate: string;
+            /** Format: date-time */
+            acquiredAtUtc: string;
+            /** Format: date-time */
+            expiresAtUtc: null | string;
+        };
+        SopPrepareDto: {
+            acquisitionId: string;
+            presentation: components["schemas"]["SopPresentationDto"];
+        };
+        SopPresentationDto: {
+            /** Format: int32 */
+            anchorFiscalYear: number | string;
+            /** Format: date */
+            anchorStartDate: string;
+            exceptions: components["schemas"]["SopCalendarExceptionDto"][];
+            periods: components["schemas"]["SopPeriodDto"][];
+        };
+        SopRangeDto: {
+            from: string;
+            to: string;
+        };
+        SopRequestDto: {
+            site: string;
+            groupBy: string;
+            ranges: components["schemas"]["SopRangeDto"][];
+        };
         SystemStatusResponse: {
             applicationName: string;
             applicationVersion: string;
@@ -1933,6 +2059,168 @@ export interface operations {
         };
     };
     GetShipmentsToGoPreparedBytes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AcquireSop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SopRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SopAcquiredDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PrepareSop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SopPrepareDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SopPreparedDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DiscardSopAcquisition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetSopPreparedBytes: {
         parameters: {
             query?: never;
             header?: never;

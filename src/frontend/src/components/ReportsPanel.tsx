@@ -1,12 +1,25 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { generateComponentMrp, type ComponentMrpPrepared, type ComponentMrpRequest } from '../api/componentMrpApi';
 import { generateShipmentsToGo, type ShipmentsToGoPrepared, type ShipmentsToGoRequest } from '../api/shipmentsToGoApi';
+import { generateSop, type SopPrepared, type SopRequest } from '../api/sopApi';
+import { fiscalChangedEvent, fiscalStorageKey, sopCalendarFingerprint } from '../reports/sopPresentation';
 import './ReportsPanel.css';
+import { SopInputs } from '../reports/SopInputs';
 
 const sites = ['SW', 'NW', 'AR', 'MN', 'MS', 'KV'] as const;
 const siteKey = 'kst.componentMrp.site.v1';
-type ReportKind = 'ComponentMrp' | 'ShipmentsToGo';
-type PreparedReport = ComponentMrpPrepared | ShipmentsToGoPrepared;
+type ReportKind = 'ComponentMrp' | 'ShipmentsToGo' | 'Sop';
+type PreparedReport = ComponentMrpPrepared | ShipmentsToGoPrepared | SopPrepared;
+const sopPreferenceKey = 'kst.sop.inputs.v1';
+function initialSop(): SopRequest {
+  try {
+    const value = JSON.parse(localStorage.getItem(sopPreferenceKey) ?? 'null') as SopRequest | null;
+    if (value && sites.includes(value.site as typeof sites[number]) && ['planr', 'customer'].includes(value.groupBy)
+      && Array.isArray(value.ranges) && value.ranges.length >= 1 && value.ranges.length <= 5
+      && value.ranges.every(r => r && /^[0-9]{0,4}$/.test(r.from) && /^[0-9]{0,4}$/.test(r.to))) return value;
+  } catch { /* established first-use defaults */ }
+  return { site: 'SW', groupBy: 'planr', ranges: [{ from: '', to: '' }] };
+}
 const stgPreferenceKey = 'kst.shipmentsToGo.inputs.v1';
 function initialStg() {
   try {
@@ -50,16 +63,19 @@ const desktopPort: ReportSavePort = {
   async discard() { const { invoke } = await import('@tauri-apps/api/core'); await invoke('report_discard'); },
 };
 
-export function ReportsPanel({ generate = generateComponentMrp, generateStg = generateShipmentsToGo, savePort = desktopPort, onBusyChange, active = true }: {
+export function ReportsPanel({ generate = generateComponentMrp, generateStg = generateShipmentsToGo, generateSopReport = generateSop, savePort = desktopPort, onBusyChange, active = true }: {
   generate?: (request: ComponentMrpRequest, signal?: AbortSignal) => Promise<ComponentMrpPrepared>;
   savePort?: ReportSavePort;
   onBusyChange?: (busy: boolean) => void;
   generateStg?: (request: ShipmentsToGoRequest, signal?: AbortSignal) => Promise<ShipmentsToGoPrepared>;
+  generateSopReport?: (request: SopRequest, signal?: AbortSignal) => Promise<SopPrepared>;
   active?: boolean;
 }) {
   const [site, setSite] = useState(initialSite);
   const [kind, setKind] = useState<ReportKind>('ComponentMrp');
   const [stg, setStg] = useState(initialStg);
+  const [sop, setSop] = useState(initialSop);
+  const preparedCalendar = useRef<string | null>(null);
   const [part, setPart] = useState('');
   const [horizon, setHorizon] = useState(26);
   const [includeUnconfirmed, setIncludeUnconfirmed] = useState(true);
@@ -125,6 +141,15 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
   }
   const handleOutcomeEvent = useEffectEvent((operationId: string, result: Awaited<ReturnType<NonNullable<ReportSavePort['status']>>>) => applyResult(operationId, result));
   const handleDeparture = useEffectEvent(() => discardPresentation());
+  const handleCalendarChange = useEffectEvent(() => {
+    if (kind === 'Sop' && (preparedCalendar.current !== null || generating)) invalidate();
+  });
+  useEffect(() => {
+    const storage = (event: StorageEvent) => { if (event.key === fiscalStorageKey) handleCalendarChange(); };
+    const changed = () => handleCalendarChange();
+    window.addEventListener(fiscalChangedEvent, changed); window.addEventListener('storage', storage);
+    return () => { window.removeEventListener(fiscalChangedEvent, changed); window.removeEventListener('storage', storage); };
+  }, []);
   useEffect(() => {
     if (previousActive.current && !active) handleDeparture();
     previousActive.current = active;
@@ -152,12 +177,14 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
   }, [savePort]);
 
   function invalidate() {
+    preparedCalendar.current = null;
     generation.current++; abort.current?.abort(); setPrepared(null); setGenerating(false);
     setMessage('Inputs changed. Generate a new workbook.');
     void import('@tauri-apps/api/core').then(({ invoke }) => invoke('component_mrp_begin')).catch(() => {});
     // Saved-artifact retry is independent of prepared report invalidation.
   }
   function discardPresentation() {
+    preparedCalendar.current = null;
     presentationEpoch.current++; generation.current++; abort.current?.abort();
     setPrepared(null); setGenerating(false); setSavedArtifact(null); currentArtifact.current = null; setOpenFailed(false);
     setMessage('Generated report discarded.');
@@ -170,6 +197,11 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
     try { localStorage.setItem(stgPreferenceKey, JSON.stringify(value)); }
     catch { setPreferenceWarning('Report inputs could not be remembered; the session choice is retained.'); }
   }
+  function changeSop(value: SopRequest) {
+    invalidate(); setSop(value);
+    try { localStorage.setItem(sopPreferenceKey, JSON.stringify(value)); }
+    catch { setPreferenceWarning('Report inputs could not be remembered; the session choice is retained.'); }
+  }
   async function prepare() {
     if (unknownCommit || saveBusy.current || activeOperation.current) return;
     const token = ++generation.current;
@@ -180,9 +212,11 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
       if (controller.signal.aborted || !activeRef.current) return;
       const result = kind === 'ComponentMrp'
         ? await generate({ site, part, horizonWeeks: horizon, includeUnconfirmed, period }, controller.signal)
-        : await generateStg({ sites: stg.sites, includeNextWeek: stg.includeNextWeek }, controller.signal);
+        : kind === 'ShipmentsToGo' ? await generateStg({ sites: stg.sites, includeNextWeek: stg.includeNextWeek }, controller.signal)
+        : await generateSopReport({ ...sop, ranges: sop.ranges.filter(r => r.from || r.to) }, controller.signal);
       if (!mounted.current || generation.current !== token || !activeRef.current) return;
-      if ('outcome' in result && result.outcome === 'noData') { setMessage('No shipments to go found for the selected sites.'); return; }
+      if ('outcome' in result && result.outcome === 'noData') { setMessage(kind === 'Sop' ? 'No S&OP data found for the selected ranges.' : 'No shipments to go found for the selected sites.'); return; }
+      if (kind === 'Sop') preparedCalendar.current = sopCalendarFingerprint();
       setPrepared(result); setMessage('Workbook prepared. Save As retains these exact bytes for retry.');
     } catch (error) {
       if (mounted.current && generation.current === token) setMessage(error instanceof Error ? error.message : 'Preparation failed.');
@@ -190,6 +224,10 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
   }
   async function save() {
     if (!prepared || saveBusy.current || unknownCommit) return;
+    if (kind === 'Sop') {
+      try { if (preparedCalendar.current !== sopCalendarFingerprint()) { invalidate(); return; } }
+      catch { invalidate(); return; }
+    }
     const busyToken = startBusy();
     const operationId = crypto.randomUUID(); currentOperation.current = operationId;
     operationEpoch.current = presentationEpoch.current; operationKind.current = kind;
@@ -226,14 +264,15 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
     } catch { if (isCurrent(operationId)) setMessage('Operation status unavailable. Do not replay the save.'); }
     finally { finishBusy(busyToken); }
   }
-  return <section className="reports-panel" aria-label="Reports">
+  return <section className={`reports-panel${kind === 'Sop' ? ' reports-panel--sop' : ''}`} aria-label="Reports">
     <nav className="reports-panel__selector" aria-label="Report selector">
       <button aria-current={kind === 'ComponentMrp' ? 'page' : undefined} onClick={() => selectReport('ComponentMrp')}>Component MRP</button>
       <button aria-current={kind === 'ShipmentsToGo' ? 'page' : undefined} onClick={() => selectReport('ShipmentsToGo')}>Shipments-To-Go</button>
-      {['S&OP', 'Open Order Report'].map(name => <button key={name} disabled>{name} — coming later</button>)}
+      <button aria-current={kind === 'Sop' ? 'page' : undefined} onClick={() => selectReport('Sop')}>{'S&OP'}</button>
+      <button disabled>Open Order Report — coming later</button>
     </nav>
     <div className="reports-panel__body">
-      <h1>{kind === 'ComponentMrp' ? 'Component MRP' : 'Shipments-To-Go'}</h1><p>Independent report generation outside workspace populations.</p>
+      <h1>{kind === 'ComponentMrp' ? 'Component MRP' : kind === 'Sop' ? 'S&OP' : 'Shipments-To-Go'}</h1><p>Independent report generation outside workspace populations.</p>
       <form onSubmit={event => { event.preventDefault(); void prepare(); }}>
         <fieldset disabled={saving || operationActive || unknownCommit}>
           {kind === 'ComponentMrp' ? <>
@@ -248,13 +287,15 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
             {['Day', 'Week', 'Month'].map(value => <option key={value}>{value}</option>)}
           </select></label>
           <label><input type="checkbox" checked={includeUnconfirmed} onChange={event => { invalidate(); setIncludeUnconfirmed(event.target.checked); }} />Include Unconfirmed POs</label>
-          </> : <>
+           </> : kind === 'Sop' ? <SopInputs value={sop} onChange={changeSop} /> : <>
             <div role="group" aria-label="Select sites">{sites.map(value => <label key={value}>
               <input type="checkbox" checked={stg.sites.includes(value)} onChange={event => changeStg({ ...stg,
                 sites: event.target.checked ? [...stg.sites, value] : stg.sites.filter(site => site !== value) })} />{value}</label>)}</div>
             <label><input type="checkbox" checked={stg.includeNextWeek} onChange={event => changeStg({ ...stg, includeNextWeek: event.target.checked })} />Include Next Week?</label>
           </>}
-          <button type="submit" disabled={generating || unknownCommit || (kind === 'ComponentMrp' ? !part.trim() : stg.sites.length === 0)}>Generate</button>
+          <button type="submit" disabled={generating || unknownCommit || (kind === 'ComponentMrp' ? !part.trim() : kind === 'Sop'
+            ? !sop.ranges.some(r => r.from || r.to) || sop.ranges.some(r => !!(r.from || r.to) && (!/^[0-9]{4}$/.test(r.from) || !/^[0-9]{4}$/.test(r.to)))
+            : stg.sites.length === 0)}>Generate</button>
         </fieldset>
       </form>
       <label><input type="checkbox" checked={openAfterSave} onChange={event => changeOpen(event.target.checked)} />Open workbook after saving</label>

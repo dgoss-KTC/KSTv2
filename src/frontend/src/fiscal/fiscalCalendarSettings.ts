@@ -48,6 +48,7 @@ export function loadFiscalCalendarSettings(): FiscalCalendarSettings {
 /** Persists fiscal calendar settings to local storage. Purely local; no backend involvement. */
 export function saveFiscalCalendarSettings(settings: FiscalCalendarSettings): void {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  window.dispatchEvent(new Event('kst:fiscal-calendar-changed'));
 }
 
 /** Validates a candidate exception: exactly one per fiscal year, period must be 1-12. */

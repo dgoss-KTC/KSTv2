@@ -167,6 +167,16 @@ admission (S0.6).
 
 ## 9. CORS Protection (S0.3 secondary observation)
 
+### Stage 18.5 narrow exception — 2026-10-12
+
+The owner admits the single fixed S&OP procedure `dbo.sp_QAD_ktmpswkm`. SELECT builders and SQL
+literal guards still prohibit all mutating verbs/arbitrary EXEC. A complementary mechanism guard
+restricts CommandType.StoredProcedure to QadSopReader and behaviorally checks target/parameters;
+S&OP schema/ordering/volume/cancellation tests use mocked readers. These checks do not establish
+procedure-internal read-only behavior (definition unavailable), execution permissions or live parity.
+Existing account permissions are not changed. Integrated-auth connection and workspace MPS remain
+unchanged. Live-source testing is separately unauthorized at I1.
+
 - **Current accepted allowed-origin set (recovered from `Kst.Api/Program.cs`, matching S0.2
   baseline §10):** `http://localhost:1420`, `http://127.0.0.1:1420`, `tauri://localhost`,
   `http://tauri.localhost`, `https://tauri.localhost`. The policy uses `AllowAnyHeader()` and

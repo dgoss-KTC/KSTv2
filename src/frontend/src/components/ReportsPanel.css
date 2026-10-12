@@ -6,3 +6,40 @@
 .reports-panel label { display: flex; align-items: center; gap: 8px; }
 .reports-panel input:not([type=checkbox]), .reports-panel select { padding: 8px; }
 .reports-panel__actions { display: flex; gap: 12px; margin-top: 20px; }
+.reports-panel--sop fieldset { display: block; }
+.sop-inputs { display: grid; gap: 20px; margin: 20px 0; }
+.sop-inputs__settings { display: flex; align-items: end; gap: 20px; }
+.sop-inputs__settings label { min-width: 150px; }
+.sop-inputs__settings select { min-width: 120px; }
+.sop-inputs__product-lines { min-width: 0; }
+.sop-inputs__product-lines h2 { margin: 0 0 10px; font-size: 1rem; }
+.sop-inputs__range-header,
+.sop-inputs__range-row { display: grid; grid-template-columns: minmax(78px, 1fr) minmax(88px, 112px) minmax(88px, 112px) 82px; align-items: center; gap: 12px; }
+.sop-inputs__range-header { padding: 0 10px 6px; color: var(--text-muted, #666); font-size: .875rem; }
+.sop-inputs__range-list { display: grid; gap: 8px; }
+.sop-inputs__range-row { min-height: 48px; padding: 6px 10px; border: 1px solid var(--border-color, #d0d0d0); border-radius: 6px; }
+.sop-inputs__range-name { font-weight: 600; }
+.sop-inputs__range-field { justify-content: flex-start; }
+.sop-inputs__range-field input { box-sizing: border-box; width: 5.5rem; max-width: 100%; }
+.sop-inputs__range-field input[aria-invalid='true'] { border-color: var(--error-color, #a12622); outline: 1px solid var(--error-color, #a12622); }
+.sop-inputs__mobile-label { display: none; }
+.sop-inputs__remove { justify-self: start; }
+.sop-inputs__add { margin-top: 10px; }
+.sop-inputs__validation { margin: 8px 0 0; color: var(--error-color, #a12622); }
+@media (max-width: 1100px) {
+  .reports-panel--sop { flex-direction: column; }
+  .reports-panel--sop .reports-panel__selector { min-width: 0; flex-direction: row; flex-wrap: wrap; }
+  .reports-panel--sop .reports-panel__body { max-width: none; }
+}
+@media (max-width: 560px) {
+  .reports-panel--sop { gap: 14px; padding: 16px; }
+  .reports-panel--sop .reports-panel__body { min-width: 0; }
+  .sop-inputs__settings { flex-wrap: wrap; gap: 12px; }
+  .sop-inputs__range-header { display: none; }
+  .sop-inputs__range-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .sop-inputs__range-name { grid-column: 1 / -1; }
+  .sop-inputs__range-field { display: grid; min-width: 0; gap: 4px; }
+  .sop-inputs__mobile-label { display: inline; font-size: .8125rem; }
+  .sop-inputs__range-field input { width: 5rem; }
+  .sop-inputs__remove { grid-column: 1 / -1; align-self: start; }
+}

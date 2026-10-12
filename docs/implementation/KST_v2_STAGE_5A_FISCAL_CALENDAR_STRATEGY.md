@@ -194,6 +194,16 @@ This keeps QAD integration and backend business logic independent from a company
 
 ## 10. User-maintenance philosophy
 
+### Stage 18.5 export-only presentation exception — owner-authorized 2026-10-12
+
+S&OP workbook preparation may receive a typed frontend-derived fiscal presentation descriptor for
+the actual independently acquired report weeks, with settings provenance. The backend validates
+ownership/expiry/exact week coverage/bounds/partition integrity and generates trusted formulas;
+it does not compute fiscal year/period/quarter semantics. Existing frontend calendar/settings remain
+authoritative. No fiscal metadata is added to workspace MpsSourceRow/MpsBucket or QAD acquisition.
+Unsaved S&OP preparation is invalidated on relevant calendar changes. This narrow export boundary
+exception does not establish a backend fiscal engine or general reporting framework.
+
 The design intentionally distinguishes routine years from exceptional years:
 
 - routine 52-week years require no user action,

@@ -136,6 +136,16 @@ The following existing KST requirements are hereby made explicitly security-norm
 
 ## 9. Credentials and Secrets
 
+### Stage 18.5 owner-authorized acquisition exception — 2026-10-12
+
+S&OP alone may consume the fixed existing `dbo.sp_QAD_ktmpswkm` target through the integrated-auth
+QAD connection, with validated site-derived Domain, Site, ordered product-line pl1/pl2 and
+hours_units=0. No arbitrary EXEC/target/database/SQL, database objects or permission changes are
+admitted. All permanent database writes remain prohibited. Workspace MPS retains direct SELECT.
+The procedure definition/internal behavior is unavailable; application/synthetic checks establish
+only fixed command/output handling, not that the procedure is read-only. No live execution/testing
+is authorized by the implementation checkpoint; unexpected schema/permissions require owner review.
+
 Credentials must not be:
 
 - committed to source control;

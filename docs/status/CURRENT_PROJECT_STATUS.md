@@ -9,7 +9,11 @@ are recorded in `docs/implementation/KST_v2_STAGE_18_STG_IMPLEMENTATION.md`.
 Owner ran STG and reported identical legacy output; comparison completed. Separate-context F1 review
 resolved the finding; owner confirmed acceptance and local-only commit authorization. See
 `docs/implementation/KST_v2_STAGE_18_STG_CLOSEOUT.md` for evidence/limits. Stage18 remains in progress.
-S&OP and Open Order Report await separate authorization; no further report work or push authorized.
+Stage 18.5 S&OP COMPLETE / OWNER-ACCEPTED — closeout 2026-10-12. Owner reports generated workbook
+good and accepted S&OP overall; reviewed/accepted the corrected Product lines form. Closeout and
+evidence limits are in `docs/implementation/KST_v2_STAGE_18_SOP_CLOSEOUT.md`.
+Open Order Report is next at owner-designated Stage18.6; master checklist retains its historical
+18.3 section number pending explicit numbering reconciliation. Stage18 overall remains in progress.
 Owner: “I ran the app and generated a few reports. Saving works well now.” Generation/saving
 observations do not imply every desktop, printing or numerical check was performed. See
 `docs/implementation/KST_v2_STAGE_18_COMPONENT_MRP_CLOSEOUT.md` for acceptance and evidence limits.

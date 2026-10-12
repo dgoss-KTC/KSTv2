@@ -17,12 +17,14 @@ pub enum ReportKind {
     #[default]
     ComponentMrp,
     ShipmentsToGo,
+    Sop,
 }
 impl ReportKind {
     fn route(self) -> &'static str {
         match self {
             Self::ComponentMrp => "component-mrp",
             Self::ShipmentsToGo => "shipments-to-go",
+            Self::Sop => "sop",
         }
     }
 }
@@ -82,6 +84,7 @@ struct State {
     operation_kinds: HashMap<String, ReportKind>,
     artifact_kinds: HashMap<String, ReportKind>,
     departed: bool,
+    sop_acquisition: Option<(String, String)>,
 }
 #[derive(Default)]
 pub struct ReportPreferences(Mutex<State>, Mutex<bool>);
@@ -118,12 +121,31 @@ pub fn component_mrp_cancel_close(
 }
 impl State {
     fn discard(&mut self) {
+        self.discard_sop();
         self.epoch += 1;
         self.prepared = None;
         self.departed = true;
         if !self.busy {
             self.artifacts.clear();
             self.artifact_kinds.clear();
+        }
+    }
+    fn discard_sop(&mut self) {
+        if let Some((id, url)) = self.sop_acquisition.take() {
+            let session = self.session.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Ok(client) = reqwest::Client::builder()
+                    .redirect(reqwest::redirect::Policy::none())
+                    .timeout(Duration::from_secs(10))
+                    .build()
+                {
+                    let _ = client
+                        .delete(format!("{url}/api/v1/reports/sop/acquisitions/{id}"))
+                        .header("X-KST-Report-Session", session)
+                        .send()
+                        .await;
+                }
+            });
         }
     }
     fn retry(
@@ -285,6 +307,7 @@ pub fn component_mrp_begin(
         return Err("A save operation is active or unresolved; reconcile it first.".into());
     }
     s.epoch += 1;
+    s.discard_sop();
     s.prepared = None;
     s.departed = false;
     if s.session.is_empty() {
@@ -317,6 +340,8 @@ pub async fn component_mrp_generate(
     report_kind: Option<ReportKind>,
     sites: Option<Vec<String>>,
     include_next_week: Option<bool>,
+    sop_request: Option<serde_json::Value>,
+    sop_prepare: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     require_main(&window)?;
     let kind = report_kind.unwrap_or_default();
@@ -371,19 +396,59 @@ pub async fn component_mrp_generate(
         .build()
         .map_err(|_| "Transport unavailable.")?;
     let route = kind.route();
-    let request = if kind == ReportKind::ComponentMrp {
+    let request = if kind == ReportKind::Sop {
+        if let Some(ref preparation) = sop_prepare {
+            let id = preparation["acquisitionId"]
+                .as_str()
+                .ok_or("Invalid acquisition ID.")?;
+            let s = state.0.lock().map_err(|_| "State unavailable.")?;
+            if !s
+                .sop_acquisition
+                .as_ref()
+                .is_some_and(|(held, _)| held == id)
+            {
+                return Err("Acquisition not owned by this report generation.".into());
+            }
+            preparation.clone()
+        } else {
+            sop_request.clone().ok_or("Missing S&OP inputs.")?
+        }
+    } else if kind == ReportKind::ComponentMrp {
         serde_json::json!({"site":site,"part":part,"horizonWeeks":horizon_weeks,"includeUnconfirmed":include_unconfirmed,"period":period})
     } else {
         serde_json::json!({"sites":sites,"includeNextWeek":include_next_week.unwrap_or(false)})
     };
+    if serde_json::to_vec(&request)
+        .map_err(|_| "Invalid report inputs.")?
+        .len()
+        > 65536
+    {
+        return Err("Report inputs exceed capacity.".into());
+    }
+    let action_route = if kind == ReportKind::Sop {
+        if sop_prepare.is_some() {
+            "sop/preparations"
+        } else {
+            "sop/acquisitions"
+        }
+    } else {
+        route
+    };
     let mut response = client
-        .post(format!("{url}/api/v1/reports/{route}"))
+        .post(format!("{url}/api/v1/reports/{action_route}"))
         .header("X-KST-Report-Session", &session)
         .json(&request)
         .send()
         .await
         .map_err(|_| "Generation transport failed.")?;
     if !response.status().is_success() {
+        if kind == ReportKind::Sop {
+            return Err(if response.status().as_u16() == 400 {
+                "S&OP inputs or fiscal presentation are invalid. Review settings and Generate again."
+            } else {
+                "S&OP acquisition/preparation failed: unsupported procedure output, source failure or report capacity. No workbook was prepared."
+            }.into());
+        }
         return Err(if response.status().as_u16() == 404 {
             "Part not found in selected domain."
         } else {
@@ -397,17 +462,33 @@ pub async fn component_mrp_generate(
         .await
         .map_err(|_| "Preparation metadata incomplete.")?
     {
-        if metadata.len() + chunk.len() > 4096 {
+        if metadata.len() + chunk.len() > (if kind == ReportKind::Sop { 65536 } else { 4096 }) {
             return Err("Preparation metadata exceeds capacity.".into());
         }
         metadata.extend_from_slice(&chunk)
     }
     let result: serde_json::Value =
         serde_json::from_slice(&metadata).map_err(|_| "Invalid preparation metadata.")?;
-    if kind == ReportKind::ShipmentsToGo && result["outcome"] == "noData" {
+    if kind != ReportKind::ComponentMrp && result["outcome"] == "noData" {
         let s = state.0.lock().map_err(|_| "State unavailable.")?;
         if s.epoch != epoch || s.departed {
             return Err("Generation superseded; result discarded.".into());
+        }
+        return Ok(result);
+    }
+    if kind == ReportKind::Sop && sop_prepare.is_none() {
+        let id = result["acquisitionId"]
+            .as_str()
+            .ok_or("Invalid acquisition ID.")?
+            .to_string();
+        if id.len() != 36 || !id.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
+            return Err("Invalid acquisition ID.".into());
+        }
+        let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
+        s.sop_acquisition = Some((id, url));
+        if s.epoch != epoch || s.departed || s.busy {
+            s.discard_sop();
+            return Err("Generation superseded; acquisition discarded.".into());
         }
         return Ok(result);
     }
@@ -484,6 +565,37 @@ pub async fn component_mrp_generate(
         backend: url,
     });
     Ok(result)
+}
+
+#[tauri::command]
+pub fn sop_discard_generation(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, ReportPreferences>,
+    epoch: u64,
+) -> Result<(), String> {
+    require_main(&window)?;
+    let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
+    if s.epoch == epoch {
+        s.discard();
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sop_discard_acquisition(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, ReportPreferences>,
+    acquisition_id: String,
+) -> Result<(), String> {
+    require_main(&window)?;
+    let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
+    if s.sop_acquisition
+        .as_ref()
+        .is_some_and(|(id, _)| id == &acquisition_id)
+    {
+        s.discard_sop();
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -781,6 +893,8 @@ mod tests {
     fn report_kind_routes_and_departure_retain_only_recovery_and_worker_ownership() {
         assert_eq!(ReportKind::ComponentMrp.route(), "component-mrp");
         assert_eq!(ReportKind::ShipmentsToGo.route(), "shipments-to-go");
+        assert_eq!(ReportKind::Sop.route(), "sop");
+        assert_ne!(ReportKind::Sop, ReportKind::ShipmentsToGo);
         assert!(serde_json::from_str::<ReportKind>("\"https://other\"").is_err());
         let mut s = State::default();
         s.prepared = Some(Preparation {
