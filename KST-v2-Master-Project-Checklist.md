@@ -1563,7 +1563,9 @@ case.
 Component MRP COMPLETE / OWNER-ACCEPTED — 2026-10-09. Owner generated reports and observed saving
 working well; not every desktop/print/numerical check is claimed executed. Evidence/limits:
 `docs/implementation/KST_v2_STAGE_18_COMPONENT_MRP_CLOSEOUT.md`. Remaining report order:
-**Shipments-To-Go (next discovery in separate session), S&OP, Open Order Report**.
+Shipments-To-Go COMPLETE / OWNER-ACCEPTED (closeout2026-10-12); see
+`docs/implementation/KST_v2_STAGE_18_STG_CLOSEOUT.md`. Remaining reports: **S&OP, Open Order Report**,
+awaiting separate authorization. Stage18 overall remains in progress.
 Concrete protected save foundation delivered with Component MRP; broader shared requirements below
 remain to be reconciled against subsequent real report uses, without speculative extraction.
 
@@ -1599,17 +1601,22 @@ remain to be reconciled against subsequent real report uses, without speculative
 - [ ] Compare with the legacy report and validate with stakeholders.
 - [ ] Owner acceptance.
 
-### 18.4 Shipments-To-Go
+### 18.4 Shipments-To-Go — COMPLETE / OWNER-ACCEPTED
 
-- [ ] Inventory current inputs
-- [ ] Inventory current output columns
-- [ ] Map every output field
-- [ ] Extract business rules
-- [ ] Reuse shared order and shipment services
-- [ ] Implement workbook generation
-- [ ] Compare with legacy workbook
-- [ ] Validate with stakeholders
-- [ ] Owner acceptance
+Owner generated STG and reported identical Python legacy output (2026-10-09); conditional acceptance
+satisfied by separate-context F1 Resolved review. Owner confirmed acceptance; closeout2026-10-12.
+Baseline/amendments: `docs/implementation/KST_v2_STAGE_18_STG_IMPLEMENTATION.md`; acceptance,
+scoped verification and explicit limits: `docs/implementation/KST_v2_STAGE_18_STG_CLOSEOUT.md`.
+
+- [x] Inventory current inputs
+- [x] Inventory current output columns
+- [x] Map every output field against authoritative Python
+- [x] Extract business rules and approved exceptions
+- [x] Reuse allowed site/domain/read-only infrastructure; independent STG reader (no workspace scope)
+- [x] Implement workbook generation and shared protected report save integration
+- [x] Owner comparison with legacy output; no exhaustive numerical/printing claim
+- [x] Validate with owner and separate-context F1 review
+- [x] Owner acceptance; documentation closeout2026-10-12
 ### 18.5 S&OP
 
 - [ ] Inventory current inputs

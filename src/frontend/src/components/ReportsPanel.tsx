@@ -1,9 +1,22 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { generateComponentMrp, type ComponentMrpPrepared, type ComponentMrpRequest } from '../api/componentMrpApi';
+import { generateShipmentsToGo, type ShipmentsToGoPrepared, type ShipmentsToGoRequest } from '../api/shipmentsToGoApi';
 import './ReportsPanel.css';
 
 const sites = ['SW', 'NW', 'AR', 'MN', 'MS', 'KV'] as const;
 const siteKey = 'kst.componentMrp.site.v1';
+type ReportKind = 'ComponentMrp' | 'ShipmentsToGo';
+type PreparedReport = ComponentMrpPrepared | ShipmentsToGoPrepared;
+const stgPreferenceKey = 'kst.shipmentsToGo.inputs.v1';
+function initialStg() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(stgPreferenceKey) ?? 'null') as { sites?: unknown; includeNextWeek?: unknown } | null;
+    if (raw && Array.isArray(raw.sites) && raw.sites.every(value => sites.includes(value)) && new Set(raw.sites).size === raw.sites.length) {
+      return { sites: raw.sites as string[], includeNextWeek: raw.includeNextWeek === true };
+    }
+  } catch { /* First-use defaults for missing/corrupt preferences. */ }
+  return { sites: ['SW', 'NW', 'KV'], includeNextWeek: false };
+}
 function initialSite(): string {
   try { const value = localStorage.getItem(siteKey); return sites.includes(value as typeof sites[number]) ? value! : 'SW'; }
   catch { return 'SW'; }
@@ -12,41 +25,47 @@ function initialSite(): string {
 export interface ReportSavePort {
   loadOpenPreference(): Promise<boolean>;
   rememberOpenPreference(value: boolean): Promise<void>;
-  save(prepared: ComponentMrpPrepared, openAfterSave: boolean, operationId?: string): Promise<{ outcome: 'saved' | 'cancelled' | 'failed' | 'unknown'; message: string; savedArtifactId?: string; operationComplete?: boolean; openFailed?: boolean }>;
-  open(savedArtifactId: string): Promise<void>;
-  status?(operationId: string): Promise<{ outcome: string; message: string; savedArtifactId?: string; openFailed?: boolean; operationComplete?: boolean }>;
+  save(prepared: PreparedReport, openAfterSave: boolean, operationId?: string, kind?: ReportKind): Promise<{ outcome: 'saved' | 'cancelled' | 'failed' | 'unknown'; message: string; savedArtifactId?: string; operationComplete?: boolean; openFailed?: boolean }>;
+  open(savedArtifactId: string, kind?: ReportKind): Promise<void>;
+  status?(operationId: string, kind?: ReportKind): Promise<{ outcome: string; message: string; savedArtifactId?: string; openFailed?: boolean; operationComplete?: boolean }>;
+  discard?(): Promise<void>;
 }
 
 // No browser download/direct-write fallback: it cannot acknowledge the required protected save.
 const desktopPort: ReportSavePort = {
   async loadOpenPreference() { const { invoke } = await import('@tauri-apps/api/core'); return invoke<boolean>('component_mrp_open_preference'); },
   async rememberOpenPreference(value) { const { invoke } = await import('@tauri-apps/api/core'); await invoke('component_mrp_remember_open_preference', { value }); },
-  async save(prepared, openAfterSave, suppliedOperationId) {
+  async save(prepared, openAfterSave, suppliedOperationId, kind = 'ComponentMrp') {
     const { invoke } = await import('@tauri-apps/api/core');
     const operationId = suppliedOperationId ?? crypto.randomUUID();
     try {
-      const result = await invoke<Awaited<ReturnType<ReportSavePort['save']>>>('component_mrp_save', { operationId, preparationId: prepared.preparationId, openAfterSave });
+      const result = await invoke<Awaited<ReturnType<ReportSavePort['save']>>>('component_mrp_save', { operationId, preparationId: prepared.preparationId, openAfterSave, reportKind: kind });
       if (result.outcome === 'unknown') throw new Error(operationId);
       return result;
     }
     catch { throw new Error(operationId); }
   },
-  async status(operationId) { const { invoke } = await import('@tauri-apps/api/core'); return invoke('component_mrp_status', { operationId }); },
-  async open(savedArtifactId) { const { invoke } = await import('@tauri-apps/api/core'); await invoke('component_mrp_open', { artifactId: savedArtifactId, requestId: crypto.randomUUID() }); },
+  async status(operationId, kind = 'ComponentMrp') { const { invoke } = await import('@tauri-apps/api/core'); return invoke('component_mrp_status', { operationId, reportKind: kind }); },
+  async open(savedArtifactId, kind = 'ComponentMrp') { const { invoke } = await import('@tauri-apps/api/core'); await invoke('component_mrp_open', { artifactId: savedArtifactId, requestId: crypto.randomUUID(), reportKind: kind }); },
+  async discard() { const { invoke } = await import('@tauri-apps/api/core'); await invoke('report_discard'); },
 };
 
-export function ReportsPanel({ generate = generateComponentMrp, savePort = desktopPort, onBusyChange }: {
+export function ReportsPanel({ generate = generateComponentMrp, generateStg = generateShipmentsToGo, savePort = desktopPort, onBusyChange, active = true }: {
   generate?: (request: ComponentMrpRequest, signal?: AbortSignal) => Promise<ComponentMrpPrepared>;
   savePort?: ReportSavePort;
   onBusyChange?: (busy: boolean) => void;
+  generateStg?: (request: ShipmentsToGoRequest, signal?: AbortSignal) => Promise<ShipmentsToGoPrepared>;
+  active?: boolean;
 }) {
   const [site, setSite] = useState(initialSite);
+  const [kind, setKind] = useState<ReportKind>('ComponentMrp');
+  const [stg, setStg] = useState(initialStg);
   const [part, setPart] = useState('');
   const [horizon, setHorizon] = useState(26);
   const [includeUnconfirmed, setIncludeUnconfirmed] = useState(true);
   const [period, setPeriod] = useState('Week');
   const [openAfterSave, setOpenAfterSave] = useState(false);
-  const [prepared, setPrepared] = useState<ComponentMrpPrepared | null>(null);
+  const [prepared, setPrepared] = useState<PreparedReport | null>(null);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [unknownCommit, setUnknownCommit] = useState(false);
@@ -67,6 +86,12 @@ export function ReportsPanel({ generate = generateComponentMrp, savePort = deskt
   const activeOperation = useRef(false);
   const busyEpoch = useRef(0);
   const currentArtifact = useRef<string | null>(null);
+  const presentationEpoch = useRef(0);
+  const operationEpoch = useRef(0);
+  const operationKind = useRef<ReportKind>('ComponentMrp');
+  const activeRef = useRef(active); activeRef.current = active;
+  const previousActive = useRef(active);
+  const discardQueue = useRef(Promise.resolve());
 
   function isCurrent(operationId: string) {
     return mounted.current && currentOperation.current === operationId && !terminalOperations.current.has(operationId);
@@ -84,9 +109,11 @@ export function ReportsPanel({ generate = generateComponentMrp, savePort = deskt
     if (!isCurrent(operationId)) return;
     const terminal = result.operationComplete !== false && ['saved', 'failed', 'cancelled'].includes(result.outcome);
     activeOperation.current = result.operationComplete === false;
-    setOperationActive(activeOperation.current); setMessage(result.message);
+    const ownsPresentation = activeRef.current && operationEpoch.current === presentationEpoch.current;
+    setOperationActive(activeOperation.current);
+    setMessage(ownsPresentation ? result.message : terminal ? 'Generated report discarded.' : 'A departed report save requires status reconciliation. Do not replay.');
     setPendingOperation(terminal ? null : operationId); setUnknownCommit(!terminal);
-    if (result.outcome === 'saved') {
+    if (result.outcome === 'saved' && ownsPresentation) {
       currentArtifact.current = result.savedArtifactId ?? null;
       setSavedArtifact(currentArtifact.current); setOpenFailed(result.openFailed === true || result.message === 'Workbook saved, but could not be opened.');
     }
@@ -97,6 +124,11 @@ export function ReportsPanel({ generate = generateComponentMrp, savePort = deskt
     }
   }
   const handleOutcomeEvent = useEffectEvent((operationId: string, result: Awaited<ReturnType<NonNullable<ReportSavePort['status']>>>) => applyResult(operationId, result));
+  const handleDeparture = useEffectEvent(() => discardPresentation());
+  useEffect(() => {
+    if (previousActive.current && !active) handleDeparture();
+    previousActive.current = active;
+  }, [active]);
 
   useEffect(() => {
     mounted.current = true;
@@ -125,14 +157,32 @@ export function ReportsPanel({ generate = generateComponentMrp, savePort = deskt
     void import('@tauri-apps/api/core').then(({ invoke }) => invoke('component_mrp_begin')).catch(() => {});
     // Saved-artifact retry is independent of prepared report invalidation.
   }
+  function discardPresentation() {
+    presentationEpoch.current++; generation.current++; abort.current?.abort();
+    setPrepared(null); setGenerating(false); setSavedArtifact(null); currentArtifact.current = null; setOpenFailed(false);
+    setMessage('Generated report discarded.');
+    discardQueue.current = discardQueue.current.catch(() => {}).then(() => savePort.discard?.())
+      .then(() => {}).catch(() => { if (mounted.current) setPreferenceWarning('Host report discard could not be confirmed. Generate again before saving.'); });
+  }
+  function selectReport(next: ReportKind) { if (next === kind) return; discardPresentation(); setKind(next); }
+  function changeStg(value: typeof stg) {
+    invalidate(); setStg(value);
+    try { localStorage.setItem(stgPreferenceKey, JSON.stringify(value)); }
+    catch { setPreferenceWarning('Report inputs could not be remembered; the session choice is retained.'); }
+  }
   async function prepare() {
-    if (unknownCommit) return;
+    if (unknownCommit || saveBusy.current || activeOperation.current) return;
     const token = ++generation.current;
     abort.current?.abort(); const controller = new AbortController(); abort.current = controller;
     setPrepared(null); setGenerating(true); setMessage('Acquiring fresh report facts…');
     try {
-      const result = await generate({ site, part, horizonWeeks: horizon, includeUnconfirmed, period }, controller.signal);
-      if (!mounted.current || generation.current !== token) return;
+      await discardQueue.current;
+      if (controller.signal.aborted || !activeRef.current) return;
+      const result = kind === 'ComponentMrp'
+        ? await generate({ site, part, horizonWeeks: horizon, includeUnconfirmed, period }, controller.signal)
+        : await generateStg({ sites: stg.sites, includeNextWeek: stg.includeNextWeek }, controller.signal);
+      if (!mounted.current || generation.current !== token || !activeRef.current) return;
+      if ('outcome' in result && result.outcome === 'noData') { setMessage('No shipments to go found for the selected sites.'); return; }
       setPrepared(result); setMessage('Workbook prepared. Save As retains these exact bytes for retry.');
     } catch (error) {
       if (mounted.current && generation.current === token) setMessage(error instanceof Error ? error.message : 'Preparation failed.');
@@ -142,11 +192,15 @@ export function ReportsPanel({ generate = generateComponentMrp, savePort = deskt
     if (!prepared || saveBusy.current || unknownCommit) return;
     const busyToken = startBusy();
     const operationId = crypto.randomUUID(); currentOperation.current = operationId;
+    operationEpoch.current = presentationEpoch.current; operationKind.current = kind;
     const intent = openAfterSave;
     try {
-      const result = await savePort.save(prepared, intent, operationId);
+      const result = kind === 'ComponentMrp' ? await savePort.save(prepared, intent, operationId)
+        : await savePort.save(prepared, intent, operationId, kind);
       applyResult(operationId, result);
-    } catch { if (isCurrent(operationId)) { setPendingOperation(operationId); setUnknownCommit(true); setMessage('Save response unavailable; commitment is unknown. Do not replay.'); } }
+    } catch { if (isCurrent(operationId)) { setPendingOperation(operationId); setUnknownCommit(true);
+      setMessage(operationEpoch.current === presentationEpoch.current && activeRef.current
+        ? 'Save response unavailable; commitment is unknown. Do not replay.' : 'A departed report save requires status reconciliation. Do not replay.'); } }
     finally { finishBusy(busyToken); }
   }
   function changeOpen(value: boolean) {
@@ -159,7 +213,7 @@ export function ReportsPanel({ generate = generateComponentMrp, savePort = deskt
     if (!savedArtifact || saveBusy.current) return;
     const artifactId = savedArtifact; const operationId = currentOperation.current; const busyToken = startBusy();
     const ownsRetry = () => mounted.current && busyEpoch.current === busyToken && currentArtifact.current === artifactId && currentOperation.current === operationId;
-    try { await savePort.open(artifactId); if (ownsRetry()) { setOpenFailed(false); setMessage('Workbook saved; opening request accepted.'); } }
+    try { if (kind === 'ComponentMrp') await savePort.open(artifactId); else await savePort.open(artifactId, kind); if (ownsRetry()) { setOpenFailed(false); setMessage('Workbook saved; opening request accepted.'); } }
     catch { if (ownsRetry()) setMessage('Workbook saved, but could not be opened.'); }
     finally { finishBusy(busyToken); }
   }
@@ -167,20 +221,22 @@ export function ReportsPanel({ generate = generateComponentMrp, savePort = deskt
     if (!pendingOperation || !savePort.status || saveBusy.current) return;
     const operationId = pendingOperation; const busyToken = startBusy();
     try {
-      const result = await savePort.status(operationId);
+      const result = operationKind.current === 'ComponentMrp' ? await savePort.status(operationId) : await savePort.status(operationId, operationKind.current);
       applyResult(operationId, result);
     } catch { if (isCurrent(operationId)) setMessage('Operation status unavailable. Do not replay the save.'); }
     finally { finishBusy(busyToken); }
   }
   return <section className="reports-panel" aria-label="Reports">
     <nav className="reports-panel__selector" aria-label="Report selector">
-      <button aria-current="page">Component MRP</button>
-      {['Shipments-To-Go', 'S&OP', 'Open Order Report'].map(name => <button key={name} disabled>{name} — coming later</button>)}
+      <button aria-current={kind === 'ComponentMrp' ? 'page' : undefined} onClick={() => selectReport('ComponentMrp')}>Component MRP</button>
+      <button aria-current={kind === 'ShipmentsToGo' ? 'page' : undefined} onClick={() => selectReport('ShipmentsToGo')}>Shipments-To-Go</button>
+      {['S&OP', 'Open Order Report'].map(name => <button key={name} disabled>{name} — coming later</button>)}
     </nav>
     <div className="reports-panel__body">
-      <h1>Component MRP</h1><p>Direct-part material requirements, independent of workspaces.</p>
+      <h1>{kind === 'ComponentMrp' ? 'Component MRP' : 'Shipments-To-Go'}</h1><p>Independent report generation outside workspace populations.</p>
       <form onSubmit={event => { event.preventDefault(); void prepare(); }}>
         <fieldset disabled={saving || operationActive || unknownCommit}>
+          {kind === 'ComponentMrp' ? <>
           <label>Site<select value={site} onChange={event => { invalidate(); setSite(event.target.value); try { localStorage.setItem(siteKey, event.target.value); } catch { setPreferenceWarning('Site could not be remembered; the session choice is retained.'); } }}>
             {sites.map(value => <option key={value}>{value}</option>)}
           </select></label>
@@ -192,7 +248,13 @@ export function ReportsPanel({ generate = generateComponentMrp, savePort = deskt
             {['Day', 'Week', 'Month'].map(value => <option key={value}>{value}</option>)}
           </select></label>
           <label><input type="checkbox" checked={includeUnconfirmed} onChange={event => { invalidate(); setIncludeUnconfirmed(event.target.checked); }} />Include Unconfirmed POs</label>
-          <button type="submit" disabled={generating || unknownCommit || !part.trim()}>Generate</button>
+          </> : <>
+            <div role="group" aria-label="Select sites">{sites.map(value => <label key={value}>
+              <input type="checkbox" checked={stg.sites.includes(value)} onChange={event => changeStg({ ...stg,
+                sites: event.target.checked ? [...stg.sites, value] : stg.sites.filter(site => site !== value) })} />{value}</label>)}</div>
+            <label><input type="checkbox" checked={stg.includeNextWeek} onChange={event => changeStg({ ...stg, includeNextWeek: event.target.checked })} />Include Next Week?</label>
+          </>}
+          <button type="submit" disabled={generating || unknownCommit || (kind === 'ComponentMrp' ? !part.trim() : stg.sites.length === 0)}>Generate</button>
         </fieldset>
       </form>
       <label><input type="checkbox" checked={openAfterSave} onChange={event => changeOpen(event.target.checked)} />Open workbook after saving</label>
@@ -200,7 +262,7 @@ export function ReportsPanel({ generate = generateComponentMrp, savePort = deskt
         {openFailed && savedArtifact && <button disabled={saving || operationActive} onClick={() => void retryOpen()}>Retry Open</button>}
         {unknownCommit && pendingOperation && savePort.status && <button disabled={saving} onClick={() => void reconcile()}>Check save status</button>}
       </div>
-      {prepared && <p>Prepared: {prepared.fileName} · as of {prepared.asOfDate}{prepared.warning && ` · ${prepared.warning}`}</p>}
+      {prepared && <p>Prepared: {prepared.fileName} · as of {prepared.asOfDate}{'warning' in prepared && prepared.warning && ` · ${prepared.warning}`}</p>}
       <p role="status">{message}</p>{preferenceWarning && <p role="alert">{preferenceWarning}</p>}
     </div>
   </section>;

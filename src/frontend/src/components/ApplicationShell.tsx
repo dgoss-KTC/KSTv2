@@ -161,7 +161,6 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   }, [connectionState, load]);
 
   const handleSelectWorkspace = async (id: string) => {
-    if (reportBusy.current) return;
     if (id !== workspacesState.activeId) {
       if (!(await confirmDiscardPlanning())) return;
       markPlanningDiscarded();
@@ -180,7 +179,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
       .then(unlisten => { if (alive) dispose = unlisten; else unlisten(); }).catch(() => {});
     return () => { alive = false; dispose?.(); };
   }, []);
-  const handleSelectGeneral = async () => { if (reportBusy.current) return; if (await confirmDiscardPlanning()) { markPlanningDiscarded(); setIsReportsActive(false); setIsGeneralActive(true); } };
+  const handleSelectGeneral = async () => { if (await confirmDiscardPlanning()) { markPlanningDiscarded(); setIsReportsActive(false); setIsGeneralActive(true); } };
   const handleSelectReports = async () => { if (await confirmDiscardPlanning()) { markPlanningDiscarded(); setIsGeneralActive(false); setIsReportsActive(true); } };
 
   const handleOpenAddDialog = (triggerEl: HTMLElement) => {
@@ -431,7 +430,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
         {reportCloseWaiting && <div role="status">Waiting for the report save/open operation to finish before closing.
           <button onClick={() => { void import('@tauri-apps/api/core').then(({ invoke }) => invoke('component_mrp_cancel_close'))
             .then(() => setReportCloseWaiting(false)).catch(() => {}); }}>Cancel closing</button></div>}
-        <div hidden={!isReportsActive}><ReportsPanel onBusyChange={handleReportBusy} /></div>
+        <div hidden={!isReportsActive}><ReportsPanel active={isReportsActive} onBusyChange={handleReportBusy} /></div>
         {!isReportsActive && (isGeneralActive ? (
           <GeneralWorkspace
             preferences={preferences}

@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReportsPanel, type ReportSavePort } from './ReportsPanel';
 import type { ComponentMrpPrepared } from '../api/componentMrpApi';
+import type { ShipmentsToGoPrepared } from '../api/shipmentsToGoApi';
 
 const prepared: ComponentMrpPrepared = { preparationId: 'one', fileName: 'ABC_MRP_SW_2026-09-24_01.xlsx',
   asOfDate: '2026-09-24', acquiredAtUtc: '2026-09-24T12:00:00Z', expiresAtUtc: '2026-09-24T12:30:00Z', warning: null,
@@ -183,6 +184,7 @@ describe('Reports Component MRP', () => {
       .mockResolvedValue(prepared);
     render(<ReportsPanel generate={generate} savePort={port()} />);
     fireEvent.change(screen.getByLabelText('Part'), { target: { value: 'ABC' } }); fireEvent.click(screen.getByText('Generate'));
+    await waitFor(() => expect(generate).toHaveBeenCalledTimes(1));
     fireEvent.change(screen.getByLabelText('Part'), { target: { value: 'OTHER' } });
     await act(async () => finish(prepared));
     expect(screen.getByText('Save As…')).toBeDisabled();
@@ -195,6 +197,7 @@ describe('Reports Component MRP', () => {
     const generate = vi.fn().mockImplementationOnce(() => new Promise<ComponentMrpPrepared>(resolve => { finish = resolve; })).mockResolvedValue(prepared);
     render(<ReportsPanel generate={generate} savePort={port()} />);
     fireEvent.change(screen.getByLabelText('Part'), { target: { value: 'ABC' } }); fireEvent.click(screen.getByText('Generate'));
+    await waitFor(() => expect(generate).toHaveBeenCalledTimes(1));
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'Month' } }); await act(async () => finish(prepared));
     expect(screen.getByText('Save As…')).toBeDisabled(); fireEvent.click(screen.getByLabelText('Include Unconfirmed POs'));
     fireEvent.click(screen.getByText('Generate')); await waitFor(() => expect(generate).toHaveBeenCalledTimes(2));
@@ -232,5 +235,64 @@ describe('Reports Component MRP', () => {
     fireEvent.click(screen.getByLabelText('Open workbook after saving'));
     await screen.findByText('Save preference could not be remembered; the session choice is retained.');
     expect(screen.getByLabelText('Open workbook after saving')).toBeChecked(); expect(screen.getByText('Save As…')).toBeEnabled();
+  });
+  it('STG defaults, remembered inputs, no-data and kind-bound exact retry', async () => {
+    const stgPrepared: ShipmentsToGoPrepared = { outcome: 'prepared', preparationId: 'stg', fileName: 'STG.xlsx',
+      asOfDate: '2026-10-09', acquiredAtUtc: '2026-10-09T12:00:00Z', expiresAtUtc: '2026-10-09T12:30:00Z' };
+    const generateStg = vi.fn().mockResolvedValueOnce({ ...stgPrepared, outcome: 'noData', preparationId: null, fileName: null })
+      .mockResolvedValue(stgPrepared);
+    const savePort = port(); savePort.discard = vi.fn().mockResolvedValue(undefined);
+    render(<ReportsPanel generateStg={generateStg} savePort={savePort} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Shipments-To-Go' }));
+    for (const site of ['SW', 'NW', 'KV']) expect(screen.getByLabelText(site)).toBeChecked();
+    for (const site of ['AR', 'MN', 'MS']) expect(screen.getByLabelText(site)).not.toBeChecked();
+    expect(screen.queryByLabelText('KS')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Include Next Week?')).not.toBeChecked();
+    fireEvent.click(screen.getByText('Generate')); await screen.findByText('No shipments to go found for the selected sites.');
+    expect(screen.getByText('Save As…')).toBeDisabled();
+    fireEvent.click(screen.getByLabelText('MS')); fireEvent.click(screen.getByLabelText('Include Next Week?'));
+    expect(JSON.parse(localStorage.getItem('kst.shipmentsToGo.inputs.v1')!)).toEqual({ sites: ['SW', 'NW', 'KV', 'MS'], includeNextWeek: true });
+    fireEvent.click(screen.getByText('Generate')); await waitFor(() => expect(screen.getByText('Save As…')).toBeEnabled());
+    fireEvent.click(screen.getByText('Save As…')); await screen.findByText('Save cancelled.');
+    fireEvent.click(screen.getByText('Save As…')); await waitFor(() => expect(savePort.save).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(savePort.save).mock.calls[0][0]).toBe(stgPrepared);
+    expect(vi.mocked(savePort.save).mock.calls[1][0]).toBe(stgPrepared);
+    expect(vi.mocked(savePort.save).mock.calls[0][3]).toBe('ShipmentsToGo');
+    expect(generateStg).toHaveBeenCalledTimes(2);
+  });
+  it('departure discards settled bytes and open retry while retaining preferences', async () => {
+    const savePort = port(); savePort.discard = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(savePort.save).mockResolvedValue({ outcome: 'saved', savedArtifactId: 'a', openFailed: true, message: 'Workbook saved, but could not be opened.' });
+    const view = render(<ReportsPanel active generate={vi.fn().mockResolvedValue(prepared)} savePort={savePort} />);
+    fireEvent.change(screen.getByLabelText('Part'), { target: { value: 'ABC' } }); fireEvent.click(screen.getByText('Generate'));
+    await waitFor(() => expect(screen.getByText('Save As…')).toBeEnabled()); fireEvent.click(screen.getByText('Save As…'));
+    await screen.findByText('Retry Open');
+    view.rerender(<ReportsPanel active={false} generate={vi.fn().mockResolvedValue(prepared)} savePort={savePort} />);
+    await waitFor(() => expect(savePort.discard).toHaveBeenCalledTimes(1));
+    view.rerender(<ReportsPanel active generate={vi.fn().mockResolvedValue(prepared)} savePort={savePort} />);
+    expect(screen.queryByText('Retry Open')).not.toBeInTheDocument(); expect(screen.queryByText(/Prepared:/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Part')).toHaveValue('ABC'); expect(screen.getByText('Save As…')).toBeDisabled();
+  });
+  it('unknown departed save remains recoverable across kind switch without resurrection or replay', async () => {
+    const savePort = port(); savePort.discard = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(savePort.save).mockRejectedValue(new Error('lost'));
+    savePort.status = vi.fn().mockResolvedValue({ outcome: 'saved', savedArtifactId: 'old', openFailed: true, operationComplete: true, message: 'Old saved' });
+    render(<ReportsPanel generate={vi.fn().mockResolvedValue(prepared)} savePort={savePort} />);
+    fireEvent.change(screen.getByLabelText('Part'), { target: { value: 'ABC' } }); fireEvent.click(screen.getByText('Generate'));
+    await waitFor(() => expect(screen.getByText('Save As…')).toBeEnabled()); fireEvent.click(screen.getByText('Save As…'));
+    await screen.findByText('Check save status'); fireEvent.click(screen.getByRole('button', { name: 'Shipments-To-Go' }));
+    expect(screen.queryByText(/Prepared:/)).not.toBeInTheDocument(); expect(screen.getByText('Generate')).toBeDisabled();
+    fireEvent.click(screen.getByText('Check save status')); await screen.findByText('Generated report discarded.');
+    expect(screen.queryByText('Retry Open')).not.toBeInTheDocument(); expect(screen.queryByText('Old saved')).not.toBeInTheDocument();
+    expect(screen.getByText('Generate')).toBeEnabled(); expect(savePort.save).toHaveBeenCalledTimes(1); expect(savePort.open).not.toHaveBeenCalled();
+  });
+  it('switching reports discards a late acquisition even after returning', async () => {
+    const reply = deferred<ComponentMrpPrepared>(); const generate = vi.fn().mockReturnValue(reply.promise);
+    render(<ReportsPanel generate={generate} savePort={port()} />);
+    fireEvent.change(screen.getByLabelText('Part'), { target: { value: 'ABC' } }); fireEvent.click(screen.getByText('Generate'));
+    await waitFor(() => expect(generate).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Shipments-To-Go' })); fireEvent.click(screen.getByRole('button', { name: 'Component MRP' }));
+    await act(async () => reply.resolve(prepared));
+    expect(screen.getByText('Save As…')).toBeDisabled(); expect(screen.queryByText(/Prepared:/)).not.toBeInTheDocument();
   });
 });

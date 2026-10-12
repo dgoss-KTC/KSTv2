@@ -1,9 +1,15 @@
 # Current Project Status
 
-Date: 2026-10-09
+Date: 2026-10-12
 Workstation: Windows (`C:\Dev\kst_v2`)
 Active work: **Stage 18 IN PROGRESS — Component MRP COMPLETE / OWNER-ACCEPTED (2026-10-09).**
-Next: **Shipments-To-Go discovery in a separate session**, then S&OP, then Open Order Report.
+Current: **Stage 18.4 Shipments-To-Go COMPLETE / OWNER-ACCEPTED — closeout 2026-10-12**.
+Python authority, KS/KTS summary removal, multisite defaults and report-departure discard/recovery
+are recorded in `docs/implementation/KST_v2_STAGE_18_STG_IMPLEMENTATION.md`.
+Owner ran STG and reported identical legacy output; comparison completed. Separate-context F1 review
+resolved the finding; owner confirmed acceptance and local-only commit authorization. See
+`docs/implementation/KST_v2_STAGE_18_STG_CLOSEOUT.md` for evidence/limits. Stage18 remains in progress.
+S&OP and Open Order Report await separate authorization; no further report work or push authorized.
 Owner: “I ran the app and generated a few reports. Saving works well now.” Generation/saving
 observations do not imply every desktop, printing or numerical check was performed. See
 `docs/implementation/KST_v2_STAGE_18_COMPONENT_MRP_CLOSEOUT.md` for acceptance and evidence limits.

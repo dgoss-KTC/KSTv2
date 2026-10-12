@@ -131,6 +131,13 @@ builder.Services.AddSingleton<Kst.Application.ComponentMrp.IComponentMrpReader>(
     new Kst.Application.ComponentMrp.DelegateComponentMrpReader(sp.GetRequiredService<Kst.Integrations.Qad.ComponentMrp.QadComponentMrpReader>().ReadAsync));
 builder.Services.AddSingleton<Kst.Application.ComponentMrp.ComponentMrpService>();
 builder.Services.AddSingleton<Kst.Api.ComponentMrpPreparations>();
+builder.Services.AddSingleton<Kst.Integrations.Qad.ShipmentsToGo.QadShipmentsToGoReader>();
+builder.Services.AddSingleton<Kst.Application.ShipmentsToGo.IShipmentsToGoReader>(sp =>
+{
+    var reader = sp.GetRequiredService<Kst.Integrations.Qad.ShipmentsToGo.QadShipmentsToGoReader>();
+    return new Kst.Application.ShipmentsToGo.DelegateShipmentsToGoReader(reader.ReadOrdersAsync, reader.ReadShippedTodayAsync);
+});
+builder.Services.AddSingleton<Kst.Application.ShipmentsToGo.ShipmentsToGoService>();
 if (qadOptions.IsConfigured)
     builder.Services.AddSingleton<IQadConnectivityCheck, SqlServerQadConnectivityCheck>();
 else
@@ -529,6 +536,7 @@ app.MapOpenApi();
 
 app.MapDiagnosticEndpoints();
 app.MapComponentMrpEndpoints();
+app.MapShipmentsToGoEndpoints();
 app.MapSystemEndpoints();
 app.MapWorkspaceEndpoints();
 app.MapPreferencesEndpoints();

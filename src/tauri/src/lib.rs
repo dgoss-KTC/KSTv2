@@ -213,7 +213,7 @@ pub fn run() {
                 component_mrp::component_mrp_open_preference, component_mrp::component_mrp_remember_open_preference,
                 component_mrp::component_mrp_begin, component_mrp::component_mrp_generate,
                 component_mrp::component_mrp_save, component_mrp::component_mrp_status, component_mrp::component_mrp_open,
-                component_mrp::component_mrp_cancel_close])
+                component_mrp::component_mrp_cancel_close, component_mrp::report_discard])
         .build(tauri::generate_context!())
         .expect("error while building KST application");
 

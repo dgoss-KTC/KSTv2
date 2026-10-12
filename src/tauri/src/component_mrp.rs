@@ -12,6 +12,20 @@ use tauri::{Emitter, Manager};
 
 const MAX_BYTES: usize = 8 * 1024 * 1024;
 const LIFETIME: Duration = Duration::from_secs(1800);
+#[derive(Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize, Debug)]
+pub enum ReportKind {
+    #[default]
+    ComponentMrp,
+    ShipmentsToGo,
+}
+impl ReportKind {
+    fn route(self) -> &'static str {
+        match self {
+            Self::ComponentMrp => "component-mrp",
+            Self::ShipmentsToGo => "shipments-to-go",
+        }
+    }
+}
 #[derive(Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct Preference {
@@ -21,6 +35,7 @@ struct Preference {
     last_parent: Option<PathBuf>,
 }
 struct Preparation {
+    kind: ReportKind,
     id: String,
     bytes: Arc<Vec<u8>>,
     name: String,
@@ -64,6 +79,9 @@ struct State {
     artifacts: HashMap<String, Artifact>,
     busy: bool,
     close_pending: bool,
+    operation_kinds: HashMap<String, ReportKind>,
+    artifact_kinds: HashMap<String, ReportKind>,
+    departed: bool,
 }
 #[derive(Default)]
 pub struct ReportPreferences(Mutex<State>, Mutex<bool>);
@@ -99,6 +117,15 @@ pub fn component_mrp_cancel_close(
     Ok(())
 }
 impl State {
+    fn discard(&mut self) {
+        self.epoch += 1;
+        self.prepared = None;
+        self.departed = true;
+        if !self.busy {
+            self.artifacts.clear();
+            self.artifact_kinds.clear();
+        }
+    }
     fn retry(
         &mut self,
         artifact_id: &str,
@@ -137,6 +164,10 @@ impl State {
             .values()
             .all(|o| o.outcome != "saved" || o.operation_complete));
         self.busy = false;
+        if self.departed {
+            self.artifacts.clear();
+            self.artifact_kinds.clear();
+        }
         self.close_pending
     }
 }
@@ -255,23 +286,22 @@ pub fn component_mrp_begin(
     }
     s.epoch += 1;
     s.prepared = None;
+    s.departed = false;
     if s.session.is_empty() {
         s.session = native::new_id()?
     }
     Ok(s.epoch)
 }
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Prepared {
-    preparation_id: String,
-    file_name: String,
-    as_of_date: String,
-    acquired_at_utc: String,
-    expires_at_utc: String,
-    warning: Option<String>,
-    period: String,
-    include_unconfirmed: bool,
-    forecast_end_exclusive: String,
+/// Departure invalidates acquisition immediately, even while a save worker owns bytes.
+#[tauri::command]
+pub fn report_discard(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, ReportPreferences>,
+) -> Result<(), String> {
+    require_main(&window)?;
+    let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
+    s.discard();
+    Ok(())
 }
 #[tauri::command]
 pub async fn component_mrp_generate(
@@ -284,8 +314,12 @@ pub async fn component_mrp_generate(
     horizon_weeks: u32,
     include_unconfirmed: bool,
     period: String,
-) -> Result<Prepared, String> {
+    report_kind: Option<ReportKind>,
+    sites: Option<Vec<String>>,
+    include_next_week: Option<bool>,
+) -> Result<serde_json::Value, String> {
     require_main(&window)?;
+    let kind = report_kind.unwrap_or_default();
     {
         let mut active = state
             .1
@@ -297,10 +331,22 @@ pub async fn component_mrp_generate(
         *active = true;
     }
     let _lease = GenerationLease(&state, &window);
-    if part.len() > 1024
-        || !["SW", "NW", "AR", "MN", "MS", "KV"].contains(&site.as_str())
-        || ![13, 26, 52, 72].contains(&horizon_weeks)
-        || !["Day", "Week", "Month"].contains(&period.as_str())
+    if kind == ReportKind::ComponentMrp
+        && (part.len() > 1024
+            || !["SW", "NW", "AR", "MN", "MS", "KV"].contains(&site.as_str())
+            || ![13, 26, 52, 72].contains(&horizon_weeks)
+            || !["Day", "Week", "Month"].contains(&period.as_str()))
+    {
+        return Err("Invalid report request.".into());
+    }
+    if kind == ReportKind::ShipmentsToGo
+        && !sites.as_ref().is_some_and(|v| {
+            !v.is_empty()
+                && v.len() <= 6
+                && v.iter()
+                    .all(|s| ["SW", "NW", "AR", "MN", "MS", "KV"].contains(&s.as_str()))
+                && v.iter().collect::<std::collections::HashSet<_>>().len() == v.len()
+        })
     {
         return Err("Invalid report request.".into());
     }
@@ -324,13 +370,24 @@ pub async fn component_mrp_generate(
         .timeout(Duration::from_secs(120))
         .build()
         .map_err(|_| "Transport unavailable.")?;
-    let mut response=client.post(format!("{url}/api/v1/reports/component-mrp")).header("X-KST-Report-Session",&session)
-        .json(&serde_json::json!({"site":site,"part":part,"horizonWeeks":horizon_weeks,"includeUnconfirmed":include_unconfirmed,"period":period})).send().await.map_err(|_|"Generation transport failed.")?;
+    let route = kind.route();
+    let request = if kind == ReportKind::ComponentMrp {
+        serde_json::json!({"site":site,"part":part,"horizonWeeks":horizon_weeks,"includeUnconfirmed":include_unconfirmed,"period":period})
+    } else {
+        serde_json::json!({"sites":sites,"includeNextWeek":include_next_week.unwrap_or(false)})
+    };
+    let mut response = client
+        .post(format!("{url}/api/v1/reports/{route}"))
+        .header("X-KST-Report-Session", &session)
+        .json(&request)
+        .send()
+        .await
+        .map_err(|_| "Generation transport failed.")?;
     if !response.status().is_success() {
         return Err(if response.status().as_u16() == 404 {
             "Part not found in selected domain."
         } else {
-            "Component MRP acquisition failed. Retry Generate."
+            "Report acquisition failed. Retry Generate."
         }
         .into());
     }
@@ -345,26 +402,41 @@ pub async fn component_mrp_generate(
         }
         metadata.extend_from_slice(&chunk)
     }
-    let prepared: Prepared =
+    let result: serde_json::Value =
         serde_json::from_slice(&metadata).map_err(|_| "Invalid preparation metadata.")?;
-    if prepared.preparation_id.len() != 36
-        || !prepared
-            .preparation_id
+    if kind == ReportKind::ShipmentsToGo && result["outcome"] == "noData" {
+        let s = state.0.lock().map_err(|_| "State unavailable.")?;
+        if s.epoch != epoch || s.departed {
+            return Err("Generation superseded; result discarded.".into());
+        }
+        return Ok(result);
+    }
+    let preparation_id = result["preparationId"]
+        .as_str()
+        .ok_or("Invalid preparation ID.")?
+        .to_string();
+    let file_name = result["fileName"]
+        .as_str()
+        .ok_or("Invalid suggested filename.")?
+        .to_string();
+    let prepared_id = preparation_id;
+    if prepared_id.len() != 36
+        || !prepared_id
             .chars()
             .all(|c| c.is_ascii_hexdigit() || c == '-')
     {
         return Err("Invalid preparation ID.".into());
     }
-    if prepared.file_name.len() > 220
-        || prepared.file_name.contains(['/', '\\', ':'])
-        || !prepared.file_name.ends_with(".xlsx")
+    if file_name.len() > 220
+        || file_name.contains(['/', '\\', ':'])
+        || !file_name.ends_with(".xlsx")
     {
         return Err("Invalid suggested filename.".into());
     }
     let mut response = client
         .get(format!(
-            "{url}/api/v1/reports/component-mrp/preparations/{}/bytes",
-            prepared.preparation_id
+            "{url}/api/v1/reports/{route}/preparations/{}/bytes",
+            prepared_id
         ))
         .header("X-KST-Report-Session", &session)
         .send()
@@ -400,17 +472,18 @@ pub async fn component_mrp_generate(
         return Err("Prepared workbook transfer is incomplete or invalid.".into());
     }
     let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
-    if s.epoch != epoch || s.busy {
+    if s.epoch != epoch || s.busy || s.departed {
         return Err("Generation superseded; result discarded.".into());
     }
     s.prepared = Some(Preparation {
-        id: prepared.preparation_id.clone(),
+        kind,
+        id: prepared_id,
         bytes: Arc::new(bytes),
-        name: prepared.file_name.clone(),
+        name: file_name,
         created: Instant::now(),
         backend: url,
     });
-    Ok(prepared)
+    Ok(result)
 }
 
 #[tauri::command]
@@ -418,9 +491,18 @@ pub fn component_mrp_status(
     window: tauri::WebviewWindow,
     state: tauri::State<'_, ReportPreferences>,
     operation_id: String,
+    report_kind: Option<ReportKind>,
 ) -> Result<Outcome, String> {
     require_main(&window)?;
     let s = state.0.lock().map_err(|_| "State unavailable.")?;
+    if s.operation_kinds
+        .get(&operation_id)
+        .copied()
+        .unwrap_or_default()
+        != report_kind.unwrap_or_default()
+    {
+        return Err("Operation belongs to another report.".into());
+    }
     s.operations
         .get(&operation_id)
         .cloned()
@@ -436,8 +518,10 @@ pub async fn component_mrp_save(
     operation_id: String,
     preparation_id: String,
     open_after_save: bool,
+    report_kind: Option<ReportKind>,
 ) -> Result<Outcome, String> {
     require_main(&window)?;
+    let kind = report_kind.unwrap_or_default();
     if operation_id.len() > 64 || operation_id.is_empty() {
         return Err("Invalid operation ID.".into());
     }
@@ -451,6 +535,14 @@ pub async fn component_mrp_save(
     let (bytes, name, folder) = {
         let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
         if let Some(result) = s.operations.get(&operation_id) {
+            if s.operation_kinds
+                .get(&operation_id)
+                .copied()
+                .unwrap_or_default()
+                != kind
+            {
+                return Err("Operation belongs to another report.".into());
+            }
             return Ok(result.clone());
         }
         if s.busy || s.close_pending || s.operations.values().any(|o| o.outcome == "unknown") {
@@ -464,8 +556,11 @@ pub async fn component_mrp_save(
                 "Report operation capacity reached. Restart after reviewing saved outcomes.".into(),
             );
         }
+        s.operation_kinds.insert(operation_id.clone(), kind);
         let valid = s.prepared.as_ref().is_some_and(|p| {
             p.id == preparation_id
+                && p.kind == kind
+                && !s.departed
                 && p.created.elapsed() <= LIFETIME
                 && active_url.as_ref() == Some(&p.backend)
         });
@@ -564,6 +659,7 @@ pub async fn component_mrp_save(
                             retries: HashMap::new(),
                         },
                     );
+                    s.artifact_kinds.insert(artifact.clone(), kind);
                     let p = s.preference.as_mut().unwrap();
                     p.last_parent = destination.parent().map(|p| p.to_path_buf());
                     path(&app)
@@ -641,6 +737,7 @@ pub async fn component_mrp_open(
     state: tauri::State<'_, ReportPreferences>,
     artifact_id: String,
     request_id: String,
+    report_kind: Option<ReportKind>,
 ) -> Result<(), String> {
     require_main(&window)?;
     if request_id.is_empty() || request_id.len() > 64 {
@@ -648,6 +745,15 @@ pub async fn component_mrp_open(
     }
     let (target, id, bytes) = {
         let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
+        if s.artifact_kinds
+            .get(&artifact_id)
+            .copied()
+            .unwrap_or_default()
+            != report_kind.unwrap_or_default()
+            || s.departed
+        {
+            return Err("Saved artifact grant unavailable for this report.".into());
+        }
         match s.retry(&artifact_id, &request_id)? {
             Some(grant) => grant,
             None => return Ok(()),
@@ -671,6 +777,48 @@ pub async fn component_mrp_open(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn report_kind_routes_and_departure_retain_only_recovery_and_worker_ownership() {
+        assert_eq!(ReportKind::ComponentMrp.route(), "component-mrp");
+        assert_eq!(ReportKind::ShipmentsToGo.route(), "shipments-to-go");
+        assert!(serde_json::from_str::<ReportKind>("\"https://other\"").is_err());
+        let mut s = State::default();
+        s.prepared = Some(Preparation {
+            kind: ReportKind::ShipmentsToGo,
+            id: "p".into(),
+            bytes: Arc::new(vec![1]),
+            name: "s.xlsx".into(),
+            created: Instant::now(),
+            backend: "managed".into(),
+        });
+        s.operation_kinds
+            .insert("o".into(), ReportKind::ShipmentsToGo);
+        s.record_operation("o".into(), Outcome::new("unknown", "Do not replay"));
+        s.artifacts.insert(
+            "a".into(),
+            Artifact {
+                path: PathBuf::from("s.xlsx"),
+                id: (1, 2),
+                bytes: Arc::new(vec![1]),
+                attempts: 0,
+                retries: HashMap::new(),
+            },
+        );
+        s.artifact_kinds
+            .insert("a".into(), ReportKind::ShipmentsToGo);
+        s.busy = true;
+        s.discard();
+        assert!(s.prepared.is_none());
+        assert_eq!(s.epoch, 1);
+        assert!(s.busy);
+        assert!(s.artifacts.contains_key("a"));
+        s.release_work();
+        assert!(s.artifacts.is_empty());
+        assert!(s.artifact_kinds.is_empty());
+        assert_eq!(s.operations["o"].outcome, "unknown");
+        assert_eq!(s.operation_kinds["o"], ReportKind::ShipmentsToGo);
+        assert_ne!(s.operation_kinds["o"], ReportKind::ComponentMrp);
+    }
     #[test]
     fn production_retry_grant_is_bounded_and_deduplicated_and_close_can_cancel() {
         let host = ReportPreferences::default();
