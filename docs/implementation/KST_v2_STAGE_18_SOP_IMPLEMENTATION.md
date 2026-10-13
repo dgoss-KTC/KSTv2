@@ -127,6 +127,7 @@ Acceptance is not exhaustive parity: procedure definition/internal read-only beh
 permissions, numerical Python parity, physical printing, and a complete desktop/save/close matrix
 remain unverified. The owner-generated workbook and corrected form are observed owner evidence, not
 proof of all these cases. Synthetic Excel/mocked tests remain synthetic. Broad formatting, locked
-Stage10 lint, AFT/Rust/Tier2 limitations remain exceptions. Stage18 overall remains in progress;
-18.6 is the owner's designation for upcoming Open Order Report work (existing master checklist calls
-that report section18.3). Keep existing numbering unchanged pending any future deliberate reconciliation.
+Stage10 lint, AFT/Rust/Tier2 limitations remain exceptions, not passes; they remain limits after Stage18 acceptance.
+Owner designation18.6 corresponds to historical master-checklist Open Order section18.3; no unrelated
+numbering changed. The 2026-10-13 overall Stage18 disposition and owner-reported comparison completion
+are recorded in `KST_v2_STAGE_18_CLOSEOUT.md`; no comparison date or result detail is inferred here.

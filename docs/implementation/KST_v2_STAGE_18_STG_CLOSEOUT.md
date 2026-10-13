@@ -1,7 +1,9 @@
 # Stage 18.4 Shipments-To-Go — accepted closeout
 
 Closeout executed: **2026-10-12**. Status: **COMPLETE / OWNER-ACCEPTED**.
-Stage 18 overall remains **IN PROGRESS**. S&OP and Open Order Report await separate authorization.
+Stage 18 overall is **COMPLETE / OWNER-ACCEPTED — 2026-10-13**. S&OP and Open Order Report were
+subsequently accepted; the S&OP legacy-workbook comparison is owner-reported completed, with no repeat
+required. Overall limits remain recorded in `KST_v2_STAGE_18_CLOSEOUT.md`.
 
 ## Acceptance and scope
 

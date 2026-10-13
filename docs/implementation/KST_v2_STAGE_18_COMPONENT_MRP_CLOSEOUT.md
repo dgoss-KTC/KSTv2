@@ -1,8 +1,9 @@
 # Stage 18 — Component MRP acceptance and save-foundation closeout
 
 **Component MRP: COMPLETE / OWNER-ACCEPTED — 2026-10-09.**
-**Stage 18 overall: IN PROGRESS.** Next report: Shipments-To-Go discovery in a separate session,
-then S&OP, then Open Order Report. No next-report discovery or implementation belongs to this closeout.
+**Stage 18 overall: COMPLETE / OWNER-ACCEPTED — 2026-10-13.** The three subsequent reports were
+accepted; owner confirms the S&OP legacy-workbook comparison had already been performed, with no repeat
+required. Overall status and retained evidence limits: `KST_v2_STAGE_18_CLOSEOUT.md`.
 Application `0.1.0-alpha.18`; numeric installer `0.1.0` unchanged.
 
 ## Acceptance and evidence boundaries
@@ -72,4 +73,5 @@ validation-to-opening race limitations remain. Optional launch success means dis
 Local commit authorized for accepted report/save foundation, tests, DTO/OpenAPI/generated types,
 application alpha.18 metadata and relevant Stage18/status/checklist documentation. Preserve unrelated
 buildinfo/generated Tauri schema working changes and empty root Stage14 plan; no push/fetch or
-synced source-reference edits. Stage18 remains in progress.
+synced source-reference edits. The later overall Stage18 disposition is in
+`KST_v2_STAGE_18_CLOSEOUT.md`.

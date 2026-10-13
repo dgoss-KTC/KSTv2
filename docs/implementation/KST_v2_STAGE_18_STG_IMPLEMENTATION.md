@@ -3,7 +3,8 @@
 Status: **COMPLETE / OWNER-ACCEPTED — CLOSEOUT 2026-10-12**.
 Current acceptance/evidence limits: `KST_v2_STAGE_18_STG_CLOSEOUT.md`. Earlier pending statements
 below are historical checkpoint observations, superseded by completed owner comparison/F1 resolution.
-Stage18 remains in progress.
+Stage18 was subsequently recorded COMPLETE / OWNER-ACCEPTED on 2026-10-13; see
+`KST_v2_STAGE_18_CLOSEOUT.md`. This I1 packet remains implementation provenance.
 Baseline accepted Component MRP/save commit `5c8e73057e19384f9353151f9ea1daac35c149b2`.
 Discovery packet `C:\dev\kst_v2_tmp\Stage 18\STG_D1_20261009_144738` remains provenance,
 not an accepted specification wherever superseded below. Local Agent Addendum is discarded and
@@ -145,10 +146,12 @@ Corrected sidecar published using scripts/build-sidecar.ps1; both copies SHA256
 Fresh provenance/log/source identities retained in
 `C:\dev\kst_v2_tmp\Stage 18\STG_F1_20261009_1645_evidence`; compact export
 `C:\dev\kst_v2_tmp\Stage 18\STG_F1_20261009_1645`. Older sidecar hash difference unexplained;
-no historical explanation inferred. Alpha18/installer0.1.0 unchanged. Stage18 overall in progress.
+no historical explanation inferred. Alpha18/installer0.1.0 unchanged. Overall Stage18 status is in
+`KST_v2_STAGE_18_CLOSEOUT.md`.
 Separate-context focused re-review adjudicated **STG-R1-F1 Resolved**, no concrete blocker in
 F1/direct-workbook scope; recommends 18.4 closeout under existing conditional acceptance. Result:
 compact export `focused-review.md`. Reviewer checked actual final source/diff/hashes, TRX and workbook
 OOXML/Excel observations; retained tests/Excel not rerun. Reviewer fresh C# AFT zero diagnostics with
 Tier2 gaps. No universal security/numerical/printing assurance or next-stage authorization inferred.
-Owner comparison is completed evidence; no repeat requested. Stage18 overall remains in progress.
+Owner comparison is completed evidence; no repeat requested. Overall Stage18 status and retained limits
+are recorded in `KST_v2_STAGE_18_CLOSEOUT.md`.

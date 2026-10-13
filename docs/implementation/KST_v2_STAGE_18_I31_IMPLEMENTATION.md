@@ -1,7 +1,9 @@
 # Stage 18-I3.1 — lifecycle and print corrections
 
-Implemented 2026-10-09; pending focused independent re-review and owner laptop verification.
-Stage 18 remains unaccepted. Application `0.1.0-alpha.18`, installer `0.1.0` unchanged.
+Implemented 2026-10-09; pending focused independent re-review and owner laptop verification at the
+time of this I3.1 checkpoint. Later accepted reviews and the 2026-10-13 Stage18 closeout supersede
+that checkpoint status: `KST_v2_STAGE_18_CLOSEOUT.md`. Application `0.1.0-alpha.18`, installer
+`0.1.0` unchanged.
 
 ## Corrections to independent I3 findings
 

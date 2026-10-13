@@ -1,9 +1,10 @@
 # Stage 18.6 Open Order Report — accepted closeout
 
-Closeout: **2026-10-12**. Status: **COMPLETE / OWNER-ACCEPTED**. Owner designation **18.6**
+Report closeout: **2026-10-12**. Status: **COMPLETE / OWNER-ACCEPTED**. Owner designation **18.6**
 corresponds to the master checklist's historical Open Order section **18.3**; unrelated numbering is
-unchanged. Stage 18 overall remains **IN PROGRESS**: S&OP's explicit legacy-workbook comparison item
-is still open, despite acceptance of all four delivered reports. No comparison waiver is inferred.
+unchanged. Stage 18 overall closeout: **COMPLETE / OWNER-ACCEPTED — 2026-10-13**. The owner confirms
+the S&OP legacy-workbook comparison had already been performed; no repeat comparison is required.
+No date, inputs, row counts, numerical coverage or results beyond that statement are asserted.
 
 ## Owner acceptance and retained implementation
 
@@ -66,12 +67,15 @@ phase/status reporting, acquisition cancellation and bounded save/close cancella
 and synthetic workbook validation. OOR deliberately has no extra workbook metadata or print redesign.
 These definitions do not assert every desktop sequence was tested or that Stage 21 conformance is done.
 
-The historical S&OP checklist item **Compare with legacy workbook** remains unchecked: accepted output
-and synthetic/static workbook evidence do not establish that comparison. Consequently Stage 18 overall
-is not marked complete. Component MRP/OOR comprehensive live parity limits remain explicitly qualified;
-the accepted STG owner comparison is retained at its documented depth. No new comparison work is
-authorized here; separately scope the remaining S&OP comparison or an explicit owner disposition.
+The S&OP checklist item **Compare with legacy workbook** is recorded complete on owner confirmation
+that the comparison had already been performed; no repeat was requested. The owner statement is
+separate from retained static/synthetic evidence and adds no unsupported comparison scope or result.
+All four reports are COMPLETE / OWNER-ACCEPTED and Stage18 overall is COMPLETE / OWNER-ACCEPTED as of
+2026-10-13. Component MRP/OOR comprehensive live parity limits remain explicitly qualified; the accepted
+STG owner comparison remains at its documented depth. Exhaustive live parity, physical printing and
+full desktop interaction coverage are still not claimed. Existing broad-formatting, locked Stage10
+lint and AFT exceptions remain exceptions, not passes. No further stage or release readiness is inferred.
 
 Application `0.1.0-alpha.18` and numeric installer `0.1.0` are preserved. All four stashes, comparison
-branches, trial packets and parked unrelated work are preserved. The compact local closeout HANDOFF
-records the resulting commit/tree, main integration, verified origin/main tip and exact final state.
+branches, trial packets and parked unrelated work are preserved. Owner designation 18.6 maps to
+historical checklist section 18.3; no unrelated stage numbering is changed.

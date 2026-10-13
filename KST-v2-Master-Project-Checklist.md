@@ -1558,7 +1558,7 @@ considered in Stage 22; a future standalone variance capability requires a new o
 case.
 
 
-## Stage 18 — Standalone Excel Report Generators — IN PROGRESS / RELEASE 1 REQUIRED
+## Stage 18 — Standalone Excel Report Generators — COMPLETE / OWNER-ACCEPTED (2026-10-13)
 
 Component MRP COMPLETE / OWNER-ACCEPTED — 2026-10-09. Owner generated reports and observed saving
 working well; not every desktop/print/numerical check is claimed executed. Evidence/limits:
@@ -1568,10 +1568,13 @@ Shipments-To-Go COMPLETE / OWNER-ACCEPTED (closeout2026-10-12); see
 (closeout2026-10-12); see `docs/implementation/KST_v2_STAGE_18_SOP_CLOSEOUT.md`. Open Order
 Report COMPLETE / OWNER-ACCEPTED (closeout2026-10-12); see
 `docs/implementation/KST_v2_STAGE_18_OOR_CLOSEOUT.md`. Owner designation18.6 corresponds to historical
-section18.3; no unrelated renumbering. All four reports are accepted; Stage18 overall remains in
-progress because S&OP's explicit legacy-workbook comparison remains open. Shared definitions below
-are reconciled against the accepted concrete save foundation and actual report uses, not an untested
-generic abstraction. Synthetic/owner evidence and retained live/desktop/printing limits stay distinct.
+section18.3; no unrelated renumbering. Owner confirmed that the S&OP legacy-workbook comparison had
+already been performed; no repeat comparison is required. No date, inputs, row counts or results beyond
+that owner statement are asserted. All four reports are accepted; Stage18 overall COMPLETE / OWNER-
+ACCEPTED as of 2026-10-13. Shared definitions below are reconciled against the accepted concrete save
+foundation and actual report uses, not an untested generic abstraction. Synthetic/owner evidence and
+retained live/desktop/printing limits stay distinct. Overall closeout:
+`docs/implementation/KST_v2_STAGE_18_CLOSEOUT.md`.
 
 ### 18.1 Shared report infrastructure
 
@@ -1634,13 +1637,18 @@ scoped verification and explicit limits: `docs/implementation/KST_v2_STAGE_18_ST
 - [x] Determine use of MPS procedure data (owner authorizes fixed dbo.sp_QAD_ktmpswkm; internals unavailable)
 - [x] Extract aggregation rules and approved current-calendar/period-total amendments
 - [x] Implement workbook generation and accepted layout follow-up (I1/UI)
-- [ ] Compare with legacy workbook — still open at 18.6 closeout; owner output acceptance and static/
-      synthetic evidence do not establish this comparison. No waiver inferred; separately scoped work/disposition required.
+- [x] Compare with legacy workbook — owner confirms this comparison was already performed; no repeat
+      required. Date, inputs, row counts, numerical coverage and results are not independently recorded
+      here because the owner statement supplied none. This is owner-reported completion, distinct from
+      retained static/synthetic evidence and the existing live-parity limitations.
 - [x] Validate monthly period behavior synthetically (frontend calendar + isolated Excel; no live parity claim)
 - [x] Owner acceptance — owner reports generated workbook good and accepted S&OP overall; corrected Product lines form reviewed/accepted. Limits in S&OP closeout.
-Completion gate: Component MRP, Open Order Report, Shipments-To-Go, and S&OP workbooks can be
-generated and validated independently from KST v2. These report generators are distinct from the
-application-view export inventory and conformance work in Stage 21.
+Stage18 closeout: all four standalone report generators are COMPLETE / OWNER-ACCEPTED. The accepted
+shared report generation/save/open foundation is evidenced by actual report uses. Owner acceptance and
+reported comparison completion remain distinct from synthetic/mocked checks; exhaustive live numerical
+parity, physical printing and full desktop interaction coverage are not claimed. Known broad-formatting,
+locked Stage10 lint and AFT coverage gaps remain exceptions, not passes. This completion does not mark
+Stage21 application-view export inventory or conformance complete and authorizes no later stage.
 
 
 ## Stage 19 — Historical Shipments — PLANNED / RELEASE 1 REQUIRED
@@ -2042,8 +2050,9 @@ product baseline is frozen for Stage 23.
 - [ ] Stage 15 — Finished Goods.
 - [~] Stage 16 — General Open Orders — **ABSORBED into Stage 18**.
 - [~] Stage 17 — General WO Variance — **RETIRED / NO LONGER DESIRED**.
-- [~] Stage 18 — Standalone Excel Report Generators; all four reports owner-accepted, shared definitions
-      reconciled; S&OP legacy-workbook comparison remains open. Stage18 overall IN PROGRESS.
+- [x] Stage 18 — Standalone Excel Report Generators — COMPLETE / OWNER-ACCEPTED (2026-10-13); all four
+      reports accepted, shared definitions reconciled, and S&OP legacy-workbook comparison owner-reported
+      complete; see `docs/implementation/KST_v2_STAGE_18_CLOSEOUT.md`.
 - [ ] Stage 19 — Historical Shipments.
 - [~] Stage 20 — Legacy Simulation — **RETIRED / NO LONGER DESIRED**.
 - [ ] Stage 21 — Cross-Cutting Export Completion.

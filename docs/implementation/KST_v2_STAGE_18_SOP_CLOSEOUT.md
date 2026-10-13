@@ -1,8 +1,11 @@
 # Stage 18.5 S&OP — accepted closeout
 
-Closeout: **2026-10-12**. Status: **COMPLETE / OWNER-ACCEPTED**. Stage 18 overall remains
-**IN PROGRESS**. The next Open Order Report is owner-designated Stage 18.6; the existing master
-checklist retains its historical Open Order section number 18.3. No unrelated stages are renumbered.
+S&OP closeout: **2026-10-12**. Status: **COMPLETE / OWNER-ACCEPTED**. Stage18 overall closeout:
+**COMPLETE / OWNER-ACCEPTED — 2026-10-13**. The owner confirms the S&OP legacy-workbook comparison
+had already been performed; no repeat comparison is required. This record adds no date, inputs, row
+counts, numerical coverage or comparison results beyond that owner statement. The existing master
+checklist retains historical Open Order section number 18.3 for owner-designated Stage18.6. No
+unrelated stages are renumbered.
 
 ## Owner acceptance
 
@@ -48,19 +51,19 @@ Stage18 evidence directory. The layout handoff is `SOP_UI_20261012_110744/HANDOF
   form. Buildinfo was restored byte-identically after the frontend build.
 - Stage18 I1/R1/F1/UI handoffs contain exact scope, test corrections, hashes and the implementation's
   remaining exception records. Broad formatting, locked Stage10 lint and AFT/Rust/Tier2 gaps are
-  exceptions, not passes.
+exceptions, not passes; they remain limits after Stage18 acceptance.
 
-Not claimed/established by owner acceptance or synthetic evidence: procedure internal behavior or
+Not claimed/established by owner acceptance, the owner's comparison-completed statement, or synthetic evidence: procedure internal behavior or
 read-only guarantee (definition unavailable), live source spelling/types/horizon/permissions, exhaustive
 Python numerical parity, physical printing, exhaustive desktop/save/close or actual association dispatch.
 Unexpected real schema/permission evidence remains for separately authorized owner disposition; no
 fallback, new grant, database object or write was added. Stages9–11 and accepted Component MRP/STG are
-unchanged. Versions remain alpha.18 / installer0.1.0. No Stage18 overall completion is asserted.
+unchanged. Versions remain alpha.18 / installer0.1.0. Stage18 completion does not assert exhaustive
+live parity, printing, full desktop coverage or release readiness.
 
 ## Numbering and next scope
 
 Original accepted report-order evidence describes Component MRP → STG → S&OP → Open Order Report, and
-the current master checklist historically labels Open Order Report 18.3 while S&OP is 18.5. The owner
-now designates the upcoming Open Order Report effort as Stage18.6. This closeout records both facts,
-retains the established checklist section number, and does not silently renumber or imply Stage18.6
-work has started. Agree its shared task prompt before any comparison session/report work.
+the current master checklist historically labels Open Order Report 18.3 while S&OP is 18.5. Owner
+designation 18.6 corresponds to that historical 18.3 section. This closeout records both facts and
+retains the established checklist number without renumbering unrelated work.
