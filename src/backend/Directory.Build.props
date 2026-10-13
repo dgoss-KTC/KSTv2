@@ -18,9 +18,9 @@
     reading this file directly.
   -->
   <PropertyGroup>
-    <KstActiveStage>18</KstActiveStage>
+    <KstActiveStage>19</KstActiveStage>
     <VersionPrefix>0.1.0</VersionPrefix>
-    <VersionSuffix>alpha.18</VersionSuffix>
+    <VersionSuffix>alpha.19</VersionSuffix>
     <!-- During numbered alpha-stage work, VersionSuffix must be alpha.<KstActiveStage>.
          Keep InformationalVersion exactly the current stage version - the SDK otherwise appends
          "+<git-commit-sha>" automatically, which would drift from the Tauri/frontend

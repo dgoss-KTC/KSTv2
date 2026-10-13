@@ -214,7 +214,7 @@ pub fn run() {
                 component_mrp::component_mrp_begin, component_mrp::component_mrp_generate,
                 component_mrp::component_mrp_save, component_mrp::component_mrp_status, component_mrp::component_mrp_open,
                 component_mrp::component_mrp_cancel_close, component_mrp::report_discard, component_mrp::sop_discard_acquisition,
-                component_mrp::sop_discard_generation])
+                component_mrp::sop_discard_generation, component_mrp::historical_shipments_request])
         .build(tauri::generate_context!())
         .expect("error while building KST application");
 

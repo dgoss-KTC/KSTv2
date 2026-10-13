@@ -3,7 +3,7 @@ use std::os::windows::{ffi::OsStrExt, fs::OpenOptionsExt, io::AsRawHandle};
 use std::{
     ffi::c_void,
     fs::{File, OpenOptions},
-    io::{Read, Seek, SeekFrom, Write},
+    io::{Read, Seek, SeekFrom},
     path::{Path, PathBuf},
 };
 
@@ -230,6 +230,57 @@ pub(crate) fn publish_controlled(
     fail_before_commit: bool,
     checkpoint: impl Fn(PublicationPhase),
 ) -> Result<(u32, u64), String> {
+    publish_stream_controlled(
+        path,
+        &mut std::io::Cursor::new(bytes),
+        replace,
+        fail_before_commit,
+        checkpoint,
+    )
+}
+
+pub fn publish_stream_selected(
+    path: &Path,
+    source: &mut File,
+    replace: bool,
+) -> Result<(u32, u64), String> {
+    publish_stream_controlled(path, source, replace, false, |_| {})
+}
+
+fn compare_streams(left: &mut impl Read, right: &mut impl Read) -> Result<(), String> {
+    let mut a = [0u8; 65536];
+    let mut b = [0u8; 65536];
+    loop {
+        let n = left
+            .read(&mut a)
+            .map_err(|_| "Workbook comparison failed.")?;
+        right
+            .read_exact(&mut b[..n])
+            .map_err(|_| "Workbook contents changed.")?;
+        if a[..n] != b[..n] {
+            return Err("Workbook contents changed.".into());
+        }
+        if n == 0 {
+            return if right
+                .read(&mut b[..1])
+                .map_err(|_| "Workbook comparison failed.")?
+                == 0
+            {
+                Ok(())
+            } else {
+                Err("Workbook contents changed.".into())
+            };
+        }
+    }
+}
+
+fn publish_stream_controlled(
+    path: &Path,
+    source: &mut (impl Read + Seek),
+    replace: bool,
+    fail_before_commit: bool,
+    checkpoint: impl Fn(PublicationPhase),
+) -> Result<(u32, u64), String> {
     validate_destination(path)?;
     let parent = path.parent().ok_or("Parent missing")?;
     let temp = parent.join(format!(".kst-mrp-{}.tmp", new_id()?));
@@ -242,18 +293,16 @@ pub(crate) fn publish_controlled(
         .open(&temp)
         .map_err(|_| "Exclusive report staging failed.")?;
     let staged = (|| -> Result<(), String> {
-        file.write_all(bytes)
-            .map_err(|_| "Workbook staging write failed.")?;
+        source
+            .seek(SeekFrom::Start(0))
+            .map_err(|_| "Preparation seek failed.")?;
+        std::io::copy(source, &mut file).map_err(|_| "Workbook staging write failed.")?;
         file.seek(SeekFrom::Start(0))
             .map_err(|_| "Staging seek failed.")?;
-        let mut actual = Vec::new();
-        Read::by_ref(&mut file)
-            .take(bytes.len() as u64 + 1)
-            .read_to_end(&mut actual)
-            .map_err(|_| "Staging verification failed.")?;
-        if actual != bytes {
-            return Err("Staged workbook differs from preparation.".into());
-        }
+        source
+            .seek(SeekFrom::Start(0))
+            .map_err(|_| "Preparation seek failed.")?;
+        compare_streams(&mut file, source)?;
         file.sync_all().map_err(|_| "Workbook flush failed.")?;
         checkpoint(PublicationPhase::Staged);
         if fail_before_commit {
@@ -314,15 +363,21 @@ pub fn verify_artifact(path: &Path, id: (u32, u64), bytes: &[u8]) -> Result<(), 
     if identity(&file)? != id {
         return Err("Saved workbook identity changed.".into());
     }
-    let mut actual = Vec::new();
-    Read::by_ref(&mut file)
-        .take(bytes.len() as u64 + 1)
-        .read_to_end(&mut actual)
-        .map_err(|_| "Saved workbook cannot be verified.")?;
-    if actual != bytes {
-        return Err("Saved workbook contents changed.".into());
+    compare_streams(&mut file, &mut std::io::Cursor::new(bytes))
+}
+pub fn verify_artifact_stream(
+    path: &Path,
+    id: (u32, u64),
+    source: &mut File,
+) -> Result<(), String> {
+    let mut file = File::open(path).map_err(|_| "Saved workbook is missing.")?;
+    if identity(&file)? != id {
+        return Err("Saved workbook identity changed.".into());
     }
-    Ok(())
+    source
+        .seek(SeekFrom::Start(0))
+        .map_err(|_| "Preparation seek failed.")?;
+    compare_streams(&mut file, source)
 }
 pub fn dispatch(path: &Path) -> Result<(), String> {
     // Dedicated synchronous STA call: launch acknowledgment, never proof of loaded bytes.

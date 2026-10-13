@@ -3,7 +3,9 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** The owner approved the revised Release 1 scope and stage sequence on
+**Current project position:** Stage 19 Historical Shipments — **COMPLETE / OWNER-ACCEPTED — 2026-10-13**
+(Part 1 Reports and Part 2 Workspace Shipments; see `docs/implementation/KST_v2_STAGE_19_CLOSEOUT.md`).
+The owner approved the revised Release 1 scope and stage sequence on
 2026-09-29. Stage 12 is retired. Stage 13 Customer Open Orders has an owner-accepted bounded plan
 and precedes Stage 14 Planning Workbook; Stage 13 is complete and owner-accepted as of 2026-10-01. Stage 14
 Checkpoint 14.1 (decision documentation and synthetic fixtures) is complete and owner-accepted as of
@@ -1651,37 +1653,26 @@ locked Stage10 lint and AFT coverage gaps remain exceptions, not passes. This co
 Stage21 application-view export inventory or conformance complete and authorizes no later stage.
 
 
-## Stage 19 — Historical Shipments — PLANNED / RELEASE 1 REQUIRED
+## Stage 19 — Historical Shipments — COMPLETE / OWNER-ACCEPTED — 2026-10-13
 
-### 19.1 Requirements
+Part 1 — Historical Shipments in Reports and Part 2 — Workspace Shipments are both accepted.
+Implementation and owner evidence are in `docs/implementation/KST_v2_STAGE_19_CLOSEOUT.md`,
+with contracts at `docs/api/HISTORICAL_SHIPMENTS.md` and `docs/api/WORKSPACE_SHIPMENTS.md`.
+Part-level implementation evidence retains its offline test scopes, owner observations and limits.
 
-- [ ] Confirm user questions
-- [ ] Confirm retention horizon
-- [ ] Confirm customer and site filters
-- [ ] Confirm part filters
-- [ ] Confirm date-range behavior
-- [ ] Confirm order and PO fields
-- [ ] Confirm shipment quantity
-- [ ] Confirm revenue calculation
-- [ ] Confirm returns and reversals
-- [ ] Confirm corrections
-- [ ] Define the required shipment report/export.
-### 19.2 Backend and frontend
+- [x] Reports Historical Shipments with the accepted fifteen-column default projection, filters,
+      immutable paging and XLSX export.
+- [x] Workspace Shipments with assignment-resolved product-line-discovered UNION explicit parents,
+      mandatory site/domain, optional exact part and inclusive Ship Date filters.
+- [x] Full-acquisition On Time Rate: physical-detail count with On Time 1 divided by eligible 1-or-0;
+      null/unavailable flags excluded; no eligible rows display —.
+- [x] Owner accepted Part 1, Part 2 and Stage 19 overall on 2026-10-13.
 
-- [ ] Investigate tr_hist
-- [ ] Identify authoritative shipment transactions
-- [ ] Define ShipmentHistoryRow
-- [ ] Create transaction normalization
-- [ ] Create reversal handling
-- [ ] Create shipment-history endpoint
-- [ ] Build search and results UI
-- [ ] Build drill-downs if needed
-- [ ] Build the required shipment report/export.
-- [ ] Validate historic totals
-- [ ] Owner acceptance
-Completion gate: A scheduler can review and report reliable historical shipment activity for a
-selected site, customer, part, and date range. Historical Shipments is distinct from the
-forward-looking Shipments-To-Go generator in Stage 18.
+Preserved evidence limits: offline tests and SQL construction checks do not establish exhaustive live
+QAD parity, all-site/history coverage, database grants or performance. Owner screen observations are
+recorded separately. The matching published/Tauri sidecar hash and size are recorded in the closeout;
+this is offline artifact identity, not complete packaged-release or connected-QAD validation. Stages
+9–11 remain locked. Stage 21 export conformance and Stage 24 release readiness remain separate work.
 
 
 ## Stage 20 — Legacy Simulation — RETIRED / NO LONGER DESIRED
@@ -1881,7 +1872,7 @@ product baseline is frozen for Stage 23.
 
 - [ ] All required interactive phases complete
 - [ ] Required exports complete
-- [ ] Stage 19 Historical Shipments report complete and accepted.
+- [x] Stage 19 Historical Shipments report complete and accepted — 2026-10-13; see Stage 19 closeout.
 - [ ] Customer/site configuration complete
 - [ ] Staged update workflows complete
 - [ ] No direct database writes
@@ -2053,7 +2044,7 @@ product baseline is frozen for Stage 23.
 - [x] Stage 18 — Standalone Excel Report Generators — COMPLETE / OWNER-ACCEPTED (2026-10-13); all four
       reports accepted, shared definitions reconciled, and S&OP legacy-workbook comparison owner-reported
       complete; see `docs/implementation/KST_v2_STAGE_18_CLOSEOUT.md`.
-- [ ] Stage 19 — Historical Shipments.
+- [x] Stage 19 — Historical Shipments — COMPLETE / OWNER-ACCEPTED 2026-10-13; see `docs/implementation/KST_v2_STAGE_19_CLOSEOUT.md`.
 - [~] Stage 20 — Legacy Simulation — **RETIRED / NO LONGER DESIRED**.
 - [ ] Stage 21 — Cross-Cutting Export Completion.
 - [ ] Stage 22 — Refinement & Optimization.

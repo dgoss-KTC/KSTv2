@@ -8,9 +8,10 @@ import { MpsWorkspace } from './MpsWorkspace';
 import { OpenOrdersPanel } from './OpenOrdersPanel';
 import { PlanningWorkbookPanel } from './PlanningWorkbookPanel';
 import { FinishedGoodsPanel } from './FinishedGoodsPanel';
+import { WorkspaceShipmentsPanel } from './WorkspaceShipmentsPanel';
 import './CustomerWorkspace.css';
 
-type CustomerModule = 'dashboard' | 'planning' | 'openOrders' | 'componentOrders' | 'longTermShortages' | 'finishedGoods';
+type CustomerModule = 'dashboard' | 'planning' | 'openOrders' | 'componentOrders' | 'longTermShortages' | 'finishedGoods' | 'workspaceShipments';
 
 const modules: ReadonlyArray<{ id: CustomerModule; label: string }> = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -19,6 +20,7 @@ const modules: ReadonlyArray<{ id: CustomerModule; label: string }> = [
   { id: 'componentOrders', label: 'Component Orders' },
   { id: 'longTermShortages', label: 'Workspace Shortages' },
   { id: 'finishedGoods', label: 'Finished Goods' },
+  { id: 'workspaceShipments', label: 'Workspace Shipments' },
 ];
 
 function formatTimestamp(value: string | null | undefined): string {
@@ -114,6 +116,7 @@ export function CustomerWorkspace({ workspace, onPlanningDirtyChange, confirmDis
         {activeModule === 'finishedGoods' && (
           <FinishedGoodsPanel assignmentId={workspace.assignmentId} snapshotId={snapshotId} site={workspace.site} />
         )}
+        {activeModule === 'workspaceShipments' && <WorkspaceShipmentsPanel assignmentId={workspace.assignmentId} />}
         {activeModule === 'planning' && (
           <PlanningWorkbookPanel assignmentId={workspace.assignmentId} site={workspace.site}
             snapshotId={snapshotId} mpsLoading={mps.isLoading} proposals={proposals} />

@@ -2,7 +2,18 @@
 
 Date: 2026-10-13
 Workstation: Windows (`C:\Dev\kst_v2`)
-Active work: **Stage 18 COMPLETE / OWNER-ACCEPTED — 2026-10-13.** All four standalone report deliverables are accepted; S&OP legacy-workbook comparison was completed, as confirmed by the owner, and no repeat comparison is required. Overall closeout: `docs/implementation/KST_v2_STAGE_18_CLOSEOUT.md`.
+Active work: **Stage 19 Historical Shipments — COMPLETE / OWNER-ACCEPTED — 2026-10-13.** Part 1
+Historical Shipments in Reports and Part 2 Workspace Shipments are both accepted. See
+`docs/implementation/KST_v2_STAGE_19_CLOSEOUT.md` for owner evidence, scoped offline verification,
+the final sidecar identity and retained limitations. Detailed implementation evidence remains in the
+Part 1/Part 2 foundation records; their initial phase-status text is historical and superseded by this
+closeout.
+Workspace Shipments resolves current assignment membership as discovered product-line parents UNION
+explicitly configured parents, with mandatory workspace site/domain scope and no MPS snapshot dependency.
+It intersects optional exact Part Number and inclusive Ship Date bounds. Its full-result On Time Rate
+counts each physical detail with On Time 1 over eligible 1-or-0 rows; unavailable values are excluded.
+See `docs/api/HISTORICAL_SHIPMENTS.md` and `docs/api/WORKSPACE_SHIPMENTS.md`.
+Stage 18 acceptance and limitations stand; Stage 19 closeout made no live database queries.
 Current: **Stage 18.4 Shipments-To-Go COMPLETE / OWNER-ACCEPTED — closeout 2026-10-12**.
 Python authority, KS/KTS summary removal, multisite defaults and report-departure discard/recovery
 are recorded in `docs/implementation/KST_v2_STAGE_18_STG_IMPLEMENTATION.md`.
@@ -41,8 +52,7 @@ F1 stale successful replies blocked readiness. Correction/evidence are in
 `docs/implementation/KST_v2_STAGE_18_I34_IMPLEMENTATION.md`; independent F1 review adjudicated
 Resolved; Component MRP is owner-accepted and Stage 18 overall is closed with the retained limits in
 the overall closeout.
-Application remains `0.1.0-alpha.18`; numeric installer `0.1.0` is unchanged. Stage18 completion is not
-release readiness and does not imply exhaustive live parity, printing or full desktop verification. See
+Application is `0.1.0-alpha.19` for active Stage 19 work; numeric installer `0.1.0` is unchanged. Stage 19 completion is not release readiness and does not imply exhaustive live parity, printing or full desktop verification. See
 `docs/implementation/KST_v2_STAGE_18_I2F_FORMATTING.md` for the owner-authorized compact workbook
 presentation history/synthetic previews; current acceptance/evidence limits are in the closeout.
 `docs/implementation/KST_v2_STAGE_18_I2_IMPLEMENTATION.md` for scope, synthetic evidence and limitations.
@@ -152,7 +162,7 @@ Pre-Stage-10 customer-workspace UI foundation: **COMPLETE / ACCEPTED** (inter-st
 not a Stage 10 checkpoint; see `docs/implementation/KST_v2_PRE_STAGE_10_UI_FOUNDATION_CLOSEOUT.md`)
 Stage 7 status: **COMPLETE / ACCEPTED - 2026-08-13; reopened, amended, and closed by Stage 7R (Four-Week Work Order Planning Window) - 2026-09-01** - see [Stage 7R Amendment](#stage-7r-amendment-four-week-work-order-planning-window) below
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
-Application version: **`0.1.0-alpha.15`** — the alpha prerelease number identifies the current
+Application version: **`0.1.0-alpha.19`** — the alpha prerelease number identifies the current
 numbered project stage (see [Versioning Foundation](#versioning-foundation) below)
 
 ## Current Position
@@ -371,7 +381,8 @@ The owner approved the revised Release 1 roadmap on 2026-09-29:
 - Stage 17 General WO Variance is **RETIRED / NO LONGER DESIRED**.
 - Stage 18 contains the required standalone Excel generators: Component MRP, Open Order Report,
   Shipments-To-Go, and S&OP.
-- Stage 19 Historical Shipments is required for Release 1.
+- Stage 19 Historical Shipments is **COMPLETE / OWNER-ACCEPTED — 2026-10-13**; see
+  `docs/implementation/KST_v2_STAGE_19_CLOSEOUT.md`.
 - Stage 20 Legacy Simulation is **RETIRED / NO LONGER DESIRED**.
 - Stage 21 is required to inventory every application area needing export, implement missing
   exports, and validate the export system as a whole. The accepted Stage 11 export remains delivered.
@@ -912,6 +923,10 @@ R0 overall: **COMPLETE / ACCEPTED — 2026-08-21.** Full detail:
 `docs/status/R0_REPOSITORY_RECONCILIATION_CLOSEOUT.md`.
 
 ## Next Action
+
+Stage 19 is **COMPLETE / OWNER-ACCEPTED — 2026-10-13**. Its closeout records acceptance, verification
+scope and remaining evidence limits. This closeout authorizes no subsequent stage; the owner must
+separately establish the next active stage before new implementation work begins.
 
 **Stage 13 is COMPLETE / OWNER-ACCEPTED — 2026-10-01.** Stage 14 is COMPLETE / OWNER-ACCEPTED —
 2026-10-07: Checkpoints 14.1–14.7 accepted (details and owner evidence in the Stage 14 ledger §11 and

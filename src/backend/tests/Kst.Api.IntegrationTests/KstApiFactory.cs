@@ -72,6 +72,9 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
     public Kst.Application.ShipmentsToGo.IShipmentsToGoReader? ShipmentsToGoReader { get; set; }
     public Kst.Application.Sop.ISopReader? SopReader { get; set; }
     public Kst.Application.OpenOrderReport.IOpenOrderReportReader? OpenOrderReportReader { get; set; }
+    public Kst.Application.HistoricalShipments.IHistoricalShipmentsReader? HistoricalShipmentsReader { get; set; }
+    public Kst.Application.HistoricalShipments.IWorkspaceShipmentsReader? WorkspaceShipmentsReader { get; set; }
+    public Kst.Application.HistoricalShipments.IWorkspaceShipmentsScopeResolver? WorkspaceShipmentsScopeResolver { get; set; }
     public IOpenOrderCurrentLineReader? OpenOrderCurrentLineReader { get; set; }
     public IPlanningPriceReader? PlanningPriceReader { get; set; }
     /// <summary>Stage 14.5: in-memory Planning draft store (never the developer's real local app data).</summary>
@@ -94,6 +97,32 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
+            if (WorkspaceShipmentsReader is not null)
+            {
+                services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Application.HistoricalShipments.IWorkspaceShipmentsReader)));
+                services.AddSingleton(WorkspaceShipmentsReader);
+            }
+            services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Application.HistoricalShipments.IWorkspaceShipmentsStore)));
+            services.AddSingleton<Kst.Application.HistoricalShipments.IWorkspaceShipmentsStore>(_ =>
+                new Kst.Infrastructure.HistoricalShipments.FileWorkspaceShipmentsStore(Path.Combine(Path.GetTempPath(), "kst-stage19-workspace-tests")));
+            var workspaceShipmentsScope = services.Single(d => d.ServiceType == typeof(Kst.Application.Mps.IMpsScopeResolver));
+            services.Remove(workspaceShipmentsScope);
+            services.AddSingleton<Kst.Application.Mps.IMpsScopeResolver>(sp => new Kst.Application.Mps.DelegateMpsScopeResolver(
+                (workspace, _) => Task.FromResult<IReadOnlyList<Kst.Domain.Mps.MpsResolvedPart>>(
+                    workspace.ParentParts.Select(part => new Kst.Domain.Mps.MpsResolvedPart(part, null)).ToArray())));
+            if (WorkspaceShipmentsScopeResolver is not null)
+            {
+                services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Application.Mps.IMpsScopeResolver)));
+                services.AddSingleton(WorkspaceShipmentsScopeResolver);
+            }
+            if (HistoricalShipmentsReader is not null)
+            {
+                services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Application.HistoricalShipments.IHistoricalShipmentsReader)));
+                services.AddSingleton(HistoricalShipmentsReader);
+            }
+            services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Application.HistoricalShipments.IHistoricalShipmentsStore)));
+            services.AddSingleton<Kst.Application.HistoricalShipments.IHistoricalShipmentsStore>(_ =>
+                new Kst.Infrastructure.HistoricalShipments.FileHistoricalShipmentsStore(Path.Combine(Path.GetTempPath(), "kst-stage19-tests")));
             if (OpenOrderReportReader is not null)
             {
                 services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Application.OpenOrderReport.IOpenOrderReportReader)));

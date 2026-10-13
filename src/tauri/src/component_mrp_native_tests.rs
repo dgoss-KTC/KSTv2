@@ -42,6 +42,37 @@ fn production_publication_collision_cleanup_retry_and_artifact_evidence() {
 }
 
 #[test]
+fn file_backed_large_publication_and_verification_are_complete_and_bounded() {
+    use std::io::Write;
+    let root = root();
+    let source = root.join("source.bin");
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create_new(true)
+        .open(&source)
+        .unwrap();
+    let block = [0x5Au8; 65536];
+    for _ in 0..145 {
+        file.write_all(&block).unwrap();
+    }
+    let target = root.join("large.xlsx");
+    let id = native::publish_stream_selected(&target, &mut file, false).unwrap();
+    assert_eq!(std::fs::metadata(&target).unwrap().len(), 145 * 65536);
+    native::verify_artifact_stream(&target, id, &mut file).unwrap();
+    assert!(native::publish_stream_selected(&target, &mut file, false).is_err());
+    let mut changed = std::fs::OpenOptions::new()
+        .append(true)
+        .open(&target)
+        .unwrap();
+    changed.write_all(b"changed").unwrap();
+    drop(changed);
+    assert!(native::verify_artifact_stream(&target, id, &mut file).is_err());
+    native::publish_stream_selected(&target, &mut file, true).unwrap();
+    assert_eq!(std::fs::metadata(&target).unwrap().len(), 145 * 65536);
+}
+
+#[test]
 fn production_confirmed_replace_failure_preservation_and_cleanup() {
     use std::fs::OpenOptions;
     use std::os::windows::fs::OpenOptionsExt;

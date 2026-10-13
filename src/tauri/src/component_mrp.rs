@@ -3,7 +3,7 @@ use crate::component_mrp_native as native;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    io::Read,
+    io::{Read, Seek, SeekFrom, Write},
     path::PathBuf,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
@@ -19,6 +19,7 @@ pub enum ReportKind {
     ShipmentsToGo,
     Sop,
     OpenOrderReport,
+    HistoricalShipments,
 }
 impl ReportKind {
     fn route(self) -> &'static str {
@@ -27,6 +28,7 @@ impl ReportKind {
             Self::ShipmentsToGo => "shipments-to-go",
             Self::Sop => "sop",
             Self::OpenOrderReport => "open-orders",
+            Self::HistoricalShipments => "historical-shipments",
         }
     }
 }
@@ -38,10 +40,45 @@ struct Preference {
     #[serde(default)]
     last_parent: Option<PathBuf>,
 }
+struct HeldFile {
+    path: PathBuf,
+    file: std::fs::File,
+}
+impl Drop for HeldFile {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+enum Payload {
+    Memory(Vec<u8>),
+    File(Mutex<HeldFile>),
+}
+impl Payload {
+    fn publish(&self, target: &std::path::Path, replace: bool) -> Result<(u32, u64), String> {
+        match self {
+            Self::Memory(bytes) => native::publish_selected(target, bytes, replace, false),
+            Self::File(held) => native::publish_stream_selected(
+                target,
+                &mut held.lock().map_err(|_| "Preparation unavailable.")?.file,
+                replace,
+            ),
+        }
+    }
+    fn verify(&self, target: &std::path::Path, identity: (u32, u64)) -> Result<(), String> {
+        match self {
+            Self::Memory(bytes) => native::verify_artifact(target, identity, bytes),
+            Self::File(held) => native::verify_artifact_stream(
+                target,
+                identity,
+                &mut held.lock().map_err(|_| "Preparation unavailable.")?.file,
+            ),
+        }
+    }
+}
 struct Preparation {
     kind: ReportKind,
     id: String,
-    bytes: Arc<Vec<u8>>,
+    bytes: Arc<Payload>,
     name: String,
     created: Instant,
     backend: String,
@@ -49,7 +86,7 @@ struct Preparation {
 struct Artifact {
     path: PathBuf,
     id: (u32, u64),
-    bytes: Arc<Vec<u8>>,
+    bytes: Arc<Payload>,
     attempts: u8,
     retries: HashMap<String, bool>,
 }
@@ -87,6 +124,7 @@ struct State {
     artifact_kinds: HashMap<String, ReportKind>,
     departed: bool,
     sop_acquisition: Option<(String, String)>,
+    historical_operation: Option<(String, String)>,
 }
 #[derive(Default)]
 pub struct ReportPreferences(Mutex<State>, Mutex<bool>);
@@ -124,6 +162,7 @@ pub fn component_mrp_cancel_close(
 impl State {
     fn discard(&mut self) {
         self.discard_sop();
+        self.discard_historical();
         self.epoch += 1;
         self.prepared = None;
         self.departed = true;
@@ -150,11 +189,31 @@ impl State {
             });
         }
     }
+    fn discard_historical(&mut self) {
+        if let Some((id, url)) = self.historical_operation.take() {
+            let session = self.session.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Ok(client) = reqwest::Client::builder()
+                    .redirect(reqwest::redirect::Policy::none())
+                    .timeout(Duration::from_secs(10))
+                    .build()
+                {
+                    let _ = client
+                        .delete(format!(
+                            "{url}/api/v1/reports/historical-shipments/operations/{id}"
+                        ))
+                        .header("X-KST-Report-Session", session)
+                        .send()
+                        .await;
+                }
+            });
+        }
+    }
     fn retry(
         &mut self,
         artifact_id: &str,
         request_id: &str,
-    ) -> Result<Option<(PathBuf, (u32, u64), Arc<Vec<u8>>)>, String> {
+    ) -> Result<Option<(PathBuf, (u32, u64), Arc<Payload>)>, String> {
         if self.busy || self.close_pending {
             return Err("Another save/open is active.".into());
         }
@@ -219,6 +278,7 @@ fn require_main(window: &tauri::WebviewWindow) -> Result<(), String> {
         Ok(())
     }
 }
+#[cfg(test)]
 fn open_artifact_with(
     target: &std::path::Path,
     identity: (u32, u64),
@@ -227,6 +287,14 @@ fn open_artifact_with(
 ) -> Result<(), String> {
     native::verify_artifact(target, identity, bytes)?;
     launch(target)
+}
+fn open_payload(
+    target: &std::path::Path,
+    identity: (u32, u64),
+    payload: &Payload,
+) -> Result<(), String> {
+    payload.verify(target, identity)?;
+    native::dispatch(target)
 }
 fn path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(app
@@ -310,6 +378,7 @@ pub fn component_mrp_begin(
     }
     s.epoch += 1;
     s.discard_sop();
+    s.discard_historical();
     s.prepared = None;
     s.departed = false;
     if s.session.is_empty() {
@@ -327,6 +396,288 @@ pub fn report_discard(
     let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
     s.discard();
     Ok(())
+}
+
+/// Fixed-route, managed-sidecar Historical Shipments transport. No caller URL/path authority.
+#[tauri::command]
+pub async fn historical_shipments_request(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, ReportPreferences>,
+    backend: tauri::State<'_, crate::SharedBackendState>,
+    epoch: u64,
+    action: String,
+    operation_id: String,
+    request: Option<serde_json::Value>,
+    offset: Option<u64>,
+    limit: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    require_main(&window)?;
+    if ![
+        "register", "acquire", "status", "page", "prepare", "release",
+    ]
+    .contains(&action.as_str())
+        || operation_id.len() != 36
+        || !operation_id
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() || c == '-')
+    {
+        return Err("Invalid Historical Shipments action/identity.".into());
+    }
+    {
+        let mut active = state.1.lock().map_err(|_| "Transport state unavailable.")?;
+        if *active {
+            return Err("Report transport already active.".into());
+        }
+        *active = true;
+    }
+    let _lease = GenerationLease(&state, &window);
+    let url = {
+        let b = backend.lock().await;
+        b.active
+            .as_ref()
+            .filter(|p| p.ready)
+            .and_then(|p| p.base_url.clone())
+            .ok_or("Managed backend unavailable.")?
+    };
+    let session = {
+        let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
+        if s.epoch != epoch || s.departed || s.busy || s.close_pending {
+            return Err("Historical Shipments operation superseded or save is active.".into());
+        }
+        if action == "register" {
+            s.discard_historical();
+            s.prepared = None;
+            s.historical_operation = Some((operation_id.clone(), url.clone()));
+        } else if !s
+            .historical_operation
+            .as_ref()
+            .is_some_and(|(id, held)| id == &operation_id && held == &url)
+        {
+            return Err("Historical Shipments operation is not owned by this visit.".into());
+        }
+        s.session.clone()
+    };
+    // Hold close for acquisition/transfer. Concurrent commands fail rather than competing for publication.
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .timeout(Duration::from_secs(120))
+        .build()
+        .map_err(|_| "Transport unavailable.")?;
+    let base = format!("{url}/api/v1/reports/historical-shipments/operations/{operation_id}");
+    let result = async {
+        let builder = match action.as_str() {
+            "register" => client.put(&base),
+            "release" => client.delete(&base),
+            "status" => client.get(&base),
+            "page" => {
+                let n = limit.unwrap_or(100);
+                if n == 0 || n > 200 {
+                    return Err("Invalid page size.".into());
+                }
+                client.get(format!(
+                    "{base}/rows?offset={}&limit={n}",
+                    offset.unwrap_or(0)
+                ))
+            }
+            "acquire" => {
+                let value = request.as_ref().ok_or("Missing report filters.")?;
+                if serde_json::to_vec(value)
+                    .map_err(|_| "Invalid filters.")?
+                    .len()
+                    > 65536
+                {
+                    return Err("Report inputs exceed capacity.".into());
+                }
+                client.post(format!("{base}/acquire")).json(value)
+            }
+            "prepare" => client.post(format!("{base}/prepare")),
+            _ => unreachable!(),
+        };
+        let mut response = builder
+            .header("X-KST-Report-Session", &session)
+            .send()
+            .await
+            .map_err(|_| "Historical Shipments transport failed.")?;
+        let success = response.status().is_success();
+        let mut metadata = Vec::new();
+        while let Some(chunk) = response
+            .chunk()
+            .await
+            .map_err(|_| "Historical Shipments reply incomplete.")?
+        {
+            if metadata.len() + chunk.len() > 4 * 1024 * 1024 {
+                return Err(
+                    "Historical Shipments page/reply exceeds bounded transport capacity.".into(),
+                );
+            }
+            metadata.extend_from_slice(&chunk);
+        }
+        let value = if metadata.is_empty() {
+            serde_json::Value::Null
+        } else {
+            serde_json::from_slice::<serde_json::Value>(&metadata)
+                .map_err(|_| "Invalid Historical Shipments reply.")?
+        };
+        if !success {
+            return Err(value["detail"]
+                .as_str()
+                .filter(|s| s.len() <= 4096)
+                .unwrap_or(
+                    "Historical Shipments operation failed. No complete result was published.",
+                )
+                .to_string());
+        }
+        {
+            let s = state.0.lock().map_err(|_| "State unavailable.")?;
+            if s.epoch != epoch || s.departed {
+                return Err("Historical Shipments reply superseded.".into());
+            }
+        }
+        if action == "prepare" {
+            if value["preparationId"].as_str() != Some(operation_id.as_str()) {
+                return Err("Invalid preparation identity.".into());
+            }
+            let expected = value["byteLength"]
+                .as_u64()
+                .ok_or("Invalid workbook length.")?;
+            let mut response = client
+                .get(format!(
+                    "{url}/api/v1/reports/historical-shipments/preparations/{operation_id}/bytes"
+                ))
+                .header("X-KST-Report-Session", &session)
+                .send()
+                .await
+                .map_err(|_| "Workbook transfer failed.")?;
+            if !response.status().is_success()
+                || response
+                    .headers()
+                    .get(reqwest::header::CONTENT_TYPE)
+                    .and_then(|v| v.to_str().ok())
+                    != Some("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            {
+                return Err("Workbook transfer unavailable.".into());
+            }
+            let directory = app
+                .path()
+                .app_cache_dir()
+                .map_err(|_| "Report cache unavailable.")?
+                .join("report-transport");
+            std::fs::create_dir_all(&directory).map_err(|_| "Report cache unavailable.")?;
+            let path = directory.join(format!("{}.xlsx", native::new_id()?));
+            use std::os::windows::fs::OpenOptionsExt;
+            let file = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create_new(true)
+                .access_mode(0x80000000 | 0x40000000 | 0x10000)
+                .share_mode(1)
+                .custom_flags(0x04000000)
+                .open(&path)
+                .map_err(|_| "Private workbook staging failed.")?;
+            let mut held = HeldFile { path, file };
+            let mut received = 0u64;
+            while let Some(chunk) = response
+                .chunk()
+                .await
+                .map_err(|_| "Workbook transfer incomplete.")?
+            {
+                {
+                    let s = state.0.lock().map_err(|_| "State unavailable.")?;
+                    if s.epoch != epoch || s.departed {
+                        return Err("Workbook transfer superseded.".into());
+                    }
+                }
+                received = received
+                    .checked_add(chunk.len() as u64)
+                    .ok_or("Workbook length overflow.")?;
+                if received > expected {
+                    return Err("Workbook transfer length mismatch.".into());
+                }
+                held.file
+                    .write_all(&chunk)
+                    .map_err(|_| "Workbook cache write failed.")?;
+            }
+            if received != expected || received < 4 {
+                return Err("Workbook transfer incomplete.".into());
+            }
+            held.file
+                .seek(SeekFrom::Start(0))
+                .map_err(|_| "Workbook seek failed.")?;
+            let mut magic = [0u8; 2];
+            held.file
+                .read_exact(&mut magic)
+                .map_err(|_| "Workbook invalid.")?;
+            if &magic != b"PK" {
+                return Err("Workbook invalid.".into());
+            }
+            held.file.sync_all().map_err(|_| "Workbook flush failed.")?;
+            let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
+            if s.epoch != epoch || s.departed || s.busy {
+                return Err("Workbook preparation superseded.".into());
+            }
+            s.prepared = Some(Preparation {
+                kind: ReportKind::HistoricalShipments,
+                id: operation_id.clone(),
+                bytes: Arc::new(Payload::File(Mutex::new(held))),
+                name: "Historical-Shipments_01.xlsx".into(),
+                created: Instant::now(),
+                backend: url.clone(),
+            });
+            let expiry_payload = Arc::downgrade(&s.prepared.as_ref().unwrap().bytes);
+            drop(s);
+            let expiry_app = app.clone();
+            let expiry_id = operation_id.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(LIFETIME).await;
+                let state = expiry_app.state::<ReportPreferences>();
+                if let Ok(mut s) = state.0.lock() {
+                    if s.prepared.as_ref().is_some_and(|p| {
+                        p.kind == ReportKind::HistoricalShipments && p.id == expiry_id
+                    }) {
+                        s.prepared = None;
+                    }
+                    if s.historical_operation
+                        .as_ref()
+                        .is_some_and(|(id, _)| id == &expiry_id)
+                    {
+                        s.discard_historical();
+                    }
+                    let expired_grants: Vec<_> = s
+                        .artifacts
+                        .iter()
+                        .filter(|(_, artifact)| {
+                            expiry_payload.ptr_eq(&Arc::downgrade(&artifact.bytes))
+                        })
+                        .map(|(id, _)| id.clone())
+                        .collect();
+                    for id in expired_grants {
+                        s.artifacts.remove(&id);
+                        s.artifact_kinds.remove(&id);
+                    }
+                };
+            });
+        }
+        Ok(value)
+    }
+    .await;
+    if result.is_err() || action == "release" {
+        let _ = client
+            .delete(&base)
+            .header("X-KST-Report-Session", &session)
+            .send()
+            .await;
+        let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
+        if s.epoch == epoch
+            && s.historical_operation
+                .as_ref()
+                .is_some_and(|(id, _)| id == &operation_id)
+        {
+            s.historical_operation = None;
+            s.prepared = None;
+        }
+    }
+    result
 }
 #[tauri::command]
 pub async fn component_mrp_generate(
@@ -348,6 +699,9 @@ pub async fn component_mrp_generate(
 ) -> Result<serde_json::Value, String> {
     require_main(&window)?;
     let kind = report_kind.unwrap_or_default();
+    if kind == ReportKind::HistoricalShipments {
+        return Err("Use Historical Shipments operation transport.".into());
+    }
     {
         let mut active = state
             .1
@@ -596,7 +950,7 @@ pub async fn component_mrp_generate(
     s.prepared = Some(Preparation {
         kind,
         id: prepared_id,
-        bytes: Arc::new(bytes),
+        bytes: Arc::new(Payload::Memory(bytes)),
         name: file_name,
         created: Instant::now(),
         backend: url,
@@ -786,11 +1140,7 @@ pub async fn component_mrp_save(
     let result = if let Some(destination) = chosen {
         let data = bytes.clone();
         let target = destination.clone();
-        match tauri::async_runtime::spawn_blocking(move || {
-            native::publish_selected(&target, &data, replace, false)
-        })
-        .await
-        {
+        match tauri::async_runtime::spawn_blocking(move || data.publish(&target, replace)).await {
             Ok(Ok(identity)) => {
                 let artifact = native::new_id().unwrap_or_else(|_| operation_id.clone());
                 let preference_warning = {
@@ -841,7 +1191,7 @@ pub async fn component_mrp_save(
                     let target = destination;
                     let data = bytes;
                     let opened = tauri::async_runtime::spawn_blocking(move || {
-                        open_artifact_with(&target, identity, &data, native::dispatch)
+                        open_payload(&target, identity, &data)
                     })
                     .await;
                     if !matches!(opened, Ok(Ok(()))) {
@@ -908,12 +1258,10 @@ pub async fn component_mrp_open(
             None => return Ok(()),
         }
     };
-    let result = tauri::async_runtime::spawn_blocking(move || {
-        open_artifact_with(&target, id, &bytes, native::dispatch)
-    })
-    .await
-    .map_err(|_| "Opening worker failed.".to_string())
-    .and_then(|v| v);
+    let result = tauri::async_runtime::spawn_blocking(move || open_payload(&target, id, &bytes))
+        .await
+        .map_err(|_| "Opening worker failed.".to_string())
+        .and_then(|v| v);
     let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
     if let Some(a) = s.artifacts.get_mut(&artifact_id) {
         a.retries.insert(request_id, result.is_ok());
@@ -927,6 +1275,44 @@ pub async fn component_mrp_open(
 mod tests {
     use super::*;
     #[test]
+    fn historical_file_payload_survives_departure_only_while_worker_owns_it() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let root =
+            PathBuf::from(std::env::var("KST_MRP_TEST_ROOT").expect("Synthetic root required"));
+        let path = root.join(format!("{}.tmp", native::new_id().unwrap()));
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .access_mode(0x80000000 | 0x40000000 | 0x10000)
+            .share_mode(1)
+            .custom_flags(0x04000000)
+            .open(&path)
+            .unwrap();
+        let payload = Arc::new(Payload::File(Mutex::new(HeldFile {
+            path: path.clone(),
+            file,
+        })));
+        let mut state = State::default();
+        state.prepared = Some(Preparation {
+            kind: ReportKind::HistoricalShipments,
+            id: "p".into(),
+            bytes: payload.clone(),
+            name: "s.xlsx".into(),
+            created: Instant::now(),
+            backend: "managed".into(),
+        });
+        state.busy = true;
+        state.discard();
+        assert!(state.prepared.is_none());
+        assert!(path.exists());
+        state.record_operation("save".into(), Outcome::new("saved", "Workbook saved"));
+        state.release_work();
+        assert!(path.exists());
+        drop(payload);
+        assert!(!path.exists());
+    }
+    #[test]
     fn report_kind_routes_and_departure_retain_only_recovery_and_worker_ownership() {
         assert_eq!(ReportKind::ComponentMrp.route(), "component-mrp");
         assert_eq!(ReportKind::ShipmentsToGo.route(), "shipments-to-go");
@@ -939,7 +1325,7 @@ mod tests {
         s.prepared = Some(Preparation {
             kind: ReportKind::ShipmentsToGo,
             id: "p".into(),
-            bytes: Arc::new(vec![1]),
+            bytes: Arc::new(Payload::Memory(vec![1])),
             name: "s.xlsx".into(),
             created: Instant::now(),
             backend: "managed".into(),
@@ -952,7 +1338,7 @@ mod tests {
             Artifact {
                 path: PathBuf::from("s.xlsx"),
                 id: (1, 2),
-                bytes: Arc::new(vec![1]),
+                bytes: Arc::new(Payload::Memory(vec![1])),
                 attempts: 0,
                 retries: HashMap::new(),
             },
@@ -978,7 +1364,7 @@ mod tests {
         s.prepared = Some(Preparation {
             kind: ReportKind::OpenOrderReport,
             id: "oor".into(),
-            bytes: Arc::new(vec![1]),
+            bytes: Arc::new(Payload::Memory(vec![1])),
             name: "Open-Orders_2026-10-12_01.xlsx".into(),
             created: Instant::now(),
             backend: "managed".into(),
@@ -1003,7 +1389,7 @@ mod tests {
                 Artifact {
                     path: PathBuf::from("synthetic.xlsx"),
                     id: (1, 2),
-                    bytes: Arc::new(vec![1]),
+                    bytes: Arc::new(Payload::Memory(vec![1])),
                     attempts: 0,
                     retries: HashMap::new(),
                 },

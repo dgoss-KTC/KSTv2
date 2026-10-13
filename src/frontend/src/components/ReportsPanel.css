@@ -69,3 +69,35 @@
   .sop-inputs__range-field input { width: 5rem; }
   .sop-inputs__remove { grid-column: 1 / -1; align-self: start; }
 }
+
+.hs-report fieldset { border: 1px solid var(--border, #ccc); margin: 0 0 .75rem; }
+.hs-row, .hs-range { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; }
+.hs-hint { margin: .25rem 0 .75rem; font-size: .85em; opacity: .8; }
+.hs-required { font-size: .85em; opacity: .8; }
+.hs-columns__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: .25rem .75rem; }
+.hs-table { max-height: 60vh; overflow: auto; }
+.hs-table table { border-collapse: collapse; width: max-content; min-width: 100%; }
+.hs-table th, .hs-table td { padding: .25rem .5rem; border-bottom: 1px solid var(--border, #ddd); white-space: nowrap; text-align: left; }
+.hs-table th { position: sticky; top: 0; background: var(--surface, #fff); }
+.hs-table td.hs-num { text-align: right; font-variant-numeric: tabular-nums; }
+.hs-pager { display: flex; gap: .5rem; align-items: center; margin-top: .5rem; }
+.hs-on-time { font-weight: 700; }
+.hs-on-time--true { color: #16803c; }
+.hs-on-time--false { color: #dc2626; }
+
+/* Historical Shipments owns the remaining report width; intrinsic table width stays inside its scroller. */
+.reports-panel--historical { box-sizing: border-box; width: 100%; min-width: 0; }
+.reports-panel--historical .reports-panel__selector { flex-shrink: 0; }
+.reports-panel--historical .reports-panel__body { flex: 1; max-width: none; min-width: 0; }
+.reports-panel--historical .hs-report,
+.reports-panel--historical .hs-report > section,
+.reports-panel--historical .hs-table { width: 100%; min-width: 0; box-sizing: border-box; }
+.reports-panel--historical .hs-table th,
+.reports-panel--historical .hs-table td { min-width: 6rem; }
+.reports-panel--historical .hs-pager,
+.reports-panel--historical .reports-panel__actions { flex-wrap: wrap; }
+@media (max-width: 1100px) {
+  .reports-panel--historical { flex-direction: column; }
+  .reports-panel--historical .reports-panel__selector { min-width: 0; flex-direction: row; flex-wrap: wrap; }
+  .reports-panel--historical .reports-panel__body { flex: auto; }
+}

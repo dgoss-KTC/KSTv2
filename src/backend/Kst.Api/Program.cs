@@ -147,6 +147,25 @@ builder.Services.AddSingleton<Kst.Integrations.Qad.OpenOrderReport.QadOpenOrderR
 builder.Services.AddSingleton<Kst.Application.OpenOrderReport.IOpenOrderReportReader>(sp =>
     new Kst.Application.OpenOrderReport.DelegateOpenOrderReportReader(sp.GetRequiredService<Kst.Integrations.Qad.OpenOrderReport.QadOpenOrderReportReader>().ReadAsync));
 builder.Services.AddSingleton<Kst.Application.OpenOrderReport.OpenOrderReportService>();
+builder.Services.AddSingleton<Kst.Application.HistoricalShipments.IHistoricalShipmentsStore>(_ =>
+    new Kst.Infrastructure.HistoricalShipments.FileHistoricalShipmentsStore(
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "KST", "report-operations")));
+builder.Services.AddSingleton<Kst.Integrations.Qad.HistoricalShipments.QadHistoricalShipmentsReader>();
+builder.Services.AddSingleton<Kst.Application.HistoricalShipments.IHistoricalShipmentsReader>(sp =>
+    new Kst.Application.HistoricalShipments.DelegateHistoricalShipmentsReader(
+        sp.GetRequiredService<Kst.Integrations.Qad.HistoricalShipments.QadHistoricalShipmentsReader>().ReadAsync));
+builder.Services.AddSingleton<Kst.Application.HistoricalShipments.HistoricalShipmentsService>();
+builder.Services.AddSingleton<Kst.Application.HistoricalShipments.IWorkspaceShipmentsStore>(_ =>
+    new Kst.Infrastructure.HistoricalShipments.FileWorkspaceShipmentsStore(
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "KST", "workspace-shipments")));
+builder.Services.AddSingleton<Kst.Application.HistoricalShipments.IWorkspaceShipmentsReader>(sp =>
+    new Kst.Application.HistoricalShipments.DelegateWorkspaceShipmentsReader(
+        sp.GetRequiredService<Kst.Integrations.Qad.HistoricalShipments.QadHistoricalShipmentsReader>().ReadWorkspaceAsync));
+builder.Services.AddSingleton<Kst.Application.HistoricalShipments.IWorkspaceShipmentsScopeResolver>(sp =>
+    new Kst.Application.HistoricalShipments.DelegateWorkspaceShipmentsScopeResolver(
+        async (workspace, ct) => (await sp.GetRequiredService<Kst.Application.Mps.IMpsScopeResolver>().ResolveAsync(workspace, ct))
+            .Select(part => part.ParentPart).ToArray()));
+builder.Services.AddSingleton<Kst.Application.HistoricalShipments.WorkspaceShipmentsService>();
 if (qadOptions.IsConfigured)
     builder.Services.AddSingleton<IQadConnectivityCheck, SqlServerQadConnectivityCheck>();
 else
@@ -547,6 +566,8 @@ app.MapDiagnosticEndpoints();
 app.MapComponentMrpEndpoints();
 app.MapShipmentsToGoEndpoints();
 app.MapOpenOrderReportEndpoints();
+app.MapHistoricalShipmentsEndpoints();
+app.MapWorkspaceShipmentsEndpoints();
 app.MapSopEndpoints();
 app.MapSystemEndpoints();
 app.MapWorkspaceEndpoints();

@@ -860,6 +860,166 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/historical-shipments/spec": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetHistoricalShipmentsSpec"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/historical-shipments/operations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetHistoricalShipmentsOperation"];
+        put: operations["RegisterHistoricalShipmentsOperation"];
+        post?: never;
+        delete: operations["ReleaseHistoricalShipmentsOperation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/historical-shipments/operations/{id}/acquire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AcquireHistoricalShipments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/historical-shipments/operations/{id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetHistoricalShipmentsPage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/historical-shipments/operations/{id}/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PrepareHistoricalShipmentsWorkbook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/historical-shipments/preparations/{id}/bytes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetHistoricalShipmentsPreparedBytes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/shipments/spec": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetWorkspaceShipmentsSpec"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/shipments/operations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetWorkspaceShipmentsOperation"];
+        put: operations["RegisterWorkspaceShipmentsOperation"];
+        post?: never;
+        delete: operations["ReleaseWorkspaceShipmentsOperation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/shipments/operations/{id}/acquire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AcquireWorkspaceShipments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/shipments/operations/{id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetWorkspaceShipmentsPage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1079,6 +1239,77 @@ export interface components {
             instanceId: string;
             /** Format: date-time */
             timestamp: string;
+        };
+        HistoricalShipmentsColumnDto: {
+            id: string;
+            label: string;
+            kind: string;
+            provenance: string;
+            defaultSelected: boolean;
+            monetary: boolean;
+        };
+        HistoricalShipmentsOperationDto: {
+            /** Format: uuid */
+            operationId: string;
+            state: string;
+            /** Format: int64 */
+            rowCount: number | string;
+            columns: string[];
+            /** Format: date-time */
+            expiresAtUtc: string;
+            /** Format: date-time */
+            acquiredAtUtc: null | string;
+            /** Format: int64 */
+            unavailableEnrichmentRows: number | string;
+        };
+        HistoricalShipmentsPageDto: {
+            /** Format: uuid */
+            operationId: string;
+            /** Format: int64 */
+            offset: number | string;
+            /** Format: int64 */
+            totalRows: number | string;
+            columns: string[];
+            rows: components["schemas"]["HistoricalShipmentsRowDto"][];
+        };
+        HistoricalShipmentsPreparedDto: {
+            /** Format: uuid */
+            operationId: string;
+            preparationId: string;
+            fileName: string;
+            /** Format: int64 */
+            byteLength: number | string;
+            /** Format: date-time */
+            expiresAtUtc: string;
+        };
+        HistoricalShipmentsRequestDto: {
+            site: string;
+            corpGroup: null | string;
+            customerFrom: null | string;
+            customerTo: null | string;
+            itemFrom: null | string;
+            itemTo: null | string;
+            productLineFrom: null | string;
+            productLineTo: null | string;
+            salespersonFrom: null | string;
+            salespersonTo: null | string;
+            /** Format: date */
+            invoiceDateFrom: null | string;
+            /** Format: date */
+            invoiceDateTo: null | string;
+            columns: string[];
+        };
+        HistoricalShipmentsRowDto: {
+            physicalDetailId: string;
+            cells: string[];
+        };
+        HistoricalShipmentsSpecDto: {
+            sites: string[];
+            columns: components["schemas"]["HistoricalShipmentsColumnDto"][];
+            /** Format: int32 */
+            maximumPageSize: number | string;
+            /** Format: int32 */
+            maximumXlsxDataRows: number | string;
         };
         InventoryLocationRowDto: {
             rowId: string;
@@ -1930,6 +2161,36 @@ export interface components {
         WorkspaceListResponseDto: {
             workspaces: components["schemas"]["WorkspaceAssignmentDto"][];
             configurationWarning: null | string;
+        };
+        WorkspaceShipmentsOperationDto: {
+            /** Format: uuid */
+            operationId: string;
+            state: string;
+            /** Format: int64 */
+            rowCount: number | string;
+            columns: string[];
+            /** Format: date-time */
+            expiresAtUtc: string;
+            /** Format: date-time */
+            acquiredAtUtc: null | string;
+            /** Format: int64 */
+            unavailableEnrichmentRows: number | string;
+            /** Format: int64 */
+            onTimeNumerator: null | number | string;
+            /** Format: int64 */
+            onTimeDenominator: null | number | string;
+        };
+        WorkspaceShipmentsRequestDto: {
+            partNumber: null | string;
+            /** Format: date */
+            shipDateFrom: null | string;
+            /** Format: date */
+            shipDateTo: null | string;
+        };
+        WorkspaceShipmentsSpecDto: {
+            columns: components["schemas"]["HistoricalShipmentsColumnDto"][];
+            /** Format: int32 */
+            maximumPageSize: number | string;
         };
     };
     responses: never;
@@ -4677,6 +4938,575 @@ export interface operations {
             };
             /** @description Service Unavailable */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetHistoricalShipmentsSpec: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoricalShipmentsSpecDto"];
+                };
+            };
+        };
+    };
+    GetHistoricalShipmentsOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoricalShipmentsOperationDto"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RegisterHistoricalShipmentsOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoricalShipmentsOperationDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReleaseHistoricalShipmentsOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AcquireHistoricalShipments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HistoricalShipmentsRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoricalShipmentsOperationDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetHistoricalShipmentsPage: {
+        parameters: {
+            query: {
+                offset: number | string;
+                limit: number | string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoricalShipmentsPageDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PrepareHistoricalShipmentsWorkbook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoricalShipmentsPreparedDto"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetHistoricalShipmentsPreparedBytes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetWorkspaceShipmentsSpec: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceShipmentsSpecDto"];
+                };
+            };
+        };
+    };
+    GetWorkspaceShipmentsOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceShipmentsOperationDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RegisterWorkspaceShipmentsOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceShipmentsOperationDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReleaseWorkspaceShipmentsOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AcquireWorkspaceShipments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceShipmentsRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceShipmentsOperationDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetWorkspaceShipmentsPage: {
+        parameters: {
+            query: {
+                offset: number | string;
+                limit: number | string;
+            };
+            header?: never;
+            path: {
+                assignmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoricalShipmentsPageDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };

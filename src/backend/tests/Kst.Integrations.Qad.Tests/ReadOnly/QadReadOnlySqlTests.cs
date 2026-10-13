@@ -212,6 +212,12 @@ public sealed class QadReadOnlySqlTests
         if (type == typeof(IReadOnlyList<Kst.Domain.OpenOrders.OpenOrderLineKey>))
             return new List<Kst.Domain.OpenOrders.OpenOrderLineKey> { new("T", "T", 1) };
 
+        if (type == typeof(Kst.Domain.HistoricalShipments.HistoricalShipmentsFilter))
+            return Kst.Domain.HistoricalShipments.HistoricalShipmentsRules.Validate(new Kst.Domain.HistoricalShipments.HistoricalShipmentsFilter(
+                "SW", null, "000100", "000200", "A", "Z", "0001", "9999", "A", "Z",
+                new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), ["site", "customerName", "invoiceNumber", "unitPrice"]));
+        if (type == typeof(Kst.Domain.HistoricalShipments.WorkspaceShipmentsFilter))
+            return new Kst.Domain.HistoricalShipments.WorkspaceShipmentsFilter("KV", ["000123", "ABC'; SELECT 1--"], "0001%_", new(2026, 1, 1), new(2026, 1, 31));
         if (type == typeof(Kst.Domain.OpenOrderReport.OpenOrderReportFilter))
             return new Kst.Domain.OpenOrderReport.OpenOrderReportFilter(
                 "Acme", "0001", "SP", "0100", "0199", "IOS",

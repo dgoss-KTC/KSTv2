@@ -10,6 +10,7 @@ vi.mock('./MpsWorkspace', () => ({ MpsWorkspace: () => <div>MPS dashboard</div> 
 vi.mock('./ComponentOrdersPanel', () => ({ ComponentOrdersPanel: () => <div>Component Orders</div> }));
 vi.mock('./LongTermShortagesPanel', () => ({ LongTermShortagesPanel: () => <div>Workspace Shortages panel</div> }));
 vi.mock('./FinishedGoodsPanel', () => ({ FinishedGoodsPanel: ({ site }: { site: string }) => <div>Finished Goods inventory {site}</div> }));
+vi.mock('./WorkspaceShipmentsPanel', () => ({ WorkspaceShipmentsPanel: ({ assignmentId }: { assignmentId: string }) => <div>Workspace Shipments for {assignmentId}</div> }));
 vi.mock('./OpenOrdersPanel', () => ({ OpenOrdersPanel: ({ workspaceName, site, onDirtyChange }: { workspaceName: string | null; site: string; onDirtyChange?: (dirty: boolean) => void }) =>
   <div>Open Orders for {workspaceName ?? site}<button type="button" onClick={() => onDirtyChange?.(true)}>make dirty</button></div> }));
 vi.mock('./PlanningWorkbookPanel', () => ({ PlanningWorkbookPanel: ({ assignmentId, site, snapshotId }: { assignmentId: string; site: string; snapshotId: string | null }) =>
@@ -21,6 +22,19 @@ const workspace: WorkspaceAssignmentDto = {
 };
 
 describe('CustomerWorkspace', () => {
+  it('places Workspace Shipments immediately after Finished Goods, independent of MPS, and passes only the assignment', () => {
+    const { rerender } = render(<CustomerWorkspace workspace={workspace} />);
+    const tabs = screen.getAllByRole('tab').map(tab => tab.textContent);
+    expect(tabs.indexOf('Workspace Shipments')).toBe(tabs.indexOf('Finished Goods') + 1);
+    fireEvent.click(screen.getByRole('tab', { name: 'Workspace Shipments' }));
+    expect(screen.getByText('Workspace Shipments for ws-1')).toBeInTheDocument();
+    expect(screen.queryByText(/Finished Goods inventory/)).not.toBeInTheDocument();
+    rerender(<CustomerWorkspace workspace={{ ...workspace, assignmentId: 'ws-2' }} />);
+    expect(screen.getByText('Workspace Shipments for ws-2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Planning' }));
+    expect(screen.queryByText(/Workspace Shipments for/)).not.toBeInTheDocument();
+  });
+
   it('replaces only Finished Goods and awaits the in-app unsaved Open Orders decision', async () => {
     const confirmDiscard = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     render(<CustomerWorkspace workspace={workspace} confirmDiscard={confirmDiscard} />);
