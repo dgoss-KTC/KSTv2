@@ -564,6 +564,7 @@ app.MapOpenApi();
 
 app.MapDiagnosticEndpoints();
 app.MapComponentMrpEndpoints();
+app.MapAnalyticalExportEndpoints();
 app.MapShipmentsToGoEndpoints();
 app.MapOpenOrderReportEndpoints();
 app.MapHistoricalShipmentsEndpoints();

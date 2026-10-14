@@ -1536,8 +1536,9 @@ No lot/status adapters are required merely because the older checklist named the
       source multiset/quantity/MAX/value reconciliation (17 loaded parents,16 rows; Taco-only/time-bound).
 - [x] Owner confirms visible loading, mixed-case partial filters, cached time/Refresh, scroll/density/
       keyboard and compatible workspace/MPS switching; accepts synthetic evidence for unobserved cases
-      and explicitly accepts Stage15 — 2026-10-08. Stage21 disposition remains pending.
-- [ ] Stage 21 export/no-export disposition — PENDING; no FG export implemented in 15.2.
+      and explicitly accepts Stage15 — 2026-10-08.
+- [x] Stage 21 export/no-export disposition — owner decision 2026-10-14: no Finished Goods export
+      required; copying from the report screen is sufficient. No FG export implemented.
 
 Completion gate: A scheduler can inspect and filter current Finished Goods inventory by product,
 location and lot. Ledger/plan: `docs/implementation/KST_v2_STAGE_15_*`.
@@ -1684,41 +1685,57 @@ the required standalone reports. The future Can-Build concept remains separate i
 not inherit this undefined legacy scope.
 
 
-## Stage 21 — Cross-Cutting Export Completion
+## Stage 21 — Cross-Cutting Export Completion — COMPLETE / OWNER-ACCEPTED — 2026-10-14
 
-Status: **PLANNED / RELEASE 1 REQUIRED**. Stage 11 delivered and accepted its Workspace Shortages
+Status: **COMPLETE / OWNER-ACCEPTED — 2026-10-14**. Owner reports checking the reports and working
+through several fixes with the coding agent, and explicitly accepts Stage 21. Final scope is corrected
+MPS (all workspace parents) and selected-parent BOM analytical XLSX, with the bounded inventory and
+conformance record at `docs/implementation/KST_v2_STAGE_21_EXPORT_INVENTORY_AND_EVIDENCE.md`.
+Finished Goods: no export required; copying from the report screen is sufficient.
+Planning analytical Excel export was removed; complete redesign is deferred to **future iterative
+improvements, not Stage 22**. Existing Planning Mass Updater CSV is retained.
+Export-button placement/presentation is an acknowledged usability issue deferred to later optimization.
+Unresolved other-area inventory dispositions and the legacy browser-save feedback discrepancy remain
+open. Existing Pkcs 9.0.4 moderate/high advisories require separate security disposition: stage acceptance
+does not resolve or accept security risk. No subsequent work or release readiness is authorized.
+Stage 11 delivered and accepted its Workspace Shortages
 export ahead of this cross-cutting stage. That export remains accepted functionality; Stage 21
 includes it in the inventory and conformance review but does not rebuild it without a demonstrated
 defect or inconsistency.
 
 ### 21.1 Export inventory and decisions
 
-- [ ] Review every retained application area and identify whether it needs an export.
-- [ ] Record required audience, format, columns, filters, selections, date scope, and result limits.
-- [ ] Record an explicit no-export disposition where an export is not required.
-- [ ] Distinguish analytical exports from QAD/QXtend operational update files.
-- [ ] Reconcile completed Stage 11 export behavior and Stage 18 standalone generators with the
-      system-wide inventory.
+- [x] Record bounded retained-area inventory and explicit unresolved dispositions; no implied no-export
+      decisions for unresolved areas.
+- [x] Record audience, format, scope, filters and limits for delivered/retained exports at inspected depth.
+- [x] Record Finished Goods no-export decision and Planning analytical removal/future redesign.
+- [x] Distinguish analytical exports from retained operational update files.
+- [x] Record retained Stage 11/13/18/19 coverage and differences; no broad save-path migration.
 
 ### 21.2 Shared export standards
 
-- [ ] Define consistent filenames, destination handling, overwrite behavior, metadata, formatting,
-      success feedback, and error cleanup.
-- [ ] Define selected-row, selected-column, selected-part, selected-date, and filtered-result behavior
-      where applicable.
-- [ ] Define progress, cancellation, and safe large-result behavior.
-- [ ] Confirm security, filesystem, dependency-admission, and licensing requirements.
+- [x] Reuse accepted Reports host save foundation for MPS/BOM and record filenames, formatting,
+      cancellation, capacity and cleanup behavior at evidenced depth.
+- [x] Record all-parent MPS and loaded/combined-filter selected-parent BOM scope.
+- [x] Record bounded conformance assessment and separately reviewed/corrected F1/F2 findings.
+- [ ] Resolve retained Pkcs dependency advisories through separately authorized security disposition.
+- [ ] Resolve legacy Stage 11/13 browser-save feedback discrepancy through a separate bounded decision.
+- [ ] Optimize export-button placement/presentation later; no repair authorized by closeout.
 
 ### 21.3 Completion and validation
 
-- [ ] Implement every approved missing application-view export.
-- [ ] Validate exported data against the displayed and filtered source data.
-- [ ] Validate representative and large datasets and applicable golden masters.
-- [ ] Confirm retained operational update files independently of analytical exports.
-- [ ] Owner acceptance of the complete export inventory and behavior.
+- [x] Deliver corrected MPS/BOM exports; remove Planning analytical export per final owner scope.
+- [x] Record synthetic/offline workbook, lifecycle, capacity and regression checks and their exceptions.
+- [x] Preserve Planning Mass Updater CSV and existing operational workflows; record scoped regressions.
+- [x] Record owner-reported report review separately from automated verification.
+- [x] Explicit owner acceptance of Stage 21 with retained open items — 2026-10-14.
 
-Completion gate: Every retained application area has an explicit export disposition; all required
-exports are implemented, consistent, validated, and owner-accepted.
+Completion basis: explicit owner acceptance of final MPS/BOM delivery and the bounded inventory record
+with retained unresolved dispositions. This supersedes the older all-area-dispositions completion gate;
+it does not mark unresolved entries resolved. Automation is synthetic/offline or mocked; owner review
+does not establish exhaustive live numerical parity, every desktop save/open interaction, installer/
+printing or crash/restart recovery. Formatting/lint/diagnostic exceptions and inherited host limitations
+remain in the evidence record. Stage 22 remains planned; Planning analytical redesign is outside it.
 
 ## Stage 22 — Refinement & Optimization — PLANNED / RELEASE 1 REQUIRED
 
@@ -2046,7 +2063,8 @@ product baseline is frozen for Stage 23.
       complete; see `docs/implementation/KST_v2_STAGE_18_CLOSEOUT.md`.
 - [x] Stage 19 — Historical Shipments — COMPLETE / OWNER-ACCEPTED 2026-10-13; see `docs/implementation/KST_v2_STAGE_19_CLOSEOUT.md`.
 - [~] Stage 20 — Legacy Simulation — **RETIRED / NO LONGER DESIRED**.
-- [ ] Stage 21 — Cross-Cutting Export Completion.
+- [x] Stage 21 — Cross-Cutting Export Completion — COMPLETE / OWNER-ACCEPTED 2026-10-14;
+      final MPS/BOM scope accepted with documented unresolved items and verification limits.
 - [ ] Stage 22 — Refinement & Optimization.
 - [ ] Stage 23 — Quality and Hardening.
 - [ ] Stage 24 — Release 1 Readiness.

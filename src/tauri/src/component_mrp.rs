@@ -20,6 +20,7 @@ pub enum ReportKind {
     Sop,
     OpenOrderReport,
     HistoricalShipments,
+    Analytical,
 }
 impl ReportKind {
     fn route(self) -> &'static str {
@@ -29,6 +30,7 @@ impl ReportKind {
             Self::Sop => "sop",
             Self::OpenOrderReport => "open-orders",
             Self::HistoricalShipments => "historical-shipments",
+            Self::Analytical => "analytical",
         }
     }
 }
@@ -696,6 +698,7 @@ pub async fn component_mrp_generate(
     sop_request: Option<serde_json::Value>,
     sop_prepare: Option<serde_json::Value>,
     oor_request: Option<serde_json::Value>,
+    analytical_request: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     require_main(&window)?;
     let kind = report_kind.unwrap_or_default();
@@ -753,7 +756,9 @@ pub async fn component_mrp_generate(
         .build()
         .map_err(|_| "Transport unavailable.")?;
     let route = kind.route();
-    let request = if kind == ReportKind::OpenOrderReport {
+    let request = if kind == ReportKind::Analytical {
+        analytical_request.ok_or("Missing analytical export selections.")?
+    } else if kind == ReportKind::OpenOrderReport {
         oor_request.ok_or("Missing Open Order Report inputs.")?
     } else if kind == ReportKind::Sop {
         if let Some(ref preparation) = sop_prepare {
@@ -780,7 +785,7 @@ pub async fn component_mrp_generate(
     if serde_json::to_vec(&request)
         .map_err(|_| "Invalid report inputs.")?
         .len()
-        > 65536
+        > if kind == ReportKind::Analytical { 16 * 1024 * 1024 } else { 65536 }
     {
         return Err("Report inputs exceed capacity.".into());
     }

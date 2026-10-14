@@ -34,8 +34,12 @@ import {
   withQuarterColor,
 } from '../mps/mpsPresentation';
 import './MpsWorkspace.css';
+import { AnalyticalExcelExport } from './AnalyticalExcelExport';
+import { analyticalRequest } from '../api/analyticalExportApi';
+import { formatLocalDate } from '../planningWorkbook/planningWorkbookSummary';
 
 interface MpsWorkspaceProps {
+  active?: boolean;
   assignmentId: string;
   dashboard: MpsDashboardResponseDto | null;
   dateBasis: MpsDateBasis;
@@ -50,7 +54,7 @@ interface MpsWorkspaceProps {
 }
 
 export function MpsWorkspace({
-  assignmentId, dashboard, dateBasis, horizonWeeks, isLoading, isRefreshing, error, setDateBasis, setHorizonWeeks, reload, refresh,
+  assignmentId, dashboard, dateBasis, horizonWeeks, isLoading, isRefreshing, error, setDateBasis, setHorizonWeeks, reload, refresh, active = true,
 }: MpsWorkspaceProps) {
   const { settings: fiscalSettings } = useFiscalCalendarSettings();
 
@@ -367,6 +371,25 @@ export function MpsWorkspace({
           >
             {isRefreshing ? 'Refreshing\u2026' : 'Refresh'}
           </button>
+          {active && dashboard?.snapshot.snapshotId && <AnalyticalExcelExport
+            disabled={isLoading || isRefreshing || dashboard.dateBasis !== dateBasis || dashboard.horizonWeeks !== horizonWeeks}
+            contextKey={JSON.stringify([assignmentId, dashboard, dateBasis, horizonWeeks, fiscalSettings, !!error])}
+            request={() => {
+              const now = new Date();
+              const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+              const request = analyticalRequest('MPS', assignmentId, dashboard.snapshot.snapshotId!, dashboard.snapshot.site!, iso);
+              request.parent = null;
+              request.dateBasis = dateBasis; request.horizonWeeks = horizonWeeks; request.isStale = !!error;
+              request.fiscalLabels = Array.from({ length: horizonWeeks }, (_, i) => {
+                const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1 + i * 7);
+                if (weeklyBuckets[i]?.weekLabel && weeklyBuckets[i].weekLabel !== `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`)
+                  throw new Error('MPS business week changed. Reload the current view before exporting.');
+                const info = weekFiscalInfo[i] ?? getFiscalDisplayInfo(fiscalSettings, date);
+                return `FY${info.fiscalYear} Q${info.fiscalQuarter} P${info.fiscalPeriod}`;
+              });
+              request.metadata = [{ label: 'Calendar', value: JSON.stringify(fiscalSettings) }, { label: 'Export date', value: formatLocalDate(now) }];
+              return request;
+            }} />}
         </div>
       </header>
 
@@ -602,6 +625,8 @@ export function MpsWorkspace({
 
           {activeTab === 'bom' && (
             <BomPanel
+              assignmentId={active ? assignmentId : undefined}
+              snapshotId={dashboard?.snapshot.snapshotId ?? null}
               parentPart={selectedParent}
               bom={bom}
               isLoading={isBomLoading}

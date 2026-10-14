@@ -159,6 +159,110 @@
         }
       }
     },
+    "/api/v1/reports/analytical": {
+      "post": {
+        "tags": [
+          "Exports"
+        ],
+        "operationId": "PrepareAnalyticalWorkbook",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticalExportRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticalExportPreparedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/analytical/preparations/{id}/bytes": {
+      "get": {
+        "tags": [
+          "Exports"
+        ],
+        "operationId": "GetAnalyticalWorkbookBytes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/shipments-to-go": {
       "post": {
         "tags": [
@@ -4590,6 +4694,240 @@
   },
   "components": {
     "schemas": {
+      "AnalyticalCellDto": {
+        "required": [
+          "value",
+          "kind",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AnalyticalExportPreparedDto": {
+        "required": [
+          "preparationId",
+          "fileName",
+          "expiresAtUtc"
+        ],
+        "type": "object",
+        "properties": {
+          "preparationId": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "expiresAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AnalyticalExportRequestDto": {
+        "required": [
+          "kind",
+          "workspaceId",
+          "mpsSnapshotId",
+          "site",
+          "businessDate",
+          "parent",
+          "dateBasis",
+          "horizonWeeks",
+          "bomLoadedAtUtc",
+          "bomEffectiveDate",
+          "isStale",
+          "warning",
+          "componentFilter",
+          "descriptionFilter",
+          "pmFilter",
+          "phantomFilter",
+          "workbookSnapshotId",
+          "metadata",
+          "fiscalLabels",
+          "sheets"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mpsSnapshotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "site": {
+            "type": "string"
+          },
+          "businessDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "parent": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dateBasis": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "horizonWeeks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "bomLoadedAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "bomEffectiveDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "isStale": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "componentFilter": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "descriptionFilter": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pmFilter": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "phantomFilter": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "workbookSnapshotId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "metadata": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticalMetadataDto"
+            }
+          },
+          "fiscalLabels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sheets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticalSheetDto"
+            }
+          }
+        }
+      },
+      "AnalyticalMetadataDto": {
+        "required": [
+          "label",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "AnalyticalSheetDto": {
+        "required": [
+          "name",
+          "headers",
+          "rows",
+          "frozenColumns"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/AnalyticalCellDto"
+              }
+            }
+          },
+          "frozenColumns": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "ApprovedVendorDto": {
         "required": [
           "supplier",
@@ -9829,6 +10167,9 @@
     },
     {
       "name": "Reports"
+    },
+    {
+      "name": "Exports"
     },
     {
       "name": "System"

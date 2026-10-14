@@ -3,8 +3,12 @@ import type { BomLineDto, BomResponseDto } from '../api/client';
 import type { BomApiError } from '../api/bomApi';
 import { filterMaterialLinesByPart, formatQuantity } from '../mps/mpsPresentation';
 import './BomPanel.css';
+import { AnalyticalExcelExport } from './AnalyticalExcelExport';
+import { analyticalRequest } from '../api/analyticalExportApi';
 
 interface BomPanelProps {
+  assignmentId?: string;
+  snapshotId?: string | null;
   parentPart: string;
   bom: BomResponseDto | null;
   isLoading: boolean;
@@ -48,7 +52,7 @@ function formatScrap(value: number | string | null | undefined): string {
  * Component Information modal for its component part via `onSelectComponent`; this panel owns no
  * modal state itself.
  */
-export function BomPanel({ parentPart, bom, isLoading, error, onRetry, onSelectComponent }: BomPanelProps) {
+export function BomPanel({ parentPart, bom, isLoading, error, onRetry, onSelectComponent, assignmentId, snapshotId }: BomPanelProps) {
   const [searchText, setSearchText] = useState('');
   const [descriptionText, setDescriptionText] = useState('');
   const [pmFilter, setPmFilter] = useState<PmFilter>('all');
@@ -91,6 +95,16 @@ export function BomPanel({ parentPart, bom, isLoading, error, onRetry, onSelectC
     <div className="bom-panel" aria-label={`BOM for ${parentPart}`}>
       <div className="bom-panel__header">
         <h3 className="bom-panel__title">BOM &mdash; {parentPart}</h3>
+        {assignmentId && snapshotId && bom && <AnalyticalExcelExport disabled={isLoading || !!error}
+          contextKey={JSON.stringify([assignmentId, snapshotId, parentPart, bom, searchText, descriptionText, pmFilter, phantomFilter])}
+          request={() => {
+            const now = new Date();
+            const request = analyticalRequest('BOM', assignmentId, snapshotId, bom.site, `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
+            request.parent = parentPart; request.bomLoadedAtUtc = bom.loadedAtUtc; request.bomEffectiveDate = bom.effectiveDate;
+            request.isStale = bom.isStale; request.warning = bom.warning;
+            request.componentFilter = searchText; request.descriptionFilter = descriptionText; request.pmFilter = pmFilter; request.phantomFilter = phantomFilter;
+            return request;
+          }} />}
       </div>
 
       {isLoading && <div className="bom-panel__state">Loading BOM&hellip;</div>}

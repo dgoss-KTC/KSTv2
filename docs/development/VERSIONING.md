@@ -22,12 +22,16 @@ the stage number into part of the permanent product identity.
 ## Current application version
 
 ```
-0.1.0-alpha.19
+0.1.0-alpha.21
 ```
 
-This is a pre-1.0 build associated with Stage 19 work. The version advances to `alpha.N` when Stage
+This is a pre-1.0 build associated with owner-authorized Stage 21 work. The version advances to `alpha.N` when Stage
 `N` becomes the current stage being planned or implemented. It remains at that value through the
 stage until the project moves to another numbered stage.
+
+Stage 21 (2026-10-14): active stage/version advanced to 21/alpha.21 through the existing propagation
+script and own-package lock metadata only. No dependency versions changed. Matching published/copied
+sidecars and retained verification limits are recorded in the Stage 21 export inventory/evidence.
 
 **Stage 15 version change (2026-10-07):** owner-authorized with 15.2; active stage 15 and suffix
 alpha.15 propagated through `scripts/check-version.ps1 -Fix`, with own-package lock metadata only.

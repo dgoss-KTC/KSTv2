@@ -14,6 +14,7 @@ import { ToastStack } from './ToastStack';
 import { CustomerWorkspace } from './CustomerWorkspace';
 import { GeneralWorkspace } from './GeneralWorkspace';
 import { ReportsPanel } from './ReportsPanel';
+import { AnalyticalSaveStatus } from './AnalyticalSaveStatus';
 import { BottomStatusBar } from './BottomStatusBar';
 import { confirmDesktopClose, onDesktopCloseRequested, reportCloseGuard } from '../shared/desktopCloseGuard';
 
@@ -427,6 +428,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
       />
 
       <main className="shell__content">
+        <AnalyticalSaveStatus />
         {reportCloseWaiting && <div role="status">Waiting for the report save/open operation to finish before closing.
           <button onClick={() => { void import('@tauri-apps/api/core').then(({ invoke }) => invoke('component_mrp_cancel_close'))
             .then(() => setReportCloseWaiting(false)).catch(() => {}); }}>Cancel closing</button></div>}

@@ -90,6 +90,7 @@ describe('Master plan: report and planning modes', { timeout: 20_000 }, () => {
     expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start planning' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Export Excel' })).not.toBeInTheDocument();
   });
 
   it('Start planning switches locally (no request), adds Adjust and opens Changes; Back to report keeps every entry', async () => {
@@ -97,6 +98,7 @@ describe('Master plan: report and planning modes', { timeout: 20_000 }, () => {
     const requests = getWorkbook.mock.calls.length;
     click('Start planning');
     expect(screen.getByTestId('planning-mode')).toHaveTextContent('Planning');
+    expect(screen.queryByRole('button', { name: 'Export Excel' })).not.toBeInTheDocument();
     expect(rowLabels('P-1')).toEqual(['Sales orders', 'MPS', 'Adjust', 'Projected on hand']);
     expect(screen.getByRole('complementary', { name: /^Changes/ })).toBeInTheDocument();
     expect(getWorkbook.mock.calls.length).toBe(requests);

@@ -1,8 +1,26 @@
 # Current Project Status
 
-Date: 2026-10-13
+Date: 2026-10-14
 Workstation: Windows (`C:\Dev\kst_v2`)
-Active work: **Stage 19 Historical Shipments — COMPLETE / OWNER-ACCEPTED — 2026-10-13.** Part 1
+Stage 21 — **COMPLETE / OWNER-ACCEPTED — 2026-10-14.**
+MPS and selected-parent BOM XLSX actions use loaded data and the accepted host-owned Reports
+save boundary. Bounded inventory, unresolved dispositions, verification limits and owner acceptance are recorded in
+`docs/implementation/KST_v2_STAGE_21_EXPORT_INVENTORY_AND_EVIDENCE.md`. Finished Goods explicitly needs
+no export; copying from the report screen is sufficient. No subsequent stage or release readiness is implied. Current application
+version is `0.1.0-alpha.21`; numeric installer remains `0.1.0`. Sidecar publication exposed existing Pkcs
+9.0.4 moderate/high NuGet advisories; security disposition remains unresolved and is not risk-accepted
+by Stage 21 acceptance. Owner removed Planning analytical Excel export on 2026-10-14 for a complete
+redesign in future iterative improvements, **not Stage 22**; the
+accepted Planning Mass Updater CSV remains available. BOM Level is left-aligned and whole quantities
+display without trailing decimal points.
+Owner reports checking the reports and working through fixes with the coding agent, and explicitly
+accepts Stage 21. This report is separate from synthetic/mocked automation; no exhaustive desktop
+interaction matrix, live parity or numerical coverage is inferred. Export-button placement/presentation
+is an acknowledged usability limitation deferred to later optimization. Unresolved inventory decisions,
+the Stage 11/13 browser-save feedback discrepancy, verification exceptions and inherited host/save limits
+remain open as separately tracked items. This documentation-only closeout authorizes no later work.
+
+**Stage 19 Historical Shipments — COMPLETE / OWNER-ACCEPTED — 2026-10-13.** Part 1
 Historical Shipments in Reports and Part 2 Workspace Shipments are both accepted. See
 `docs/implementation/KST_v2_STAGE_19_CLOSEOUT.md` for owner evidence, scoped offline verification,
 the final sidecar identity and retained limitations. Detailed implementation evidence remains in the
@@ -52,7 +70,7 @@ F1 stale successful replies blocked readiness. Correction/evidence are in
 `docs/implementation/KST_v2_STAGE_18_I34_IMPLEMENTATION.md`; independent F1 review adjudicated
 Resolved; Component MRP is owner-accepted and Stage 18 overall is closed with the retained limits in
 the overall closeout.
-Application is `0.1.0-alpha.19` for active Stage 19 work; numeric installer `0.1.0` is unchanged. Stage 19 completion is not release readiness and does not imply exhaustive live parity, printing or full desktop verification. See
+Application was `0.1.0-alpha.19` at Stage 19 closeout; numeric installer `0.1.0` is unchanged. Stage 19 completion is not release readiness and does not imply exhaustive live parity, printing or full desktop verification. See
 `docs/implementation/KST_v2_STAGE_18_I2F_FORMATTING.md` for the owner-authorized compact workbook
 presentation history/synthetic previews; current acceptance/evidence limits are in the closeout.
 `docs/implementation/KST_v2_STAGE_18_I2_IMPLEMENTATION.md` for scope, synthetic evidence and limitations.
@@ -162,7 +180,7 @@ Pre-Stage-10 customer-workspace UI foundation: **COMPLETE / ACCEPTED** (inter-st
 not a Stage 10 checkpoint; see `docs/implementation/KST_v2_PRE_STAGE_10_UI_FOUNDATION_CLOSEOUT.md`)
 Stage 7 status: **COMPLETE / ACCEPTED - 2026-08-13; reopened, amended, and closed by Stage 7R (Four-Week Work Order Planning Window) - 2026-09-01** - see [Stage 7R Amendment](#stage-7r-amendment-four-week-work-order-planning-window) below
 Stage 6 status: **COMPLETE / ACCEPTED — 2026-08-11 — commit `863a638`**
-Application version: **`0.1.0-alpha.19`** — the alpha prerelease number identifies the current
+Application version: **`0.1.0-alpha.21`** — the alpha prerelease number identifies the current
 numbered project stage (see [Versioning Foundation](#versioning-foundation) below)
 
 ## Current Position
@@ -384,8 +402,10 @@ The owner approved the revised Release 1 roadmap on 2026-09-29:
 - Stage 19 Historical Shipments is **COMPLETE / OWNER-ACCEPTED — 2026-10-13**; see
   `docs/implementation/KST_v2_STAGE_19_CLOSEOUT.md`.
 - Stage 20 Legacy Simulation is **RETIRED / NO LONGER DESIRED**.
-- Stage 21 is required to inventory every application area needing export, implement missing
-  exports, and validate the export system as a whole. The accepted Stage 11 export remains delivered.
+- Stage 21 is **COMPLETE / OWNER-ACCEPTED — 2026-10-14** for corrected MPS/BOM analytical exports and
+  the bounded inventory/conformance record, with explicit unresolved dispositions and evidence limits
+  retained. Finished Goods needs no export; Planning analytical redesign is future iterative work
+  outside Stage 22. The accepted Stage 11 export and Planning Mass Updater CSV remain delivered.
 - Stage 22 is an interactive, product-wide Refinement & Optimization stage. It receives measured
   performance work, usability defects, refinements, and deferred Release 1 work that does not fit a
   feature stage. The known nonfunctional horizontal scrollbar in the main MPS matrix is a required
@@ -954,7 +974,8 @@ a workspace-resolved positive current-inventory table: Product, Location, Lot, O
 informational RA lot badge, exact USD domain/part MAX-price valuation and three local literal filters.
 Hold annotations removed; order Holds deferred to a later Open Orders enhancement. Refresh uses a
 compatible process-local snapshot with acquisition time and explicit stale/error handling.
-Stage 21 export/no-export remains PENDING. **15.3 AUTHORIZED for Taco normal desktop validation;
+Stage 21 disposition — 2026-10-14: **no Finished Goods export required; screen copying is sufficient**.
+**15.3 AUTHORIZED for Taco normal desktop validation;
 bounded Taco QADPRO2/Analysis verification and correction subsequently explicitly AUTHORIZED.**
 Case-sensitive adapter site guard corrected after InventoryScopeInvalid evidence: three case-variant rows.
 Matching corrected alpha.15 Tauri child loads/refreshed Taco17-parent/16-row scope; ten-field metadata and

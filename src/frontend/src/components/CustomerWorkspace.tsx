@@ -100,6 +100,7 @@ export function CustomerWorkspace({ workspace, onPlanningDirtyChange, confirmDis
       <div className="customer-workspace__content">
         <div hidden={activeModule !== 'dashboard'}>
           <MpsWorkspace
+            active={activeModule === 'dashboard'}
             assignmentId={workspace.assignmentId}
             dashboard={mps.dashboard}
             dateBasis={mps.dateBasis}
