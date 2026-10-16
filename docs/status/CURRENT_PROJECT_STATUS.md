@@ -3,6 +3,33 @@
 Date: 2026-10-16
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## Accumulated-work checkpoint for owner testing (2026-10-16)
+
+The owner authorizes one local checkpoint commit of all accumulated repository work after S22-034
+commit `86fd0cb6db6366f63c8dcc6130bc4de2760b64e8`; no push is authorized. This records the current
+implementation, not acceptance of pending features or Stage 22 completion. Included areas are Reports
+Part Info and its backend/API/generated contracts/tests, MPS navigation/header/detail scrolling,
+MPS/BOM export and eight-second feedback, supporting native grant handling, and retained Stage 19
+discovery/legacy source references. The already-tracked `src/frontend/tsconfig.tsbuildinfo` is included
+unchanged from checkpoint entry under an explicit owner-approved one-time build-metadata exception;
+ignore rules are unchanged and ignored build/evidence/private artifacts are not included.
+
+The prior closeout records owner acceptance of MPS/export and the eight-second correction at its
+reported scope. It does not establish an exhaustive desktop/recovery matrix. Part Info, the broader
+drill-down checkpoint and detail-scroll confirmation remain pending as documented below. Earlier
+implementation-time pending/no-commit statements and artifact identities are historical; S22-034's
+accepted remediation and latest publication evidence supersede earlier Pkcs advisory/publication state.
+Known formatting/lint exceptions remain exceptions, not passes or newly accepted risk.
+
+Checkpoint whitespace inspection also reports 377 trailing-whitespace findings confined to the
+newly tracked historical reference `docs/reference/ktmg1160.p`. Its existing source formatting is
+preserved rather than cleaned up in this commit-only task. The staged whitespace check for all other
+paths passes; the complete staged check is not claimed as passing.
+
+Existing offline verification and independent-review evidence below is reused, not rerun for this
+checkpoint. Commit creation is not proof that the application works. The next application tests and
+remaining visual/native/source validation are owner-run; no new acceptance decision is made here.
+
 ## S22-034 — Pkcs remediation complete / owner-accepted / closed (2026-10-16)
 
 **COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-16.** The owner reports everything is working fine and
@@ -33,6 +60,177 @@ The owner authorizes a focused remediation/closeout commit; no push, shared depl
 distribution is authorized. Existing verification is reused because the reviewed implementation and
 artifact identities are unchanged. Format/lint exceptions and eventual fleet/installer notice
 reconciliation remain explicit limits. **Closing S22-034 does not close Stage 22.**
+
+All pre-existing work is preserved, including pending Part Info. The current owner dispatch confirms
+acceptance of the export pilot and eight-second correction; this does not accept Part Info, the
+whole drill-down checkpoint or imply previously unexecuted checks were performed. S22-034's separate
+owner acceptance is recorded above.
+
+## Stage 22 — MPS/BOM export pilot (2026-10-15)
+
+**IMPLEMENTED / OFFLINE-VERIFIED — OWNER DESKTOP ACCEPTANCE PENDING.** Separately owner-authorized after the first
+drill-down checkpoint: themed caption menus, explicit all-parent MPS/filtered selected-parent BOM
+scope, prepare → automatic protected Save As, exact-workbook cancellation retry, persistent session
+status/Open again and observation-only uncertain-save recovery. Only analytical saved-artifact grants
+gain departure retention; existing host authority, finite limits and other report behavior remain.
+No workbook, source, business-rule, API contract, dependency/capability or operational CSV changes.
+
+Implementation, scoped independent security review, final verification evidence and owner checks:
+`docs/implementation/KST_v2_STAGE_22_MPS_BOM_EXPORT_PILOT.md` and
+`C:\Dev\kst_v2_tmp\Stage22\ExportPilot\`. The owner additionally authorized tests/sidecar rebuild
+after closing the app. Native/visual desktop verification remains owner-run; Stage 22, pending Part
+Info and first drill-down checkpoint acceptance are not implied. Version remains `0.1.0-alpha.21`.
+Final scoped evidence: 269 frontend passes / 3 inherited skips, 13 workbook tests, 24 native passes /
+2 existing ignores; frontend type/build/scoped lint and native check/build pass. Sidecar publication
+and copied binary identity are verified. Independent security review plus the theme-portal follow-up
+reports no confirmed new material defect; retained exceptions/advisories are not risk-accepted.
+
+Owner review and bounded dismissal amendment (2026-10-15): **appearance and normal save workflow
+accepted by the owner**; other pilot/recovery, drill-down and Part Info acceptance is not implied.
+Ordinary final successful-save feedback now hides after eight seconds only once requested opening
+has settled; keyboard focus defers hiding. Recovery actions and unresolved warnings/errors remain
+persistent, and dismissal retains recorded outcomes and native grants. Focused frontend verification:
+53 export tests pass (17 new fake-clock cases), typecheck and changed-file lint pass. No native/backend
+build or sidecar publication was performed for this amendment. New desktop timing/focus checks remain
+pending; see the pilot record's owner-review amendment and `feedback-dismissal.diff`/test JSON.
+
+## Stage 22 — first MPS drill-down redesign checkpoint (2026-10-15)
+
+**IMPLEMENTED / OFFLINE-VERIFIED — OWNER DESKTOP ACCEPTANCE PENDING.** Stage 22 is now in progress,
+not complete or accepted. Verified starting HEAD was accepted Stage 21 `1831fb7`; all pre-existing
+uncommitted Reports Part Info Lookup work remains pending its separate owner acceptance.
+
+Frontend-only: one Back/Escape/breadcrumb hierarchy, delayed nonempty-only bucket entry with
+bounded loading/error/empty feedback and obsolete-response protection, replacement candidate levels
+through the accepted depth 3, whole-card keyboard material toggles, All/Needs attention controls,
+plain-language availability labels, Shortages-tab removal with embedded analysis/details preserved,
+parent-scoped Part Info/BOM, modal precedence/focus and valid return-state/scroll preservation.
+Existing API populations, locked calculations, export/save code, backend/native boundaries and
+application version (`0.1.0-alpha.21`) are unchanged. No live queries, installs, commits or pushes.
+
+Implementation, verification limits, security-trigger screening and owner desktop checklist:
+`docs/implementation/KST_v2_STAGE_22_MPS_DRILLDOWN_CHECKPOINT.md`.
+Offline evidence: `C:\Dev\kst_v2_tmp\Stage22\frontend-final.json` and associated scoped diff/logs.
+Actual theme/density/narrow-window and Windows/webview interaction acceptance remains owner-run;
+no applicable existing MPS browser fixture was available and no new harness was introduced.
+The separately authorized MPS/BOM export pilot is now recorded above; this first checkpoint's
+frontend-only/export-unchanged description remains historical to its own delivered scope.
+
+Owner-review correction (2026-10-15): the complete three-row MPS header is now pinned as one group,
+rather than letting quarter/period/week cells overlap at `top: 0`. Frozen parent/Falldown columns
+remain. Owner confirmed that header scrolling works; that confirmation does not accept the whole
+checkpoint. Follow-up detail-scroll correction keeps the selected MPS row/trail/tabs outside bounded
+content viewports below the tabs. Focused tests (179 passes, 3 inherited skips), build/type compilation
+and scoped lint pass. Actual owner confirmation of the new detail scroll boundary remains pending;
+see the Stage 22 checkpoint document.
+
+## Reports Part Info Lookup — implemented / pending owner acceptance (2026-10-14)
+
+Owner explicitly dispatched this bounded checkpoint before Stage 22. Reports now exposes an exact
+part + supported-site page with Enter submission, compact facts and full-width table tabs, inventory/lot rows,
+Approved Alternates, supplier-specific Credit Hold/CIA, independent buyer comments and
+conventional open POs. No workspace, MPS, BOM expansion or shortage projection is required. No export,
+native save/open, shortage snapshot or Past region is introduced. Version remains `0.1.0-alpha.21`.
+At this lookup checkpoint Stage 22 was unstarted; the later bounded MPS checkpoint is recorded above.
+Implementation is not acceptance or release readiness.
+
+Owner visual-review correction (2026-10-14): Part Info Lookup typography reduced to a 13px base
+with proportionally sized headings, controls and secondary text. Inventory/lot quantities trim
+insignificant trailing decimal zeros using exact-decimal text (whole numbers have no decimal point;
+meaningful fractional digits and missing-versus-zero remain intact). Visual re-review is pending.
+
+Owner-approved layout replacement (2026-10-14): translated the local `kst_part_lookup.html` reference
+into KST theme/density-aware presentation: six-field fact bar, More part details disclosure for all
+remaining approved fields, persistent supplier-risk and buyer-comment strips, and Open POs (default),
+Inventory lots and Approved alternates full-width tabs. Supplier summary names are exact source
+identifiers; None requires explicit No for every covered supplier, with Unknown/Unavailable retained.
+The full supplier flags remain in a disclosure; AVL retains accepted row relationships without inferred
+risk joins. PO buyer/manufacturer values remain per row; inventory statuses are not merged or reclassified.
+Buyer comments open a keyboard-contained dialog with Escape/backdrop/Close dismissal and focus return.
+Tabs support arrows/Home/End and selected-panel semantics. No prototype CDN/icon/font dependencies or
+clipboard action were introduced. Existing identity/abort logic and independent inventory refresh remain.
+
+Layout-only verification: **32 tests passed** (9 lookup + 23 Reports), changed-scope ESLint, TypeScript
+and production frontend build passed; AFT scoped diagnostics reported no errors/warnings. Build retained
+existing chunk/dynamic-import warnings. Owner tsconfig build-info restored byte-for-byte. Evidence:
+`C:\Dev\kst_v2_tmp\PartInfoLookup\frontend-tabbed-tests.json`. Backend/sidecar are unchanged by this
+presentation revision; prior published-sidecar evidence still applies. Actual dark/light, density and
+narrow-window visual review remains owner-run/pending; use all three tabs, More part details, supplier
+details and the buyer-comment dialog when rechecking. Stage 22 and owner acceptance remain pending.
+
+Implementation/source decisions:
+- New `Kst.Application.PartInfo.PartInfoService` composes existing scoped master/cost/planning,
+  inventory summary, locations, AVL, PO and enrichment readers. Existing workspace endpoints and
+  freshness restrictions are unchanged. New API-owned DTOs/spec flow through OpenAPI and generated
+  TypeScript; decimal quantities/costs are strings here to preserve precision and null-versus-zero.
+- Supported sites SW/NW/AR/MN/MS/KV use existing Reports validation; domain is derived only inside
+  QAD through `QadSiteDomainMap`. Part input is nonblank, bounded to 256 characters, rejects control
+  characters, and is trimmed for exact parameterized lookup. No arbitrary domain/database is accepted.
+- `QadPartInfoContextReader` reads only the retained informational subset of accepted Stage 11 SQL:
+  manufacturer item = `pod_vpart` from first positive-open, confirmed, nonclosed/noncancelled line,
+  ordered due date/PO/line; effective P/M = nonblank selected-site `ptp_pm_code` then master
+  `pt_pm_code`; manufacturing lead = selected-site `ptp_mfg_lead`, displayed only for M. No full
+  projection/MRP acquisition or locked-algorithm amendment. This manufacturer selection is separate
+  from the accepted conventional-open-PO population and is not inferred from that list.
+- Risk identity is the existing `QadComponentOrderReader.SupplierIdentifier`: normalized `vd_sort`,
+  fallback vendor code, matched to Shortages PreferredSuppliers exact source name. It is **not** a
+  newly assumed vendor-code join. Only suppliers evidenced by this part's qualifying POs are requested;
+  ordinal grouping and result matching preserve different exact keys, Yes/No/Unknown. No match is not
+  No; failed enrichment is explicitly unavailable. Comments use their independent part/site request,
+  including when no POs exist. AVL does not broaden risk coverage.
+- Optional sections acquire independently and never turn failures into successful empty lists.
+  Master/planning/costs retain the existing composite reader as one prerequisite; their source failure
+  fails the top-level lookup. Missing master is distinct from acquisition failure. No server cache or
+  stale fallback is introduced. `inventory-locations` supports independent refresh without erasing other
+  sections; failed refresh removes old locations. Full refresh reloads all sections. Frontend epochs,
+  aborts, response identity checks and report departure prevent obsolete/incompatible publication.
+
+Verification and evidence (offline unless explicitly stated):
+- Full backend suite: **1,363 passed** (358 Domain, 412 Application, 331 QAD, 10 architecture,
+  252 API). After final independent-refresh/cancellation additions: focused **29 passed** (7 Application,
+  10 API, 2 QAD, 10 architecture); zero-test Domain filter is not counted. Synthetic fixtures specify
+  true/false/unknown exact supplier results, absent values/zero, precision, missing master, invalid
+  input, no workspace/MPS, empty collections, independent failures and cancellation.
+- Final focused frontend: **84 passed / four files**, including lookup, Reports, shared modal and
+  inventory panel regressions. Input/Enter, disclosure, missing/error/empty states, independent refresh,
+  late replies, changed identity, cancellation and departure are exercised. Production frontend build,
+  typecheck, changed-scope ESLint and new-file scoped `dotnet format --verify-no-changes` pass.
+- Full solution format **FAILS** on inherited unmodified whitespace/end-of-line issues. Full lint
+  **FAILS** on the two locked Stage 10 setState-in-effect errors. `cargo fmt --check` **FAILS** on
+  pre-existing Rust formatting. These are exceptions, not passes. A new lookup lint warning and a test
+  clock compile failure were corrected, then affected checks passed. AFT diagnostics remained PARTIAL;
+  successful compiler/build/test evidence is the verification authority. No Rust code changed.
+- Separate-context independent security review and final-refresh follow-up found **no confirmed new
+  security defect** at reviewed depth. Existing Pkcs 9.0.4 moderate/high advisories remain unresolved,
+  not risk-accepted. No dependency/capability, DB object/write, connection/credential/CORS/CSP change.
+- `scripts/build-sidecar.ps1` successfully published/copied the final 127,855,236-byte sidecar;
+  published/copy SHA256 `392C7D7550DD69473B95FB899760348ACDEBF2AAD3AC6031A0A3946E9B4E4CF8`.
+  Copied-sidecar startup verified handshake/process identity, 127.0.0.1-only listener, health/readiness
+  and the static lookup spec with QAD disabled. Only those three non-acquisition routes were called.
+  No actual desktop UI startup/lookup, live QAD/Shortages read, visual acceptance or parity is claimed.
+- Local evidence: `C:\Dev\kst_v2_tmp\PartInfoLookup\` — `backend\` and `backend-final\` TRX,
+  `frontend-tests.json`, `independent-security-review.md` (with final addendum), format/lint logs,
+  `sidecar-identity.json`, `sidecar-startup.json/.log`, startup verifier and focused diff/new-file evidence.
+  `build-backend.log` records the superseded compile failure, not final build success.
+- Pre-existing owner `tsconfig.tsbuildinfo` bytes were restored after frontend build (SHA256
+  `9218A9C78BC13B1885ADC9197E269C9A717D608DD874015FD3BD5326E841732D`); untracked Stage 19
+  discovery and `ktmg1160.p` preserved. Nothing staged, committed or pushed.
+
+Owner-run acceptance checklist — **not executed**; live reads require owner authorization:
+1. Restart the desktop using the refreshed sidecar. With no workspace/MPS loaded, open Reports →
+   Part Info Lookup. Look up an owner-selected real part/site using Enter; confirm identity/description.
+2. Compare retained inventory/cost/planning/manufacturer/AVL/PO values against accepted source evidence.
+   Confirm four-decimal costs, missing versus zero, long identifiers, multiline comments and exact quantities.
+3. Check a part with multiple PO suppliers/different flags and unmatched supplier; verify exact name
+   identities and Unknown. Check no-PO part still retrieves a buyer comment and explains no risk coverage.
+4. Change site/part rapidly while loading; refresh/retry inventory independently; switch reports and
+   return. Confirm no old identity or obsolete rows reappear. Exercise real unavailable/empty/missing states
+   where safely available; do not change databases to create them.
+5. Check light/dark, compact/comfortable, narrow window stacking, Tab/focus, Enter, alternate disclosure
+   and keyboard table scrolling. Confirm no shortage/Past fields or export/save/open controls. Spot-check
+   existing Reports, BOM/shortage popups and Component Orders. Record acceptance or specific corrections.
+
+## Accepted stage baseline
 
 Stage 21 — **COMPLETE / OWNER-ACCEPTED — 2026-10-14.**
 MPS and selected-parent BOM XLSX actions use loaded data and the accepted host-owned Reports

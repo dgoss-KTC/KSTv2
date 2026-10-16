@@ -4,6 +4,7 @@ import { useWorkOrderCandidates } from '../hooks/useWorkOrderCandidates';
 import { useWorkOrderImmediateMaterial } from '../hooks/useWorkOrderImmediateMaterial';
 import { useEscapeLevel } from '../mps/escapeStack';
 import { WorkOrderCard } from './WorkOrderCard';
+import { formatQuantity } from '../mps/mpsPresentation';
 import { ShortagesPanel } from './ShortagesPanel';
 import './WorkOrderCandidatePanel.css';
 
@@ -15,6 +16,10 @@ interface WorkOrderCandidatePanelProps {
   /** Depth to render the candidate cards at (immediate parent's depth + 1). */
   depth: number;
   dateBasis: string;
+  originLine?: WorkOrderImmediateMaterialComponentDto;
+  selectedWoid?: string | null;
+  onSelectWoid?: (woid: string | null, trigger?: HTMLButtonElement) => void;
+  onViewWorkOrders?: (row: WorkOrderImmediateMaterialComponentDto, trigger: HTMLElement, woid: string) => void;
 }
 
 /**
@@ -29,8 +34,13 @@ export function WorkOrderCandidatePanel({
   componentPart,
   depth,
   dateBasis,
+  originLine,
+  selectedWoid: controlledWoid,
+  onSelectWoid,
+  onViewWorkOrders,
 }: WorkOrderCandidatePanelProps) {
-  const [selectedWoid, setSelectedWoid] = useState<string | null>(null);
+  const [localWoid, setSelectedWoid] = useState<string | null>(null);
+  const selectedWoid = onSelectWoid ? controlledWoid ?? null : localWoid;
   const [detail, setDetail] = useState<{ row: WorkOrderImmediateMaterialComponentDto; returnFocusEl: HTMLElement | null } | null>(null);
   const { candidates, isLoading, error, retry } = useWorkOrderCandidates(
     assignmentId,
@@ -43,7 +53,7 @@ export function WorkOrderCandidatePanel({
   const { analysis, isLoading: isAnalysisLoading, error: analysisError, retry: retryAnalysis } = useWorkOrderImmediateMaterial(
     assignmentId, snapshotId, selectedWoid, dateBasis, selectedWoid !== null,
   );
-  useEscapeLevel(selectedWoid !== null, () => {
+  useEscapeLevel(!onSelectWoid && selectedWoid !== null, () => {
     setSelectedWoid(null);
     setDetail(null);
   });
@@ -56,6 +66,9 @@ export function WorkOrderCandidatePanel({
   return (
     <div className="work-order-candidate-panel">
       <h4 className="work-order-candidate-panel__title">Work Orders for {componentPart}</h4>
+      <p className="work-order-candidate-panel__context">Opened from WO {immediateParentWoid}
+        {originLine && <> · Line needs {formatQuantity(originLine.requiredQuantity)}, issued {originLine.issuedQuantity == null ? 'N/A' : formatQuantity(originLine.issuedQuantity)}</>}.
+        {' '}Sub-assembly orders are not linked in QAD. These are eligible work orders for {componentPart}, not pegged orders.</p>
 
       {isLoading && <div className="work-order-candidate-panel__state">Loading work orders&hellip;</div>}
 
@@ -87,16 +100,20 @@ export function WorkOrderCandidatePanel({
                 workOrder={candidate}
                 isOpen={selectedWoid === candidate.woid}
                 shortageState="unavailable"
-                onToggle={() => {
-                  setSelectedWoid((current) => current === candidate.woid ? null : candidate.woid);
+                onToggle={(trigger) => {
+                  const next = selectedWoid === candidate.woid ? null : candidate.woid;
+                  if (onSelectWoid) onSelectWoid(next, trigger);
+                  else setSelectedWoid(next);
                   setDetail(null);
                 }}
               />
             ))}
           </ul>
+          {!selectedWoid && <p className="work-order-candidate-panel__state">Select a work order to see its immediate material analysis.</p>}
           {selectedWoid && (
             <div className="work-order-candidate-panel__detail">
               <ShortagesPanel
+                key={selectedWoid}
                 selectedWoid={selectedWoid}
                 analysis={analysis}
                 isLoading={isAnalysisLoading}
@@ -112,6 +129,8 @@ export function WorkOrderCandidatePanel({
                 assignmentId={assignmentId}
                 snapshotId={snapshotId}
                 dateBasis={dateBasis}
+                depth={depth}
+                onViewWorkOrders={onViewWorkOrders ? (row, trigger) => onViewWorkOrders(row, trigger, selectedWoid) : undefined}
               />
             </div>
           )}

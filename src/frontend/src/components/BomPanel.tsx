@@ -5,6 +5,8 @@ import { filterMaterialLinesByPart, formatQuantity } from '../mps/mpsPresentatio
 import './BomPanel.css';
 import { AnalyticalExcelExport } from './AnalyticalExcelExport';
 import { analyticalRequest } from '../api/analyticalExportApi';
+import { useLocalBusinessDate } from '../hooks/useLocalBusinessDate';
+import { localIsoDate } from '../shared/localDate';
 
 interface BomPanelProps {
   assignmentId?: string;
@@ -53,6 +55,7 @@ function formatScrap(value: number | string | null | undefined): string {
  * modal state itself.
  */
 export function BomPanel({ parentPart, bom, isLoading, error, onRetry, onSelectComponent, assignmentId, snapshotId }: BomPanelProps) {
+  const businessDate = useLocalBusinessDate();
   const [searchText, setSearchText] = useState('');
   const [descriptionText, setDescriptionText] = useState('');
   const [pmFilter, setPmFilter] = useState<PmFilter>('all');
@@ -95,16 +98,18 @@ export function BomPanel({ parentPart, bom, isLoading, error, onRetry, onSelectC
     <div className="bom-panel" aria-label={`BOM for ${parentPart}`}>
       <div className="bom-panel__header">
         <h3 className="bom-panel__title">BOM &mdash; {parentPart}</h3>
-        {assignmentId && snapshotId && bom && <AnalyticalExcelExport disabled={isLoading || !!error}
-          contextKey={JSON.stringify([assignmentId, snapshotId, parentPart, bom, searchText, descriptionText, pmFilter, phantomFilter])}
+        <AnalyticalExcelExport label="BOM" scopeLabel={`Export includes ${visibleLines.length} of ${bom?.lines.length ?? 0} loaded rows · ${parentPart}${filtersActive ? ' · Current filters' : ''}`}
+          disabledReason={!assignmentId || !snapshotId ? 'A current workspace snapshot is required.' : isLoading ? 'BOM is loading. Wait for it to finish.' : error ? 'BOM lookup failed. Retry loading the BOM before exporting.' : !bom ? 'Load the selected parent BOM before exporting.' : bom.effectiveDate !== businessDate ? 'The BOM business date changed. Reload the BOM before exporting.' : undefined}
+          contextKey={JSON.stringify([assignmentId, snapshotId, parentPart, bom, searchText, descriptionText, pmFilter, phantomFilter, error, isLoading, businessDate])}
           request={() => {
-            const now = new Date();
-            const request = analyticalRequest('BOM', assignmentId, snapshotId, bom.site, `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
+            const today = localIsoDate(new Date());
+            if (!assignmentId || !snapshotId || !bom || error || isLoading || bom.effectiveDate !== today) throw new Error('Loaded BOM is unavailable or its business date changed. Reload the BOM.');
+            const request = analyticalRequest('BOM', assignmentId, snapshotId, bom.site, today);
             request.parent = parentPart; request.bomLoadedAtUtc = bom.loadedAtUtc; request.bomEffectiveDate = bom.effectiveDate;
             request.isStale = bom.isStale; request.warning = bom.warning;
             request.componentFilter = searchText; request.descriptionFilter = descriptionText; request.pmFilter = pmFilter; request.phantomFilter = phantomFilter;
             return request;
-          }} />}
+          }} />
       </div>
 
       {isLoading && <div className="bom-panel__state">Loading BOM&hellip;</div>}

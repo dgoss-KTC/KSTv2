@@ -3,8 +3,30 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** Stage 19 Historical Shipments — **COMPLETE / OWNER-ACCEPTED — 2026-10-13**
+**Current project position:** Stage 22 MPS drill-down and subsequent MPS/BOM export pilot — **IMPLEMENTED /
+OFFLINE-VERIFIED; ACCEPTED MPS/EXPORT BEHAVIOR, REMAINING OWNER VALIDATION PENDING — 2026-10-16**. Accepted stage baseline remains
+Stage 21 (`1831fb7`). Stage 22 overall is in progress, not accepted or complete. See
+`docs/implementation/KST_v2_STAGE_22_MPS_DRILLDOWN_CHECKPOINT.md` and
+`docs/implementation/KST_v2_STAGE_22_MPS_BOM_EXPORT_PILOT.md` for separately authorized scopes,
+evidence and owner checks. The export pilot does not imply acceptance of the earlier navigation work.
+
+The owner authorizes a local accumulated-work checkpoint after S22-034 commit
+`86fd0cb6db6366f63c8dcc6130bc4de2760b64e8`, without pushing. Prior closeout acceptance of MPS/export
+and eight-second feedback remains at its reported scope; Part Info, broader drill-down/detail-scroll
+and unexecuted desktop/recovery checks remain pending. This commit records implementation, not new
+acceptance. Existing verification is reused and formatting/lint exceptions remain explicit; see
+`docs/status/CURRENT_PROJECT_STATUS.md` for the checkpoint and owner-approved tracked build-metadata
+exception. Historical implementation-time pending statements below do not revoke recorded acceptance.
+
+Stage 19 Historical Shipments remains **COMPLETE / OWNER-ACCEPTED — 2026-10-13**
 (Part 1 Reports and Part 2 Workspace Shipments; see `docs/implementation/KST_v2_STAGE_19_CLOSEOUT.md`).
+
+**Brought-forward Reports Part Info Lookup — IMPLEMENTED / PENDING OWNER ACCEPTANCE — 2026-10-14.**
+Standalone exact part/site page, independent inventory refresh and exact supplier-risk enrichment are
+offline-verified with a republished/identified sidecar. Owner live/visual acceptance remains pending;
+see `docs/status/CURRENT_PROJECT_STATUS.md` for source decisions, evidence, exceptions and checklist.
+Stage 21 remains accepted; the separate Stage 22 navigation checkpoint above does not accept the lookup.
+No release readiness is implied.
 The owner approved the revised Release 1 scope and stage sequence on
 2026-09-29. Stage 12 is retired. Stage 13 Customer Open Orders has an owner-accepted bounded plan
 and precedes Stage 14 Planning Workbook; Stage 13 is complete and owner-accepted as of 2026-10-01. Stage 14
@@ -1743,9 +1765,10 @@ with retained unresolved dispositions. This supersedes the older all-area-dispos
 it does not mark unresolved entries resolved. Automation is synthetic/offline or mocked; owner review
 does not establish exhaustive live numerical parity, every desktop save/open interaction, installer/
 printing or crash/restart recovery. Formatting/lint/diagnostic exceptions and inherited host limitations
-remain in the evidence record. Stage 22 remains planned; Planning analytical redesign is outside it.
+remain in the evidence record. At that closeout Stage 22 remained planned; its current bounded work
+is recorded below. Planning analytical redesign remains outside Stage 22.
 
-## Stage 22 — Refinement & Optimization — PLANNED / RELEASE 1 REQUIRED
+## Stage 22 — Refinement & Optimization — IN PROGRESS / RELEASE 1 REQUIRED
 
 Stage 22 is an intentionally interactive, product-wide refinement stage. It consolidates observed
 defects, owner feedback, measured performance work, usability improvements, and deferred Release 1
@@ -1781,6 +1804,16 @@ A substantial new standalone capability requires its own explicit roadmap dispos
       notes design is authorized.
 
 ### 22.3 Interactive refinement cycles
+
+First bounded batch (2026-10-15): MPS drill-down hierarchy/material presentation is implemented and
+offline-verified, with owner desktop acceptance pending. See
+`docs/implementation/KST_v2_STAGE_22_MPS_DRILLDOWN_CHECKPOINT.md`. This does not close the broader
+intake or completion gate. A subsequent, separately owner-authorized MPS/BOM export pilot is
+implemented with owner desktop acceptance pending: themed caption menus and explicit scope,
+single-action preparation/Save As, retained exact-workbook retry and persistent protected session
+recovery. See `docs/implementation/KST_v2_STAGE_22_MPS_BOM_EXPORT_PILOT.md`. Its scoped independent
+security review reports no confirmed new material defect; that is not owner/risk acceptance.
+Other report migrations and operational CSV workflows are outside this batch.
 
 - [ ] Work in bounded owner-review batches rather than one monolithic change set.
 - [ ] Improve cross-view consistency, scrolling, sizing, navigation, keyboard behavior, filters,

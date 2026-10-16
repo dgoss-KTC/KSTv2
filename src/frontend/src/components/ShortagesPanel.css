@@ -7,7 +7,11 @@
 .shortages-panel th { color: var(--tx3); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 .shortages-panel td button { border: 0; background: none; padding: 0; color: var(--tx); font: 700 12px 'IBM Plex Mono', monospace; cursor: pointer; }
 .shortages-panel__component { display: flex; align-items: center; gap: 6px; }
-.shortages-panel__drill-btn { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; }
+.shortages-panel td .shortages-panel__drill-btn { display: inline-flex; align-items: center; justify-content: center; padding: 0 8px; min-height: var(--density-control-height); border: 1px solid var(--bd); border-radius: 6px; background: var(--chip); color: var(--tx2); font: inherit; }
+.shortages-panel td .shortages-panel__drill-btn:disabled { opacity: .6; cursor: not-allowed; }
+.shortages-panel__manufactured { color: var(--tx2); font-size: 11px; }
+.shortages-panel__filter { width: fit-content; max-width: 100%; margin-bottom: 10px; }
+.shortages-panel button:focus-visible { outline: 2px solid var(--accent-solid); outline-offset: 2px; }
 .shortages-panel__chevron { width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid var(--tx2); transition: transform .1s ease-in-out; }
 .shortages-panel__chevron--open { transform: rotate(90deg); }
 .shortages-panel__row--unknown { background: var(--a-bg); }.shortages-panel__row--short { background: var(--danger-bg); }.shortages-panel__row--short td:last-child { color: var(--danger-tx); font-weight: 700; }

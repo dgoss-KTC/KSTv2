@@ -4,6 +4,7 @@
   flex: 1;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 
 .mps-workspace__header {
@@ -147,6 +148,7 @@
   flex: 1;
   min-height: 0;
   display: flex;
+  flex-direction: column;
   margin: 0 20px 14px;
   background: var(--grid);
   border: 1px solid var(--bd);
@@ -154,10 +156,26 @@
   overflow: hidden;
 }
 
+.mps-grid-guidance { margin: 0; padding: 6px 12px; color: var(--tx2); font-size: 12px; border-bottom: 1px solid var(--bd-soft); }
+.mps-workspace__snapshot { color: var(--tx2); font-size: 11px; }
+.mps-grid-caption { display: flex; flex-shrink: 0; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 8px 12px; border-bottom: 1px solid var(--bd-soft); font-size: 12px; }
+.mps-grid-caption__context { margin-left: 10px; color: var(--tx2); }
+.mps-bucket-feedback { padding: 6px 20px; color: var(--tx2); font-size: 12px; }
+.mps-bucket-feedback[role='alert'] { color: var(--danger-tx); }
+.mps-trail { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 20px 10px; padding: 8px; border: 1px solid var(--bd); border-radius: 8px; background: var(--panel); color: var(--tx2); font-size: 12px; }
+.mps-trail ol { display: flex; flex: 1 1 180px; flex-wrap: wrap; align-items: center; gap: 6px; list-style: none; margin: 0; padding: 0; min-width: 0; }
+.mps-trail li { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.mps-trail li button, .mps-trail [aria-current] { overflow-wrap: anywhere; text-align: left; }
+.mps-trail li button { border: 0; background: transparent; color: var(--tx2); font: inherit; cursor: pointer; padding: 4px; min-height: var(--density-control-height); }
+.mps-trail li button:hover { background: var(--row-hover); color: var(--tx); }
+.mps-trail [aria-current] { color: var(--tx); font-weight: 600; }
+.mps-trail button:focus-visible, .mps-trail [aria-current]:focus-visible { outline: 2px solid var(--accent-solid); outline-offset: 2px; }
+.mps-trail__hint { color: var(--tx3); }
+
 /* Focused mode (a single parent row): stop stretching to fill the workspace's remaining vertical
    space so the frame hugs the header + one row instead of leaving blank area above Part Info. */
 .mps-grid-frame--focused {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
 }
 
 .mps-grid-scroll {
@@ -214,16 +232,22 @@
   background: var(--accent-soft);
 }
 
-.mps-grid thead th {
+.mps-grid thead {
+  /* Keep quarter, period and week rows together at their natural density-dependent heights.
+     Pinning every cell at top: 0 lets later rows slide over the fiscal bands. */
   position: sticky;
   top: 0;
+  z-index: 2;
+  background: var(--panel2);
+}
+
+.mps-grid thead th {
   background: var(--panel2);
   color: var(--tx2);
   font-weight: 600;
   font-size: 11px;
   text-align: center;
   border-bottom: 1px solid var(--bd-soft);
-  z-index: 2;
 }
 
 /* Fiscal quarter band: short, compact, color-coded by quarter (1-4 cycling blue/green/amber/purple). */
@@ -415,9 +439,37 @@
 }
 
 .mps-detail {
-  flex-shrink: 0;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.mps-detail > .mps-trail,
+.mps-detail__tabs {
+  flex-shrink: 0;
+}
+
+/* Only the active content beneath the tabs scrolls. Each WO investigation level keeps its
+   own viewport mounted while hidden, so returning restores context without moving the MPS row. */
+.mps-detail__content,
+.mps-detail__work-orders:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mps-detail__scroll {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .mps-detail__tabs {

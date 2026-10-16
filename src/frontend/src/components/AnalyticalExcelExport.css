@@ -1,0 +1,14 @@
+.analytical-excel-export { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; font-size: 12px; }
+.analytical-export__scope, .analytical-export__reason { color: var(--tx2); overflow-wrap: anywhere; }
+.analytical-export__reason { flex-basis: 100%; margin: 0; font-size: 11px; }
+.analytical-export__button { display: inline-flex; gap: 7px; align-items: center; justify-content: center; min-height: var(--density-control-height); padding: 0 12px; border: 1px solid var(--bd); border-radius: 6px; background: var(--chip); color: var(--tx2); font: inherit; cursor: pointer; }
+.analytical-export__button:hover:not(:disabled), .analytical-export-menu__item:hover { background: var(--row-hover); color: var(--tx); }
+.analytical-export__button:disabled { opacity: .65; cursor: not-allowed; }
+.analytical-export__button:focus-visible, .analytical-export-menu__item:focus-visible { outline: 2px solid var(--accent-solid); outline-offset: 2px; }
+.analytical-export-menu { position: fixed; z-index: 110; width: max-content; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow: auto; padding: 6px; border: 1px solid var(--bd); border-radius: 8px; background: var(--panel); color: var(--tx); box-shadow: var(--shadow); font-size: 12px; }
+.analytical-export-menu__item { display: block; width: 100%; min-height: var(--density-control-height); padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; overflow-wrap: anywhere; }
+.analytical-export-menu__item small { display: block; margin-top: 3px; color: var(--tx2); }
+.analytical-export-feedback { position: fixed; z-index: 110; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; width: min(28rem, calc(100vw - 32px)); max-height: 50vh; overflow: auto; font-size: 12px; }
+.analytical-export-feedback__card { padding: 12px; border: 1px solid var(--bd-strong); border-radius: 8px; background: var(--panel); color: var(--tx); box-shadow: var(--shadow); overflow-wrap: anywhere; }
+.analytical-export-feedback__card p { margin: 6px 0; color: var(--tx2); }
+.analytical-export-feedback__actions { display: flex; flex-wrap: wrap; gap: 8px; }

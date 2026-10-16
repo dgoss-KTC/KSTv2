@@ -9,7 +9,7 @@ import { WorkOrderCandidatePanel } from './WorkOrderCandidatePanel';
 const NA = 'N/A';
 
 function materialStatusLabel(status: string): string {
-  if (status === 'unknown') return 'Unknown / Data Issue';
+  if (status === 'unknown') return 'Unable to confirm availability';
   if (status === 'notApplicable') return 'Manufactured Component';
   if (status === 'onHand') return 'On Hand';
   return 'Short';
@@ -49,10 +49,13 @@ interface ShortagesPanelProps {
   assignmentId?: string;
   snapshotId?: string | null;
   dateBasis?: string;
+  depth?: number;
+  onViewWorkOrders?: (row: WorkOrderImmediateMaterialComponentDto, trigger: HTMLElement) => void;
 }
 
-export function ShortagesPanel({ selectedWoid, analysis, isLoading, error, onRetry, detail, onSelectDetail, onCloseDetail, onCloseAnalysis, registerSelectedWoidEscape = false, assignmentId, snapshotId, dateBasis }: ShortagesPanelProps) {
+export function ShortagesPanel({ selectedWoid, analysis, isLoading, error, onRetry, detail, onSelectDetail, onCloseDetail, onCloseAnalysis, registerSelectedWoidEscape = false, assignmentId, snapshotId, dateBasis, depth = 1, onViewWorkOrders }: ShortagesPanelProps) {
   const [candidatePart, setCandidatePart] = useState<string | null>(null);
+  const [attentionOnly, setAttentionOnly] = useState(false);
   useEscapeLevel(registerSelectedWoidEscape && selectedWoid !== null, () => onCloseAnalysis?.());
   useEscapeLevel(candidatePart !== null, () => setCandidatePart(null));
   if (!selectedWoid) return <div className="shortages-panel__state">Select a Work Order to inspect its immediate material analysis.</div>;
@@ -62,15 +65,19 @@ export function ShortagesPanel({ selectedWoid, analysis, isLoading, error, onRet
   }
   if (!analysis) return null;
   if (analysis.diagnostic && analysis.components.length === 0) {
-    return <div className="shortages-panel__state shortages-panel__state--issue" role="alert"><strong>Unknown / Data Issue</strong><p>{analysis.diagnostic}</p></div>;
+    return <div className="shortages-panel__state shortages-panel__state--issue" role="alert"><strong>Unable to confirm availability</strong><p>{analysis.diagnostic}</p></div>;
   }
   if (analysis.components.length === 0) return <div className="shortages-panel__state">No immediate material components were returned for this Work Order.</div>;
   return <div className="shortages-panel">
     <h3>Immediate Material Analysis - {analysis.workOrder.woid}</h3>
+    <div className="segmented shortages-panel__filter" role="group" aria-label="Material filter">
+      <button type="button" className={`segmented__btn${!attentionOnly ? ' segmented__btn--active' : ''}`} aria-pressed={!attentionOnly} onClick={() => setAttentionOnly(false)}>All {analysis.components.length}</button>
+      <button type="button" className={`segmented__btn${attentionOnly ? ' segmented__btn--active' : ''}`} aria-pressed={attentionOnly} onClick={() => setAttentionOnly(true)}>Needs attention {analysis.components.filter((row) => row.materialStatus === 'short' || row.materialStatus === 'unknown').length}</button>
+    </div>
     <div className="shortages-panel__scroll"><table><thead><tr><th>Component</th><th>Description</th><th>BOM Qty</th><th>Issued Qty</th><th>Variance Qty</th><th>Issued %</th><th>Short</th></tr></thead>
-      <tbody>{sortComponents(analysis.components).map((row) => <tr key={row.componentPart} className={`shortages-panel__row shortages-panel__row--${row.materialStatus}`}><td className="shortages-panel__component">{row.isManufactured && <button type="button" className="shortages-panel__drill-btn" onClick={() => setCandidatePart((part) => part === row.componentPart ? null : row.componentPart)} aria-label={`Work Orders for ${row.componentPart}`} aria-expanded={candidatePart === row.componentPart}><span className={`shortages-panel__chevron${candidatePart === row.componentPart ? ' shortages-panel__chevron--open' : ''}`} aria-hidden="true" /></button>}<button type="button" onClick={(event) => onSelectDetail(row, event.currentTarget)}>{row.componentPart}</button></td><td>{row.description ?? NA}{row.diagnostic && <span className="shortages-panel__diagnostic"> {row.diagnostic}</span>}</td><td>{formatQuantity(row.requiredQuantity)}</td><td>{formatOptionalQuantity(row.issuedQuantity)}</td><td>{formatOptionalQuantity(row.varianceQuantity)}</td><td>{formatOptionalPercent(row.issuedPercent)}</td><td>{formatOptionalQuantity(row.shortQuantity)}</td></tr>)}</tbody>
+      <tbody>{sortComponents(analysis.components).filter((row) => !attentionOnly || row.materialStatus === 'short' || row.materialStatus === 'unknown').map((row) => <tr key={row.componentPart} className={`shortages-panel__row shortages-panel__row--${row.materialStatus}`}><td className="shortages-panel__component"><button type="button" onClick={(event) => onSelectDetail(row, event.currentTarget)}>{row.componentPart}</button>{row.isManufactured && <span className="shortages-panel__manufactured">Manufactured</span>}{row.isManufactured && <button type="button" className="shortages-panel__drill-btn" disabled={depth >= 3} title={depth >= 3 ? 'Maximum investigation depth (3 levels) reached' : undefined} onClick={(event) => onViewWorkOrders ? onViewWorkOrders(row, event.currentTarget) : setCandidatePart((part) => part === row.componentPart ? null : row.componentPart)} aria-label={`View work orders for ${row.componentPart}`}>View work orders</button>}</td><td>{row.description ?? NA}{row.materialStatus === 'unknown' && <span className="shortages-panel__diagnostic">Unable to confirm availability</span>}{row.diagnostic && <span className="shortages-panel__diagnostic"> {row.diagnostic}</span>}</td><td>{formatQuantity(row.requiredQuantity)}</td><td>{formatOptionalQuantity(row.issuedQuantity)}</td><td>{formatOptionalQuantity(row.varianceQuantity)}</td><td>{formatOptionalPercent(row.issuedPercent)}</td><td>{formatOptionalQuantity(row.shortQuantity)}</td></tr>)}</tbody>
     </table></div>
-    {candidatePart && assignmentId && dateBasis && <WorkOrderCandidatePanel assignmentId={assignmentId} snapshotId={snapshotId ?? null} immediateParentWoid={selectedWoid} componentPart={candidatePart} depth={2} dateBasis={dateBasis} />}
+    {candidatePart && assignmentId && dateBasis && depth < 3 && <WorkOrderCandidatePanel assignmentId={assignmentId} snapshotId={snapshotId ?? null} immediateParentWoid={selectedWoid} componentPart={candidatePart} depth={depth + 1} dateBasis={dateBasis} />}
     {detail && <ShortageDetailModal analysis={analysis} row={detail} onClose={onCloseDetail} />}
   </div>;
 }
@@ -85,7 +92,16 @@ export function ShortageDetailModal({ analysis, row, onClose }: ShortageDetailMo
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = previousOverflow; };
   }, []);
-  useEffect(() => { const handler = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose(); } }; document.addEventListener('keydown', handler, true); return () => document.removeEventListener('keydown', handler, true); }, [onClose]);
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose(); }
+      // The material dialog currently has only one interactive control. Keep both Tab directions
+      // inside it, independently of the background trail and grid.
+      if (event.key === 'Tab') { event.preventDefault(); closeRef.current?.focus(); }
+    };
+    document.addEventListener('keydown', handler, true);
+    return () => document.removeEventListener('keydown', handler, true);
+  }, [onClose]);
   const incoming = row.incoming;
   const showPo = row.materialStatus === 'short' && incoming?.poNumber != null;
   return <div className="shortage-detail-backdrop"><div className="shortage-detail" role="dialog" aria-modal="true" aria-labelledby="shortage-detail-title"><header><h2 id="shortage-detail-title">Material Detail - {row.componentPart}</h2><button ref={closeRef} type="button" onClick={onClose} aria-label="Close Material Detail">X</button></header><section><h3>Work Order</h3><dl><Field name="WO ID" value={analysis.workOrder.woid}/><Field name="Status" value={workOrderStatusLabel(analysis.workOrder.status)}/><Field name="WO Build Part" value={analysis.workOrder.buildPart}/><Field name="Material-analysis Build Qty" value={formatQuantity(analysis.workOrder.materialBuildQuantity)}/><Field name="Due Date" value={formatOptionalDate(analysis.workOrder.dueDate)}/><Field name="Release Date" value={formatOptionalDate(analysis.workOrder.releaseDate)}/></dl></section><section><h3>Material</h3><dl><Field name="Material Status" value={materialStatusLabel(row.materialStatus)}/><Field name="Requirement Source" value={requirementSourceLabel(row.requirementSource)}/><Field name="Usable On Hand" value={formatQuantity(row.usableOnHand)}/><Field name="Floor Stock / Non-Issued" value={row.isFloorStockOrNonIssued ? 'Yes' : 'No'}/>{row.isOverIssued && <Field name="Over-Issued" value="Yes"/>}</dl>{row.diagnostic && <p className="shortage-detail__diagnostic" role="alert">{row.diagnostic}</p>}</section><section><h3>Inventory Activity</h3><dl><Field name="Transit" value={formatQuantity(row.inventoryActivity.transit)}/><Field name="Inspection" value={formatQuantity(row.inventoryActivity.inspection)}/><Field name="Non-Net" value={formatQuantity(row.inventoryActivity.nonNet)}/><Field name="MRB" value={formatQuantity(row.inventoryActivity.mrb)}/><Field name="NCM Inspection" value={formatQuantity(row.inventoryActivity.ncmInspection)}/><Field name="Expired / Expiring" value={formatQuantity(row.inventoryActivity.expiredExpiring)}/></dl></section>{row.materialStatus === 'short' && incoming && <section><h3>Incoming</h3><dl><Field name="KSS" value={incoming.isKss ? 'Yes' : 'No'}/>{showPo ? <><Field name="PO Number" value={incoming.poNumber!}/><Field name="PO Due" value={formatOptionalDate(incoming.poDueDate)}/><Field name="PO Open Qty" value={formatOptionalQuantity(incoming.poOpenQuantity)}/><Field name="PO Confirmation" value={incoming.poConfirmed === null ? NA : incoming.poConfirmed ? 'Confirmed' : 'Not confirmed'}/><Field name="Tracking Info" value={incoming.trackingInfo ?? NA}/></> : !incoming.isKss && <Field name="PO Number" value="NO PO"/>}</dl></section>}</div></div>;

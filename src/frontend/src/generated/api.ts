@@ -892,6 +892,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/part-info/spec": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetPartInfoSpec"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/part-info/inventory-locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["RefreshPartInfoLocations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/part-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["LookupPartInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/historical-shipments/spec": {
         parameters: {
             query?: never;
@@ -1832,6 +1880,121 @@ export interface components {
             loadedAtUtc: string;
             isStale: boolean;
             warning: null | string;
+        };
+        PartInfoContextDto: {
+            manufacturerItem: null | string;
+            effectivePmCode: null | string;
+            /** Format: int32 */
+            manufacturingLeadWorkingDays: null | number | string;
+        };
+        PartInfoInventoryDto: {
+            netQuantityOnHand: string;
+            nonNetQuantityOnHand: string;
+        };
+        PartInfoLocationsDto: {
+            site: string;
+            part: string;
+            locations: components["schemas"]["PartInfoSectionDtoOfIReadOnlyListOfInventoryLocationRowDto"];
+        };
+        PartInfoMasterDto: {
+            description: null | string;
+            partStatusCode: null | string;
+            partStatusDescription: null | string;
+            iosCode: null | string;
+            standardCost: null | string;
+            qctc: null | string;
+            /** Format: int32 */
+            timeFence: null | number | string;
+            safetyTime: null | string;
+            safetyStock: null | string;
+            buyerPlanner: null | string;
+            /** Format: int32 */
+            purchaseLeadTimeDays: null | number | string;
+            /** Format: int32 */
+            inspectionLeadTimeDays: null | number | string;
+            /** Format: int32 */
+            cumulativeLeadTimeDays: null | number | string;
+            minimumOrderQuantity: null | string;
+            orderMultiple: null | string;
+        };
+        PartInfoOrderDto: {
+            poNumber: string;
+            /** Format: int32 */
+            poLine: number | string;
+            /** Format: date */
+            dueDate: null | string;
+            openQuantity: string;
+            confirmed: null | boolean;
+            supplierIdentifier: null | string;
+            supplierDisplay: null | string;
+            buyerDisplay: null | string;
+            manufacturerItem: null | string;
+            trackingInfo: null | string;
+        };
+        PartInfoResponseDto: {
+            site: string;
+            part: string;
+            master: components["schemas"]["PartInfoMasterDto"];
+            inventory: components["schemas"]["PartInfoSectionDtoOfPartInfoInventoryDto"];
+            locations: components["schemas"]["PartInfoSectionDtoOfIReadOnlyListOfInventoryLocationRowDto"];
+            alternates: components["schemas"]["PartInfoSectionDtoOfIReadOnlyListOfApprovedVendorDto"];
+            context: components["schemas"]["PartInfoSectionDtoOfPartInfoContextDto"];
+            orders: components["schemas"]["PartInfoSectionDtoOfIReadOnlyListOfPartInfoOrderDto"];
+            comment: components["schemas"]["PartInfoSectionDtoOfstring"];
+            suppliers: components["schemas"]["PartInfoSectionDtoOfIReadOnlyListOfPartInfoSupplierDto"];
+        };
+        PartInfoSectionDtoOfIReadOnlyListOfApprovedVendorDto: {
+            value: null | components["schemas"]["ApprovedVendorDto"][];
+            /** Format: date-time */
+            acquiredAtUtc: null | string;
+            error: null | string;
+        };
+        PartInfoSectionDtoOfIReadOnlyListOfInventoryLocationRowDto: {
+            value: null | components["schemas"]["InventoryLocationRowDto"][];
+            /** Format: date-time */
+            acquiredAtUtc: null | string;
+            error: null | string;
+        };
+        PartInfoSectionDtoOfIReadOnlyListOfPartInfoOrderDto: {
+            value: null | components["schemas"]["PartInfoOrderDto"][];
+            /** Format: date-time */
+            acquiredAtUtc: null | string;
+            error: null | string;
+        };
+        PartInfoSectionDtoOfIReadOnlyListOfPartInfoSupplierDto: {
+            value: null | components["schemas"]["PartInfoSupplierDto"][];
+            /** Format: date-time */
+            acquiredAtUtc: null | string;
+            error: null | string;
+        };
+        PartInfoSectionDtoOfPartInfoContextDto: {
+            value: null | components["schemas"]["PartInfoContextDto"];
+            /** Format: date-time */
+            acquiredAtUtc: null | string;
+            error: null | string;
+        };
+        PartInfoSectionDtoOfPartInfoInventoryDto: {
+            value: null | components["schemas"]["PartInfoInventoryDto"];
+            /** Format: date-time */
+            acquiredAtUtc: null | string;
+            error: null | string;
+        };
+        PartInfoSectionDtoOfstring: {
+            value: null | string;
+            /** Format: date-time */
+            acquiredAtUtc: null | string;
+            error: null | string;
+        };
+        PartInfoSpecDto: {
+            sites: string[];
+            /** Format: int32 */
+            maximumPartLength: number | string;
+        };
+        PartInfoSupplierDto: {
+            identifier: string;
+            display: null | string;
+            isCreditHold: null | boolean;
+            isCia: null | boolean;
         };
         PartPriceBreakDto: {
             /** Format: double */
@@ -5101,6 +5264,108 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPartInfoSpec: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartInfoSpecDto"];
+                };
+            };
+        };
+    };
+    RefreshPartInfoLocations: {
+        parameters: {
+            query: {
+                site: string;
+                part: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartInfoLocationsDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    LookupPartInfo: {
+        parameters: {
+            query: {
+                site: string;
+                part: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartInfoResponseDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

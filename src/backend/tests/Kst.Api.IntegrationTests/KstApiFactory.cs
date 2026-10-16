@@ -42,6 +42,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
     /// <summary>Optional deterministic <see cref="IPartInventoryReader"/> override (Stage 8D.3).</summary>
     public IPartInventoryReader? PartInventoryReader { get; set; }
     public IInventoryLocationReader? InventoryLocationReader { get; set; }
+    public Kst.Application.PartInfo.IPartInfoContextReader? PartInfoContextReader { get; set; }
 
     /// <summary>Optional deterministic <see cref="IComponentSourceReader"/> override (Stage 8D.5).</summary>
     public IComponentSourceReader? ComponentSourceReader { get; set; }
@@ -97,6 +98,11 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
+            if (PartInfoContextReader is not null)
+            {
+                services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Application.PartInfo.IPartInfoContextReader)));
+                services.AddSingleton(PartInfoContextReader);
+            }
             if (WorkspaceShipmentsReader is not null)
             {
                 services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Application.HistoricalShipments.IWorkspaceShipmentsReader)));

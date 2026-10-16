@@ -3911,6 +3911,142 @@
         }
       }
     },
+    "/api/v1/reports/part-info/spec": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "GetPartInfoSpec",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartInfoSpecDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/part-info/inventory-locations": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "RefreshPartInfoLocations",
+        "parameters": [
+          {
+            "name": "site",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "part",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartInfoLocationsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/part-info": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "LookupPartInfo",
+        "parameters": [
+          {
+            "name": "site",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "part",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartInfoResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/historical-shipments/spec": {
       "get": {
         "tags": [
@@ -8240,6 +8376,594 @@
             "type": [
               "null",
               "string"
+            ]
+          }
+        }
+      },
+      "PartInfoContextDto": {
+        "required": [
+          "manufacturerItem",
+          "effectivePmCode",
+          "manufacturingLeadWorkingDays"
+        ],
+        "type": "object",
+        "properties": {
+          "manufacturerItem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "effectivePmCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "manufacturingLeadWorkingDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PartInfoInventoryDto": {
+        "required": [
+          "netQuantityOnHand",
+          "nonNetQuantityOnHand"
+        ],
+        "type": "object",
+        "properties": {
+          "netQuantityOnHand": {
+            "type": "string"
+          },
+          "nonNetQuantityOnHand": {
+            "type": "string"
+          }
+        }
+      },
+      "PartInfoLocationsDto": {
+        "required": [
+          "site",
+          "part",
+          "locations"
+        ],
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "locations": {
+            "$ref": "#/components/schemas/PartInfoSectionDtoOfIReadOnlyListOfInventoryLocationRowDto"
+          }
+        }
+      },
+      "PartInfoMasterDto": {
+        "required": [
+          "description",
+          "partStatusCode",
+          "partStatusDescription",
+          "iosCode",
+          "standardCost",
+          "qctc",
+          "timeFence",
+          "safetyTime",
+          "safetyStock",
+          "buyerPlanner",
+          "purchaseLeadTimeDays",
+          "inspectionLeadTimeDays",
+          "cumulativeLeadTimeDays",
+          "minimumOrderQuantity",
+          "orderMultiple"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partStatusCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partStatusDescription": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "iosCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "standardCost": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "qctc": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeFence": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "safetyTime": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "safetyStock": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "buyerPlanner": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "purchaseLeadTimeDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "inspectionLeadTimeDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "cumulativeLeadTimeDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "minimumOrderQuantity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "orderMultiple": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PartInfoOrderDto": {
+        "required": [
+          "poNumber",
+          "poLine",
+          "dueDate",
+          "openQuantity",
+          "confirmed",
+          "supplierIdentifier",
+          "supplierDisplay",
+          "buyerDisplay",
+          "manufacturerItem",
+          "trackingInfo"
+        ],
+        "type": "object",
+        "properties": {
+          "poNumber": {
+            "type": "string"
+          },
+          "poLine": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "openQuantity": {
+            "type": "string"
+          },
+          "confirmed": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "supplierIdentifier": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "supplierDisplay": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "buyerDisplay": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "manufacturerItem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "trackingInfo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PartInfoResponseDto": {
+        "required": [
+          "site",
+          "part",
+          "master",
+          "inventory",
+          "locations",
+          "alternates",
+          "context",
+          "orders",
+          "comment",
+          "suppliers"
+        ],
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "master": {
+            "$ref": "#/components/schemas/PartInfoMasterDto"
+          },
+          "inventory": {
+            "$ref": "#/components/schemas/PartInfoSectionDtoOfPartInfoInventoryDto"
+          },
+          "locations": {
+            "$ref": "#/components/schemas/PartInfoSectionDtoOfIReadOnlyListOfInventoryLocationRowDto"
+          },
+          "alternates": {
+            "$ref": "#/components/schemas/PartInfoSectionDtoOfIReadOnlyListOfApprovedVendorDto"
+          },
+          "context": {
+            "$ref": "#/components/schemas/PartInfoSectionDtoOfPartInfoContextDto"
+          },
+          "orders": {
+            "$ref": "#/components/schemas/PartInfoSectionDtoOfIReadOnlyListOfPartInfoOrderDto"
+          },
+          "comment": {
+            "$ref": "#/components/schemas/PartInfoSectionDtoOfstring"
+          },
+          "suppliers": {
+            "$ref": "#/components/schemas/PartInfoSectionDtoOfIReadOnlyListOfPartInfoSupplierDto"
+          }
+        }
+      },
+      "PartInfoSectionDtoOfIReadOnlyListOfApprovedVendorDto": {
+        "required": [
+          "value",
+          "acquiredAtUtc",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ApprovedVendorDto"
+            }
+          },
+          "acquiredAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PartInfoSectionDtoOfIReadOnlyListOfInventoryLocationRowDto": {
+        "required": [
+          "value",
+          "acquiredAtUtc",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/InventoryLocationRowDto"
+            }
+          },
+          "acquiredAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PartInfoSectionDtoOfIReadOnlyListOfPartInfoOrderDto": {
+        "required": [
+          "value",
+          "acquiredAtUtc",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/PartInfoOrderDto"
+            }
+          },
+          "acquiredAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PartInfoSectionDtoOfIReadOnlyListOfPartInfoSupplierDto": {
+        "required": [
+          "value",
+          "acquiredAtUtc",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/PartInfoSupplierDto"
+            }
+          },
+          "acquiredAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PartInfoSectionDtoOfPartInfoContextDto": {
+        "required": [
+          "value",
+          "acquiredAtUtc",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PartInfoContextDto"
+              }
+            ]
+          },
+          "acquiredAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PartInfoSectionDtoOfPartInfoInventoryDto": {
+        "required": [
+          "value",
+          "acquiredAtUtc",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PartInfoInventoryDto"
+              }
+            ]
+          },
+          "acquiredAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PartInfoSectionDtoOfstring": {
+        "required": [
+          "value",
+          "acquiredAtUtc",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "acquiredAtUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PartInfoSpecDto": {
+        "required": [
+          "sites",
+          "maximumPartLength"
+        ],
+        "type": "object",
+        "properties": {
+          "sites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maximumPartLength": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PartInfoSupplierDto": {
+        "required": [
+          "identifier",
+          "display",
+          "isCreditHold",
+          "isCia"
+        ],
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "display": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isCreditHold": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "isCia": {
+            "type": [
+              "null",
+              "boolean"
             ]
           }
         }

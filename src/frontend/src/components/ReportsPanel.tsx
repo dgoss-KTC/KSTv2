@@ -8,11 +8,12 @@ import { SopInputs } from '../reports/SopInputs';
 import { generateOpenOrderReport, type OpenOrderReportPrepared, type OpenOrderReportRequest } from '../api/openOrderReportApi';
 import { OpenOrderReportInputs } from '../reports/OpenOrderReportInputs';
 import { HistoricalShipmentsReport } from '../reports/HistoricalShipmentsReport';
+import { PartInfoLookup } from '../reports/PartInfoLookup';
 import { initialOor, oorPreferenceKey } from '../reports/openOrderReportPreferences';
 
 const sites = ['SW', 'NW', 'AR', 'MN', 'MS', 'KV'] as const;
 const siteKey = 'kst.componentMrp.site.v1';
-type ReportKind = 'ComponentMrp' | 'ShipmentsToGo' | 'Sop' | 'OpenOrderReport' | 'HistoricalShipments';
+type ReportKind = 'ComponentMrp' | 'ShipmentsToGo' | 'Sop' | 'OpenOrderReport' | 'HistoricalShipments' | 'PartInfo';
 type PreparedReport = ComponentMrpPrepared | ShipmentsToGoPrepared | SopPrepared | OpenOrderReportPrepared;
 const sopPreferenceKey = 'kst.sop.inputs.v1';
 function initialSop(): SopRequest {
@@ -271,17 +272,18 @@ export function ReportsPanel({ generate = generateComponentMrp, generateStg = ge
     } catch { if (isCurrent(operationId)) setMessage('Operation status unavailable. Do not replay the save.'); }
     finally { finishBusy(busyToken); }
   }
-  return <section className={`reports-panel${kind === 'Sop' ? ' reports-panel--sop' : kind === 'OpenOrderReport' ? ' reports-panel--oor' : kind === 'HistoricalShipments' ? ' reports-panel--historical' : ''}`} aria-label="Reports">
+  return <section className={`reports-panel${kind === 'PartInfo' ? ' reports-panel--part-info' : kind === 'Sop' ? ' reports-panel--sop' : kind === 'OpenOrderReport' ? ' reports-panel--oor' : kind === 'HistoricalShipments' ? ' reports-panel--historical' : ''}`} aria-label="Reports">
     <nav className="reports-panel__selector" aria-label="Report selector">
       <button aria-current={kind === 'ComponentMrp' ? 'page' : undefined} onClick={() => selectReport('ComponentMrp')}>Component MRP</button>
       <button aria-current={kind === 'ShipmentsToGo' ? 'page' : undefined} onClick={() => selectReport('ShipmentsToGo')}>Shipments-To-Go</button>
       <button aria-current={kind === 'Sop' ? 'page' : undefined} onClick={() => selectReport('Sop')}>{'S&OP'}</button>
       <button aria-current={kind === 'OpenOrderReport' ? 'page' : undefined} onClick={() => selectReport('OpenOrderReport')}>Open Order Report</button>
       <button aria-current={kind === 'HistoricalShipments' ? 'page' : undefined} onClick={() => selectReport('HistoricalShipments')}>Historical Shipments</button>
+      <button aria-current={kind === 'PartInfo' ? 'page' : undefined} onClick={() => selectReport('PartInfo')}>Part Info Lookup</button>
     </nav>
     <div className="reports-panel__body">
-      <h1>{kind === 'ComponentMrp' ? 'Component MRP' : kind === 'Sop' ? 'S&OP' : kind === 'OpenOrderReport' ? 'Open Order Report' : kind === 'HistoricalShipments' ? 'Historical Shipments' : 'Shipments-To-Go'}</h1><p>Independent report generation outside workspace populations.</p>
-      {kind === 'HistoricalShipments' ? <HistoricalShipmentsReport active={active} onBusyChange={onBusyChange} openAfterSave={openAfterSave} onOpenAfterSaveChange={changeOpen} /> : <>
+      <h1>{kind === 'PartInfo' ? 'Part Info Lookup' : kind === 'ComponentMrp' ? 'Component MRP' : kind === 'Sop' ? 'S&OP' : kind === 'OpenOrderReport' ? 'Open Order Report' : kind === 'HistoricalShipments' ? 'Historical Shipments' : 'Shipments-To-Go'}</h1>{kind !== 'PartInfo' && <p>Independent report generation outside workspace populations.</p>}
+      {kind === 'PartInfo' ? <PartInfoLookup key={String(active)} active={active} /> : kind === 'HistoricalShipments' ? <HistoricalShipmentsReport active={active} onBusyChange={onBusyChange} openAfterSave={openAfterSave} onOpenAfterSaveChange={changeOpen} /> : <>
       <form onSubmit={event => { event.preventDefault(); void prepare(); }}>
         <fieldset disabled={saving || operationActive || unknownCommit}>
           {kind === 'ComponentMrp' ? <>

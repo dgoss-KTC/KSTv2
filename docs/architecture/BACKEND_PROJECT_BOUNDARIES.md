@@ -114,6 +114,18 @@ DTO/Problem Details/OpenAPI. Exact quantities are nullable decimal strings end-t
 row survives without summary classification or parent-list gating. The existing shared summary
 reader and locked Stage 9–11 algorithms are unchanged. See the Stage 8 follow-up evidence document.
 
+## Standalone Reports Part Info Lookup (2026-10-14; pending owner acceptance)
+
+`Kst.Application.PartInfo.PartInfoService` composes existing site/part readers directly without workspace,
+MPS/BOM/projection dependencies or cache. `/api/v1/reports/part-info/spec`, `/part-info` and
+`/part-info/inventory-locations` are separate Reports routes; workspace restrictions remain intact.
+API-owned DTOs preserve exact decimals as strings; generated TypeScript remains contract authority.
+The QAD-only context adapter derives domain from validated site and reads manufacturer/P-M/manufacturing
+lead using accepted source mappings without full MRP acquisition. Optional section outcomes and exact
+supplier-name enrichment composition belong to Application; source SQL and connection knowledge remain
+inside integrations. Risk scopes only the qualifying PO suppliers; comments acquire independently.
+Source decisions and evidence limits are recorded in `docs/status/CURRENT_PROJECT_STATUS.md`.
+
 ## Stage 9 Immediate Work-Order Shortages Boundary
 
 - Stage 9 is **COMPLETE / ACCEPTED / LOCKED**. Its grain is Work Order + Component and its accepted

@@ -169,9 +169,20 @@ impl State {
         self.prepared = None;
         self.departed = true;
         if !self.busy {
-            self.artifacts.clear();
-            self.artifact_kinds.clear();
+            self.discard_departed_artifacts();
         }
+    }
+    // The analytical pilot keeps saved grants (not preparations or destination authority) for
+    // application-session Open recovery. Other Reports retain their accepted departure behavior.
+    fn discard_departed_artifacts(&mut self) {
+        self.artifacts
+            .retain(|id, _| self.artifact_kinds.get(id) == Some(&ReportKind::Analytical));
+        self.artifact_kinds
+            .retain(|id, _| self.artifacts.contains_key(id));
+    }
+    fn can_open_artifact(&self, id: &str, kind: ReportKind) -> bool {
+        self.artifact_kinds.get(id) == Some(&kind)
+            && (!self.departed || kind == ReportKind::Analytical)
     }
     fn discard_sop(&mut self) {
         if let Some((id, url)) = self.sop_acquisition.take() {
@@ -250,8 +261,7 @@ impl State {
             .all(|o| o.outcome != "saved" || o.operation_complete));
         self.busy = false;
         if self.departed {
-            self.artifacts.clear();
-            self.artifact_kinds.clear();
+            self.discard_departed_artifacts();
         }
         self.close_pending
     }
@@ -1249,13 +1259,7 @@ pub async fn component_mrp_open(
     }
     let (target, id, bytes) = {
         let mut s = state.0.lock().map_err(|_| "State unavailable.")?;
-        if s.artifact_kinds
-            .get(&artifact_id)
-            .copied()
-            .unwrap_or_default()
-            != report_kind.unwrap_or_default()
-            || s.departed
-        {
+        if !s.can_open_artifact(&artifact_id, report_kind.unwrap_or_default()) {
             return Err("Saved artifact grant unavailable for this report.".into());
         }
         match s.retry(&artifact_id, &request_id)? {
@@ -1383,6 +1387,52 @@ mod tests {
         assert!(s.departed);
         assert_eq!(s.operation_kinds["op"], ReportKind::OpenOrderReport);
         assert_eq!(s.operations["op"].outcome, "unknown");
+    }
+    #[test]
+    fn analytical_saved_grants_survive_departure_but_preparations_and_other_kinds_do_not() {
+        for busy in [false, true] {
+            let mut s = State::default();
+            s.prepared = Some(Preparation {
+                kind: ReportKind::Analytical,
+                id: "prepared".into(),
+                bytes: Arc::new(Payload::Memory(vec![1])),
+                name: "MPS.xlsx".into(),
+                created: Instant::now(),
+                backend: "managed".into(),
+            });
+            for (id, kind) in [
+                ("analytical", ReportKind::Analytical),
+                ("mrp", ReportKind::ComponentMrp),
+            ] {
+                s.artifacts.insert(
+                    id.into(),
+                    Artifact {
+                        path: PathBuf::from("host-owned.xlsx"),
+                        id: (1, 2),
+                        bytes: Arc::new(Payload::Memory(vec![1])),
+                        attempts: 0,
+                        retries: HashMap::new(),
+                    },
+                );
+                s.artifact_kinds.insert(id.into(), kind);
+            }
+            s.busy = busy;
+            s.discard();
+            assert!(s.prepared.is_none());
+            assert!(s.departed);
+            if busy {
+                s.release_work();
+            }
+            assert!(s.artifacts.contains_key("analytical"));
+            assert!(!s.artifacts.contains_key("mrp"));
+            assert!(s.can_open_artifact("analytical", ReportKind::Analytical));
+            assert!(!s.can_open_artifact("analytical", ReportKind::ComponentMrp));
+            assert!(!s.can_open_artifact("missing", ReportKind::Analytical));
+            assert!(!s.can_open_artifact("mrp", ReportKind::ComponentMrp));
+            assert!(s.retry("analytical", "retry-1").unwrap().is_some());
+            s.busy = false;
+            assert!(s.retry("analytical", "retry-1").is_err());
+        }
     }
     #[test]
     fn production_retry_grant_is_bounded_and_deduplicated_and_close_can_cancel() {

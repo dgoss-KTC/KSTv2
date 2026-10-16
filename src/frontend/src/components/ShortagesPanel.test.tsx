@@ -100,7 +100,7 @@ describe('ShortagesPanel', () => {
   it('shows a manufactured component as a normal non-diagnostic Not Applicable row', () => {
     render(<ShortagesPanel selectedWoid="WO-1" analysis={makeAnalysis({ components: [makeRow({ componentPart: 'SUBASSY', isManufactured: true, materialStatus: 'notApplicable', shortQuantity: null, diagnostic: null })] })} isLoading={false} error={null} onRetry={vi.fn()} detail={null} onSelectDetail={vi.fn()} onCloseDetail={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'Work Orders for SUBASSY' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View work orders for SUBASSY' })).toBeInTheDocument();
     expect(screen.queryByText(/do not participate in Stage 9/i)).not.toBeInTheDocument();
   });
 

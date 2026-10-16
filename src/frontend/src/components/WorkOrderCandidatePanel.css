@@ -2,11 +2,14 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px;
-  border: 1px dashed var(--bd);
+  margin: 0 20px 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--bd);
   border-radius: 8px;
   background: var(--panel2);
 }
+
+.work-order-candidate-panel__context { margin: 0 0 8px; padding: 8px; border: 1px solid var(--bd-soft); border-radius: 6px; background: var(--panel); color: var(--tx2); font-size: 12px; overflow-wrap: anywhere; }
 
 .work-order-candidate-panel__title {
   margin: 0;

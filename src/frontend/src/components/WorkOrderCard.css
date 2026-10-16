@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: 10px;
   width: 320px;
+  max-width: 100%;
   flex-shrink: 0;
 }
 
@@ -22,7 +23,17 @@
   align-self: flex-start;
   width: 100%;
   max-width: 320px;
+  color: var(--tx);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding-block: var(--density-cell-padding-y);
 }
+
+.work-order-card__summary:focus-visible { outline: 2px solid var(--accent-solid); outline-offset: 2px; }
+.work-order-card__summary:hover { background: var(--row-hover); }
+.work-order-card__expand-label { color: var(--tx2); font-size: 12px; }
+.work-order-card__header { flex-wrap: wrap; overflow-wrap: anywhere; }
 
 .work-order-card__header {
   display: flex;
@@ -106,7 +117,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.work-order-card__field label {
+.work-order-card__field-label {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -145,6 +156,7 @@
 }
 
 .work-order-card__kitting-fill {
+  display: block;
   height: 100%;
   background: var(--accent-solid);
   border-radius: 999px;

@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { WorkOrderSummaryDto } from '../api/client';
 import { WorkOrderCard } from './WorkOrderCard';
 
@@ -21,6 +22,18 @@ const workOrder: WorkOrderSummaryDto = {
 };
 
 describe('WorkOrderCard', () => {
+  it('has one whole-card button, operable by Enter and Space without nested controls', async () => {
+    const user = userEvent.setup(); const toggle = vi.fn();
+    const view = render(<WorkOrderCard workOrder={workOrder} onToggle={toggle} />);
+    const button = screen.getByRole('button');
+    expect(button.querySelector('button, input, a, label')).toBeNull();
+    button.focus(); await user.keyboard('{Enter}'); await user.keyboard(' ');
+    expect(toggle).toHaveBeenCalledTimes(2); expect(toggle).toHaveBeenLastCalledWith(button);
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    view.rerender(<WorkOrderCard workOrder={workOrder} isOpen onToggle={toggle} />);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    expect(button).toHaveTextContent('Material shown below');
+  });
   it('keeps Release and Due together in a separate row from quantities', () => {
     render(<WorkOrderCard workOrder={workOrder} />);
 
@@ -42,7 +55,7 @@ describe('WorkOrderCard', () => {
 
   it.each([
     ['shortage', 'Has Shortage'],
-    ['dataIssue', 'Unknown / Data Issue'],
+    ['dataIssue', 'Unable to confirm availability'],
     ['clear', 'No current Shortage'],
     ['unavailable', 'Shortage summary unavailable'],
   ] as const)('renders the %s shortage state label and card class', (shortageState, label) => {

@@ -1,18 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { WorkOrderImmediateMaterialSummaryResponseDto } from '../api/client';
-import { fetchWorkOrderImmediateMaterialSummary, toWorkOrdersApiError, type WorkOrdersApiError } from '../api/workOrdersApi';
+import { useCallback } from 'react';
+import { fetchWorkOrderImmediateMaterialSummary } from '../api/workOrdersApi';
+import { useWorkOrderRequest } from './useWorkOrderRequest';
 
 export function useWorkOrderImmediateMaterialSummary(assignmentId: string, snapshotId: string | null, dateBasis: string) {
-  const [summary, setSummary] = useState<WorkOrderImmediateMaterialSummaryResponseDto | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<WorkOrdersApiError | null>(null);
-  const load = useCallback(async () => {
-    if (!snapshotId) { setSummary(null); setError(null); setIsLoading(false); return; }
-    setIsLoading(true);
-    try { setSummary(await fetchWorkOrderImmediateMaterialSummary(assignmentId, snapshotId, null, dateBasis)); setError(null); }
-    catch (err) { setSummary(null); setError(toWorkOrdersApiError(err) ?? { type: 'error', detail: 'Could not load shortage indicators.' }); }
-    finally { setIsLoading(false); }
+  const request = useCallback(async () => {
+    const result = await fetchWorkOrderImmediateMaterialSummary(assignmentId, snapshotId!, null, dateBasis);
+    if (result.snapshotId !== snapshotId) throw new Error('The shortage indicators do not match the current snapshot.');
+    return result;
   }, [assignmentId, snapshotId, dateBasis]);
-  useEffect(() => { const id = setTimeout(() => void load(), 0); return () => clearTimeout(id); }, [load]);
-  return { summary, isLoading, error, retry: load };
+  const result = useWorkOrderRequest(JSON.stringify([assignmentId, snapshotId, dateBasis]), !!snapshotId, request);
+  return { summary: result.data, isLoading: result.isLoading, error: result.error, retry: result.retry };
 }

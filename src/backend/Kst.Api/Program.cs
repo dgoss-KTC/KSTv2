@@ -409,6 +409,10 @@ else
 }
 
 builder.Services.AddSingleton<ComponentDetailService>();
+builder.Services.AddSingleton<Kst.Integrations.Qad.PartInfo.QadPartInfoContextReader>();
+builder.Services.AddSingleton<Kst.Application.PartInfo.IPartInfoContextReader>(sp => new Kst.Application.PartInfo.DelegatePartInfoContextReader(
+    (site, part, ct) => sp.GetRequiredService<Kst.Integrations.Qad.PartInfo.QadPartInfoContextReader>().ReadAsync(site, part, ct)));
+builder.Services.AddSingleton<Kst.Application.PartInfo.PartInfoService>();
 builder.Services.AddSingleton<IInventoryLocationsStore, InMemoryInventoryLocationsStore>();
 if (qadOptions.IsConfigured)
 {
@@ -564,6 +568,7 @@ app.MapOpenApi();
 
 app.MapDiagnosticEndpoints();
 app.MapComponentMrpEndpoints();
+app.MapPartInfoEndpoints();
 app.MapAnalyticalExportEndpoints();
 app.MapShipmentsToGoEndpoints();
 app.MapOpenOrderReportEndpoints();

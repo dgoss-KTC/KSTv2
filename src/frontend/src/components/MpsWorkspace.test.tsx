@@ -418,7 +418,7 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
     expect(screen.getByText('Widget Assembly')).toBeInTheDocument();
@@ -455,7 +455,7 @@ describe('MpsWorkspace', () => {
     );
     render(<App />);
     await waitForConnected();
-    await screen.findByText('ABC100');
+    await screen.findByText('ABC100', { selector: '.mps-grid__part-number' });
     await waitFor(() => {
       expect(screen.getByTestId('active-parts-count')).toHaveTextContent('1');
     });
@@ -464,8 +464,8 @@ describe('MpsWorkspace', () => {
       expect(screen.getByTestId('active-parts-count')).toHaveTextContent('2');
     });
 
-    await screen.findByText('ABC100');
-    await user.click(screen.getByText('ABC100'));
+    await screen.findByText('ABC100', { selector: '.mps-grid__part-number' });
+    await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
     await screen.findByRole('heading', { name: /part info/i });
     fetchMock.mockClear();
 
@@ -487,7 +487,7 @@ describe('MpsWorkspace', () => {
     });
     render(<App />);
     await waitForConnected();
-    await screen.findByText('ABC100');
+    await screen.findByText('ABC100', { selector: '.mps-grid__part-number' });
     await waitFor(() => {
       expect(screen.getByTestId('active-parts-count')).toHaveTextContent('1');
     });
@@ -532,7 +532,7 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
     fetchMock.mockClear();
@@ -551,7 +551,7 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
     fetchMock.mockClear();
@@ -573,7 +573,7 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
     const horizonInput = screen.getByLabelText(/horizon in weeks/i);
@@ -609,7 +609,7 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
     await user.click(within(screen.getByRole('main')).getByRole('button', { name: /release date/i }));
@@ -667,7 +667,7 @@ describe('MpsWorkspace', () => {
     render(<App />);
     await waitForConnected();
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
     expect(document.querySelector('.shell')).toHaveAttribute('data-density', 'compact');
 
@@ -683,7 +683,7 @@ describe('MpsWorkspace', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Line 1' }));
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
     expect(document.querySelector('.shell')).toHaveAttribute('data-density', 'comfortable');
@@ -695,10 +695,10 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('ABC100'));
+    await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
@@ -726,16 +726,16 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       expect(screen.getByText('XYZ200')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('ABC100'));
+    await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
     });
-    expect(screen.getByText('ABC100')).toBeInTheDocument();
+    expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     expect(screen.queryByText('XYZ200')).not.toBeInTheDocument();
 
     // Focused mode renders only the selected row (no hidden placeholders for the rest of the grid)
@@ -746,9 +746,9 @@ describe('MpsWorkspace', () => {
     await user.click(screen.getByRole('button', { name: /back to full grid/i }));
 
     await waitFor(() => {
-      expect(screen.queryByText(/part info/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /part info/i })).not.toBeInTheDocument();
     });
-    expect(screen.getByText('ABC100')).toBeInTheDocument();
+    expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     expect(screen.getByText('XYZ200')).toBeInTheDocument();
     expect(document.querySelector('.mps-grid-frame')).not.toHaveClass('mps-grid-frame--focused');
   });
@@ -770,23 +770,23 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       expect(screen.getByText('XYZ200')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('ABC100'));
+    await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
     });
     expect(screen.queryByText('XYZ200')).not.toBeInTheDocument();
 
     fetchMock.mockClear();
-    await user.click(screen.getByText('ABC100'));
+    await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
 
     await waitFor(() => {
-      expect(screen.queryByText(/part info/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /part info/i })).not.toBeInTheDocument();
     });
-    expect(screen.getByText('ABC100')).toBeInTheDocument();
+    expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     expect(screen.getByText('XYZ200')).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/part-detail'))).toBe(
       false,
@@ -799,10 +799,10 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
-    const row = screen.getByText('ABC100').closest('tr');
+    const row = screen.getByText('ABC100', { selector: '.mps-grid__part-number' }).closest('tr');
     if (!row) throw new Error('row not found');
     row.focus();
     fireEvent.keyDown(row, { key: 'Enter' });
@@ -811,12 +811,12 @@ describe('MpsWorkspace', () => {
       expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
     });
 
-    const focusedRow = screen.getByText('ABC100').closest('tr');
+    const focusedRow = screen.getByText('ABC100', { selector: '.mps-grid__part-number' }).closest('tr');
     if (!focusedRow) throw new Error('row not found');
     fireEvent.keyDown(focusedRow, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(screen.queryByText(/part info/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /part info/i })).not.toBeInTheDocument();
     });
   });
 
@@ -832,10 +832,10 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('ABC100'));
+    await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
 
     await waitFor(() => {
       expect(screen.getByText(/no qad part master record was found/i)).toBeInTheDocument();
@@ -854,10 +854,10 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('ABC100'));
+    await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
 
     await waitFor(() => {
       expect(screen.getByText('Database currently unavailable.')).toBeInTheDocument();
@@ -871,10 +871,10 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('ABC100'));
+    await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
     await waitFor(() => {
       expect(screen.getByText('10 days')).toBeInTheDocument();
     });
@@ -898,10 +898,10 @@ describe('MpsWorkspace', () => {
     await waitForConnected();
 
     await waitFor(() => {
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('ABC100'));
+    await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
     await waitFor(() => {
       expect(screen.getByText('10 days')).toBeInTheDocument();
     });
@@ -910,7 +910,7 @@ describe('MpsWorkspace', () => {
     await user.click(screen.getByRole('button', { name: /back to full grid/i }));
 
     await waitFor(() => {
-      expect(screen.queryByText(/part info/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /part info/i })).not.toBeInTheDocument();
     });
     expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/part-detail'))).toBe(
       false,
@@ -929,22 +929,20 @@ describe('MpsWorkspace', () => {
       });
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
-      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await user.click(screen.getByRole('tab', { name: 'Work Orders' }));
       await waitFor(() => expect(screen.getByText('WO1001')).toBeInTheDocument());
-      await user.click(screen.getByRole('button', { name: 'Show material lines' }));
+      await user.click(screen.getByRole('button', { name: /Show material/ }));
       await waitFor(() => expect(screen.getByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).toBeInTheDocument());
       expect(screen.queryByRole('button', { name: 'Select for Shortages' })).not.toBeInTheDocument();
       await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/work-orders/WO1001/immediate-material') && url.includes('snapshotId=snap-1') && url.includes('dateBasis=dueDate'))).toBe(true));
-      const shortagesTab = screen.getByRole('tab', { name: 'Shortages' });
-      expect(shortagesTab).toBeEnabled();
-      await user.click(shortagesTab);
+      expect(screen.queryByRole('tab', { name: 'Shortages' })).not.toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).toBeInTheDocument();
       expect(screen.queryByText('Select a Work Order to inspect its immediate material analysis.')).not.toBeInTheDocument();
       await user.click(screen.getByRole('tab', { name: 'Work Orders' }));
-      expect(screen.getByRole('button', { name: 'Hide material lines' })).toBeInTheDocument();
-      await user.click(screen.getByRole('button', { name: 'Hide material lines' }));
+      expect(screen.getByRole('button', { name: /Material shown below/ })).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /Material shown below/ }));
       expect(screen.queryByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).not.toBeInTheDocument();
     });
 
@@ -960,17 +958,17 @@ describe('MpsWorkspace', () => {
       });
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
-      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await user.click(screen.getByRole('tab', { name: 'Work Orders' }));
       await waitFor(() => expect(screen.getByText('WO1001')).toBeInTheDocument());
-      await user.click(screen.getByRole('button', { name: 'Show material lines' }));
+      await user.click(screen.getByRole('button', { name: /Show material/ }));
       await waitFor(() => expect(screen.getByText('SUBASSY')).toBeInTheDocument());
-      await user.click(screen.getByRole('button', { name: 'Work Orders for SUBASSY' }));
+      await user.click(screen.getByRole('button', { name: 'View work orders for SUBASSY' }));
       await waitFor(() => expect(screen.getByText('WO2001')).toBeInTheDocument());
       const candidateCard = screen.getByText('WO2001').closest('li');
       if (!candidateCard) throw new Error('candidate card not found');
-      await user.click(within(candidateCard).getByRole('button', { name: 'Show material lines' }));
+      await user.click(within(candidateCard).getByRole('button', { name: /Show material/ }));
       await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/work-orders/WO2001/immediate-material'))).toBe(true));
     });
 
@@ -986,10 +984,10 @@ describe('MpsWorkspace', () => {
       });
       render(<App />);
       await waitForConnected();
-      await user.click(await screen.findByText('ABC100'));
+      await user.click(await screen.findByText('ABC100', { selector: '.mps-grid__part-number' }));
       await user.click(screen.getByRole('tab', { name: 'Work Orders' }));
-      await user.click(await screen.findByRole('button', { name: 'Show material lines' }));
-      await user.click(await screen.findByRole('button', { name: 'Work Orders for SUBASSY' }));
+      await user.click(await screen.findByRole('button', { name: /Show material/ }));
+      await user.click(await screen.findByRole('button', { name: 'View work orders for SUBASSY' }));
 
       expect(await screen.findByText('No work orders in the planning window for this part.')).toBeInTheDocument();
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -1013,13 +1011,14 @@ describe('MpsWorkspace', () => {
       });
       render(<App />);
       await waitForConnected();
-      await user.click(await screen.findByText('ABC100'));
+      await user.click(await screen.findByText('ABC100', { selector: '.mps-grid__part-number' }));
       await user.click(screen.getByRole('tab', { name: 'Work Orders' }));
-      await user.click(await screen.findByRole('button', { name: 'Show material lines' }));
-      await user.click(await screen.findByRole('button', { name: 'Work Orders for SUBASSY-A' }));
+      await user.click(await screen.findByRole('button', { name: /Show material/ }));
+      await user.click(await screen.findByRole('button', { name: 'View work orders for SUBASSY-A' }));
       expect(await screen.findByRole('heading', { name: 'Work Orders for SUBASSY-A' })).toBeInTheDocument();
 
-      await user.click(screen.getByRole('button', { name: 'Work Orders for SUBASSY-B' }));
+      await user.click(screen.getByRole('button', { name: 'WO WO1001' }));
+      await user.click(screen.getByRole('button', { name: 'View work orders for SUBASSY-B' }));
       expect(await screen.findByRole('heading', { name: 'Work Orders for SUBASSY-B' })).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: 'Work Orders for SUBASSY-A' })).not.toBeInTheDocument();
     });
@@ -1028,25 +1027,26 @@ describe('MpsWorkspace', () => {
       setupBackend({ onGetPlanningWindow: () => ({ ok: true, json: async () => makePlanningWindowResponse({ workOrders: [makeWorkOrderSummary(), makeWorkOrderSummary({ woid: 'WO1002' })] }) }), onGetImmediateMaterial: () => ({ ok: false, status: 409, text: async () => 'Snapshot changed' }) });
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
-      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await user.click(screen.getByRole('tab', { name: 'Work Orders' }));
       await waitFor(() => expect(screen.getByText('WO1002')).toBeInTheDocument());
-      await user.click(screen.getAllByRole('button', { name: 'Show material lines' })[1]);
+      await user.click(screen.getAllByRole('button', { name: /Show material/ })[1]);
       await waitFor(() => expect(screen.getByText(/out of date/i)).toBeInTheDocument());
       await user.click(within(screen.getByRole('main')).getByRole('button', { name: /release date/i }));
-      await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/immediate-material') && url.includes('dateBasis=releaseDate'))).toBe(true));
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Part Info' })).toHaveAttribute('aria-selected', 'true'));
+      expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/WO1002/immediate-material') && url.includes('dateBasis=releaseDate'))).toBe(false);
     });
 
     it('Escape closes shortages component detail before unwinding the surrounding Work Order investigation', async () => {
       setupBackend({ onGetImmediateMaterial: () => ({ ok: true, json: async () => makeImmediateMaterialAnalysis({ components: [{ componentPart: 'COMP-SHORT', description: 'Short part', isManufactured: false, unitOfMeasure: 'EA', requirementSource: 'actualWo', materialStatus: 'short', requiredQuantity: 5, issuedQuantity: 0, varianceQuantity: -5, issuedPercent: 0, remainingRequirement: 5, usableOnHand: 0, shortQuantity: 5, isFloorStockOrNonIssued: false, isOverIssued: false, inventoryActivity: { transit: 0, inspection: 0, nonNet: 0, mrb: 0, ncmInspection: 0, expiredExpiring: 0 }, incoming: null, diagnostic: null }] }) }) });
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
-      await user.click(screen.getByText('ABC100'));
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await user.click(screen.getByRole('tab', { name: 'Work Orders' }));
       await waitFor(() => expect(screen.getByText('WO1001')).toBeInTheDocument());
-      await user.click(screen.getByRole('button', { name: 'Show material lines' }));
+      await user.click(screen.getByRole('button', { name: /Show material/ }));
       await waitFor(() => expect(screen.getByText('COMP-SHORT')).toBeInTheDocument());
       await user.click(screen.getByRole('button', { name: 'COMP-SHORT' }));
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -1074,31 +1074,31 @@ describe('MpsWorkspace', () => {
       });
       render(<App />);
       await waitForConnected();
-      await user.click(await screen.findByText('ABC100'));
+      await user.click(await screen.findByText('ABC100', { selector: '.mps-grid__part-number' }));
       await user.click(screen.getByRole('tab', { name: 'Work Orders' }));
-      await user.click(await screen.findByRole('button', { name: 'Show material lines' }));
-      await user.click(await screen.findByRole('button', { name: 'Work Orders for SUBASSY' }));
+      await user.click(await screen.findByRole('button', { name: /Show material/ }));
+      await user.click(await screen.findByRole('button', { name: 'View work orders for SUBASSY' }));
       const candidatePanel = screen.getByRole('heading', { name: 'Work Orders for SUBASSY' }).parentElement;
       if (!candidatePanel) throw new Error('candidate panel not found');
-      await user.click(within(candidatePanel).getByRole('button', { name: 'Show material lines' }));
+      await user.click(within(candidatePanel).getByRole('button', { name: /Show material/ }));
       await screen.findByRole('heading', { name: 'Immediate Material Analysis - WO2001' });
       await user.click(await screen.findByRole('button', { name: 'NESTED-COMP' }));
 
       expect(screen.getByRole('dialog', { name: /material detail/i })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Immediate Material Analysis - WO2001' })).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).not.toBeInTheDocument();
 
       await user.keyboard('{Escape}');
 
       await waitFor(() => expect(screen.queryByRole('dialog', { name: /material detail/i })).not.toBeInTheDocument());
       expect(screen.getByRole('heading', { name: 'Immediate Material Analysis - WO2001' })).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).not.toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Work Orders for SUBASSY' })).toBeInTheDocument();
 
       await user.keyboard('{Escape}');
 
       await waitFor(() => expect(screen.queryByRole('heading', { name: 'Immediate Material Analysis - WO2001' })).not.toBeInTheDocument());
-      expect(screen.getByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).not.toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Work Orders for SUBASSY' })).toBeInTheDocument();
     });
     it('parent-only selection opens Part Info and exposes the Work Orders planning window (Shortages deferred)', async () => {
@@ -1107,10 +1107,10 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
 
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
@@ -1121,7 +1121,7 @@ describe('MpsWorkspace', () => {
       // removed from the workflow.
       expect(screen.getByRole('tab', { name: 'BOM' })).toBeEnabled();
       expect(screen.getByRole('tab', { name: 'Work Orders' })).toBeEnabled();
-      expect(screen.getByRole('tab', { name: 'Shortages' })).toBeDisabled();
+      expect(screen.queryByRole('tab', { name: 'Shortages' })).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', { name: 'Future Shortages' })).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', { name: 'Components' })).not.toBeInTheDocument();
     });
@@ -1132,10 +1132,10 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
@@ -1167,7 +1167,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await user.click(screen.getByText('100')); // the 2025-06-30 weekly bucket cell
@@ -1196,7 +1196,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await user.click(screen.getByText('50')); // the Falldown cell
@@ -1218,7 +1218,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       const cell = screen.getByText('100').closest('td');
@@ -1246,7 +1246,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       const cell = screen.getByText('100').closest('td');
@@ -1266,7 +1266,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       const falldownCell = screen.getByText('50').closest('td');
@@ -1335,7 +1335,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await user.click(screen.getByText('100'));
@@ -1346,7 +1346,7 @@ describe('MpsWorkspace', () => {
         expect(screen.getByText('WO1001')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
 
       await waitFor(() => {
         expect(screen.queryByRole('tablist', { name: /part detail/i })).not.toBeInTheDocument();
@@ -1362,15 +1362,16 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await user.click(screen.getByText('100'));
 
       await waitFor(() => {
-        expect(screen.getByText(/no work orders in the planning window/i)).toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('No work orders for this bucket');
       });
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.queryByRole('navigation', { name: 'MPS drill-down trail' })).not.toBeInTheDocument();
     });
 
     it('weeks beyond the drill-down horizon do not expose the Work Order action', async () => {
@@ -1433,9 +1434,9 @@ describe('MpsWorkspace', () => {
       render(<App />);
       await waitForConnected();
 
-      const row = (await screen.findByText('ABC100')).closest('tr');
+      const row = (await screen.findByText('ABC100', { selector: '.mps-grid__part-number' })).closest('tr');
       if (!row) throw new Error('row not found');
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
 
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
@@ -1452,13 +1453,13 @@ describe('MpsWorkspace', () => {
       });
     });
 
-    it('Escape from the Work Orders view (bucket selected) returns to the full grid in one press', async () => {
+    it('Escape from a bucket returns to part details, then the full grid', async () => {
       setupBackend();
       render(<App />);
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
       await user.click(screen.getByText('100')); // weekly bucket cell → auto-opens Work Orders
 
@@ -1468,6 +1469,8 @@ describe('MpsWorkspace', () => {
 
       await user.keyboard('{Escape}');
 
+      expect(screen.getByRole('tab', { name: 'Part Info' })).toHaveAttribute('aria-selected', 'true');
+      await user.keyboard('{Escape}');
       await waitFor(() => {
         expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
       });
@@ -1481,9 +1484,9 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
@@ -1510,16 +1513,16 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await user.keyboard('{Escape}');
 
       expect(screen.queryByRole('heading', { name: /part info/i })).not.toBeInTheDocument();
-      expect(screen.getByText('ABC100')).toBeInTheDocument();
+      expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
     });
 
-    it('Escape collapses an expanded Work Order card\u2019s immediate material analysis one level, staying in the Work Orders view; a second Escape then returns to the grid', async () => {
+    it('Escape collapses material, then the bucket, then part details', async () => {
       setupBackend({
         onGetImmediateMaterial: () => ({
           ok: true,
@@ -1532,11 +1535,11 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
       await user.click(screen.getByText('100'));
       const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
-      await user.click(within(card).getByRole('button', { name: /show material lines/i }));
+      await user.click(within(card).getByRole('button', { name: /Show material/i }));
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).toBeInTheDocument();
       });
@@ -1545,15 +1548,17 @@ describe('MpsWorkspace', () => {
 
       // First Escape: only the immediate material analysis collapses; Work Orders stays open.
       await waitFor(() => {
-        expect(within(card).getByRole('button', { name: /show material lines/i })).toBeInTheDocument();
+        expect(within(card).getByRole('button', { name: /Show material/i })).toBeInTheDocument();
       });
-      expect(within(card).getByRole('button', { name: /show material lines/i })).toHaveFocus();
+      expect(within(card).getByRole('button', { name: /Show material/i })).toHaveFocus();
       expect(screen.queryByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).not.toBeInTheDocument();
       expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
 
       await user.keyboard('{Escape}');
 
-      // Second Escape: nothing left registered on the drill-down stack, so it pops up to the grid.
+      // The bucket and selected parent are separate levels in Stage 22.
+      expect(screen.getByRole('tab', { name: 'Part Info' })).toHaveAttribute('aria-selected', 'true');
+      await user.keyboard('{Escape}');
       await waitFor(() => {
         expect(screen.queryByRole('tab', { name: 'Work Orders' })).not.toBeInTheDocument();
       });
@@ -1576,15 +1581,15 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
       await user.click(screen.getByText('100'));
       const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
-      await user.click(within(card).getByRole('button', { name: /show material lines/i }));
+      await user.click(within(card).getByRole('button', { name: /Show material/i }));
       await waitFor(() => {
         expect(screen.getByText('SUBASSY')).toBeInTheDocument();
       });
-      await user.click(screen.getByRole('button', { name: 'Work Orders for SUBASSY' }));
+      await user.click(screen.getByRole('button', { name: 'View work orders for SUBASSY' }));
       await screen.findByRole('heading', { name: 'Work Orders for SUBASSY' });
 
       await user.keyboard('{Escape}');
@@ -1594,7 +1599,7 @@ describe('MpsWorkspace', () => {
         expect(screen.queryByRole('heading', { name: 'Work Orders for SUBASSY' })).not.toBeInTheDocument();
       });
       expect(screen.getByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).toBeInTheDocument();
-      expect(within(card).getByRole('button', { name: /hide material lines/i })).toBeInTheDocument();
+      expect(within(card).getByRole('button', { name: /Material shown below/i })).toBeInTheDocument();
     });
   });
 
@@ -1605,7 +1610,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
       await user.click(screen.getByText('100'));
 
@@ -1635,7 +1640,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
       await user.click(screen.getByText('100'));
 
@@ -1649,7 +1654,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
       await user.click(screen.getByText('100'));
 
@@ -1673,7 +1678,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
       await user.click(screen.getByText('100'));
 
@@ -1688,7 +1693,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
       await user.click(screen.getByText('100'));
       await screen.findByRole('listitem', { name: /WO1001, Released/i });
@@ -1696,7 +1701,7 @@ describe('MpsWorkspace', () => {
       expect(fetchMock.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/work-orders/'))).toBe(true);
       fetchMock.mockClear();
 
-      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+      await user.click(screen.getByRole('button', { name: /Show material/i }));
 
       await waitFor(() => {
         expect(screen.getByText('COMP1')).toBeInTheDocument();
@@ -1709,7 +1714,7 @@ describe('MpsWorkspace', () => {
         ),
       ).toBe(true);
 
-      await user.click(screen.getByRole('button', { name: /hide material lines/i }));
+      await user.click(screen.getByRole('button', { name: /Material shown below/i }));
       await waitFor(() => {
         expect(screen.queryByText('COMP1')).not.toBeInTheDocument();
       });
@@ -1723,12 +1728,12 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
       await user.click(screen.getByText('100'));
       await screen.findByRole('listitem', { name: /WO1001, Released/i });
 
-      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+      await user.click(screen.getByRole('button', { name: /Show material/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/no applicable material lines/i)).toBeInTheDocument();
@@ -1759,7 +1764,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
       await user.click(screen.getByText('100'));
 
@@ -1769,18 +1774,18 @@ describe('MpsWorkspace', () => {
       const card1 = screen.getByRole('listitem', { name: /WO1001, Released/i });
       const card2 = screen.getByRole('listitem', { name: /WO1002, Frozen/i });
 
-      await user.click(within(card1).getByRole('button', { name: /show material lines/i }));
+      await user.click(within(card1).getByRole('button', { name: /Show material/i }));
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).toBeInTheDocument();
       });
 
-      await user.click(within(card2).getByRole('button', { name: /show material lines/i }));
+      await user.click(within(card2).getByRole('button', { name: /Show material/i }));
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: 'Immediate Material Analysis - WO1002' })).toBeInTheDocument();
       });
       expect(screen.queryByRole('heading', { name: 'Immediate Material Analysis - WO1001' })).not.toBeInTheDocument();
-      expect(within(card1).getByRole('button', { name: /show material lines/i })).toBeInTheDocument();
-      expect(within(card2).getByRole('button', { name: /hide material lines/i })).toBeInTheDocument();
+      expect(within(card1).getByRole('button', { name: /Show material/i })).toBeInTheDocument();
+      expect(within(card2).getByRole('button', { name: /Material shown below/i })).toBeInTheDocument();
     });
   });
 
@@ -1807,11 +1812,11 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
       await user.click(screen.getByText('100'));
       const card = await screen.findByRole('listitem', { name: /WO1001, Released/i });
-      await user.click(screen.getByRole('button', { name: /show material lines/i }));
+      await user.click(screen.getByRole('button', { name: /Show material/i }));
 
       await waitFor(() => {
         expect(within(card).getByText('SUBASSY')).toBeInTheDocument();
@@ -1850,7 +1855,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await user.click(screen.getByText('100')); // the 2025-06-30 weekly bucket cell
@@ -1880,7 +1885,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await user.click(screen.getByText('100')); // the 2025-06-30 weekly bucket cell
@@ -1916,7 +1921,7 @@ describe('MpsWorkspace', () => {
     const flushPromises = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
     async function selectParentAndActivateBom() {
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
@@ -1929,7 +1934,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await user.click(screen.getByText('100')); // the 2025-06-30 weekly bucket cell
@@ -1938,7 +1943,7 @@ describe('MpsWorkspace', () => {
         expect(screen.getByRole('tab', { name: 'Work Orders' })).toHaveAttribute('aria-selected', 'true');
       });
       expect(screen.getByRole('tab', { name: 'BOM' })).toBeEnabled();
-      expect(screen.getByRole('tab', { name: 'Shortages' })).toBeDisabled();
+      expect(screen.queryByRole('tab', { name: 'Shortages' })).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', { name: 'Future Shortages' })).not.toBeInTheDocument();
     });
 
@@ -1948,10 +1953,10 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
@@ -1965,7 +1970,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -1985,7 +1990,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2021,7 +2026,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2032,7 +2037,7 @@ describe('MpsWorkspace', () => {
       fetchMock.mockClear();
       // Focused mode shows only the selected row: switch parents by toggling the current one
       // closed, then selecting the new parent.
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await waitFor(() => {
         expect(screen.queryByRole('tablist', { name: /part detail/i })).not.toBeInTheDocument();
       });
@@ -2063,7 +2068,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2097,7 +2102,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2123,7 +2128,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2148,7 +2153,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2173,7 +2178,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2201,7 +2206,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2223,7 +2228,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2260,7 +2265,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2269,7 +2274,7 @@ describe('MpsWorkspace', () => {
       });
 
       // Switch parents while A's request is still in flight.
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await waitFor(() => {
         expect(screen.queryByRole('tablist', { name: /part detail/i })).not.toBeInTheDocument();
       });
@@ -2332,7 +2337,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2389,7 +2394,7 @@ describe('MpsWorkspace', () => {
       await waitForConnected();
 
       await waitFor(() => {
-        expect(screen.getByText('ABC100')).toBeInTheDocument();
+        expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument();
       });
 
       await selectParentAndActivateBom();
@@ -2398,7 +2403,7 @@ describe('MpsWorkspace', () => {
       });
 
       // Switch parents while A's (failing) request is still in flight.
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await waitFor(() => {
         expect(screen.queryByRole('tablist', { name: /part detail/i })).not.toBeInTheDocument();
       });
@@ -2441,7 +2446,7 @@ describe('MpsWorkspace', () => {
     const flushPromises = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
     async function selectParentAndActivateBom() {
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /part info/i })).toBeInTheDocument();
       });
@@ -2456,7 +2461,7 @@ describe('MpsWorkspace', () => {
       setupBackend({ onGetComponentDetail: () => ({ ok: true, json: () => pending.promise }) });
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       fetchMock.mockClear();
@@ -2477,7 +2482,7 @@ describe('MpsWorkspace', () => {
       setupBackend();
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       await user.type(screen.getByLabelText('Filter by Component Item'), 'COMP');
@@ -2494,7 +2499,7 @@ describe('MpsWorkspace', () => {
       setupBackend();
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       const row = screen.getByText('COMP-A').closest('tr') as HTMLElement;
@@ -2510,7 +2515,7 @@ describe('MpsWorkspace', () => {
       setupBackend();
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       const row = screen.getByText('COMP-A').closest('tr') as HTMLElement;
@@ -2527,7 +2532,7 @@ describe('MpsWorkspace', () => {
       setupBackend();
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       await user.click(screen.getByText('COMP-A'));
@@ -2544,7 +2549,7 @@ describe('MpsWorkspace', () => {
       setupBackend();
       const { container } = render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       await user.click(screen.getByText('COMP-A'));
@@ -2561,7 +2566,7 @@ describe('MpsWorkspace', () => {
       setupBackend({ onGetComponentDetail: () => ({ ok: true, json: () => pending.promise }) });
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       await user.click(screen.getByText('COMP-A'));
@@ -2591,7 +2596,7 @@ describe('MpsWorkspace', () => {
       });
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       await user.click(screen.getByText('COMP-A'));
@@ -2620,7 +2625,7 @@ describe('MpsWorkspace', () => {
       });
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       await user.click(screen.getByText('COMP-A'));
@@ -2634,7 +2639,7 @@ describe('MpsWorkspace', () => {
       setupBackend();
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       await user.click(screen.getByText('COMP-A'));
@@ -2644,7 +2649,7 @@ describe('MpsWorkspace', () => {
       expect(closeSelectionButton).toBeInTheDocument();
       // Toggling the current parent off (the accepted workspace-context-clear path) must close
       // the modal along with the rest of the selection state.
-      await user.click(screen.getByText('ABC100'));
+      await user.click(screen.getByText('ABC100', { selector: '.mps-grid__part-number' }));
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     });
 
@@ -2654,7 +2659,7 @@ describe('MpsWorkspace', () => {
       });
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       await user.click(screen.getByText('COMP-A'));
@@ -2676,7 +2681,7 @@ describe('MpsWorkspace', () => {
       });
       render(<App />);
       await waitForConnected();
-      await waitFor(() => expect(screen.getByText('ABC100')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ABC100', { selector: '.mps-grid__part-number' })).toBeInTheDocument());
       await selectParentAndActivateBom();
 
       await user.click(screen.getByText('COMP-A'));
