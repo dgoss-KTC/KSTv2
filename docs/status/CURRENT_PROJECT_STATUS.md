@@ -1,7 +1,39 @@
 # Current Project Status
 
-Date: 2026-10-14
+Date: 2026-10-16
 Workstation: Windows (`C:\Dev\kst_v2`)
+
+## S22-034 — Pkcs remediation complete / owner-accepted / closed (2026-10-16)
+
+**COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-16.** The owner reports everything is working fine and
+explicitly accepts S22-034; this is owner-reported desktop acceptance, not detailed authentication or
+live-query evidence. Implementation/offline/payload verification and independent review are retained.
+Original Pkcs 9.0.21 attempt corrected the NuGet graph but lost to affected framework Pkcs 10.0.12.
+The owner authorized exact **10.0.13** evaluation; normal-path admission and the same single central
+transitive pin now select patched Pkcs **10.0.13** in both the graph and actual published bundle.
+API → QAD/Shortages → SqlClient **6.1.1** remains the dependency chain. SDK **10.0.401**, net10.0,
+runtime packs **10.0.12**, SNI **6.0.2**, all other dependencies and security boundaries are unchanged.
+
+Restore/build/publication pass without dependency warnings; **1,371 offline backend tests pass**.
+All three NuGet transitive audits are clean. Direct bundle inspection recovers one Pkcs payload,
+product **10.0.13**, matching the admitted package's Windows DLL SHA256; embedded dependency ownership and
+admitted Syft inventory corroborate it. Both reported advisories are outside this effective version.
+Independent publication-level review resolves **S22-034-ISR-001** for the actual local publication and
+four matching copies, with **no confirmed blocking finding remaining**. This is remediation, not risk
+acceptance or general framework/ecosystem vulnerability clearance.
+
+Established sidecar publish and offline Tauri debug/release builds refresh all four copies:
+**127,425,702 bytes**, SHA256 `CC76D047E5A403EE7C194CC204F16606195D15C827D25B1A2CAC9AC7147F038E`.
+Native SNI payload is byte-identical to entry; self-contained win-x64/single-file/native extraction
+settings remain. Source-disabled copied-sidecar handshake/identity, loopback-only listener,
+health/readiness/static spec probe passes; no source reads or live authentication check occurred.
+Full admission, graph/payload identities, review and logs:
+`docs/security/S22_034_PKCS_DEPENDENCY_REMEDIATION.md`, `C:\Dev\kst_v2_tmp\Stage22\S22-034\`.
+The owner authorizes a focused remediation/closeout commit; no push, shared deployment or installer
+distribution is authorized. Existing verification is reused because the reviewed implementation and
+artifact identities are unchanged. Format/lint exceptions and eventual fleet/installer notice
+reconciliation remain explicit limits. **Closing S22-034 does not close Stage 22.**
+
 Stage 21 — **COMPLETE / OWNER-ACCEPTED — 2026-10-14.**
 MPS and selected-parent BOM XLSX actions use loaded data and the accepted host-owned Reports
 save boundary. Bounded inventory, unresolved dispositions, verification limits and owner acceptance are recorded in

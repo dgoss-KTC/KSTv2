@@ -1718,7 +1718,15 @@ defect or inconsistency.
       cancellation, capacity and cleanup behavior at evidenced depth.
 - [x] Record all-parent MPS and loaded/combined-filter selected-parent BOM scope.
 - [x] Record bounded conformance assessment and separately reviewed/corrected F1/F2 findings.
-- [ ] Resolve retained Pkcs dependency advisories through separately authorized security disposition.
+- [x] Resolve retained Pkcs dependency advisories through separately authorized security disposition.
+      S22-034 (2026-10-16): owner-authorized correction admits/pins **10.0.13** after the ineffective
+      9.0.21 attempt; actual published payload matches the admitted package. Restore/build, 1,371
+      offline tests, transitive audits and source-disabled startup probe pass. All four sidecar hashes
+      match; independent publication review resolves ISR-001 with no remaining bounded blocker.
+      **COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-16.** Owner reports everything is working fine;
+      acceptance is owner-reported desktop feedback, not detailed live authentication/query evidence.
+      See `docs/security/S22_034_PKCS_DEPENDENCY_REMEDIATION.md`. No risk acceptance or Stage 22 closure;
+      installer/fleet notice inclusion remains a later release gate. Focused commit authorized; no push.
 - [ ] Resolve legacy Stage 11/13 browser-save feedback discrepancy through a separate bounded decision.
 - [ ] Optimize export-button placement/presentation later; no repair authorized by closeout.
 

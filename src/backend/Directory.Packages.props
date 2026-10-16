@@ -26,6 +26,8 @@
 
     <!-- QAD SQL Server integration -->
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.1" />
+    <!-- S22-034: patched transitive SqlClient cryptography asset; retain the existing driver. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <PackageVersion Include="Dapper" Version="2.1.66" />
     <PackageVersion Include="ClosedXML" Version="0.105.1" />
 
