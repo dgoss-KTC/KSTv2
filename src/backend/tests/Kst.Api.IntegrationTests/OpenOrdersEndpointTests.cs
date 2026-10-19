@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Kst.Api.Dtos;
 using Kst.Application.Mps;
 using Kst.Application.OpenOrders;
 using Kst.Domain.Common;
@@ -13,6 +14,81 @@ namespace Kst.Api.IntegrationTests;
 
 public sealed class OpenOrdersEndpointTests
 {
+    [Fact]
+    public async Task AnalyticalPreparationUsesExactCachedSelectionAcrossPagesAndSessionBoundBytesWithoutReread()
+    {
+        var reads = 0;
+        var lines = Enumerable.Range(0, 205).Select(i => Line() with { Key = new("TEST", $"SO-{i:D3}", 1), CustomerPart = "=HYPERLINK(\"synthetic\")" }).ToArray();
+        await using var factory = new KstApiFactory { OpenOrdersSourceReader = new DelegateOpenOrdersSourceReader((_, _, _) =>
+        { reads++; return Task.FromResult<IReadOnlyList<OpenOrderLine>>(lines); }) };
+        using var client = factory.CreateClient(); client.DefaultRequestHeaders.Add("X-KST-Report-Session", Guid.NewGuid().ToString());
+        var id = await CreateAsync(client, "Synthetic UI review");
+        var snapshot = Seed(factory.Services.GetRequiredService<IMpsSnapshotStore>(), id, "P-1");
+        var report = (await client.GetFromJsonAsync<OpenOrdersResponseDto>($"/api/v1/workspaces/{id}/open-orders?mpsSnapshotId={snapshot.Id}"))!;
+        var selection = new ExportOpenOrdersReportRequestDto(snapshot.Id.ToString(), report.OpenOrdersSnapshotId,
+            lines.Reverse().Select(l => new OpenOrderLineKeyDto(l.Key.Domain, l.Key.SalesOrder, l.Key.Line)).ToArray(), ["customerPart", "order", "extPrice"]);
+        var request = OpenOrdersAnalytical(id, snapshot.Id.Value, selection);
+        using var generated = await client.PostAsJsonAsync("/api/v1/reports/analytical", request); generated.EnsureSuccessStatusCode();
+        var prepared = (await generated.Content.ReadFromJsonAsync<AnalyticalExportPreparedDto>())!;
+        Assert.StartsWith("Synthetic-UI-review-Open-Orders-", prepared.FileName);
+        var url = $"/api/v1/reports/analytical/preparations/{prepared.PreparationId}/bytes";
+        var bytes = await client.GetByteArrayAsync(url);
+        Assert.Equal(bytes, await client.GetByteArrayAsync(url)); Assert.Equal(1, reads);
+        var evidenceRoot = Environment.GetEnvironmentVariable("KST_OPEN_ORDERS_EVIDENCE_ROOT");
+        if (evidenceRoot is not null)
+            await File.WriteAllBytesAsync(Path.Combine(evidenceRoot, "Synthetic-Open-Orders-205-rows.xlsx"), bytes);
+        using var book = new XLWorkbook(new MemoryStream(bytes)); var sheet = book.Worksheet("Open Orders");
+        Assert.Equal(206, sheet.LastRowUsed()!.RowNumber()); Assert.Equal(3, sheet.LastColumnUsed()!.ColumnNumber());
+        Assert.Equal("Customer Part", sheet.Cell(1, 1).GetString()); Assert.Equal("SO", sheet.Cell(1, 2).GetString()); Assert.Equal("Ext Price", sheet.Cell(1, 3).GetString());
+        Assert.Equal("SO-204", sheet.Cell(2, 2).GetString()); Assert.Equal("SO-000", sheet.Cell(206, 2).GetString());
+        Assert.Equal("=HYPERLINK(\"synthetic\")", sheet.Cell(2, 1).GetString()); Assert.False(sheet.Cell(2, 1).HasFormula);
+        Assert.Equal(0.0375, sheet.Cell(2, 3).GetDouble()); Assert.Equal(2, book.Worksheets.Count);
+        using var other = factory.CreateClient(); other.DefaultRequestHeaders.Add("X-KST-Report-Session", Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.Gone, (await other.GetAsync(url)).StatusCode);
+        Assert.Equal(1, reads);
+    }
+
+    [Theory]
+    [InlineData("duplicate-key", 400)]
+    [InlineData("duplicate-column", 400)]
+    [InlineData("unknown-column", 400)]
+    [InlineData("empty-columns", 400)]
+    [InlineData("unknown-key", 409)]
+    [InlineData("snapshot", 409)]
+    [InlineData("mps-mismatch", 400)]
+    [InlineData("site", 409)]
+    [InlineData("missing-session", 400)]
+    public async Task AnalyticalOpenOrdersRejectsInvalidSelectionsWithoutSourceReread(string scenario, int status)
+    {
+        var reads = 0;
+        await using var factory = new KstApiFactory { OpenOrdersSourceReader = new DelegateOpenOrdersSourceReader((_, _, _) =>
+        { reads++; return Task.FromResult<IReadOnlyList<OpenOrderLine>>([Line()]); }) };
+        using var client = factory.CreateClient(); if (scenario != "missing-session") client.DefaultRequestHeaders.Add("X-KST-Report-Session", Guid.NewGuid().ToString());
+        var id = await CreateAsync(client); var snapshot = Seed(factory.Services.GetRequiredService<IMpsSnapshotStore>(), id, "P-1");
+        var report = (await client.GetFromJsonAsync<OpenOrdersResponseDto>($"/api/v1/workspaces/{id}/open-orders?mpsSnapshotId={snapshot.Id}"))!;
+        var selection = new ExportOpenOrdersReportRequestDto(snapshot.Id.ToString(), report.OpenOrdersSnapshotId, [new("TEST", "SO-1", 1)], ["order"]);
+        selection = scenario switch
+        {
+            "duplicate-key" => selection with { LineKeys = [selection.LineKeys[0], selection.LineKeys[0]] },
+            "duplicate-column" => selection with { Columns = ["order", "order"] },
+            "unknown-column" => selection with { Columns = ["price"] },
+            "empty-columns" => selection with { Columns = [] },
+            "unknown-key" => selection with { LineKeys = [new("TEST", "OTHER", 1)] },
+            "snapshot" => selection with { OpenOrdersSnapshotId = Guid.NewGuid().ToString() },
+            "mps-mismatch" => selection with { MpsSnapshotId = Guid.NewGuid().ToString() },
+            _ => selection
+        };
+        var request = OpenOrdersAnalytical(id, snapshot.Id.Value, selection);
+        if (scenario == "site") request = request with { Site = "NW" };
+        using var result = await client.PostAsJsonAsync("/api/v1/reports/analytical", request);
+        Assert.Equal(status, (int)result.StatusCode); Assert.Equal(1, reads);
+        Assert.DoesNotContain("preparationId", await result.Content.ReadAsStringAsync());
+    }
+
+    private static AnalyticalExportRequestDto OpenOrdersAnalytical(Guid id, Guid snapshot, ExportOpenOrdersReportRequestDto selection) =>
+        new("OpenOrders", id, snapshot, "SW", DateOnly.FromDateTime(DateTime.Now), null, null, 0, null, null, false, null,
+            null, null, null, null, null, [], [], [], selection);
+
     [Fact]
     public async Task QxtendEndpointValidatesFreshChangedKeysAndReturnsOnlyApplicableFiles()
     {

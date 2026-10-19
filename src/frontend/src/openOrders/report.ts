@@ -87,11 +87,13 @@ export const NUMERIC_COLUMNS: ReadonlySet<ColumnId> = new Set(['line', 'open', '
 
 // Owner-amended workspace text filters are literal contains; ranges retain their accepted bounds.
 // The date predicate applies only with both boundaries. SQL Server ordering puts NULL first.
-export function reportRows(lines: OrderLine[], f: Filters): OrderLine[] {
+export function reportRows(lines: OrderLine[], f: Filters, search = ''): OrderLine[] {
   const cmp = compareReportText;
   const contains = (value: string | null, expected: string) => !expected ||
     (value !== null && value.toLocaleLowerCase().includes(expected.toLocaleLowerCase()));
   return lines.filter(r =>
+    (!search || [r.key.salesOrder, r.purchaseOrder, r.itemNumber, r.customer, r.customerName,
+      r.customerPart, r.salesperson].some(value => contains(value, search))) &&
     contains(r.customerName, f.customerName) && contains(r.customer, f.customer) &&
     contains(r.salesperson, f.salesperson) && contains(r.ios, f.ios) &&
     contains(r.key.salesOrder, f.so) && contains(r.purchaseOrder, f.po) && contains(r.itemNumber, f.itemNumber) &&

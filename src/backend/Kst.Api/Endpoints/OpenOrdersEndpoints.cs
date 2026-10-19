@@ -181,7 +181,7 @@ public static class OpenOrdersEndpoints
         catch (Exception) { return Results.Problem(title: "Open Orders draft could not be removed", statusCode: 503); }
     }
 
-    private static async Task<IResult> ExportReport(Guid assignmentId, ExportOpenOrdersReportRequestDto request,
+    internal static async Task<IResult> ExportReport(Guid assignmentId, ExportOpenOrdersReportRequestDto request,
         OpenOrdersService service, IExportService exports, CancellationToken ct)
     {
         if (!Guid.TryParse(request.MpsSnapshotId, out var mpsId) || mpsId == Guid.Empty ||

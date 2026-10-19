@@ -5009,6 +5009,16 @@
             "items": {
               "$ref": "#/components/schemas/AnalyticalSheetDto"
             }
+          },
+          "openOrders": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExportOpenOrdersReportRequestDto"
+              }
+            ]
           }
         }
       },

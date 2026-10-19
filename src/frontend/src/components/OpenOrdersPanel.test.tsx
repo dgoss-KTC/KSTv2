@@ -2,11 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { act, useState } from 'react';
+import { act } from 'react';
 import { OpenOrdersPanel } from './OpenOrdersPanel';
 import type { OpenOrdersResponseDto } from '../api/client';
 import type { OrderLine } from '../openOrders/report';
 import { ApiError } from '../api/client';
+import { columnPointer } from '../openOrders/pointerTestSupport';
 
 const get = vi.fn(); const refresh = vi.fn(); const exportReport = vi.fn(); const exportQxtend = vi.fn(); const save = vi.fn(); const saveCsv = vi.fn(); const restoreDraft = vi.fn(); const draftPresence = vi.fn(); const saveDraft = vi.fn(); const deleteDraft = vi.fn();
 vi.mock('../api/tauri-bridge', () => ({ resolveBackendBaseUrl: () => Promise.resolve('http://localhost'), isRunningInTauri: () => false }));
@@ -16,6 +17,10 @@ vi.mock('../api/client', async (original) => ({ ...(await original<typeof import
 }));
 vi.mock('../longTermShortages/saveLongTermShortagesWorkbook', () => ({ saveLongTermShortagesWorkbook: (...args: unknown[]) => save(...args) }));
 vi.mock('../openOrders/saveQxtendCsv', () => ({ saveQxtendCsv: (...args: unknown[]) => saveCsv(...args) }));
+// Panel tests isolate the existing analytical save state machine; the integration suite uses it for real.
+vi.mock('./AnalyticalExcelExport', () => ({ AnalyticalExcelExport: ({ request, disabledReason, scopeLabel }: {
+  request: () => import('../api/analyticalExportApi').AnalyticalRequest; disabledReason?: string; scopeLabel: string;
+}) => <><span>{scopeLabel}</span><button disabled={!!disabledReason} onClick={() => { const r = request(); void exportReport(r.workspaceId, r.openOrders); }}>Export</button></> }));
 
 function response(count: number, isStale = false): OpenOrdersResponseDto {
   const template: OrderLine = { key: { domain: 'D', salesOrder: 'SO-1', line: 1 }, itemNumber: 'P-1', site: 'SW', purchaseOrder: 'PO', stat: 'A',
@@ -31,10 +36,14 @@ function response(count: number, isStale = false): OpenOrdersResponseDto {
 }
 
 function applyTextFilter(type: string, value: string) {
+  fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
   fireEvent.change(screen.getByRole('combobox', { name: 'Filter' }), { target: { value: type } });
   const name = { customerName: 'Customer Name contains', customer: 'Customer # contains', salesperson: 'Salesperson contains', ios: 'IOS contains', so: 'SO contains', po: 'PO contains', itemNumber: 'Item Number contains' }[type]!;
   fireEvent.change(screen.getByRole('searchbox', { name: `${name} value` }), { target: { value } });
   fireEvent.click(screen.getByRole('button', { name: `Apply ${name} filter` }));
+}
+function togglePlan() {
+  fireEvent.click(screen.getByRole('button', { name: screen.getByRole('button', { name: 'Plan' }).getAttribute('aria-pressed') === 'true' ? 'Report' : 'Plan' }));
 }
 
 beforeEach(() => { get.mockReset(); refresh.mockReset(); exportReport.mockReset(); exportQxtend.mockReset(); saveCsv.mockReset(); draftPresence.mockReset(); save.mockReset(); restoreDraft.mockReset(); saveDraft.mockReset(); deleteDraft.mockReset();
@@ -42,58 +51,178 @@ beforeEach(() => { get.mockReset(); refresh.mockReset(); exportReport.mockReset(
   restoreDraft.mockResolvedValue({ exists: false, restored: false, warning: null, freshReport: null, rows: [] });
   saveDraft.mockResolvedValue({ exists: true, restored: true, warning: null, freshReport: null, rows: [] }); deleteDraft.mockResolvedValue(undefined);
   window.localStorage.clear(); });
-afterEach(() => vi.useRealTimers());
+const originalHitTest = Object.getOwnPropertyDescriptor(document, 'elementFromPoint');
+afterEach(() => {
+  vi.useRealTimers();
+  if (originalHitTest) Object.defineProperty(document, 'elementFromPoint', originalHitTest);
+  else Reflect.deleteProperty(document, 'elementFromPoint');
+});
 
 describe('Customer Open Orders panel', () => {
-  it('displays integer quantity and four-place price, exposes full raw text on focus and preserves exact proposals', async () => {
+  it('reorders Plan headers with pointer capture without changing proposals or generation guards', async () => {
+    get.mockResolvedValue(response(1)); render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table'); togglePlan();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });
+    const source = screen.getByRole('columnheader', { name: 'Price' }); const target = screen.getByRole('columnheader', { name: 'SO' });
+    expect(source).toHaveAttribute('draggable', 'false');
+    Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => target });
+    columnPointer('pointerdown', source, 400, 30); columnPointer('pointermove', source, 50, 30); columnPointer('pointerup', source, 50, 30);
+    expect(screen.getAllByRole('columnheader')[0]).toHaveTextContent('Price');
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' })).toHaveValue('4');
+    expect(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' })).toHaveValue('Planning');
+    expect(screen.getByRole('button', { name: 'Generate files…' })).toBeEnabled();
+    expect(exportQxtend).not.toHaveBeenCalled();
+    fireEvent.keyDown(source, { altKey: true, key: 'ArrowRight' });
+    expect(screen.getAllByRole('columnheader')[1]).toHaveTextContent('Price');
+  });
+  it('preserves proposals through quick search/chip clearing, exposes hidden changes, Find row and Undo', async () => {
+    get.mockResolvedValue(response(101)); render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table'); togglePlan();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'no-match' } });
+    expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument(); expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Show changes outside this view' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Find row' }));
+    expect(screen.getByRole('searchbox', { name: 'Search open orders' })).toHaveValue('');
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' })).toHaveValue('4');
+    applyTextFilter('so', 'SO-10'); expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search and filters' }));
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' })).toHaveValue('4');
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Undo SO-1/1' })); expect(screen.getByText(/0 changed across workspace/)).toBeInTheDocument();
+  }, 15_000);
+  it('resets/clamps pages on search and returns focus from filter overlay without changing proposals', async () => {
+    get.mockResolvedValue(response(205)); render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table'); fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'SO-205' } });
+    expect(screen.getByText(/Rows 1–1 of 1/)).toBeInTheDocument(); expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+    const trigger = screen.getByRole('button', { name: '+ Filter' }); fireEvent.click(trigger);
+    expect(screen.getByRole('dialog', { name: 'Add or edit report filter' })).toBeInTheDocument();
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' }); expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); expect(trigger).toHaveFocus();
+    fireEvent.click(trigger); fireEvent.pointerDown(document.body); expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); expect(trigger).toHaveFocus();
+  });
+  it('deduplicates operational generation, rejects late mode-departure preparation and retains generation guards', async () => {
+    let finish!: (value: unknown) => void;
+    get.mockResolvedValue(response(1)); exportQxtend.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table'); togglePlan();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
+    expect(screen.getByRole('button', { name: 'Generate files…' })).toBeDisabled();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });
+    const generate = screen.getByRole('button', { name: 'Generate files…' }); fireEvent.click(generate); fireEvent.click(generate);
+    await waitFor(() => expect(exportQxtend).toHaveBeenCalledTimes(1)); togglePlan();
+    await act(async () => finish({ files: [{ kind: 'quantity', fileName: 'UpdateQuantities.csv', contentBase64: 'TQ==' }] }));
+    togglePlan(); expect(screen.queryByRole('group', { name: 'Prepared QXtend files' })).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' })).toHaveValue('4'); expect(saveCsv).not.toHaveBeenCalled();
+  });
+  it('keeps saved draft until explicit discard confirmation, supports Escape/focus return and preserves in-memory proposals', async () => {
+    const data = response(1); const original = data.lines[0].planningValues;
+    get.mockResolvedValue(data); draftPresence.mockResolvedValue({ exists: true });
+    restoreDraft.mockResolvedValue({ exists: true, restored: true, warning: null, freshReport: data,
+      rows: [{ proposal: { key: data.lines[0].key, site: 'SW', itemNumber: 'P-1', original, proposed: { ...original, orderQty: '8' }, reasonCode: 'Planning' }, issues: [] }] });
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    const discard = await screen.findByRole('button', { name: 'Discard saved draft' });
+    togglePlan(); fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
+    expect(screen.getByRole('button', { name: 'Generate files…' })).toBeDisabled();
+    fireEvent.click(discard); fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument(); expect(discard).toHaveFocus(); expect(deleteDraft).not.toHaveBeenCalled();
+    fireEvent.click(discard); fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Discard saved draft' }));
+    await waitFor(() => expect(deleteDraft).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Restore saved draft and continue saving' })).not.toBeInTheDocument());
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' })).toHaveValue('4');
+  });
+  it('does not revive an operational generation after Plan → Report → Plan before its reply', async () => {
+    let finish!: (value: unknown) => void;
+    get.mockResolvedValue(response(1)); exportQxtend.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table'); togglePlan();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Generate files…' })); await waitFor(() => expect(exportQxtend).toHaveBeenCalledTimes(1));
+    togglePlan(); togglePlan();
+    await act(async () => finish({ files: [{ kind: 'quantity', fileName: 'UpdateQuantities.csv', contentBase64: 'TQ==' }] }));
+    expect(screen.queryByRole('group', { name: 'Prepared QXtend files' })).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' })).toHaveValue('4'); expect(saveCsv).not.toHaveBeenCalled();
+  });
+  it('keeps quantity unpadded and price at four places on focus, preserving typed decimal text and exact originals', async () => {
     const data = response(1);
-    data.lines[0].planningValues = { ...data.lines[0].planningValues, orderQty: '3.000', price: '0.125' };
+    data.lines[0].planningValues = { ...data.lines[0].planningValues, orderQty: '3.0000000000', price: '0.1250000000' };
     get.mockResolvedValue(data);
     exportQxtend.mockResolvedValue({ files: [{ kind: 'price', fileName: 'UpdatePrices.csv', contentBase64: 'TQ==' }] });
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     const qty = screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' });
     const price = screen.getByRole('textbox', { name: 'Price proposal SO-1/1' });
     expect(qty).toHaveValue('3');
     expect(price).toHaveValue('0.1250');
     fireEvent.focus(qty);
-    expect(qty).toHaveValue('3.000');
+    expect(qty).toHaveValue('3');
+    fireEvent.change(qty, { target: { value: '3.' } });
+    expect(qty).toHaveValue('3.');
     fireEvent.change(qty, { target: { value: '3.25' } });
     fireEvent.blur(qty);
     expect(qty).toHaveValue('3.25');
     fireEvent.focus(price);
-    expect(price).toHaveValue('0.125');
+    expect(price).toHaveValue('0.1250');
+    fireEvent.change(price, { target: { value: '' } }); expect(price).toHaveValue('');
+    fireEvent.change(price, { target: { value: '0.' } }); expect(price).toHaveValue('0.');
     fireEvent.change(price, { target: { value: '0.1256' } });
     fireEvent.blur(price);
     expect(price).toHaveValue('0.1256');
     fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Export All QXtend CSVs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate files…' }));
     await waitFor(() => expect(exportQxtend).toHaveBeenCalledTimes(1));
-    expect(exportQxtend.mock.calls[0][1].proposals[0].original).toMatchObject({ orderQty: '3.000', price: '0.125' });
+    expect(exportQxtend.mock.calls[0][1].proposals[0].original).toMatchObject({ orderQty: '3.0000000000', price: '0.1250000000' });
     expect(exportQxtend.mock.calls[0][1].proposals[0].proposed).toMatchObject({ orderQty: '3.25', price: '0.1256' });
   });
 
   it('shows four places for a ten-decimal source price but sends its untouched original on date-only export', async () => {
     const data = response(1);
-    data.lines[0].planningValues = { ...data.lines[0].planningValues, price: '12.3456789012' };
+    data.lines[0].planningValues = { ...data.lines[0].planningValues, orderQty: '3.0000000000', price: '12.3456789012' };
     get.mockResolvedValue(data);
     exportQxtend.mockResolvedValue({ files: [{ kind: 'date', fileName: 'DateChange.csv', contentBase64: 'TQ==' }] });
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
+    const qty = screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' });
+    fireEvent.focus(qty); expect(qty).toHaveValue('3'); fireEvent.blur(qty);
     const price = screen.getByRole('textbox', { name: 'Price proposal SO-1/1' });
     expect(price).toHaveValue('12.3457');
     fireEvent.focus(price);
-    expect(price).toHaveValue('12.3456789012');
+    expect(price).toHaveValue('12.3457');
     fireEvent.blur(price);
     expect(price).toHaveValue('12.3457');
     fireEvent.change(screen.getByRole('textbox', { name: 'Due Date proposal SO-1/1' }), { target: { value: '1/2/2027' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Export All QXtend CSVs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate files…' }));
     await waitFor(() => expect(exportQxtend).toHaveBeenCalledTimes(1));
     expect(exportQxtend.mock.calls[0][1].proposals[0].original.price).toBe('12.3456789012');
     expect(exportQxtend.mock.calls[0][1].proposals[0].proposed.price).toBe('12.3456789012');
+    expect(exportQxtend.mock.calls[0][1].proposals[0].proposed.orderQty).toBe('3.0000000000');
+  });
+
+  it('does not mark dirty or save a draft merely by focusing numbers; meaningful fractional quantities remain', async () => {
+    const data = response(1); const dirty = vi.fn();
+    data.lines[0].planningValues = { ...data.lines[0].planningValues, orderQty: '3.2500000000', price: '12.3456789012' };
+    get.mockResolvedValue(data); render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" onDirtyChange={dirty} />);
+    await screen.findByRole('table'); togglePlan();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' }));
+    await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
+    const qty = screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' });
+    const price = screen.getByRole('textbox', { name: 'Price proposal SO-1/1' });
+    fireEvent.focus(qty); expect(qty).toHaveValue('3.25'); fireEvent.blur(qty);
+    fireEvent.focus(price); expect(price).toHaveValue('12.3457'); fireEvent.blur(price);
+    expect(saveDraft).toHaveBeenCalledTimes(1); expect(dirty).not.toHaveBeenCalledWith(true);
+    expect(screen.getByRole('button', { name: 'Generate files…' })).toBeDisabled();
+  });
+
+  it('does not let the numeric editing buffer obscure an undone proposal', async () => {
+    get.mockResolvedValue(response(1)); render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
+    await screen.findByRole('table'); togglePlan();
+    const qty = screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' });
+    fireEvent.focus(qty); fireEvent.change(qty, { target: { value: '4.' } }); expect(qty).toHaveValue('4.');
+    fireEvent.click(screen.getByRole('button', { name: 'Undo SO-1/1' })); expect(qty).toHaveValue('3');
+    expect(screen.getByRole('button', { name: 'Generate files…' })).toBeDisabled();
   });
 
   it('keeps staged date-only proposal and displays old-backend route failure without guessing a validation conflict', async () => {
@@ -101,10 +230,10 @@ describe('Customer Open Orders panel', () => {
     exportQxtend.mockRejectedValue(new ApiError(404, '/qxtend-export', ''));
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     fireEvent.change(screen.getByRole('textbox', { name: 'Due Date proposal SO-1/1' }), { target: { value: '1/2/2027' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Export All QXtend CSVs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate files…' }));
     await screen.findByText(/QXtend export endpoint is unavailable in the running backend/);
     expect(exportQxtend.mock.calls[0][1].proposals).toHaveLength(1);
     expect(exportQxtend.mock.calls[0][1].proposals[0].reasonCode).toBe('Planning');
@@ -123,13 +252,13 @@ describe('Customer Open Orders panel', () => {
       .mockResolvedValueOnce({ kind: 'saved', fileName: 'Second.csv' });
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByText(/2 scoped lines/);
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     for (const order of ['SO-1', 'SO-2']) {
       fireEvent.change(screen.getByRole('textbox', { name: `Order Qty proposal ${order}/1` }), { target: { value: '4' } });
       fireEvent.change(screen.getByRole('combobox', { name: `Reason Code ${order}/1` }), { target: { value: 'Planning' } });
     }
     applyTextFilter('so', 'SO-1');
-    fireEvent.click(screen.getByRole('button', { name: 'Export All QXtend CSVs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate files…' }));
     await waitFor(() => expect(exportQxtend).toHaveBeenCalledTimes(1));
     expect(exportQxtend.mock.calls[0][1].proposals).toHaveLength(2);
     const quantity = await screen.findByRole('button', { name: 'Save As UpdateQuantities.csv' });
@@ -150,17 +279,17 @@ describe('Customer Open Orders panel', () => {
     get.mockResolvedValue(response(101));
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByText(/101 scoped lines/);
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     expect(screen.getByRole('columnheader', { name: /Perform Date/ })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /^Price / })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Price' })).toBeInTheDocument();
     fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
     expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: /3.*Original: 2/ })).toBeInTheDocument(); // Open 4 - 1; extension is optional in Plan Mode
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     expect(screen.getByText(/1 outside current filter\/page view/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     expect(screen.getAllByRole('columnheader')).toHaveLength(9);
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Clear All' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -174,28 +303,32 @@ describe('Customer Open Orders panel', () => {
     get.mockResolvedValue(response(1));
     const { rerender } = render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
-    const headers = () => within(screen.getByRole('table')).getAllByRole('columnheader').map(h => h.textContent?.replace(/[‹›]/g, '').trim());
+    togglePlan();
+    const headers = () => within(screen.getByRole('table')).getAllByRole('columnheader').map(h => h.textContent?.replace(/⠿/g, '').trim());
     expect(headers().slice(0, 11)).toEqual(['SO', 'PO', 'Line', 'Item Number', 'Open', 'Due Date', 'Perform Date', 'Required Date', 'Dock Date', 'Order Qty', 'Price']);
-    expect(headers().slice(11)).toEqual(['Reason Code', 'Actions']);
-    fireEvent.click(screen.getByText(/Plan columns \(11 visible\)/));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Ext Price' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Move Ext Price Left' }));
+    expect(headers().slice(11)).toEqual(['Reason Code', 'Planning status']);
+    fireEvent.click(screen.getByRole('button', { name: /Columns 11 of/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show Ext Price' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Move Ext Price up' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save as new' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'View name' }), { target: { value: 'My plan' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(headers()).toContain('Ext Price');
     expect(screen.getByText('0.25')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     expect(headers().slice(0, 9)).toEqual(['Due Date', 'SO', 'PO', 'Line', 'Item Number', 'Site', 'Open', 'Status', 'Ext Price']);
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     expect(headers()).toContain('Ext Price');
     rerender(<OpenOrdersPanel key="B" assignmentId="B" snapshotId="snap-1" />);
     await screen.findByRole('table');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     expect(headers()).not.toContain('Ext Price');
     rerender(<OpenOrdersPanel key="A-again" assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     expect(headers()).toContain('Ext Price');
-    fireEvent.click(screen.getByText(/Plan columns \(12 visible\)/));
+    fireEvent.click(screen.getByRole('button', { name: /Columns 12 of/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Reset columns to default' }));
     expect(headers()).not.toContain('Ext Price');
   });
@@ -243,6 +376,7 @@ describe('Customer Open Orders panel', () => {
     draftPresence.mockResolvedValue({ exists: false });
     const { rerender } = render(<OpenOrdersPanel key="A" assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table');
+    togglePlan();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' })); // turn on
     expect(screen.getByRole('checkbox', { name: 'Save Draft' })).toBeChecked();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' })); // ask to turn off
@@ -291,6 +425,7 @@ describe('Customer Open Orders panel', () => {
     draftPresence.mockRejectedValueOnce(new Error('synthetic file check')).mockResolvedValueOnce({ exists: false });
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     expect(await screen.findByText(/Could not check for a saved draft/)).toBeInTheDocument();
+    togglePlan();
     expect(screen.queryByText('Checking saved draft…')).not.toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Save Draft' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Retry draft check' }));
@@ -301,7 +436,7 @@ describe('Customer Open Orders panel', () => {
   it('types complete dates in one field, preserves partial/invalid text, normalizes no-ops and supports Tab/Enter', async () => {
     get.mockResolvedValue(response(1));
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
-    await screen.findByRole('table'); fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    await screen.findByRole('table'); togglePlan();
     const due = screen.getByRole('textbox', { name: 'Due Date proposal SO-1/1' });
     expect(due).toHaveAttribute('type', 'text');
     fireEvent.change(due, { target: { value: '01/01/2027' } });
@@ -328,7 +463,7 @@ describe('Customer Open Orders panel', () => {
   it('does not save incomplete date text as a blank or stale proposal while Save Draft is enabled', async () => {
     get.mockResolvedValue(response(1));
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
-    await screen.findByRole('table'); fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    await screen.findByRole('table'); togglePlan();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' }));
     await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
     const due = screen.getByRole('textbox', { name: 'Due Date proposal SO-1/1' });
@@ -349,21 +484,19 @@ describe('Customer Open Orders panel', () => {
     refresh.mockResolvedValue({ ...first, openOrdersSnapshotId: 'report-2', lines: [{ ...first.lines[0], planningValues: { ...first.lines[0].planningValues, price: '2.5' } }] });
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
     expect(screen.getByRole('button', { name: 'Refresh report' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Export filtered rows to XLSX' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Export' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Refresh report' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Export filtered rows to XLSX' }));
     expect(refresh).not.toHaveBeenCalled(); expect(exportReport).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     expect(screen.getByRole('button', { name: 'Refresh report' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Export filtered rows to XLSX' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Refresh report' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     await waitFor(() => expect(screen.getByText(/1 conflicts/)).toBeInTheDocument());
     expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' })).toHaveValue('4');
-    fireEvent.click(screen.getByText('Issues'));
     expect(screen.getByText(/Original values or source identity changed/)).toBeInTheDocument();
   });
 
@@ -384,27 +517,31 @@ describe('Customer Open Orders panel', () => {
     expect(screen.getByText(/Rows 101–200 of 235/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     expect(screen.getByText(/Rows 201–235 of 235/)).toBeInTheDocument();
-    fireEvent.click(screen.getByText(/Columns \(9 visible\)/));
-    fireEvent.click(screen.getByRole('button', { name: 'Move PO Left' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Due Date' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Customer Name' }));
-    const drag = { dataTransfer: { setData: vi.fn(), getData: () => 'customerName', effectAllowed: '' } };
+    fireEvent.click(screen.getByRole('button', { name: /Columns 9 of/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Move PO up' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hide Due Date' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show Customer Name' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     const headers = within(screen.getByRole('table'));
-    fireEvent.dragStart(headers.getByRole('columnheader', { name: /Customer Name/ }), drag);
-    fireEvent.dragOver(headers.getByRole('columnheader', { name: /^SO / }), drag);
-    fireEvent.drop(headers.getByRole('columnheader', { name: /^SO / }), drag);
+    const source = headers.getByRole('columnheader', { name: /Customer Name/ });
+    const target = headers.getByRole('columnheader', { name: 'SO' });
+    Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => target });
+    columnPointer('pointerdown', source, 200, 30); columnPointer('pointermove', document, 50, 30); columnPointer('pointerup', document, 50, 30);
     expect(headers.getAllByRole('columnheader')[1]).toHaveTextContent('Customer Name');
+    fireEvent.click(screen.getByRole('button', { name: /Columns 9 of/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Reset columns to default' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Move PO Left' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Due Date' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Customer Name' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Move PO up' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hide Due Date' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show Customer Name' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
     fireEvent.change(screen.getByRole('searchbox', { name: 'Customer Name contains value' }), { target: { value: 'acm' } });
     expect(screen.getByText(/235 matching filters/)).toBeInTheDocument(); // draft is not applied
     fireEvent.click(screen.getByRole('button', { name: 'Apply Customer Name contains filter' }));
     expect(screen.getByRole('button', { name: 'Remove Customer Name contains filter' })).toBeInTheDocument();
     expect(screen.getByText(/235 matching filters/)).toBeInTheDocument();
     expect(screen.getByText(/Rows 1–100 of 235/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Export filtered rows to XLSX' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     await waitFor(() => expect(exportReport).toHaveBeenCalledWith('A', expect.objectContaining({ lineKeys: expect.arrayContaining([{ domain: 'D', salesOrder: 'SO-235', line: 1 }]), columns: ['po', 'order', 'line', 'itemNumber', 'site', 'open', 'stat', 'extPrice', 'customerName'] })));
     expect(exportReport.mock.calls[0][1].lineKeys).toHaveLength(235);
     rerender(<OpenOrdersPanel key="B" assignmentId="B" snapshotId="snap-1" />);
@@ -412,24 +549,18 @@ describe('Customer Open Orders panel', () => {
     await waitFor(() => expect(within(screen.getByRole('table')).getAllByRole('columnheader')[0]).toHaveTextContent('Due Date'));
   }, 15_000);
 
-  it('marks failed refresh stale, retries and reports cancelled or failed saves recoverably', async () => {
+  it('marks failed refresh stale, disables export and recovers after refresh', async () => {
     get.mockResolvedValue(response(1)); refresh.mockResolvedValueOnce(response(1, true)).mockResolvedValueOnce(response(1));
     exportReport.mockResolvedValue({ blob: new Blob(), fileName: 'Open.xlsx' }); save.mockResolvedValueOnce({ kind: 'cancelled' }).mockRejectedValueOnce(new Error('disk'));
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table');
     fireEvent.click(screen.getByRole('button', { name: 'Refresh report' }));
     expect(await screen.findByText(/STALE report acquired/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Export filtered rows to XLSX' }));
-    expect(await screen.findByText(/Save cancelled/)).toBeInTheDocument();
-    expect(screen.queryByText(/^Saved /)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Export filtered rows to XLSX' }));
-    expect(await screen.findByText(/Workbook export or save failed/)).toBeInTheDocument();
-    expect(screen.getByRole('status', { name: '' })).toBeInTheDocument();
-    save.mockResolvedValueOnce({ kind: 'saved', fileName: 'Recovered.xlsx' });
-    fireEvent.click(screen.getByRole('button', { name: 'Export filtered rows to XLSX' }));
-    expect(await screen.findByText('Saved Recovered.xlsx')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+    expect(exportReport).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Refresh report' }));
     await waitFor(() => expect(screen.queryByText(/STALE report acquired/)).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
   });
 
   it('keeps a failed refresh explicitly not current and never shows an old report under a changed MPS snapshot', async () => {
@@ -438,7 +569,7 @@ describe('Customer Open Orders panel', () => {
     await screen.findByRole('table');
     fireEvent.click(screen.getByRole('button', { name: 'Refresh report' }));
     expect(await screen.findByText(/Previous report is retained but not current/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Export filtered rows to XLSX' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
     get.mockRejectedValueOnce(new ApiError(409, 'synthetic', 'Snapshot changed'));
     rerender(<OpenOrdersPanel assignmentId="A" snapshotId="snap-2" />);
     expect(await screen.findByText(/MPS snapshot changed/)).toBeInTheDocument();
@@ -488,6 +619,7 @@ describe('Customer Open Orders panel', () => {
     await screen.findByText(/4 scoped lines/);
     expect(screen.getAllByText('1/1/2027').length).toBeGreaterThan(0);
     expect(screen.getByText(/Acquired/)).not.toHaveTextContent('2026-09-30T10:00:00Z');
+    fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply Customer Name contains filter' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Enter a filter value');
     expect(screen.getByText(/4 matching filters/)).toBeInTheDocument();
@@ -499,6 +631,7 @@ describe('Customer Open Orders panel', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Product Line range to' }), { target: { value: 'C' } });
     fireEvent.click(screen.getByRole('button', { name: 'Apply Product Line range filter' }));
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Filter' }), { target: { value: 'dueDate' } });
     fireEvent.change(screen.getByLabelText('Due Date range from'), { target: { value: '2027-01-02' } });
     fireEvent.click(screen.getByRole('button', { name: 'Apply Due Date range filter' }));
@@ -507,7 +640,7 @@ describe('Customer Open Orders panel', () => {
     fireEvent.change(screen.getByLabelText('Due Date range to'), { target: { value: '2027-01-02' } });
     fireEvent.click(screen.getByRole('button', { name: 'Apply Due Date range filter' }));
     expect(screen.getByText(/1 matching filters/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Export filtered rows to XLSX' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     await waitFor(() => expect(exportReport).toHaveBeenCalledWith('A', expect.objectContaining({ lineKeys: [data.lines[1].key] })));
     expect(data.lines[1].extPrice).toBe('0.250');
     fireEvent.click(screen.getByRole('button', { name: 'Remove Due Date range filter' }));
@@ -521,14 +654,18 @@ describe('Customer Open Orders panel', () => {
     get.mockResolvedValue(response(1));
     const { rerender } = render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     const table = within(await screen.findByRole('table'));
-    fireEvent.click(screen.getByRole('button', { name: 'Move PO Left' }));
+    fireEvent.keyDown(table.getByRole('columnheader', { name: 'PO' }), { key: 'ArrowLeft', altKey: true });
     expect(table.getAllByRole('columnheader')[1]).toHaveTextContent('PO');
-    fireEvent.click(screen.getByText(/Columns \(9 visible\)/));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'SO' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Move PO Left' }));
+    fireEvent.click(screen.getByRole('button', { name: /Columns 9 of/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hide SO' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Move PO up' }));
     expect(table.getAllByRole('columnheader')[0]).toHaveTextContent('PO');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'SO' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show SO' }));
     expect(table.getAllByRole('columnheader')[1]).toHaveTextContent('Due Date');
+    fireEvent.click(screen.getByRole('button', { name: 'Save as new' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'View name' }), { target: { value: 'Personal order' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     rerender(<OpenOrdersPanel key="B" assignmentId="B" snapshotId="snap-1" />);
     await waitFor(() => expect(get).toHaveBeenCalledWith('B', 'snap-1'));
     expect(within(screen.getByRole('table')).getAllByRole('columnheader')[0]).toHaveTextContent('Due Date');
@@ -540,6 +677,7 @@ describe('Customer Open Orders panel', () => {
     get.mockResolvedValue(response(1));
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Filter' }), { target: { value: 'dueDate' } });
     const from = screen.getByLabelText('Due Date range from');
     const to = screen.getByLabelText('Due Date range to');
@@ -563,6 +701,7 @@ describe('Customer Open Orders panel', () => {
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByText(/3 scoped lines/);
     applyTextFilter('customer', 'C1');
+    fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Filter' }), { target: { value: 'productLine' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Product Line range from' }), { target: { value: 'B' } });
     fireEvent.click(screen.getByRole('button', { name: 'Apply Product Line range filter' }));
@@ -593,11 +732,9 @@ describe('Customer Open Orders panel', () => {
     applyTextFilter('itemNumber', 'm-77');
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /^Remove .* filter$/ })).toHaveLength(3);
-    fireEvent.click(screen.getByRole('button', { name: 'Export filtered rows to XLSX' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     await waitFor(() => expect(exportReport).toHaveBeenCalledWith('A', expect.objectContaining({ lineKeys: [data.lines[0].key, data.lines[1].key] })));
-    expect(save).toHaveBeenCalledWith(expect.any(Blob), 'Shure-SMT-Open-Orders-2026-09-30.xlsx', 'Save Customer Open Orders Workbook');
-    expect(screen.getByRole('status', { name: '' })).toBeInTheDocument();
-    expect(screen.getByText('Saved renamed-by-owner.xlsx')).toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled(); // no old direct-save helper; shared export is verified separately
     fireEvent.click(screen.getByRole('button', { name: /Edit PO contains filter/ }));
     fireEvent.change(screen.getByRole('searchbox', { name: 'PO contains value' }), { target: { value: 'missing' } });
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
@@ -609,47 +746,8 @@ describe('Customer Open Orders panel', () => {
     expect(get).toHaveBeenCalledTimes(1);
   });
 
-  it('shows successful actual-name feedback near export for five seconds, clears timers on workspace change and unmount', async () => {
-    get.mockResolvedValue(response(1)); exportReport.mockResolvedValue({ blob: new Blob(), fileName: 'Advertised.xlsx' });
-    save.mockResolvedValue({ kind: 'saved', fileName: 'Chosen.xlsx' });
-    const { rerender, unmount } = render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
-    await screen.findByRole('table');
-    vi.useFakeTimers();
-    fireEvent.click(screen.getByRole('button', { name: 'Export filtered rows to XLSX' }));
-    await act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
-    expect(screen.getByText('Saved Chosen.xlsx')).toBeInTheDocument();
-    expect(save).toHaveBeenCalledWith(expect.any(Blob), 'Advertised.xlsx', expect.any(String));
-    act(() => vi.advanceTimersByTime(4_999));
-    expect(screen.getByText('Saved Chosen.xlsx')).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(1));
-    expect(screen.queryByText('Saved Chosen.xlsx')).not.toBeInTheDocument();
-    vi.useRealTimers();
-    fireEvent.click(screen.getByRole('button', { name: 'Export filtered rows to XLSX' }));
-    expect(await screen.findByText('Saved Chosen.xlsx')).toBeInTheDocument();
-    rerender(<OpenOrdersPanel assignmentId="B" snapshotId="snap-1" />);
-    expect(screen.queryByText('Saved Chosen.xlsx')).not.toBeInTheDocument();
-    unmount();
-  });
-
-  it('does not display a late save result after switching workspace assignments in the same panel instance', async () => {
-    let finishSave!: (result: { kind: 'saved'; fileName: string }) => void;
-    get.mockResolvedValue(response(1)); exportReport.mockResolvedValue({ blob: new Blob(), fileName: 'Advertised.xlsx' });
-    save.mockImplementation(() => new Promise(resolve => { finishSave = resolve; }));
-    function Host() {
-      const [workspace, setWorkspace] = useState('A');
-      return <><button onClick={() => setWorkspace('B')}>Switch workspace</button>
-        <OpenOrdersPanel key={workspace} assignmentId={workspace} snapshotId="snap-1" /></>;
-    }
-    render(<Host />);
-    await screen.findByRole('table');
-    fireEvent.click(screen.getByRole('button', { name: 'Export filtered rows to XLSX' }));
-    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByRole('button', { name: 'Switch workspace' }));
-    await waitFor(() => expect(get).toHaveBeenCalledWith('B', 'snap-1'));
-    await act(async () => finishSave({ kind: 'saved', fileName: 'Old.xlsx' }));
-    expect(screen.queryByText('Saved Old.xlsx')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Export filtered rows to XLSX' })).toBeEnabled();
-  });
+  // The retired five-second/direct-write feedback and departure tests are superseded by
+  // OpenOrdersExport.test.tsx using the actual shared eight-second protected-save component.
 
   it.skipIf(!process.env.KST_STAGE13_POLISH_FIXTURE_PATH)('writes an offline synthetic report view for desktop screenshot evidence', async () => {
     const data = response(35);
@@ -659,7 +757,7 @@ describe('Customer Open Orders panel', () => {
     const { container } = render(<OpenOrdersPanel assignmentId="synthetic-review" snapshotId="synthetic-mps" />);
     await screen.findByText(/35 scoped lines/);
     applyTextFilter('customerName', 'Acme');
-    fireEvent.click(screen.getByText(/Columns \(9 visible\)/));
+    fireEvent.click(screen.getByRole('button', { name: /Columns 9 of/ }));
     const theme = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
     const css = readFileSync(resolve(process.cwd(), 'src/components/OpenOrdersPanel.css'), 'utf8');
     writeFileSync(process.env.KST_STAGE13_POLISH_FIXTURE_PATH!, `<!doctype html><html><head><meta charset="utf-8"><style>${theme}\n${css}\nbody { margin:0; background:var(--app); } .fixture { display:flex; height:850px; padding-top:16px; box-sizing:border-box; }</style></head><body><div class="fixture">${container.innerHTML}</div></body></html>`);
@@ -669,7 +767,7 @@ describe('Customer Open Orders panel', () => {
     get.mockResolvedValue(response(3));
     const { container } = render(<OpenOrdersPanel assignmentId="synthetic-planning" snapshotId="synthetic-mps" />);
     await screen.findByText(/3 scoped lines/);
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Plan Mode' }));
+    togglePlan();
     fireEvent.change(screen.getByRole('textbox', { name: 'Due Date proposal SO-1/1' }), { target: { value: '1/8/2027' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });

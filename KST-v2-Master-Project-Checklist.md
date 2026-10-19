@@ -3,17 +3,21 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** Stage 22 MPS drill-down and subsequent MPS/BOM export pilot — **IMPLEMENTED /
+**Current project position:** S22-005 Customer Open Orders UI is **COMPLETE / OWNER-ACCEPTED —
+2026-10-19**, including lifecycle, Windows pointer-drag and numeric-focus corrections; see §22.3.
+Stage 22 remains open. Earlier Stage 22 MPS drill-down and subsequent MPS/BOM export pilot — **IMPLEMENTED /
 OFFLINE-VERIFIED; ACCEPTED MPS/EXPORT BEHAVIOR, REMAINING OWNER VALIDATION PENDING — 2026-10-16**. Accepted stage baseline remains
 Stage 21 (`1831fb7`). Stage 22 overall is in progress, not accepted or complete. See
 `docs/implementation/KST_v2_STAGE_22_MPS_DRILLDOWN_CHECKPOINT.md` and
 `docs/implementation/KST_v2_STAGE_22_MPS_BOM_EXPORT_PILOT.md` for separately authorized scopes,
 evidence and owner checks. The export pilot does not imply acceptance of the earlier navigation work.
 
-The owner authorizes a local accumulated-work checkpoint after S22-034 commit
+Historical accumulated-work checkpoint `b1e7947` (2026-10-16): the owner authorized a local checkpoint
+after S22-034 commit
 `86fd0cb6db6366f63c8dcc6130bc4de2760b64e8`, without pushing. Prior closeout acceptance of MPS/export
 and eight-second feedback remains at its reported scope; Part Info, broader drill-down/detail-scroll
-and unexecuted desktop/recovery checks remain pending. This commit records implementation, not new
+and unexecuted desktop/recovery checks remain pending at that checkpoint's scope. That commit
+recorded implementation, not new
 acceptance. Existing verification is reused and formatting/lint exceptions remain explicit; see
 `docs/status/CURRENT_PROJECT_STATUS.md` for the checkpoint and owner-approved tracked build-metadata
 exception. Historical implementation-time pending statements below do not revoke recorded acceptance.
@@ -1814,6 +1818,28 @@ single-action preparation/Save As, retained exact-workbook retry and persistent 
 recovery. See `docs/implementation/KST_v2_STAGE_22_MPS_BOM_EXPORT_PILOT.md`. Its scoped independent
 security review reports no confirmed new material defect; that is not owner/risk acceptance.
 Other report migrations and operational CSV workflows are outside this batch.
+
+Separately owner-authorized **S22-005 Customer Open Orders** redesign (implemented 2026-10-16) is
+**COMPLETE / OWNER-ACCEPTED — 2026-10-19**. The owner completed all 24 items in the supplied
+`OpenOrdersUI\evidence\OWNER_REVIEW_CHECKLIST.md` and explicitly accepted all session changes,
+including operational context epoch, Windows pointer-drag and numeric-focus corrections.
+Includes Report/Plan presentation, literal quick
+search with existing filters, local columns-only named views, planning dock and use of the actual
+shared analytical export/native-save/recovery controls through a typed cached-report adapter.
+Operational CSV fresh validation and per-file Save As remain separate; no source algorithms/native
+capabilities/dependencies changed. Latest frontend: **223 passed / 2 inherited skips**; original
+backend/architecture: **82 passed**; native: **24 passed / 2 intentional interactive ignores**.
+Backend/native suites were not rerun for frontend-only corrections or documentation/commit closeout.
+Initial frontend evidence (206 / 2) and pointer correction (221 / 2) remain historical. Independent
+review has no confirmed material blocker remaining; local sidecar/embedded release builds and
+changed-file lint/type/build pass in retained evidence. Two locked Stage 10 full-lint errors,
+touched-file formatting failure and partial AFT diagnostics remain explicit exceptions, not passes.
+Closeout full staged whitespace also reports one unchanged blank line at EOF in
+`src/frontend/src/openOrders/useColumnDrag.ts:83`; no formatting cleanup or hook bypass is included.
+See `docs/implementation/KST_v2_S22_005_OPEN_ORDERS_UI.md`. Owner checklist completion is owner-run
+evidence, not proof of external QXtend acceptance. The owner separately authorized closeout docs and
+the complete local S22-005 commit, not a push or next implementation item. No agent-run live source
+access or shared deployment occurred; Stage 22 remains open. Large local evidence/build outputs stay outside Git.
 
 - [ ] Work in bounded owner-review batches rather than one monolithic change set.
 - [ ] Improve cross-view consistency, scrolling, sizing, navigation, keyboard behavior, filters,

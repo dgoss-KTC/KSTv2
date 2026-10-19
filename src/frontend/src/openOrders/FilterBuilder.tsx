@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { compareReportText, type Filters } from './report';
+import { OrdersPopover } from './OrdersPopover';
 
 type FilterType = 'customerName' | 'customer' | 'salesperson' | 'so' | 'po' | 'itemNumber' | 'productLine' | 'ios' | 'dueDate';
 type Draft = { first: string; second: string };
@@ -44,6 +45,10 @@ export function FilterBuilder({ filters, onChange }: { filters: Filters; onChang
   const [type, setType] = useState<FilterType>('customerName');
   const [draft, setDraft] = useState<Draft>(() => fromFilters(filters, 'customerName'));
   const [error, setError] = useState('');
+  const [open, setOpen] = useState(false);
+  const [find, setFind] = useState('');
+  const trigger = useRef<HTMLButtonElement>(null);
+  const opener = useRef<HTMLElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const selected = TYPES.find(item => item.id === type)!;
 
@@ -63,6 +68,7 @@ export function FilterBuilder({ filters, onChange }: { filters: Filters; onChang
     else onChange({ ...filters, [type]: first });
     setDraft({ first, second });
     setError('');
+    setOpen(false);
   };
   const remove = (item: FilterType) => {
     if (item === 'productLine') onChange({ ...filters, productFrom: '', productTo: '' });
@@ -73,6 +79,10 @@ export function FilterBuilder({ filters, onChange }: { filters: Filters; onChang
   };
 
   return <div className="open-orders__filter-area">
+    <button ref={trigger} type="button" aria-haspopup="dialog" aria-expanded={open} onClick={e => { opener.current = e.currentTarget; setOpen(!open); }}>+ Filter</button>
+    {open && <OrdersPopover title="Add or edit report filter" anchor={opener} onClose={() => setOpen(false)} wide>
+    <div className="orders-filter-layout"><nav aria-label="Filter fields"><label>Find a field<input type="search" value={find} onChange={e => setFind(e.target.value)} /></label>
+      {TYPES.filter(item => item.label.toLowerCase().includes(find.toLowerCase())).map(item => <button key={item.id} type="button" aria-pressed={type === item.id} onClick={() => select(item.id)}>{item.label}{active(item.id, fromFilters(filters, item.id)) ? ' •' : ''}</button>)}</nav>
     <form ref={formRef} className="open-orders__filter-builder" onSubmit={apply} aria-label="Add or edit report filter">
       <label className="open-orders__filter-field">Filter
         <select value={type} onChange={event => select(event.target.value as FilterType)}>
@@ -89,12 +99,13 @@ export function FilterBuilder({ filters, onChange }: { filters: Filters; onChang
       </> : <label className="open-orders__filter-field">{selected.label} value
         <input type="search" value={draft.first} onChange={event => setDraft({ ...draft, first: event.target.value })} />
       </label>}
-      <button type="submit" className="open-orders__filter-add" aria-label={`Apply ${selected.label} filter`} title="Apply filter">+</button>
+      <button type="submit" className="open-orders__filter-add" aria-label={`Apply ${selected.label} filter`} title="Apply filter">Apply filter</button>
     </form>
     {error && <p className="open-orders__filter-error" role="alert">{error}</p>}
+    </div></OrdersPopover>}
     <div className="open-orders__chips" aria-label="Applied filters">
       {TYPES.filter(item => active(item.id, fromFilters(filters, item.id))).map(item => <span key={item.id} className="open-orders__chip">
-        <button type="button" className="open-orders__chip-value" onClick={() => { select(item.id); requestAnimationFrame(() => formRef.current?.querySelector('input')?.focus()); }} aria-label={`Edit ${item.label} filter: ${valueLabel(item.id, fromFilters(filters, item.id))}`}>
+        <button type="button" className="open-orders__chip-value" onClick={e => { opener.current = e.currentTarget; select(item.id); setOpen(true); requestAnimationFrame(() => formRef.current?.querySelector('input')?.focus()); }} aria-label={`Edit ${item.label} filter: ${valueLabel(item.id, fromFilters(filters, item.id))}`}>
           {item.label}: {valueLabel(item.id, fromFilters(filters, item.id))}
         </button>
         <button type="button" className="open-orders__chip-remove" onClick={() => remove(item.id)} aria-label={`Remove ${item.label} filter`}>−</button>

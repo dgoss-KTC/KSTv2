@@ -1,22 +1,34 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient, ApiError, type OpenOrdersResponseDto, type OpenOrdersQxtendResponseDto } from '../api/client';
 import { resolveBackendBaseUrl } from '../api/tauri-bridge';
-import { saveLongTermShortagesWorkbook } from '../longTermShortages/saveLongTermShortagesWorkbook';
-import { COLUMNS, DATE_COLUMNS, NUMERIC_COLUMNS, defaultLayout, emptyFilters, formatReportDate, formatReportTimestamp, loadLayout, reportRows, saveLayout, type Filters, type Layout, type ColumnId } from '../openOrders/report';
+import { COLUMNS, DATE_COLUMNS, NUMERIC_COLUMNS, emptyFilters, formatReportDate, formatReportTimestamp, reportRows, type Filters, type ColumnId } from '../openOrders/report';
 import { FilterBuilder } from '../openOrders/FilterBuilder';
 import { ConfirmDialog } from './ConfirmDialog';
-import { openOrdersFileName } from '../openOrders/reportFileName';
 import { changed, equalDecimal, issues, keyOf, multiply, parsePlanningDate, planningNumberDisplay, subtract, valuesOf, REASONS, type Editable, type Proposal } from '../openOrders/planning';
-import { loadPlanLayout, planDefaultLayout, PLAN_REQUIRED, savePlanLayout, type LayoutForPlan, type PlanColumnId } from '../openOrders/planLayout';
+import { type PlanColumnId } from '../openOrders/planLayout';
+import { useOrderViews } from '../openOrders/useOrderViews';
+import { columnLabel, moveColumn } from '../openOrders/views';
+import { OrderColumns } from '../openOrders/OrderColumns';
+import { useColumnDrag } from '../openOrders/useColumnDrag';
+import { ColumnDragPreview } from '../openOrders/ColumnDragPreview';
+import { AnalyticalExcelExport } from './AnalyticalExcelExport';
+import { analyticalRequest } from '../api/analyticalExportApi';
+import { useLocalBusinessDate } from '../hooks/useLocalBusinessDate';
+import { localIsoDate } from '../shared/localDate';
 import { saveQxtendCsv } from '../openOrders/saveQxtendCsv';
 import { qxtendExportFeedback } from '../openOrders/exportFeedback';
 import './OpenOrdersPanel.css';
 
 type Failure = 'snapshot-changed' | 'unavailable' | 'error';
 
-export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site = '', onDirtyChange }: { assignmentId: string; snapshotId: string | null; workspaceName?: string | null; site?: string; onDirtyChange?: (dirty: boolean) => void }) {
-  const [layoutState, setLayout] = useState<{ identity: string; value: Layout }>(() => ({ identity: assignmentId, value: loadLayout(assignmentId) }));
-  const [planLayoutState, setPlanLayout] = useState<{ identity: string; value: LayoutForPlan }>(() => ({ identity: assignmentId, value: loadPlanLayout(assignmentId) }));
+export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyChange }: { assignmentId: string; snapshotId: string | null; workspaceName?: string | null; site?: string; onDirtyChange?: (dirty: boolean) => void }) {
+  const reportViews = useOrderViews(assignmentId, 'report');
+  const planViews = useOrderViews(assignmentId, 'plan');
+  const [searchState, setSearch] = useState({ identity: assignmentId, value: '' });
+  const search = searchState.identity === assignmentId ? searchState.value : '';
+  const [announcement, announce] = useState('');
+  const [showHidden, setShowHidden] = useState(false);
+  const businessDate = useLocalBusinessDate();
   const [filterState, setFilters] = useState<{ identity: string; value: Filters }>(() => ({ identity: assignmentId, value: emptyFilters }));
   const [loaded, setLoaded] = useState<{ identity: string; report: OpenOrdersResponseDto } | null>(null);
   const [pendingIdentity, setPending] = useState<string | null>(null);
@@ -38,12 +50,25 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
   const [draftError, setDraftError] = useState<string | null>(null);
   const [onlyChanged, setOnlyChanged] = useState(false);
   const [clearConfirmation, setClearConfirmation] = useState(false);
+  const confirmationReturn = useRef<HTMLElement | null>(null);
   const [saveVersion, setSaveVersion] = useState(0);
   const [saveOffPending, setSaveOffPending] = useState(false);
   /** Assignment whose 'Save Draft off' confirmation is open (the desktop confirm() is asynchronous, so the decision is held in-app). */
   const [saveOffConfirm, setSaveOffConfirm] = useState<string | null>(null);
+  useEffect(() => {
+    if (!clearConfirmation && saveOffConfirm !== assignmentId) return;
+    const opener = confirmationReturn.current;
+    const key = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault(); event.stopPropagation();
+      if (!saveOffPending) { setClearConfirmation(false); setSaveOffConfirm(null); }
+    };
+    document.addEventListener('keydown', key, true);
+    return () => { document.removeEventListener('keydown', key, true); if (opener?.isConnected) opener.focus(); };
+  }, [clearConfirmation, saveOffConfirm, assignmentId, saveOffPending]);
   const [dateInputs, setDateInputs] = useState<Record<string, string>>({});
-  const [focusedNumber, setFocusedNumber] = useState<string | null>(null);
+  // UI text only: focus must not round the source/proposal or prevent typing a decimal point.
+  const [focusedNumber, setFocusedNumber] = useState<{ key: string; text: string; value: string } | null>(null);
   const [dateTouched, setDateTouched] = useState<Record<string, boolean>>({});
   const invalidDateInputs = useRef(new Set<string>());
   const saveGate = useRef(Promise.resolve());
@@ -61,23 +86,33 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
   const identity = `${assignmentId}:${snapshotId ?? ''}`;
   useEffect(() => { invalidDateInputs.current.clear(); }, [assignmentId]);
   const exporting = exportingState?.identity === identity && exportingState.active;
-  const layout = layoutState.identity === assignmentId ? layoutState.value : loadLayout(assignmentId);
-  const planLayout = planLayoutState.identity === assignmentId ? planLayoutState.value : loadPlanLayout(assignmentId);
+  const layout = reportViews.layout;
   const filters = filterState.identity === assignmentId ? filterState.value : emptyFilters;
   const pending = pendingIdentity === identity;
   const failure = failureState?.identity === identity ? failureState.kind : null;
   const report = loaded?.identity === identity ? loaded.report : null;
   const sourceChanged = ((loaded !== null && loaded.identity !== identity) || lastDraftMps !== snapshotId) && proposalAssignment === assignmentId && Object.values(proposals).some(changed);
-  const rows = useMemo(() => reportRows(report?.lines ?? [], filters), [report, filters]);
+  const rows = useMemo(() => reportRows(report?.lines ?? [], filters, search), [report, filters, search]);
   const reportVisible = layout.order.filter(id => layout.visible.includes(id));
-  const activeLayout = planMode ? planLayout : layout;
+  const activeViews = planMode ? planViews : reportViews;
+  const activeLayout = activeViews.layout;
   const visible = activeLayout.order.filter(id => activeLayout.visible.includes(id));
   const rowByKey = new Map((report?.lines ?? []).map(line => [keyOf(line.key), line]));
   const scopedProposals = proposalAssignment === assignmentId ? proposals : {};
   const staged = Object.values(scopedProposals).filter(changed);
   const exportSignature = JSON.stringify([report?.openOrdersSnapshotId, staged]);
+  const operationGate = useRef(false);
+  const operationContext = JSON.stringify([identity, planMode, exportSignature]);
+  const currentOperationContext = useRef(operationContext);
+  const operationEpoch = useRef(0);
+  useLayoutEffect(() => {
+    const visitEpoch = ++operationEpoch.current;
+    currentOperationContext.current = operationContext;
+    return () => { operationEpoch.current = visitEpoch + 1; currentOperationContext.current = 'departed'; };
+  }, [operationContext]);
   const conflicts = staged.filter(p => sourceChanged || [...issues(p, rowByKey.get(keyOf(p.key)), !!report?.isStale || !!failure || pending || !report), ...(restoreIssues[keyOf(p.key)] ?? [])].some(i => i !== 'Reason Code required.'));
   const incomplete = staged.filter(p => !p.reasonCode);
+  const draftBlocked = savedState === 'checking' || savedState === 'unavailable' || savedState === 'presence-error' || checkingDraftFor === identity || !!restoreCandidate;
   const invalidDateEntries = Object.values(dateInputs).filter(text => parsePlanningDate(text) === undefined).length;
   const displayedRows = planMode && onlyChanged ? rows.filter(r => scopedProposals[keyOf(r.key)] && changed(scopedProposals[keyOf(r.key)])) : rows;
   const pageSize = 100;
@@ -217,8 +252,10 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
     } finally { if (current === requestId.current) setPending(null); }
   };
   const exportAll = async () => {
-    if (!report || !snapshotId || !staged.length || exporting) return;
+    if (!report || !snapshotId || !staged.length || exporting || operationGate.current || !planMode || report.isStale || pending || failure || sourceChanged || conflicts.length || incomplete.length || invalidDateEntries || draftBlocked) return;
+    operationGate.current = true;
     const generation = requestId.current;
+    const contextEpoch = operationEpoch.current;
     setPrepared(null); setExporting({ identity, active: true }); setFeedback(null);
     try {
       const result = await new ApiClient(await resolveBackendBaseUrl()).exportOpenOrdersQxtend(assignmentId, {
@@ -226,40 +263,30 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
       });
       if (result.files.length === 0) throw new Error('No applicable CSV files');
       // A report/mode/workspace change while validation is pending cannot authorize an old UI context.
-      if (requestId.current !== generation) return;
+      if (requestId.current !== generation || operationEpoch.current !== contextEpoch || currentOperationContext.current !== operationContext) return;
       setPrepared({ identity, signature: exportSignature, files: result.files, statuses: {} });
       showFeedback(`${result.files.length} CSV file(s) prepared after fresh validation. Choose Save As for each file; QXtend has not accepted them.`, 'saved');
     } catch (error) {
-      showFeedback(qxtendExportFeedback(error), 'error');
-    } finally { setExporting({ identity, active: false }); }
+      if (operationEpoch.current === contextEpoch && currentOperationContext.current === operationContext) showFeedback(qxtendExportFeedback(error), 'error');
+    } finally { operationGate.current = false; setExporting({ identity, active: false }); }
   };
   const savePrepared = async (file: OpenOrdersQxtendResponseDto['files'][number]) => {
-    if (exporting || !planMode || prepared?.signature !== exportSignature || report?.isStale || sourceChanged || pending || failure ||
-        invalidDateEntries || conflicts.length || incomplete.length || restoreCandidate) return;
-    setExporting({ identity, active: true });
+    if (exporting || operationGate.current || !planMode || prepared?.signature !== exportSignature || report?.isStale || sourceChanged || pending || failure ||
+        invalidDateEntries || conflicts.length || incomplete.length || draftBlocked) return;
+    operationGate.current = true; setExporting({ identity, active: true });
     try {
       const result = await saveQxtendCsv(file.contentBase64, file.fileName);
-      setPrepared(previous => previous?.identity === identity ? { ...previous, statuses: { ...previous.statuses,
+      setPrepared(previous => previous?.identity === identity && previous.signature === exportSignature ? { ...previous, statuses: { ...previous.statuses,
         [file.kind]: result.kind === 'saved' ? `Saved ${result.fileName}` : result.kind === 'downloaded' ? `Download initiated for ${result.fileName}; check your browser downloads.` : 'Save cancelled; file remains ready.' } } : previous);
     } catch {
-      setPrepared(previous => previous?.identity === identity ? { ...previous, statuses: { ...previous.statuses,
+      setPrepared(previous => previous?.identity === identity && previous.signature === exportSignature ? { ...previous, statuses: { ...previous.statuses,
         [file.kind]: 'Save failed; retry this file. Other saved files and proposals remain.' } } : previous);
-    } finally { setExporting({ identity, active: false }); }
-  };
-  const changeLayout = (next: Layout | LayoutForPlan) => {
-    try {
-      if (planMode) { setPlanLayout({ identity: assignmentId, value: next as LayoutForPlan }); savePlanLayout(assignmentId, next as LayoutForPlan); }
-      else { setLayout({ identity: assignmentId, value: next as Layout }); saveLayout(assignmentId, next as Layout); }
-    } catch { showFeedback('Column layout could not be saved. Changes remain available until this session ends.', 'error'); }
+    } finally { operationGate.current = false; setExporting({ identity, active: false }); }
   };
   const move = (source: PlanColumnId, target: PlanColumnId) => {
-    const order: PlanColumnId[] = [...activeLayout.order];
-    const from = order.indexOf(source); const to = order.indexOf(target);
-    if (from < 0 || to < 0 || from === to) return;
-    order.splice(from, 1);
-    order.splice(to, 0, source);
-    if (planMode) changeLayout({ ...planLayout, order });
-    else changeLayout({ ...layout, order: order as ColumnId[] });
+    const next = moveColumn(activeLayout, source, target);
+    activeViews.change(next);
+    announce(`${columnLabel(source)} moved to position ${next.order.filter(id => next.visible.includes(id)).indexOf(source) + 1}. View modified.`);
   };
   const applyFilters = (next: Filters) => { setFilters({ identity: assignmentId, value: next }); setPage(0); };
   const visibleMove = (source: PlanColumnId, offset: -1 | 1) => {
@@ -267,105 +294,84 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
     if (index < 0 || index + offset < 0 || index + offset >= visible.length) return;
     move(source, visible[index + offset]);
   };
+  const columnDrag = useColumnDrag(visible, JSON.stringify([identity, planMode, visible]), move, 'x');
+  const dropColumn = columnDrag.feedback?.target;
+  const dragColumn = columnDrag.feedback?.source;
+  const clearFilters = () => { applyFilters(emptyFilters); setSearch({ identity: assignmentId, value: '' }); };
+  const exportReason = !report ? 'Load a current report before exporting.' : pending ? 'Wait for report refresh to finish.' : report.isStale || failure ? 'Refresh the report before exporting.'
+    : !rows.length ? 'No matching rows to export.' : !reportVisible.length ? 'Select at least one report column.' : undefined;
+  const reportExportRequest = () => {
+    if (!report || !snapshotId || exportReason) throw new Error(exportReason ?? 'Load a current report.');
+    return { ...analyticalRequest('OpenOrders', assignmentId, snapshotId, site || report.site, localIsoDate(new Date())),
+      openOrders: { mpsSnapshotId: snapshotId, openOrdersSnapshotId: report.openOrdersSnapshotId,
+        lineKeys: rows.map(r => r.key), columns: reportVisible } };
+  };
 
   if (!snapshotId) return <p className="open-orders__state">Load the MPS dashboard before viewing Customer Open Orders.</p>;
   return <section className="open-orders" aria-label={`Customer Open Orders ${planMode ? 'Plan' : 'Report'} Mode`}>
-    <header className="open-orders__toolbar"><h3>Customer Open Orders <span>{planMode ? 'Plan Mode' : 'Report Mode'}</span></h3>
-      <label><input type="checkbox" checked={planMode} onChange={e => setPlanMode(e.target.checked)} /> Plan Mode</label>
-      <label><input type="checkbox" checked={saveDraft} disabled={!!restoreCandidate || savedState === 'unavailable' || savedState === 'presence-error' || saveOffPending || saveOffConfirm !== null} onChange={e => {
+    <ColumnDragPreview feedback={columnDrag.feedback} />
+    <header className="open-orders__toolbar"><h3>Customer Open Orders</h3>
+      <div className="segmented" role="group" aria-label="Open Orders mode"><button type="button" aria-pressed={!planMode} className={!planMode ? 'active' : ''} onClick={() => setPlanMode(false)}>Report</button><button type="button" aria-pressed={planMode} className={planMode ? 'active' : ''} onClick={() => setPlanMode(true)}>Plan</button></div>
+      {planMode && <label><input type="checkbox" checked={saveDraft} disabled={!!restoreCandidate || savedState === 'unavailable' || savedState === 'presence-error' || saveOffPending || saveOffConfirm !== null} onChange={e => {
         if (e.target.checked) { setSaveDraft(true); setDraftError(null); persist(proposals, true); }
-        else if (!saveOffPending) setSaveOffConfirm(assignmentId); // the checkbox stays on until the user confirms
-      }} /> Save Draft</label>
+        else if (!saveOffPending) { confirmationReturn.current = e.currentTarget; setSaveOffConfirm(assignmentId); } // the checkbox stays on until the user confirms
+      }} /> Save Draft</label>}
+      {planMode && saveDraft && <span className="open-orders__muted" role="status">{saveVersion > 0 ? 'Saving draft…' : draftError ? 'Draft not saved' : 'Draft saved locally'}</span>}
       {checkingDraftFor === identity && savedState === 'checking' && <span className="open-orders__draft-progress" role="status">Checking saved draft…</span>}
-      <button type="button" disabled={planMode || pending} onClick={() => { if (!planMode) void refresh(); }}>{pending ? 'Refreshing…' : 'Refresh report'}</button>
-      <button type="button" disabled={planMode || !report || rows.length === 0 || reportVisible.length === 0 || pending || exporting || !!failure} onClick={async () => {
-        if (planMode) return;
-        if (!report) return;
-        if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
-        setFeedback(null); setExporting({ identity, active: true });
-        try {
-          const workbook = await new ApiClient(await resolveBackendBaseUrl()).exportOpenOrdersReport(assignmentId, {
-            mpsSnapshotId: snapshotId, openOrdersSnapshotId: report.openOrdersSnapshotId,
-            lineKeys: rows.map(r => r.key), columns: reportVisible,
-          });
-          const result = await saveLongTermShortagesWorkbook(workbook.blob,
-            workbook.fileName ?? openOrdersFileName(workspaceName, site || report.site, report.acquiredAtUtc), 'Save Customer Open Orders Workbook');
-          showFeedback(result.kind === 'cancelled' ? 'Save cancelled; report remains available.' : `Saved ${result.fileName}`, result.kind === 'cancelled' ? 'cancelled' : 'saved');
-        } catch { showFeedback('Workbook export or save failed. Report remains available; please retry.', 'error'); }
-        finally { setExporting({ identity, active: false }); }
-      }}>{exporting ? 'Preparing workbook…' : 'Export filtered rows to XLSX'}</button>
+      <span className="open-orders__acquired">{report && <>Acquired {formatReportTimestamp(report.acquiredAtUtc)} · {report.lines.length} scoped lines</>}</span>
+      {planMode && <span className="open-orders__muted">Refresh is off while you plan</span>}
+      <button type="button" className="open-orders__primary" disabled={planMode || pending} onClick={() => { if (!planMode) void refresh(); }}>{pending ? 'Refreshing…' : 'Refresh report'}</button>
+      {!planMode && <AnalyticalExcelExport label="Customer Open Orders" scopeLabel={`Exports all ${rows.length} matching rows across every page`}
+        request={reportExportRequest} disabledReason={exportReason}
+        contextKey={JSON.stringify([identity, report?.openOrdersSnapshotId, report?.site, businessDate, filters, search, reportVisible])} />}
       {feedback?.identity === identity && <span role="status" className={`open-orders__feedback open-orders__feedback--${feedback.kind}`}>{feedback.text}</span>}
     </header>
     {draftError && <p role="alert" className="open-orders__warning">{draftError}</p>}
     {sourceChanged && <p role="alert" className="open-orders__warning">MPS snapshot changed. {staged.length} planning changes remain in memory; reload the report and review conflicts before relying on them. Not export-ready.</p>}
-    {savedState === 'restored' && restoreCandidate && <div role="status" className="open-orders__planning-summary">Saved draft checked against a fresh report ({restoreCandidate.length} changed rows, {Object.values(restoreIssues).filter(v => v.length).length} conflicts). <button type="button" onClick={acceptRestoredDraft}>Restore saved draft and continue saving</button></div>}
+    {savedState === 'restored' && restoreCandidate && <div role="status" className="open-orders__planning-summary">Saved draft checked against a fresh report ({restoreCandidate.length} changed rows, {Object.values(restoreIssues).filter(v => v.length).length} conflicts). <button type="button" disabled={saveOffPending} onClick={acceptRestoredDraft}>Restore saved draft and continue saving</button><button type="button" disabled={saveOffPending} onClick={e => { confirmationReturn.current = e.currentTarget; setSaveOffConfirm(assignmentId); }}>Discard saved draft</button></div>}
     {savedState === 'restored' && !restoreCandidate && <p role="status">Saved draft restored after fresh report validation. Saving remains on.</p>}
     {savedState === 'unavailable' && <div role="alert" className="open-orders__warning">Saved draft exists but has not been restored. {staged.length} proposal(s) retained. {staged.map(p => `${p.key.salesOrder}/${p.key.line} original ${JSON.stringify(p.original)} proposed ${JSON.stringify(p.proposed)}`).join(' · ')} <button type="button" onClick={() => { setSavedState('checking'); setDraftError(null); setRestoreAttempt(n => n + 1); }}>Retry fresh draft validation</button></div>}
     {savedState === 'presence-error' && <button type="button" onClick={() => { setSavedState('idle'); setDraftError(null); setRestoreAttempt(n => n + 1); }}>Retry draft check</button>}
-    {pending && <p role="status">{report ? 'Refreshing report; displaying previous acquisition until complete.' : 'Loading Customer Open Orders…'}</p>}
-    {!pending && !report && !failure && <p role="status">Loading Customer Open Orders…</p>}
     {failure && <p role="alert" className="open-orders__warning">{failure === 'snapshot-changed' ? 'MPS snapshot changed. Reload the workspace MPS dashboard, then reopen this report.' : failure === 'unavailable' ? 'Open Orders source unavailable. Retry refresh.' : 'Open Orders could not be loaded. Retry refresh.'}{report && ' Previous report is retained but not current; do not use for operational/QXtend validation.'}</p>}
     {report?.isStale && <p role="alert" className="open-orders__warning">STALE report acquired {formatReportTimestamp(report.acquiredAtUtc)}. {report.warning} Not ready for operational/QXtend validation.</p>}
     {report && <>
-      {planMode && <div className="open-orders__planning-summary" role="status">
-        {staged.length} changed across workspace · {incomplete.length} missing Reason Code · {conflicts.length} conflicts · {hiddenChanges} outside current filter/page view. {report.isStale || failure || pending || conflicts.length || incomplete.length || invalidDateEntries || savedState === 'unavailable' || sourceChanged ? 'Not export-ready.' : 'Export All validates changed lines against QAD before preparing CSVs.'}
-        <button type="button" disabled={!staged.length || !!report.isStale || !!failure || pending || exporting || !!conflicts.length || !!incomplete.length || !!invalidDateEntries || savedState === 'unavailable' || !!restoreCandidate || sourceChanged}
-          onClick={() => void exportAll()}>{exporting ? 'Working…' : 'Export All QXtend CSVs'}</button>
-        {prepared?.identity === identity && prepared.signature === exportSignature && !report.isStale && !failure && !pending && !sourceChanged && !invalidDateEntries && !conflicts.length && !incomplete.length && !restoreCandidate && <div role="group" aria-label="Prepared QXtend files">Validated CSVs: {prepared.files.map(file =>
-          <span key={file.kind}><button type="button" disabled={exporting} onClick={() => void savePrepared(file)}>Save As {file.fileName}</button>
-            <span role="status">{prepared.statuses[file.kind] ?? 'Not saved'}</span></span>)} <span>External QXtend processing is required; export does not submit changes.</span></div>}
-        <label><input type="checkbox" checked={onlyChanged} onChange={e => { setOnlyChanged(e.target.checked); setPage(0); }} /> Show changed rows</label>
-        <button type="button" disabled={!staged.length} onClick={() => setClearConfirmation(true)}>Clear All</button>
-        {clearConfirmation && <span role="group" aria-label="Confirm Clear All">Clear all {staged.length} changes? <button type="button" onClick={() => { setRestoreIssues({}); setDateInputs({}); setDateTouched({}); invalidDateInputs.current.clear(); persist({}, saveDraft, report, false, false); setClearConfirmation(false); }}>Confirm Clear All</button><button type="button" onClick={() => setClearConfirmation(false)}>Cancel</button></span>}
-      </div>}
-      {planMode && hiddenChanges > 0 && <div className="open-orders__hidden-changes">Changes outside current results: {staged.filter(p => !displayedRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize).some(r => keyOf(r.key) === keyOf(p.key))).map(p => <div key={keyOf(p.key)}>
-        {p.key.salesOrder} / {p.key.line} ({p.itemNumber}) · {rowByKey.has(keyOf(p.key)) ? 'filtered or on another page' : 'missing from report — conflict'} · {[...issues(p, rowByKey.get(keyOf(p.key)), report.isStale || !!failure || pending), ...(restoreIssues[keyOf(p.key)] ?? [])].join(' ')} · Original {JSON.stringify(p.original)} → Proposed {JSON.stringify(p.proposed)} · {p.reasonCode ?? 'Reason Code missing'}
-        {rowByKey.has(keyOf(p.key)) && <button type="button" onClick={() => { setOnlyChanged(false); setFilters({ identity: assignmentId, value: emptyFilters }); const index = reportRows(report.lines, emptyFilters).findIndex(r => keyOf(r.key) === keyOf(p.key)); if (index >= 0) setPage(Math.floor(index / pageSize)); }}>Find row</button>}
-        <button type="button" onClick={() => undo(keyOf(p.key))}>Undo {p.key.salesOrder}/{p.key.line}</button>
-      </div>)}</div>}
-      <p className="open-orders__meta">Acquired {formatReportTimestamp(report.acquiredAtUtc)} · {report.lines.length} scoped lines · {rows.length} matching filters. {report.isStale || failure || pending ? 'Not current; do not use for operational/QXtend validation.' : 'Report only; not operational/QXtend validation.'}</p>
-      <FilterBuilder key={assignmentId} filters={filters} onChange={applyFilters} />
-      <details className="open-orders__columns"><summary>{planMode ? 'Plan columns' : 'Columns'} ({visible.length} visible)</summary>
-        <div className="open-orders__columns-actions"><span>Drag table headers to reorder; hidden columns keep their relative order.</span>
-          <button type="button" onClick={() => changeLayout(planMode ? planDefaultLayout() : defaultLayout())}>Reset columns to default</button></div>
-        <div className="open-orders__column-choices">{activeLayout.order.map(id => { const label = id === 'orderQty' ? 'Order Qty' : id === 'price' ? 'Price' : COLUMNS.find(c => c.id === id)!.label; return <label key={id}>
-          <input type="checkbox" checked={activeLayout.visible.includes(id)} disabled={planMode && PLAN_REQUIRED.includes(id) || activeLayout.visible.length === 1 && activeLayout.visible.includes(id)} onChange={e => {
-            const selected = e.target.checked ? [...activeLayout.visible, id] : activeLayout.visible.filter(value => value !== id);
-            if (planMode) changeLayout({ ...planLayout, visible: selected as PlanColumnId[] });
-            else changeLayout({ ...layout, visible: selected as ColumnId[] });
-          }} />{label}
-        </label>; })}</div>
-      </details>
-      {displayedRows.length === 0 ? <p className="open-orders__state">{report.lines.length === 0 ? 'No open orders in this workspace scope.' : 'No open orders match the current filters.'}</p> : <>
-        <div className="open-orders__page"><span>Rows {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, displayedRows.length)} of {displayedRows.length}</span>
-          <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous page</button>
-            <span>Page {currentPage + 1} of {pageCount}</span>
-          <button type="button" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}>Next page</button></div>
-        <div className="open-orders__grid" role="region" tabIndex={0} aria-label="Scrollable Customer Open Orders report">
-          <table><thead><tr>{visible.map(id => <th scope="col" key={id} draggable className={NUMERIC_COLUMNS.has(id as ColumnId) ? 'open-orders__num' : undefined}
-            onDragStart={event => { event.dataTransfer.setData('text/plain', id); event.dataTransfer.effectAllowed = 'move'; }}
-            onDragOver={event => event.preventDefault()}
-             onDrop={event => { event.preventDefault(); const source = event.dataTransfer.getData('text/plain'); if (visible.includes(source as PlanColumnId)) move(source as PlanColumnId, id); }}>
-            <span>{id === 'orderQty' ? 'Order Qty' : id === 'price' ? 'Price' : COLUMNS.find(c => c.id === id)!.label}</span><span className="open-orders__header-moves">
-              <button type="button" disabled={visible[0] === id} aria-label={`Move ${id === 'orderQty' ? 'Order Qty' : id === 'price' ? 'Price' : COLUMNS.find(c => c.id === id)!.label} Left`} onClick={() => visibleMove(id, -1)}>‹</button>
-              <button type="button" disabled={visible[visible.length - 1] === id} aria-label={`Move ${id === 'orderQty' ? 'Order Qty' : id === 'price' ? 'Price' : COLUMNS.find(c => c.id === id)!.label} Right`} onClick={() => visibleMove(id, 1)}>›</button>
-            </span></th>)}{planMode && <><th scope="col">Reason Code</th><th scope="col" className="open-orders__actions-heading">Actions</th></>}</tr></thead>
+      <div className="open-orders__query">
+        <input type="search" aria-label="Search open orders" placeholder="Search SO, PO, item, customer, salesperson…" value={search} onChange={e => { setSearch({ identity: assignmentId, value: e.target.value }); setPage(0); }} />
+        <FilterBuilder key={assignmentId} filters={filters} onChange={applyFilters} />
+        {(search || Object.values(filters).some(Boolean)) && <button type="button" onClick={clearFilters}>Clear search and filters</button>}
+        <OrderColumns key={`${assignmentId}:${planMode}`} views={activeViews} mode={planMode ? 'plan' : 'report'} move={move} announce={announce} />
+      </div>
+      <span className="open-orders__sr-only" role="status">{announcement}</span>
+      {displayedRows.length === 0 ? <div className="open-orders__state">{report.lines.length === 0 ? 'No open orders in this workspace scope.' : 'No open orders match the current filters.'}</div> : <>
+        <div className="open-orders__grid" data-column-drag-surface="headers" role="region" tabIndex={0} aria-label="Scrollable Customer Open Orders report">
+          <table><thead><tr>{visible.map(id => <th scope="col" key={id} data-order-column={id} draggable={false} tabIndex={0} title="Drag to reorder, or Alt+Left / Alt+Right"
+            className={`${NUMERIC_COLUMNS.has(id as ColumnId) ? 'open-orders__num' : ''} ${dropColumn === id ? 'open-orders__drop' : ''} ${dragColumn === id ? 'open-orders__drag' : ''}`}
+            onKeyDown={event => { if (event.altKey && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); visibleMove(id, event.key === 'ArrowLeft' ? -1 : 1); } }}
+            onPointerDown={event => columnDrag.start(event, id)} onDragStart={event => event.preventDefault()}>
+            <span aria-hidden="true" className="open-orders__grip">⠿ </span>{columnLabel(id)}</th>)}{planMode && <><th scope="col" className="open-orders__reason">Reason Code</th><th scope="col" className="open-orders__actions-heading">Planning status</th></>}</tr></thead>
             <tbody>{displayedRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map(r => { const key = keyOf(r.key); const p = proposals[key]; const original = p?.original ?? valuesOf(r); const proposed = p?.proposed ?? original;
               const rowIssues = p ? [...new Set([...issues(p, r, report.isStale || !!failure || pending), ...(restoreIssues[key] ?? [])])] : [];
               const editor = (field: Editable, label: string) => {
                 const value = proposed[field]; const isDate = field.endsWith('Date');
                 const inputKey = `${key}:${field}`;
+                const editingNumber = focusedNumber?.key === inputKey &&
+                  (focusedNumber.value === String(value) || equalDecimal(focusedNumber.value, String(value)));
                 const inputText = dateInputs[inputKey] ?? (isDate ? formatReportDate(value as string | null)
-                  : focusedNumber === inputKey ? String(value) : planningNumberDisplay(field as 'orderQty' | 'price', String(value)));
+                  : editingNumber ? focusedNumber.text : planningNumberDisplay(field as 'orderQty' | 'price', String(value)));
                 const invalid = isDate && parsePlanningDate(inputText) === undefined;
                 const dateError = invalid && (dateTouched[inputKey] || /^\s*\d{1,2}\/\d{1,2}\/\d{4}\s*$/.test(inputText));
                 const wasChanged = p && (field === 'price' || field === 'orderQty' ? !equalDecimal(original[field], value as string) : original[field] !== value);
                 return <div className={wasChanged ? 'open-orders__changed' : undefined}>
                   <input aria-label={`${label} proposal ${r.key.salesOrder}/${r.key.line}`} type="text" inputMode={isDate ? 'numeric' : 'decimal'} placeholder={isDate ? 'M/d/yyyy' : undefined}
                     data-plan-editor="" aria-invalid={dateError || undefined} value={inputText}
-                    onFocus={() => { if (!isDate) setFocusedNumber(inputKey); }}
+                    onFocus={() => { if (!isDate) setFocusedNumber({ key: inputKey, value: String(value),
+                      text: planningNumberDisplay(field as 'orderQty' | 'price', String(value)) }); }}
                     onChange={e => {
-                      if (!isDate) { update(r, field, e.target.value); return; }
+                      if (!isDate) {
+                        const text = e.target.value;
+                        setFocusedNumber(current => current?.key === inputKey ? { key: inputKey, text, value: text } : current);
+                        update(r, field, text); return;
+                      }
                       const text = e.target.value;
                       setDateInputs(previous => ({ ...previous, [inputKey]: text }));
                       const parsed = parsePlanningDate(text);
@@ -391,21 +397,47 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
                   {wasChanged && <small>Original: {isDate ? formatReportDate(original[field] as string | null) || '(empty)' : planningNumberDisplay(field as 'orderQty' | 'price', String(original[field]))}</small>}
                 </div>;
               };
-              return <tr className="open-orders__row" key={key}>
+              return <tr className={`open-orders__row${p && changed(p) ? ' open-orders__row--changed' : ''}`} key={key}>
               {visible.map(id => { const value = id === 'orderQty' || id === 'price' ? null : COLUMNS.find(c => c.id === id)!.value(r);
                 const dateField = id === 'dueDate' || id === 'performDate' || id === 'requiredDate' || id === 'dockDate' ? id : null;
-                return <td className={NUMERIC_COLUMNS.has(id as ColumnId) ? 'open-orders__num' : id === 'itemNumber' || id === 'order' ? 'open-orders__identity' : undefined} key={id}>
+                return <td data-drop={dropColumn === id || undefined} data-drag={dragColumn === id || undefined} className={NUMERIC_COLUMNS.has(id as ColumnId) ? 'open-orders__num' : id === 'itemNumber' || id === 'order' ? 'open-orders__identity' : undefined} key={id}>
                 {planMode && dateField ? editor(dateField, COLUMNS.find(c => c.id === id)!.label)
                   : planMode && (id === 'orderQty' || id === 'price') ? editor(id, id === 'price' ? 'Price' : 'Order Qty')
                   : planMode && id === 'open' ? <><strong>{subtract(proposed.orderQty, r.shippedQtyText ?? String(r.shippedQty)) ?? '—'}</strong><small>Original: {r.open}</small></>
                   : planMode && id === 'extPrice' ? <><strong>{multiply(proposed.price, subtract(proposed.orderQty, r.shippedQtyText ?? String(r.shippedQty)) ?? '') ?? '—'}</strong><small>Original: {r.extPrice}</small></>
                   : value === null ? '' : DATE_COLUMNS.has(id as ColumnId) ? formatReportDate(String(value)) : typeof value === 'boolean' ? value ? 'Yes' : 'No' : String(value)}
-              </td>; })}{planMode && <><td><select data-plan-editor="" aria-label={`Reason Code ${r.key.salesOrder}/${r.key.line}`} value={p?.reasonCode ?? ''} onChange={e => update(r, 'reasonCode', e.target.value || null)}><option value="">Select reason</option>{REASONS.map(reason => <option key={reason} value={reason}>{reason}</option>)}</select></td>
-                <td className="open-orders__actions">{p && <><span className={rowIssues.length ? 'open-orders__warning' : 'open-orders__changed'} title={rowIssues.join(' ')}>{rowIssues.length ? 'Review' : 'Changed'}</span><button type="button" onClick={() => undo(key)}>Undo {r.key.salesOrder}/{r.key.line}</button>{rowIssues.length > 0 && <details><summary>Issues</summary><small>{rowIssues.join(' ')}</small></details>}</>}</td></>}</tr>; })}</tbody></table>
+              </td>; })}{planMode && <><td className="open-orders__reason"><select data-plan-editor="" aria-label={`Reason Code ${r.key.salesOrder}/${r.key.line}`} value={p?.reasonCode ?? ''} onChange={e => update(r, 'reasonCode', e.target.value || null)}><option value="">Select reason</option>{REASONS.map(reason => <option key={reason} value={reason}>{reason}</option>)}</select></td>
+                <td className="open-orders__actions">{p && <><span className={rowIssues.length ? 'open-orders__review' : 'open-orders__changed'} title={rowIssues.join(' ')}>{rowIssues.length ? 'Review' : 'Changed'}</span><button type="button" onClick={() => undo(key)}>Undo {r.key.salesOrder}/{r.key.line}</button>{rowIssues.length > 0 && <small className="open-orders__review">{rowIssues.join(' ')}</small>}</>}</td></>}</tr>; })}</tbody></table>
         </div>
       </>}
+      {planMode && <div className="open-orders__planning-summary open-orders__dock" role="status">
+        {staged.length} changed across workspace · {incomplete.length} missing Reason Code · {conflicts.length} conflicts · {hiddenChanges} outside current filter/page view. {report.isStale || failure || pending || conflicts.length || incomplete.length || invalidDateEntries || draftBlocked || sourceChanged ? 'Not export-ready.' : 'Generate files validates changed lines against QAD before preparing CSVs.'}
+        <label><input type="checkbox" checked={onlyChanged} onChange={e => { setOnlyChanged(e.target.checked); setPage(0); }} /> Show changed rows</label>
+        <button type="button" disabled={!staged.length} onClick={e => { confirmationReturn.current = e.currentTarget; setClearConfirmation(true); }}>Clear All</button>
+        {hiddenChanges > 0 && <button type="button" aria-expanded={showHidden} onClick={() => setShowHidden(!showHidden)}>Show changes outside this view</button>}
+        <button type="button" disabled={!staged.length || !!report.isStale || !!failure || pending || exporting || !!conflicts.length || !!incomplete.length || !!invalidDateEntries || draftBlocked || sourceChanged}
+          className="open-orders__primary" onClick={() => void exportAll()}>{exporting ? 'Working…' : 'Generate files…'}</button>
+        <span>External processing required; KST submits nothing.</span>
+        {prepared?.identity === identity && prepared.signature === exportSignature && !report.isStale && !failure && !pending && !sourceChanged && !invalidDateEntries && !conflicts.length && !incomplete.length && !draftBlocked && <div role="group" aria-label="Prepared QXtend files">Validated CSVs: {prepared.files.map(file =>
+          <span key={file.kind}><button type="button" disabled={exporting} onClick={() => void savePrepared(file)}>Save As {file.fileName}</button>
+            <span role="status">{prepared.statuses[file.kind] ?? 'Not saved'}</span></span>)} <span>External QXtend processing is required; export does not submit changes.</span></div>}
+      </div>}
+      {planMode && showHidden && hiddenChanges > 0 && <div className="open-orders__hidden-changes">Changes outside current results: {staged.filter(p => !displayedRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize).some(r => keyOf(r.key) === keyOf(p.key))).map(p => <div key={keyOf(p.key)}>
+        {p.key.salesOrder} / {p.key.line} ({p.itemNumber}) · {rowByKey.has(keyOf(p.key)) ? 'filtered or on another page' : 'missing from report — conflict'} · {[...issues(p, rowByKey.get(keyOf(p.key)), report.isStale || !!failure || pending), ...(restoreIssues[keyOf(p.key)] ?? [])].join(' ')} · Original {JSON.stringify(p.original)} → Proposed {JSON.stringify(p.proposed)} · {p.reasonCode ?? 'Reason Code missing'}
+        {rowByKey.has(keyOf(p.key)) && <button type="button" onClick={() => { setOnlyChanged(false); clearFilters(); const index = reportRows(report.lines, emptyFilters).findIndex(r => keyOf(r.key) === keyOf(p.key)); if (index >= 0) setPage(Math.floor(index / pageSize)); }}>Find row</button>}
+        <button type="button" onClick={() => undo(keyOf(p.key))}>Undo {p.key.salesOrder}/{p.key.line}</button>
+      </div>)}</div>}
+      <footer className="open-orders__page"><span>Rows {displayedRows.length ? currentPage * pageSize + 1 : 0}–{Math.min((currentPage + 1) * pageSize, displayedRows.length)} of {displayedRows.length} · filtered from {report.lines.length} lines · {rows.length} matching filters</span>
+        <span className="open-orders__footer-purpose">{planMode ? 'External QXtend processing required; KST submits nothing.' : report.isStale || failure || pending ? 'Not current; do not use for operational/QXtend validation.' : 'Report only; not operational/QXtend validation.'}</span>
+        <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous page</button><span>Page {currentPage + 1} of {pageCount}</span><button type="button" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}>Next page</button>
+      </footer>
     </>}
-    {saveOffConfirm === assignmentId && <ConfirmDialog title="Turn Save Draft off?" body="Turn Save Draft off and delete the saved copy? In-memory changes will remain." confirmLabel="Turn off and delete" destructive
+    {pending && <p className="open-orders__load-status" role="status">{report ? 'Refreshing report; displaying previous acquisition until complete.' : 'Loading Customer Open Orders…'}</p>}
+    {!pending && !report && !failure && <p className="open-orders__load-status" role="status">Loading Customer Open Orders…</p>}
+    {clearConfirmation && <ConfirmDialog title="Clear All planning changes?" body={`Clear all ${staged.length} changes? Saved-draft behavior follows the Save Draft setting.`} confirmLabel="Confirm Clear All" destructive onCancel={() => setClearConfirmation(false)} onConfirm={() => {
+      setRestoreIssues({}); setDateInputs({}); setDateTouched({}); invalidDateInputs.current.clear(); persist({}, saveDraft, report, false, false); setClearConfirmation(false);
+    }} />}
+    {saveOffConfirm === assignmentId && <ConfirmDialog title={restoreCandidate ? 'Discard saved draft?' : 'Turn Save Draft off?'} body={restoreCandidate ? 'Delete the saved copy without restoring it? In-memory changes will remain.' : 'Turn Save Draft off and delete the saved copy? In-memory changes will remain.'} confirmLabel={restoreCandidate ? 'Discard saved draft' : 'Turn off and delete'} destructive
       onCancel={() => setSaveOffConfirm(null)}
       onConfirm={() => {
         setSaveOffConfirm(null);
@@ -413,8 +445,8 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, workspaceName, site 
         setSaveOffPending(true);
         void (async () => { await saveGate.current; await new ApiClient(await resolveBackendBaseUrl()).deleteOpenOrdersDraft(assignmentId); })().then(() => {
           if (proposalAssignmentRef.current !== assignmentId) return;
-          saveGeneration.current++; setSaveDraft(false); setSavedState('none'); setDraftError(null);
-        }).catch(() => { if (proposalAssignmentRef.current === assignmentId) setDraftError('Saved draft could not be deleted; Save Draft remains on.'); }).finally(() => setSaveOffPending(false));
+          saveGeneration.current++; setSaveDraft(false); setSavedState('none'); setDraftError(null); setRestoreCandidate(null);
+        }).catch(() => { if (proposalAssignmentRef.current === assignmentId) setDraftError('Saved draft could not be deleted. The saved copy, Save Draft setting and in-memory changes remain.'); }).finally(() => setSaveOffPending(false));
       }} />}
   </section>;
 }

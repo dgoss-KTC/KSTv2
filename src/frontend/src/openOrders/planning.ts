@@ -1,6 +1,6 @@
 import type { components } from '../generated/api';
 import type { OrderLine } from './report';
-import { decimal, equalDecimal, multiply, subtract } from '../shared/exactDecimal';
+import { decimal, equalDecimal, exactText, multiply, subtract } from '../shared/exactDecimal';
 
 // Exact decimal helpers moved to shared/exactDecimal (Stage 14.4); re-exported for existing imports.
 export { decimal, equalDecimal, multiply, subtract };
@@ -18,9 +18,8 @@ export const keyOf = (key: Proposal['key']) => JSON.stringify([key.domain, key.s
 export function planningNumberDisplay(field: 'orderQty' | 'price', value: string): string {
   const parsed = decimal(value);
   if (!parsed) return value;
-  if (field === 'orderQty') return parsed.n % (10n ** BigInt(parsed.scale)) === 0n
-    ? (parsed.n / (10n ** BigInt(parsed.scale))).toString() : value;
-  // Round the visual value only; the editor reveals and retains the exact source text on focus.
+  if (field === 'orderQty') return exactText(parsed);
+  // Round the visual value only. Focusing does not replace the exact source/proposal value.
   const divisor = 10n ** BigInt(Math.max(0, parsed.scale - 4));
   const absolute = parsed.n < 0n ? -parsed.n : parsed.n;
   const scaled = parsed.scale > 4 ? (absolute + divisor / 2n) / divisor : absolute * 10n ** BigInt(4 - parsed.scale);

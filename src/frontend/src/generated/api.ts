@@ -1143,6 +1143,7 @@ export interface components {
             metadata: components["schemas"]["AnalyticalMetadataDto"][];
             fiscalLabels: string[];
             sheets: components["schemas"]["AnalyticalSheetDto"][];
+            openOrders?: null | components["schemas"]["ExportOpenOrdersReportRequestDto"];
         };
         AnalyticalMetadataDto: {
             label: string;

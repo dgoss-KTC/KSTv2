@@ -2,11 +2,14 @@ using System.Globalization;
 using Kst.Api.Dtos;
 using Kst.Application.Bom;
 using Kst.Application.Mps;
+using Kst.Application.OpenOrders;
 using Kst.Application.Workspaces;
 using Kst.Domain.Common;
 using Kst.Domain.Exports;
 using Kst.Domain.Mps;
 using Kst.Exports;
+using Kst.Exports.Contracts;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Kst.Api.Endpoints;
 
@@ -28,10 +31,11 @@ public static class AnalyticalExportEndpoints
     }
 
     private static async Task<IResult> Prepare(AnalyticalExportRequestDto request, HttpRequest http, IWorkspaceConfigurationService workspaces,
-        IMpsSnapshotStore mps, IBomCacheStore boms, ComponentMrpPreparations preparations, IClock clock, CancellationToken ct)
+        IMpsSnapshotStore mps, IBomCacheStore boms, ComponentMrpPreparations preparations, IClock clock,
+        OpenOrdersService openOrders, IExportService exports, CancellationToken ct)
     {
         var owner = http.Headers["X-KST-Report-Session"].ToString();
-        if (!Guid.TryParseExact(owner, "D", out _) || request.Kind is not ("MPS" or "BOM") || request.Metadata is null || request.Sheets is null || request.FiscalLabels is null)
+        if (!Guid.TryParseExact(owner, "D", out _) || request.Kind is not ("MPS" or "BOM" or "OpenOrders") || request.Metadata is null || request.Sheets is null || request.FiscalLabels is null)
             return Results.Problem("Invalid analytical export request.", statusCode: 400);
         if (!await preparations.Generations.WaitAsync(0, ct)) return Results.Problem("Workbook preparation is busy. Retry.", statusCode: 503);
         try
@@ -43,6 +47,20 @@ public static class AnalyticalExportEndpoints
                 return Results.Problem("Workspace or loaded source changed. Prepare again from compatible loaded data.", statusCode: 409);
             var today = DateOnly.FromDateTime(clock.LocalNow.Date);
             if (request.BusinessDate != today) return Results.Problem("Business date changed. Reload the view before preparing.", statusCode: 409);
+            if (request.Kind == "OpenOrders")
+            {
+                if (request.OpenOrders is null || request.OpenOrders.MpsSnapshotId != request.MpsSnapshotId.ToString())
+                    return Results.Problem("A matching Open Orders selection is required.", statusCode: 400);
+                // Reuse the accepted selection validation and serializer. This reads only the cache,
+                // never report acquisition, fresh operational validation or frontend-supplied cell data.
+                var result = await OpenOrdersEndpoints.ExportReport(request.WorkspaceId, request.OpenOrders, openOrders, exports, ct);
+                if (result is not FileContentHttpResult file) return result;
+                ct.ThrowIfCancellationRequested();
+                if (mps.GetState(request.WorkspaceId).Snapshot?.Id != snapshot.Id)
+                    return Results.Problem("Source changed while preparing. Prepare again.", statusCode: 409);
+                var prepared = preparations.Add(owner, file.FileContents.ToArray(), "Analytical");
+                return Results.Ok(new AnalyticalExportPreparedDto(prepared.Id.ToString(), file.FileDownloadName!, prepared.Expires));
+            }
             var metadata = new List<KeyValuePair<string, string>>
             {
                 new("Report", request.Kind + " analytical Excel"), new("Workspace", workspace.DisplayName ?? request.WorkspaceId.ToString()),

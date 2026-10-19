@@ -1,7 +1,47 @@
 # Current Project Status
 
-Date: 2026-10-16
+Date: 2026-10-19
 Workstation: Windows (`C:\Dev\kst_v2`)
+
+## S22-005 — Customer Open Orders redesign — COMPLETE / OWNER-ACCEPTED — 2026-10-19
+
+The owner confirmed completion of `OWNER_REVIEW_CHECKLIST.md` (all 24 items checked) and explicitly
+accepted all S22-005 session changes on 2026-10-19. Scope: Report/Plan presentation, seven-field
+literal search AND existing filters, workspace/mode-local columns-only named views, protected view
+switching, planning dock and actual shared analytical export/Save As/recovery/eight-second feedback
+through a typed cached-report adapter. Operational fresh validation and per-file CSV saving remain
+separate. No source algorithms, native capabilities or dependencies changed.
+
+Accepted corrections: monotonic operational context epoch prevents Plan→Report→Plan revival;
+Windows header/list pointer dragging preserves native file-drop configuration and keyboard ordering;
+numeric focus removes quantity padding and starts Price at four visual places without changing
+exact source/proposal values or triggering focus-only draft saves.
+
+Chronology: initial 2026-10-16 frontend evidence was 206 passes / 2 inherited skips; the 2026-10-19
+pointer correction had 221 / 2; latest numeric-focus scope is **223 passed / 2 inherited skips**.
+Original backend/architecture: **82 passed**. Native: **24 passed / 2 intentional interactive ignores**.
+Backend/native suites were not rerun for frontend-only corrections or this documentation/commit
+closeout. Actual synthetic XLSX checked; generated contracts synchronized; changed-file lint/type/
+build and local sidecar/embedded release builds pass in retained evidence, not newly rerun here.
+Full lint's two unchanged locked Stage 10 errors, touched-file formatting failure and partial AFT
+diagnostics remain explicit exceptions, not passes. Independent security-specific review has no
+confirmed material blocker remaining; its low lifecycle finding was reproduced and resolved.
+
+Closeout full staged whitespace check reports one blank line at EOF in the unchanged accepted
+`src/frontend/src/openOrders/useColumnDrag.ts:83` (exit 2); it is not a pass. No source formatting
+cleanup is included and no Git hook is bypassed or weakened.
+
+See `docs/implementation/KST_v2_S22_005_OPEN_ORDERS_UI.md` and
+`C:\Dev\kst_v2_tmp\Stage22\OpenOrdersUI\evidence\` (owner checklist, review, logs, synthetic workbook).
+Latest frontend/release identities are in `number-format-fix\`; earlier artifact/pending-review
+records remain historical. Owner checklist completion is owner-run evidence, not agent-executed
+desktop testing, proof of external QXtend acceptance/submission or installer/release certification.
+
+The owner separately authorized closeout documentation and one complete local S22-005 commit;
+accepted implementation is unchanged and existing verification is reused. No push, new development,
+live agent-run source queries, installs or shared deployment is authorized/performed by this closeout.
+Large evidence and build artifacts stay outside Git. **Stage 22 remains open.** Prior checkpoint
+authorization below is historical and does not broaden this bounded commit.
 
 ## Accumulated-work checkpoint for owner testing (2026-10-16)
 

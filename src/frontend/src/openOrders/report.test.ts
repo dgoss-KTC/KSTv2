@@ -66,6 +66,17 @@ describe('Customer Open Orders report', () => {
     expect(reportRows([other, exact], { ...filters, itemNumber: '_78' })).toEqual([]);
   });
 
+  it.each(['so', 'po', 'itemNumber', 'customer', 'customerName', 'customerPart', 'salesperson'])('quick search matches literal case-insensitive contains in %s, ORs fields and ANDs chips', field => {
+    const fields: Record<string, Partial<OrderLine>> = { po: { purchaseOrder: 'prefixNEED_%LEsuffix' }, itemNumber: { itemNumber: 'prefixNEED_%LEsuffix' },
+      customer: { customer: 'prefixNEED_%LEsuffix' }, customerName: { customerName: 'prefixNEED_%LEsuffix' }, customerPart: { customerPart: 'prefixNEED_%LEsuffix' }, salesperson: { salesperson: 'prefixNEED_%LEsuffix' } };
+    const match = line(field === 'so' ? 'prefixNEED_%LEsuffix' : 'SO-match', 'A', null, null, fields[field] ?? {});
+    const miss = line('SO-miss', 'A', null, null, { customer: null, salesperson: null, purchaseOrder: null, customerPart: null });
+    expect(reportRows([miss, match], emptyFilters, 'need_%le')).toEqual([match]);
+    expect(reportRows([miss, match], { ...emptyFilters, itemNumber: 'Not present' }, 'need_%le')).toEqual([]);
+    expect(reportRows([miss, match], emptyFilters, '.*')).toEqual([]);
+    expect(reportRows([miss, match], emptyFilters, '')).toHaveLength(2);
+  });
+
   it('isolates layout by assignment ID and recovers malformed or unknown saved IDs without losing hidden order', () => {
     const layout = defaultLayout();
     layout.order = ['customerName', ...layout.order.filter(id => id !== 'customerName')];

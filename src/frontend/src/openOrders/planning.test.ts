@@ -12,6 +12,9 @@ describe('Open Orders planning arithmetic and validation', () => {
   it('formats numeric editors without changing fractional quantity or high-precision price values', () => {
     expect(planningNumberDisplay('orderQty', '12.0000')).toBe('12');
     expect(planningNumberDisplay('orderQty', '12.25')).toBe('12.25');
+    expect(planningNumberDisplay('orderQty', '12.0000000000')).toBe('12');
+    expect(planningNumberDisplay('orderQty', '12.2500000000')).toBe('12.25');
+    expect(planningNumberDisplay('orderQty', '9007199254740993.1234500000')).toBe('9007199254740993.12345');
     expect(planningNumberDisplay('price', '1.25')).toBe('1.2500');
     expect(planningNumberDisplay('price', '0.0125')).toBe('0.0125');
     expect(planningNumberDisplay('price', '0.01251')).toBe('0.0125');

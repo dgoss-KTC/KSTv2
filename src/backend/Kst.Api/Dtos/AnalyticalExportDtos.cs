@@ -9,5 +9,6 @@ public sealed record AnalyticalExportRequestDto(
     DateTimeOffset? BomLoadedAtUtc, DateOnly? BomEffectiveDate, bool IsStale, string? Warning,
     string? ComponentFilter, string? DescriptionFilter, string? PmFilter, string? PhantomFilter,
     Guid? WorkbookSnapshotId, IReadOnlyList<AnalyticalMetadataDto> Metadata,
-    IReadOnlyList<string> FiscalLabels, IReadOnlyList<AnalyticalSheetDto> Sheets);
+    IReadOnlyList<string> FiscalLabels, IReadOnlyList<AnalyticalSheetDto> Sheets,
+    ExportOpenOrdersReportRequestDto? OpenOrders = null);
 public sealed record AnalyticalExportPreparedDto(string PreparationId, string FileName, DateTimeOffset ExpiresAtUtc);
