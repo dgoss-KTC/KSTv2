@@ -185,6 +185,48 @@ public class HistoricalShipmentsTests
         static async IAsyncEnumerable<ShipmentRow> Failure() { yield return Row(0); await Task.Yield(); throw new ShipmentSourceException("missing header"); }
     }
     [Fact]
+    public async Task Reports_paging_sizes_share_one_frozen_population_and_exact_full_workbook_without_source_rereads()
+    {
+        var reads = 0;
+        await using var factory = new KstApiFactory
+        {
+            HistoricalShipmentsReader = new DelegateHistoricalShipmentsReader((_, ct) => { reads++; return Rows(2501, ct); })
+        };
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-KST-Report-Session", Guid.NewGuid().ToString());
+        var spec = await client.GetFromJsonAsync<HistoricalShipmentsSpecDto>("/api/v1/reports/historical-shipments/spec");
+        Assert.Equal(1000, spec!.MaximumPageSize);
+        var id = Guid.NewGuid(); var path = $"/api/v1/reports/historical-shipments/operations/{id}";
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsync(path, null)).StatusCode);
+        var columns = new[] { "customerNumber", "invoicedQuantity", "remarks", "currency" };
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(path + "/acquire", new { site = "SW", columns })).StatusCode);
+        foreach (var size in new[] { 100, 500, 1000 })
+        {
+            var page = await client.GetFromJsonAsync<HistoricalShipmentsPageDto>(path + $"/rows?offset=1000&limit={size}");
+            Assert.Equal(size, page!.Rows.Count); Assert.Equal(2501, page.TotalRows); Assert.Equal(columns, page.Columns);
+            Assert.Equal($"{1000:D36}", page.Rows[0].PhysicalDetailId);
+            Assert.Equal($"{1000 + size - 1:D36}", page.Rows[^1].PhysicalDetailId);
+        }
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync(path + "/rows?offset=0&limit=1001")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync(path + "/rows?offset=-1&limit=100")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync(path + "/rows?offset=0&limit=0")).StatusCode);
+        var tail = await client.GetFromJsonAsync<HistoricalShipmentsPageDto>(path + "/rows?offset=2500&limit=1000");
+        Assert.Single(tail!.Rows);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync(path + "/prepare", null)).StatusCode);
+        var bytesPath = $"/api/v1/reports/historical-shipments/preparations/{id}/bytes";
+        var first = await client.GetByteArrayAsync(bytesPath);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync(path + "/prepare", null)).StatusCode);
+        Assert.Equal(first, await client.GetByteArrayAsync(bytesPath)); Assert.Equal(1, reads);
+        using var workbook = new XLWorkbook(new MemoryStream(first));
+        var sheet = workbook.Worksheet(1);
+        Assert.Equal(2502, sheet.LastRowUsed()!.RowNumber()); Assert.Equal("Customer Number", sheet.Cell(1, 1).GetString());
+        Assert.Equal("000123", sheet.Cell(2, 1).GetString()); Assert.Equal(-2.5, sheet.Cell(2, 2).GetDouble());
+        Assert.Equal("=HYPERLINK(\"bad\")", sheet.Cell(2, 3).GetString()); Assert.False(sheet.Cell(2, 3).HasFormula);
+        Assert.Equal("CAD", sheet.Cell(2502, 4).GetString());
+        var evidence = Environment.GetEnvironmentVariable("KST_REPORTS_TEST_ROOT");
+        if (evidence is not null) { Directory.CreateDirectory(evidence); await File.WriteAllBytesAsync(Path.Combine(evidence, "historical-2501-frozen.xlsx"), first); }
+    }
+    [Fact]
     public async Task API_owned_lifecycle_validation_and_failure_are_explicit()
     {
         await using var factory = new KstApiFactory { HistoricalShipmentsReader = new DelegateHistoricalShipmentsReader((_, ct) => Rows(2, ct)) };
@@ -198,7 +240,7 @@ public class HistoricalShipmentsTests
         Assert.Equal(2, report!.RowCount); Assert.DoesNotContain("currency", report.Columns);
         var page = await client.GetFromJsonAsync<HistoricalShipmentsPageDto>(path + "/rows?offset=0&limit=100"); Assert.Equal(2, page!.Rows.Count);
         Assert.NotEqual(page.Rows[0].PhysicalDetailId, page.Rows[1].PhysicalDetailId);
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync(path + "/rows?offset=0&limit=201")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync(path + "/rows?offset=0&limit=1001")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsync(path + "/prepare", null)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/v1/reports/historical-shipments/preparations/{id}/bytes")).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync(path)).StatusCode);

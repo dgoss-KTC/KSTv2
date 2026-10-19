@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OpenOrderReportInputs } from './OpenOrderReportInputs';
-import { initialOor, oorOptional, oorPreferenceKey } from './openOrderReportPreferences';
+import { initialOor, oorPreferenceKey } from './openOrderReportPreferences';
 
 describe('Open Order Report inputs', () => {
   beforeEach(() => localStorage.clear());
@@ -12,13 +12,13 @@ describe('Open Order Report inputs', () => {
     expect(value.customerName).toBe(''); const changed = vi.fn(); render(<OpenOrderReportInputs value={value} onChange={changed} />);
     expect(screen.getByLabelText('Site')).toHaveValue(''); expect(screen.queryByRole('option', { name: 'KS' })).not.toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'MS' })).toBeInTheDocument();
-    expect(screen.getAllByRole('checkbox').map(c => c.parentElement?.textContent)).toEqual(oorOptional);
-    fireEvent.click(screen.getByLabelText('Customer Part'));
-    expect(changed.mock.calls[0][0].optionalFields).toEqual(['Allocated', 'Customer Part', 'Unit Price']);
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Customer Number'), { target: { value: '001' } });
+    expect(changed.mock.calls[0][0]).toMatchObject({ customerNumber: '001', optionalFields: ['Allocated', 'Unit Price'] });
     expect(screen.getByRole('heading', { name: 'Customer and site' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Sales and product' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Due dates' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Columns' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Columns' })).toBeNull();
   });
   it('shows paired-bound errors, accepts Unicode digits and does not reject descending product lines', () => {
     const { rerender } = render(<OpenOrderReportInputs value={{ ...initialOor(), productLineFrom: '0001', dueDateFrom: '10/1' }} onChange={vi.fn()} />);

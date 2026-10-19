@@ -1,6 +1,6 @@
 import type { components } from '../generated/api';
 import { isRunningInTauri, resolveBackendBaseUrl } from './tauri-bridge';
-import type { ReportSavePort } from '../components/ReportsPanel';
+import type { AnalyticalSaveResult } from './analyticalExportApi';
 
 export type HistoricalShipmentsRequest = components['schemas']['HistoricalShipmentsRequestDto'];
 export type HistoricalShipmentsSpec = components['schemas']['HistoricalShipmentsSpecDto'];
@@ -82,6 +82,8 @@ export class HistoricalShipmentsClient {
     } finally { this.acquiring = false; signal?.removeEventListener('abort', cancel); }
   }
   page(offset = 0, limit = 100, signal?: AbortSignal): Promise<HistoricalShipmentsPage> {
+    if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isInteger(limit) || limit < 1 || limit > 1000)
+      throw new Error('Invalid Historical Shipments page offset/limit.');
     return this.call('page', this.requireOperation(), undefined, signal, offset, limit);
   }
   status(signal?: AbortSignal): Promise<HistoricalShipmentsOperation> {
@@ -90,14 +92,14 @@ export class HistoricalShipmentsClient {
   prepare(signal?: AbortSignal): Promise<HistoricalShipmentsPrepared> {
     return this.call('prepare', this.requireOperation(), undefined, signal);
   }
-  async save(prepared: HistoricalShipmentsPrepared, openAfterSave: boolean, saveOperationId: string): Promise<Awaited<ReturnType<ReportSavePort['save']>>> {
+  async save(prepared: HistoricalShipmentsPrepared, openAfterSave: boolean, saveOperationId: string): Promise<AnalyticalSaveResult> {
     if (!isRunningInTauri()) throw new Error('Protected workbook saving requires the desktop application.');
     if (prepared.operationId !== this.requireOperation()) throw new Error('Preparation belongs to another report result.');
     const { invoke } = await import('@tauri-apps/api/core');
     return invoke('component_mrp_save', { operationId: saveOperationId, preparationId: prepared.preparationId,
       openAfterSave, reportKind: 'HistoricalShipments' });
   }
-  async saveStatus(saveOperationId: string): Promise<Awaited<ReturnType<NonNullable<ReportSavePort['status']>>>> {
+  async saveStatus(saveOperationId: string): Promise<AnalyticalSaveResult> {
     const { invoke } = await import('@tauri-apps/api/core');
     return invoke('component_mrp_status', { operationId: saveOperationId, reportKind: 'HistoricalShipments' });
   }

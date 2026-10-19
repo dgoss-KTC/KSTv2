@@ -19,6 +19,6 @@ describe('Open Order transport', () => {
     const controller = new AbortController(); const task = generateOpenOrderReport({ ...initialOor(), site: 'SW' }, controller.signal);
     await vi.waitFor(() => expect(host.invoke).toHaveBeenCalledWith('component_mrp_generate', expect.objectContaining({ reportKind: 'OpenOrderReport', epoch: 7, oorRequest: expect.objectContaining({ site: 'SW' }) })));
     controller.abort(); reply({ outcome: 'prepared' }); await expect(task).rejects.toThrow();
-    expect(host.invoke).toHaveBeenCalledWith('report_discard');
+    expect(host.invoke).toHaveBeenCalledWith('sop_discard_generation', { epoch: 7 });
   });
 });

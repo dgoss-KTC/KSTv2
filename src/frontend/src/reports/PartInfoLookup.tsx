@@ -161,23 +161,22 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
     document.getElementById(`part-info-tab-${tabs[next].id}`)?.focus();
   }
   return <div className="part-info">
-    <p className="part-info__intro">Look up one exact part number at a supported site.</p>
     {specError && <p role="alert">Lookup settings unavailable. <button onClick={() => setSpecAttempt(v => v + 1)}>Retry settings</button></p>}
     <form className="part-info__inputs" onSubmit={event => { event.preventDefault(); void submit(); }}>
       <label htmlFor="part-info-part">Part Number<input id="part-info-part" autoComplete="off" value={part} maxLength={Number(spec?.maximumPartLength ?? 256)}
         onChange={event => { invalidate(); setPart(event.target.value); }} /></label>
       <label htmlFor="part-info-site">Site<select id="part-info-site" value={site} disabled={!spec}
         onChange={event => { invalidate(); setSite(event.target.value); }}>{(spec?.sites ?? ['SW']).map(s => <option key={s}>{s}</option>)}</select></label>
-      <button type="submit" disabled={!spec || !part.trim() || !active}>{loading ? 'Look up again' : 'Lookup'}</button>
-      {loading && <button type="button" onClick={invalidate}>Cancel lookup</button>}
+      <button type="submit" className="report-button report-button--primary" disabled={!spec || !part.trim() || !active}>{loading ? 'Look up again' : 'Lookup'}</button>
+      {loading && <button type="button" className="report-button" onClick={invalidate}>Cancel lookup</button>}
     </form>
     {loading && <p role="status">Acquiring part information…</p>}
     {error && <div role={missing ? 'status' : 'alert'} className="part-info__state"><h2>{missing ? 'Part not found' : 'Lookup unavailable'}</h2><p>{error}</p><button onClick={() => void submit()}>Retry lookup</button></div>}
     {!loading && !error && !report && <p className="part-info__state">Enter a part number and select Lookup, or press Enter.</p>}
     {report && m && <>
-      <header className="part-info__identity"><div><h2>{report.part}</h2><p>{m.description ?? 'Description not available'}</p></div><strong>Site {report.site}</strong>
-        <button onClick={() => void submit()}>Refresh / Retry sections</button></header>
-      <span className="part-info__status">{m.partStatusCode ? `${m.partStatusCode}${m.partStatusDescription ? ` — ${m.partStatusDescription}` : ''}` : 'Part status unavailable'}</span>
+      <header className="part-info__identity"><div><h2>{report.part}</h2><p>{m.description ?? 'Description not available'}</p><strong className="report-chip">Site {report.site}</strong>
+        <span className="report-chip">{m.partStatusCode ? `${m.partStatusCode}${m.partStatusDescription ? ` — ${m.partStatusDescription}` : ''}` : 'Part status unavailable'}</span></div>
+        <button className="report-button" aria-label="Refresh / Retry sections" title="Refresh all sections; retries any that failed" onClick={() => void submit()}>Refresh</button></header>
       <dl className="part-info__facts">
         {([
           ['Net QOH', report.inventory.value ? inventoryQuantity(report.inventory.value.netQuantityOnHand) : 'Unavailable'],

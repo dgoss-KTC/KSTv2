@@ -44,6 +44,12 @@ it('starts the full timer only after the requested automatic opening has settled
   await tick(1); expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
 });
 
+it('retains a report warning alongside ordinary success beyond eight seconds', async () => {
+  render(<AnalyticalSaveStatus />); const id = `warning-${++sequence}`;
+  act(() => { beginAnalyticalSave(id, port, id, 'S&OP', 'Fiscal exception retained.'); recordAnalyticalSave(id, saved()); });
+  await tick(16000); expect(screen.getByText('Fiscal exception retained.')).toBeInTheDocument(); expect(screen.getByText('Workbook saved.')).toBeInTheDocument();
+});
+
 it.each([
   ['cancelled', { outcome: 'cancelled', operationComplete: true, message: 'Save cancelled; workbook retained.' }],
   ['failed', { outcome: 'failed', operationComplete: true, message: 'Save failed; workbook retained.' }],

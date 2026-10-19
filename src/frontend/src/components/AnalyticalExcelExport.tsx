@@ -1,31 +1,39 @@
-import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import { createPortal } from 'react-dom';
-import { AnalyticalExportClient, type AnalyticalRequest, type AnalyticalPrepared } from '../api/analyticalExportApi';
+import { AnalyticalExportClient, type AnalyticalRequest } from '../api/analyticalExportApi';
+import type { ExcelExportPort, PreparedExcel } from '../shared/excelExportPort';
 import { isRunningInTauri } from '../api/tauri-bridge';
 import { beginAnalyticalSave, claimAnalyticalPreparation, clearAnalyticalPreparation, recordAnalyticalSave, updateAnalyticalPreparation, useAnalyticalExportStatus } from '../shared/analyticalSaveRecovery';
 import './AnalyticalExcelExport.css';
 import { rememberAnalyticalOpenPreference, useAnalyticalOpenPreference } from '../shared/analyticalOpenPreference';
 
-interface Props {
-  request: () => AnalyticalRequest;
+export interface ExcelExportAction { run(): void }
+interface Props<Request> {
+  request: () => Request;
   contextKey: string;
   scopeLabel: string;
   label: string;
   disabledReason?: string;
-  clientFactory?: () => AnalyticalExportClient;
+  busyReason?: string;
+  clientFactory?: () => ExcelExportPort<Request>;
+  preparingMessage?: string;
+  actionRef?: Ref<ExcelExportAction>;
+  onMessage?: (message: string) => void;
 }
 const defaultFactory = () => new AnalyticalExportClient();
 
 /** Only semantic source/selection changes (not object allocation, scrolling or drilling) end a visit. */
-export function AnalyticalExcelExport(props: Props) {
+export function AnalyticalExcelExport<Request = AnalyticalRequest>(props: Props<Request>) {
   const [attempt, setAttempt] = useState(0);
   const reason = props.disabledReason || (!isRunningInTauri() ? 'Export requires the desktop application and its protected Save As.' : '');
   return <ExportVisit key={JSON.stringify([props.contextKey, reason, attempt])} {...props} disabledReason={reason} restart={() => setAttempt(n => n + 1)} />;
 }
 
-function ExportVisit({ request, scopeLabel, label, disabledReason, clientFactory = defaultFactory, restart }: Props & { restart: () => void }) {
-  const [factory] = useState(() => clientFactory);
-  const client = useRef<AnalyticalExportClient | null>(null);
+function ExportVisit<Request>({ request, scopeLabel, label, disabledReason: contextReason, busyReason, clientFactory, preparingMessage = 'Preparing Excel workbook from loaded data…', actionRef, onMessage, restart }: Props<Request> & { restart: () => void }) {
+  const disabledReason = contextReason || busyReason;
+  // The default is used only by existing Analytical consumers; Reports always supply a typed adapter.
+  const [factory] = useState(() => clientFactory ?? defaultFactory as unknown as () => ExcelExportPort<Request>);
+  const client = useRef<ExcelExportPort<Request> | null>(null);
   const live = useRef(false);
   const locked = useRef(false);
   const owner = useId();
@@ -36,7 +44,7 @@ function ExportVisit({ request, scopeLabel, label, disabledReason, clientFactory
   const [position, setPosition] = useState({ top: 0, right: 0 });
   const { value: preference, warning: preferenceWarning } = useAnalyticalOpenPreference();
   const latest = useRef({ request, disabledReason, preference });
-  const prepared = useRef<AnalyticalPrepared | null>(null);
+  const prepared = useRef<PreparedExcel | null>(null);
   const captured = useRef('');
   const [operationId, setOperationId] = useState<string | null>(null);
   const operation = status.operations.find(o => o.id === operationId);
@@ -71,7 +79,7 @@ function ExportVisit({ request, scopeLabel, label, disabledReason, clientFactory
       if (captured.current !== JSON.stringify(latest.current.request())) { prepared.current = null; feedback('Export context changed. Prepare a new workbook.', false, [{ label: 'Discard', run: restart }]); return; }
     } catch (error) { prepared.current = null; feedback(error instanceof Error ? error.message : 'Export is unavailable. Reload the view.', false, [{ label: 'Discard', run: restart }]); return; }
     const id = crypto.randomUUID();
-    if (!beginAnalyticalSave(id, port, owner, label)) return;
+    if (!beginAnalyticalSave(id, port, owner, label, workbook.warning)) return;
     locked.current = true; setOperationId(id); feedback('Waiting for Save As / protected save to finish…', false, []);
     try { recordAnalyticalSave(id, await port.save(workbook, openIntent, id)); }
     catch { recordAnalyticalSave(id); }
@@ -80,7 +88,7 @@ function ExportVisit({ request, scopeLabel, label, disabledReason, clientFactory
     const port = client.current;
     if (!live.current || !port || locked.current || reason) return;
     const openIntent = preference; // This activation owns its intent even while preferences are edited.
-    if (!claimAnalyticalPreparation({ owner, label, preparing: true, message: 'Preparing Excel workbook from loaded data…', actions: [{ label: 'Cancel preparation', run: restart }], supersede: restart })) return;
+    if (!claimAnalyticalPreparation({ owner, label, preparing: true, message: preparingMessage, actions: [{ label: 'Cancel preparation', run: restart }], supersede: restart })) return;
     locked.current = true;
     try {
       const inputs = latest.current.request(); captured.current = JSON.stringify(inputs);
@@ -89,13 +97,18 @@ function ExportVisit({ request, scopeLabel, label, disabledReason, clientFactory
       if (latest.current.disabledReason || captured.current !== JSON.stringify(latest.current.request())) {
         locked.current = false; feedback('Export context changed during preparation. Nothing was saved.', false, [{ label: 'Discard', run: restart }]); return;
       }
-      prepared.current = workbook; locked.current = false;
+      if ('outcome' in workbook && workbook.outcome === 'noData') {
+        locked.current = false; onMessage?.(workbook.message);
+        feedback(workbook.message, false, [{ label: 'Dismiss', run: restart }]); return;
+      }
+      prepared.current = workbook as PreparedExcel; locked.current = false;
       retained('Workbook prepared. Continuing to Save As…');
       await save(openIntent);
     } catch (error) {
       if (live.current && port === client.current) { locked.current = false; feedback(error instanceof Error ? error.message : 'Workbook preparation failed. Nothing was saved.', false, [{ label: 'Dismiss', run: restart }]); }
     }
   }
+  useImperativeHandle(actionRef, () => ({ run: () => { void prepare(); } }));
   function closeMenu(restore = true) { setMenuOpen(false); if (restore) trigger.current?.focus({ preventScroll: true }); }
   useLayoutEffect(() => {
     if (!menuOpen) return;
@@ -120,11 +133,10 @@ function ExportVisit({ request, scopeLabel, label, disabledReason, clientFactory
   }, [menuOpen]);
 
   return <div className="analytical-excel-export" aria-label={`${label} export`}>
-    <span className="analytical-export__scope">{scopeLabel}</span>
+    <span id={reason ? `${owner}-reason` : undefined} className="analytical-export__scope">{reason || scopeLabel}</span>
     <button ref={trigger} type="button" className="analytical-export__button" disabled={!!reason} aria-describedby={reason ? `${owner}-reason` : undefined} aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuOpen ? `${owner}-menu` : undefined} onClick={() => setMenuOpen(v => !v)} onKeyDown={e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); setMenuOpen(true); } }}>
       <span aria-hidden="true">↓</span> Export <span aria-hidden="true">▾</span>
     </button>
-    {reason && <span id={`${owner}-reason`} className="analytical-export__reason">{reason}</span>}
     {menuOpen && createPortal(<div id={`${owner}-menu`} ref={menu} className="analytical-export-menu" data-analytical-export-menu role="menu" aria-label={`${label} export options`} style={position}>
       <button type="button" role="menuitem" className="analytical-export-menu__item" onClick={() => { closeMenu(); void prepare(); }}>Excel workbook (.xlsx)<small>{scopeLabel}</small></button>
       <button type="button" role="menuitemcheckbox" aria-checked={preference} className="analytical-export-menu__item" onClick={() => {

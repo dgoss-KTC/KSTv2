@@ -12,7 +12,7 @@ public sealed class ShipmentWorkbookCapacityException(string message) : Exceptio
 
 public static class HistoricalShipmentsRules
 {
-    public const int MaximumPageSize = 200;
+    public const int MaximumPageSize = 1000;
     public const int MaximumXlsxDataRows = 1048575;
     public static readonly IReadOnlyList<string> Sites = Array.AsReadOnly(new[] { "SW", "NW", "AR", "MN", "MS", "KV" });
     public static readonly IReadOnlyList<ShipmentColumn> Columns = Array.AsReadOnly(new ShipmentColumn[]

@@ -6,13 +6,13 @@ export type SopRequest = components['schemas']['SopRequestDto'];
 export type SopPrepared = components['schemas']['SopPreparedDto'];
 type Acquired = components['schemas']['SopAcquiredDto'];
 
-export async function generateSop(request: SopRequest, signal?: AbortSignal): Promise<SopPrepared> {
+export async function generateSop(request: SopRequest, signal?: AbortSignal, ownedEpoch?: number): Promise<SopPrepared> {
   const fingerprint = sopCalendarFingerprint();
   let acquired: Acquired | undefined;
   const owner = crypto.randomUUID();
   const desktop = isRunningInTauri();
   const { invoke } = await import('@tauri-apps/api/core');
-  const epoch = desktop ? await invoke<number>('component_mrp_begin') : 0;
+  const epoch = desktop ? ownedEpoch ?? await invoke<number>('component_mrp_begin') : 0;
   const base = desktop ? '' : await resolveBackendBaseUrl();
   const check = () => { signal?.throwIfAborted(); if (fingerprint !== sopCalendarFingerprint()) throw new Error('Fiscal calendar changed. Generate again.'); };
   const discard = () => { if (desktop) void invoke('sop_discard_generation', { epoch }).catch(() => {}); };

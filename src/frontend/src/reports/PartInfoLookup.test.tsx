@@ -70,7 +70,7 @@ describe('Part Info Lookup', () => {
     await act(async () => a.resolve(fixture('A')));
     expect(screen.getByRole('heading', { name: 'B' })).toBeInTheDocument(); expect(screen.queryByRole('heading', { name: 'A' })).not.toBeInTheDocument();
     expect(lookup.mock.calls[0][2].aborted).toBe(true);
-    fireEvent.click(screen.getByText('Refresh / Retry sections')); fireEvent.click(screen.getByText('Cancel lookup'));
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh / Retry sections' })); fireEvent.click(screen.getByText('Cancel lookup'));
     await act(async () => c.resolve(fixture('B', 'KV'))); expect(screen.queryByRole('heading', { name: 'B' })).not.toBeInTheDocument();
     const d = deferred<PartInfo>(); lookup.mockReturnValueOnce(d.promise); fireEvent.click(screen.getByText('Lookup'));
     view.rerender(<PartInfoLookup active={false} lookup={lookup} loadSpec={loadSpec} />);

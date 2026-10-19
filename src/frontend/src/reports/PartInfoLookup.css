@@ -1,19 +1,19 @@
 .reports-panel--part-info { box-sizing: border-box; width: 100%; min-width: 0; font-size: 13px; }
 .reports-panel--part-info :is(input, select, button) { font: inherit; }
-.reports-panel--part-info h1 { font-size: 1.65em; margin-bottom: 6px; }
 .reports-panel--part-info .reports-panel__body { flex: 1; min-width: 0; max-width: none; }
 .reports-panel--part-info .reports-panel__selector { flex-shrink: 0; }
-.part-info { min-width: 0; padding-bottom: 24px; }
+.part-info { min-width: 0; padding: 0 12px 24px; font-size: 13px; }
 .part-info__intro, .part-info__hint, .part-info__time { color: var(--tx2); }
-.part-info__inputs { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin: 18px 0 22px; }
+.part-info__inputs { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin: 0 -12px 10px; padding: var(--density-spacing) 12px; border-bottom: 1px solid var(--bd-soft); font-size: 12px; }
 .part-info__inputs label { flex-direction: column; align-items: stretch; gap: 4px; }
-.part-info__inputs label:first-child { flex: 1 1 220px; max-width: 380px; }
+.part-info__inputs label:first-child { flex: 1 1 180px; max-width: 280px; }
 .part-info__inputs input { min-width: 0; }
-.part-info__inputs button { padding: 8px 18px; }
+.part-info__inputs input, .part-info__inputs select { background: var(--chip); color: var(--tx); border: 1px solid var(--bd); border-radius: 6px; min-height: var(--density-control-height); padding: 0 8px; }
 .part-info__identity { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 6px; }
 .part-info__identity > div { flex: 1; min-width: 180px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 14px; overflow-wrap: anywhere; }
 .part-info h2 { font-size: 1.35em; }
 .part-info__identity h2, .part-info__identity p { margin: 0; }
+.part-info__identity h2 { font: 600 15px 'IBM Plex Mono', monospace; }
 .part-info__identity p { color: var(--tx2); }
 .part-info__status { display: block; margin-bottom: 12px; color: var(--tx2); font-size: 12px; }
 .part-info__facts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 0; border: 1px solid var(--bd); border-radius: 8px; overflow: hidden; background: var(--bd); gap: 1px; }

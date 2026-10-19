@@ -4,13 +4,13 @@ import { isRunningInTauri, resolveBackendBaseUrl } from './tauri-bridge';
 export type OpenOrderReportRequest = components['schemas']['OpenOrderReportRequestDto'];
 export type OpenOrderReportPrepared = components['schemas']['OpenOrderReportPreparedDto'];
 
-export async function generateOpenOrderReport(request: OpenOrderReportRequest, signal?: AbortSignal): Promise<OpenOrderReportPrepared> {
+export async function generateOpenOrderReport(request: OpenOrderReportRequest, signal?: AbortSignal, ownedEpoch?: number): Promise<OpenOrderReportPrepared> {
   signal?.throwIfAborted();
   if (isRunningInTauri()) {
     const { invoke } = await import('@tauri-apps/api/core');
-    const epoch = await invoke<number>('component_mrp_begin');
+    const epoch = ownedEpoch ?? await invoke<number>('component_mrp_begin');
     signal?.throwIfAborted();
-    const invalidate = () => { void invoke('report_discard').catch(() => {}); };
+    const invalidate = () => { void invoke('sop_discard_generation', { epoch }).catch(() => {}); };
     signal?.addEventListener('abort', invalidate, { once: true });
     try {
       const result = await invoke<OpenOrderReportPrepared>('component_mrp_generate', { epoch, reportKind: 'OpenOrderReport', oorRequest: request,

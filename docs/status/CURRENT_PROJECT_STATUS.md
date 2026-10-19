@@ -3,6 +3,42 @@
 Date: 2026-10-19
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## Reports redesign — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-19
+
+The owner confirmed visual, functional and native-save testing, accepted all six Reports views and
+the scoped export/column/draft/paging work, and authorized one complete local commit, **not a push**.
+This is owner-reported evidence, separate from agent checks; not new automated/native-suite,
+agent live-query, exhaustive-fault, deployment or risk-acceptance evidence. Accepted sources/tests
+are unchanged; closeout reuses existing verification with exact staged-path/diff/whitespace, normal
+hook and post-commit checks only. No repeated suites, builds, AFT, security review or publication.
+
+Single owner-dispatched checkpoint closes S22-011–015 for Reports and records accepted Reports/
+shared-control portions of S22-003/018 and Part Info title/query/identity within S22-037 only.
+No duplicate backlog tasks or closure of the broader S22-003/018/037 workstreams.
+Grouped Reports shell/forms, shared typed report-kind-preserving export/recovery, Historical
+draft/applied ownership and bounded 100/500/1000 paging are implemented. Header filters/sorting,
+source/workbook algorithms, Part Info data region and locked Stages 9–11 remain unchanged.
+
+Final offline verification: **187 frontend passed / 2 inherited skips; 132 backend passed;
+16 native export tests passed / 2 intentional interactive ignores**. Types, scoped lint/C# format,
+frontend/backend/native checks, sidecar publication and final embedded release build pass.
+Independent separate-context security review + final delta found no confirmed new material blocker
+at reviewed depth. AFT filesystem deadlines, an unmodified native format expression and existing
+Vite warnings remain explicit. No agent live query/app launch, install, submission, push or deployment.
+Local closeout staging/commit is authorized above. Pre-entry build-info bytes preserved/excluded;
+generated contracts regenerated without content drift. No broader grant/dependency/capability change
+or risk acceptance.
+
+Accepted review host: `src/tauri/target/release/kst-tauri.exe`, **15,305,728 bytes**, SHA256
+`81A8D79E4A6111E92CD7E0510DEBD80537CC627939824BB1F07AAA03F8B8953D`, alpha.21;
+final assets embedded and all rebuilt sidecar copies match. Full identity, decisions, scopes, evidence,
+known limits and compact owner checklist: `docs/implementation/KST_v2_S22_REPORTS_REDESIGN.md`.
+Local full evidence: `C:\dev\kst_v2_tmp\Stage22\ReportsRedesign\evidence\`.
+Windows backlog reconciles existing IDs without unrelated closure. Full closeout evidence remains
+local under `evidence/commit-closeout/`. Next development requires separate dispatch; Historical
+header filters/sorting, Part Info data region and overall Stage 22 are not marked complete.
+Preceding accepted checkpoints below retain their original evidence.
+
 ## S22-009 — Finished Goods UI/header filters — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-19
 
 The owner reviewed the application and explicitly accepted styling, all five header filters,

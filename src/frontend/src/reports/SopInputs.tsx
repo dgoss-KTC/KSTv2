@@ -1,4 +1,5 @@
 import type { SopRequest } from '../api/sopApi';
+import { Segmented } from './ReportChrome';
 
 export function SopInputs({ value, onChange }: { value: SopRequest; onChange: (value: SopRequest) => void }) {
   const invalidRange = value.ranges.some(range => {
@@ -8,14 +9,12 @@ export function SopInputs({ value, onChange }: { value: SopRequest; onChange: (v
   });
 
   return <div className="sop-inputs">
-    <div className="sop-inputs__settings">
+    <section className="sop-inputs__settings" aria-label="Settings"><h2>Settings</h2><div className="report-fields">
       <label>Site<select value={value.site} onChange={e => onChange({ ...value, site: e.target.value })}>
         {['SW', 'NW', 'AR', 'MN', 'MS', 'KV'].map(v => <option key={v}>{v}</option>)}
       </select></label>
-      <label>Group By<select value={value.groupBy} onChange={e => onChange({ ...value, groupBy: e.target.value })}>
-        <option value="planr">Planner ID</option><option value="customer">Customer Name</option>
-      </select></label>
-    </div>
+      <Segmented label="Group By" value={value.groupBy} choices={[{ value: 'planr', label: 'Planner ID' }, { value: 'customer', label: 'Customer Name' }]} onChange={groupBy => onChange({ ...value, groupBy })} />
+    </div></section>
     <section className="sop-inputs__product-lines" aria-labelledby="sop-product-lines-title">
       <h2 id="sop-product-lines-title">Product lines</h2>
       <div className="sop-inputs__range-header" aria-hidden="true">
@@ -39,6 +38,7 @@ export function SopInputs({ value, onChange }: { value: SopRequest; onChange: (v
       {invalidRange && <p className="sop-inputs__validation" role="alert">Enter both From and To product lines using four digits for each range.</p>}
       <button className="sop-inputs__add" type="button" disabled={value.ranges.length === 5}
         onClick={() => onChange({ ...value, ranges: [...value.ranges, { from: '', to: '' }] })}>Add product line</button>
+      <p className="report-hint">Weeks follow the fiscal calendar in Settings.</p>
     </section>
   </div>;
 }

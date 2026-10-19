@@ -1,5 +1,4 @@
 import type { OpenOrderReportRequest } from '../api/openOrderReportApi';
-import { oorMandatory, oorOptional } from './openOrderReportPreferences';
 
 export function OpenOrderReportInputs({ value, onChange }: { value: OpenOrderReportRequest; onChange: (value: OpenOrderReportRequest) => void }) {
   const text = (key: keyof Omit<OpenOrderReportRequest, 'optionalFields'>, label: string, digits = false, placeholder?: string, invalid = false) => <label>{label}
@@ -22,12 +21,5 @@ export function OpenOrderReportInputs({ value, onChange }: { value: OpenOrderRep
       <div className="oor-inputs__pair">{text('dueDateFrom', 'Due Date From', false, 'MM/DD/YYYY', invalidDatePair)}<span aria-hidden="true">to</span>{text('dueDateTo', 'Due Date To', false, 'MM/DD/YYYY', invalidDatePair)}</div>
     </div><p className="oor-inputs__hint">Both dates or neither. MM/DD/YYYY, MM/DD/YY or MM/DD (current year); . and - separators are supported. End must be on or after start.</p>
       {invalidDatePair && <p role="alert">Enter both due dates or leave both empty.</p>}</section>
-    <section aria-labelledby="oor-columns-title"><h2 id="oor-columns-title">Columns</h2>
-      <p className="oor-inputs__mandatory"><strong>Always included:</strong> {oorMandatory.join(', ')}.</p>
-      <div className="oor-inputs__columns">
-        {oorOptional.map(c => <label key={c}><input type="checkbox" checked={value.optionalFields.includes(c)} onChange={e => onChange({ ...value,
-          optionalFields: oorOptional.filter(v => v === c ? e.target.checked : value.optionalFields.includes(v)) })} />{c}</label>)}
-      </div></section>
-    <p className="oor-inputs__hint">Enter at least one non-date filter. An explicit site qualifies; All supported sites or dates alone do not.</p>
   </div>;
 }

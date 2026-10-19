@@ -1,58 +1,42 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ReportsPanel, type ReportSavePort } from './ReportsPanel';
-import type { OpenOrderReportPrepared } from '../api/openOrderReportApi';
-
-vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(async () => undefined) }));
-const prepared: OpenOrderReportPrepared = { outcome: 'prepared', preparationId: 'oor', fileName: 'Open-Orders_2026-10-12_01.xlsx', asOfDate: '2026-10-12', acquiredAtUtc: '2026-10-12T12:00:00Z', expiresAtUtc: '2026-10-12T12:30:00Z' };
-const port = (): ReportSavePort => ({ loadOpenPreference: vi.fn(async () => false), rememberOpenPreference: vi.fn(async () => {}),
-  save: vi.fn(async () => ({ outcome: 'cancelled' as const, message: 'Save cancelled.' })), open: vi.fn(async () => {}), discard: vi.fn(async () => {}) });
-const switchOor = () => fireEvent.click(screen.getByRole('button', { name: 'Open Order Report' }));
-const setSite = () => fireEvent.change(screen.getByLabelText('Site'), { target: { value: 'SW' } });
-
-describe('Reports Open Order lifecycle', () => {
-  beforeEach(() => localStorage.clear());
-  it('requires non-date filter, exact-byte retries, noData and failure never retain readiness', async () => {
-    const generate = vi.fn().mockResolvedValueOnce(prepared).mockResolvedValueOnce({ ...prepared, outcome: 'noData', preparationId: null, fileName: null }).mockRejectedValueOnce(new Error('source failed'));
-    const savePort = port(); render(<ReportsPanel generateOor={generate} savePort={savePort} />); switchOor();
-    expect(screen.getByText('Generate')).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Due Date From'), { target: { value: '10-1-26' } });
-    fireEvent.change(screen.getByLabelText('Due Date To'), { target: { value: '10.31.2026' } }); expect(screen.getByText('Generate')).toBeDisabled();
-    setSite(); fireEvent.click(screen.getByLabelText('Unit Price')); fireEvent.click(screen.getByText('Generate'));
-    await waitFor(() => expect(screen.getByText('Save As…')).toBeEnabled());
-    expect(generate.mock.calls[0][0]).toMatchObject({ site: 'SW', optionalFields: ['Unit Price'], dueDateFrom: '10-1-26' });
-    fireEvent.click(screen.getByLabelText('Open workbook after saving')); fireEvent.click(screen.getByText('Save As…'));
-    await screen.findByText('Save cancelled.'); fireEvent.click(screen.getByText('Save As…')); await waitFor(() => expect(savePort.save).toHaveBeenCalledTimes(2));
-    expect(savePort.save).toHaveBeenLastCalledWith(prepared, true, expect.any(String), 'OpenOrderReport'); expect(generate).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByText('Generate')); await screen.findByText('No open orders found for the specified filters.'); expect(screen.getByText('Save As…')).toBeDisabled();
-    fireEvent.click(screen.getByText('Generate')); await screen.findByText('source failed'); expect(screen.getByText('Save As…')).toBeDisabled();
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ReportsPanel } from './ReportsPanel';
+import { AnalyticalSaveStatus } from './AnalyticalSaveStatus';
+import { reportFixture, deferred, exportWorkbook, clearExportTests } from '../reports/reportTestSupport';
+const host = vi.hoisted(() => ({ invoke: vi.fn() }));
+vi.mock('@tauri-apps/api/core', () => ({ invoke: host.invoke }));
+vi.mock('../api/tauri-bridge', () => ({ isRunningInTauri: () => true }));
+const prepared = { ...reportFixture, outcome: 'prepared' };
+beforeEach(() => { localStorage.clear(); host.invoke.mockReset(); host.invoke.mockImplementation(async (n: string) => n === 'component_mrp_begin' ? 9 : n === 'component_mrp_save' ? { outcome: 'cancelled', message: 'Save cancelled.', operationComplete: true } : false); });
+afterEach(clearExportTests);
+const select = () => fireEvent.click(screen.getByRole('button', { name: 'Open Order Report' }));
+const site = () => fireEvent.change(screen.getByLabelText('Site'), { target: { value: 'SW' } });
+describe('Standalone Open Order Report shared export', () => {
+  it('requires non-date filter, retains flexible dates, grouped columns and exact retry', async () => {
+    const generate = vi.fn().mockResolvedValue(prepared); render(<><AnalyticalSaveStatus /><ReportsPanel generateOor={generate} /></>); select();
+    fireEvent.change(screen.getByLabelText('Due Date From'), { target: { value: '10-1-26' } }); fireEvent.change(screen.getByLabelText('Due Date To'), { target: { value: '10.31.2026' } }); expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+    site(); fireEvent.click(screen.getByRole('button', { name: /^Columns/ })); expect(screen.getByRole('checkbox', { name: 'Due' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Unit Price' })); fireEvent.click(screen.getByRole('button', { name: 'Done' })); await exportWorkbook(); await screen.findByRole('button', { name: 'Save again' });
+    expect(generate.mock.calls[0][0]).toMatchObject({ site: 'SW', optionalFields: ['Unit Price'], dueDateFrom: '10-1-26', dueDateTo: '10.31.2026' });
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Save again' }))); expect(generate).toHaveBeenCalledTimes(1); expect(host.invoke.mock.calls.filter(([n]) => n === 'component_mrp_save')).toHaveLength(2);
+    expect(host.invoke).toHaveBeenCalledWith('component_mrp_save', expect.objectContaining({ preparationId: prepared.preparationId, reportKind: 'OpenOrderReport' }));
+    expect(JSON.parse(localStorage.getItem('kst.openOrderReport.optionalFields.v1')!)).toEqual(['Unit Price']);
   });
-  it('all acquisition fields and columns invalidate, late completion and departure cannot resurrect readiness', async () => {
-    let resolve!: (r: OpenOrderReportPrepared) => void;
-    const generate = vi.fn().mockImplementationOnce(() => new Promise<OpenOrderReportPrepared>(r => { resolve = r; })).mockResolvedValue(prepared);
-    const savePort = port(); const { rerender } = render(<ReportsPanel generateOor={generate} savePort={savePort} />); switchOor(); setSite();
-    fireEvent.click(screen.getByText('Generate')); await waitFor(() => expect(generate).toHaveBeenCalledTimes(1));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Customer Name' }), { target: { value: 'Alpha%' } });
-    await act(async () => resolve(prepared)); expect(screen.getByText('Save As…')).toBeDisabled();
-    for (const label of ['Customer Number', 'Salesperson ID', 'Product Line From', 'Product Line To', 'IOS', 'Due Date From', 'Due Date To']) {
-      fireEvent.click(screen.getByText('Generate')); await waitFor(() => expect(screen.getByText('Save As…')).toBeEnabled());
-      fireEvent.change(screen.getByRole('textbox', { name: label }), { target: { value: label.includes('Date') ? '10/1' : '0001' } }); expect(screen.getByText('Save As…')).toBeDisabled();
-    }
-    fireEvent.click(screen.getByText('Generate')); await waitFor(() => expect(screen.getByText('Save As…')).toBeEnabled());
-    fireEvent.click(screen.getByLabelText('Allocated')); expect(screen.getByText('Save As…')).toBeDisabled();
-    fireEvent.click(screen.getByText('Generate')); await waitFor(() => expect(screen.getByText('Save As…')).toBeEnabled());
-    rerender(<ReportsPanel active={false} generateOor={generate} savePort={savePort} />); await waitFor(() => expect(screen.getByText('Save As…')).toBeDisabled());
-    expect(savePort.discard).toHaveBeenCalled(); rerender(<ReportsPanel generateOor={generate} savePort={savePort} />); expect(screen.getByText('Save As…')).toBeDisabled();
+  it.each(['Customer Name', 'Customer Number', 'Salesperson ID', 'Product Line From', 'Product Line To', 'IOS', 'Due Date From', 'Due Date To'])('invalidates late preparation on %s edits', async label => {
+    const pending = deferred<typeof prepared>(); const generate = vi.fn().mockReturnValue(pending.promise); render(<><AnalyticalSaveStatus /><ReportsPanel generateOor={generate} /></>); select(); site(); await exportWorkbook();
+    fireEvent.change(screen.getByRole('textbox', { name: label }), { target: { value: label.includes('Date') ? '10/1' : '0001' } }); await act(async () => pending.resolve(prepared));
+    expect(generate.mock.calls[0][1].aborted).toBe(true); expect(host.invoke.mock.calls.some(([n]) => n === 'component_mrp_save')).toBe(false);
   });
-  it('unknown departed Open Order operation reconciles its original kind without replay or settled Open retry', async () => {
-    const savePort = port(); savePort.save = vi.fn().mockRejectedValue(new Error('lost'));
-    savePort.status = vi.fn().mockResolvedValue({ outcome: 'saved', message: 'saved', savedArtifactId: 'a', openFailed: true, operationComplete: true });
-    render(<ReportsPanel generateOor={vi.fn().mockResolvedValue(prepared)} savePort={savePort} />); switchOor(); setSite(); fireEvent.click(screen.getByText('Generate'));
-    await waitFor(() => expect(screen.getByText('Save As…')).toBeEnabled()); fireEvent.click(screen.getByText('Save As…'));
-    await screen.findByText('Save response unavailable; commitment is unknown. Do not replay.');
-    const id = vi.mocked(savePort.save).mock.calls[0][2]; fireEvent.click(screen.getByRole('button', { name: 'Component MRP' }));
-    fireEvent.click(screen.getByText('Check save status')); await waitFor(() => expect(savePort.status).toHaveBeenCalledWith(id, 'OpenOrderReport'));
-    expect(savePort.save).toHaveBeenCalledTimes(1); expect(savePort.open).not.toHaveBeenCalled(); expect(screen.queryByText('Retry Open')).not.toBeInTheDocument();
-    expect(screen.getByText('Save As…')).toBeDisabled();
+  it('keeps noData and actual acquisition failure distinct; input edits clear the empty footer', async () => {
+    const generate = vi.fn().mockResolvedValueOnce({ ...prepared, outcome: 'noData', preparationId: null, fileName: null }).mockRejectedValueOnce(new Error('source failed'));
+    render(<><AnalyticalSaveStatus /><ReportsPanel generateOor={generate} /></>); select(); site(); await exportWorkbook(); expect(screen.getAllByText('No open orders found for the specified filters.')).toHaveLength(2);
+    fireEvent.change(screen.getByLabelText('Customer Number'), { target: { value: '001' } }); expect(screen.queryByText('No open orders found for the specified filters.')).toBeNull();
+    await exportWorkbook(); await screen.findByText('source failed'); expect(host.invoke.mock.calls.some(([n]) => n === 'component_mrp_save')).toBe(false);
+  });
+  it('reconciles original OpenOrderReport kind after departure without replay', async () => {
+    host.invoke.mockImplementation(async (n: string) => n === 'component_mrp_begin' ? 9 : n === 'component_mrp_save' ? Promise.reject(new Error('lost')) : n === 'component_mrp_status' ? { outcome: 'saved', message: 'Workbook saved.', operationComplete: true } : false);
+    render(<><AnalyticalSaveStatus /><ReportsPanel generateOor={vi.fn().mockResolvedValue(prepared)} /></>); select(); site(); await exportWorkbook();
+    await screen.findByRole('button', { name: 'Check save status' }); fireEvent.click(screen.getByRole('button', { name: 'Component MRP' })); await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Check save status' })));
+    await waitFor(() => expect(host.invoke).toHaveBeenCalledWith('component_mrp_status', expect.objectContaining({ reportKind: 'OpenOrderReport' }))); expect(host.invoke.mock.calls.filter(([n]) => n === 'component_mrp_save')).toHaveLength(1);
   });
 });

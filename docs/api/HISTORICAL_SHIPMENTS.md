@@ -5,6 +5,14 @@ Implemented and **OWNER-ACCEPTED as Stage 19 Part 1 — 2026-10-13**. See
 `docs/implementation/KST_v2_STAGE_19_PART_1_FOUNDATION_EVIDENCE.md` for scoped implementation
 evidence and limitations. The historical UI handoff records its original implementation sequence.
 
+Reports presentation/export integration and 100/500/1000 paging are **OWNER-ACCEPTED / CLOSED —
+2026-10-19** under the Reports redesign checkpoint (S22-015). The owner confirmed visual,
+functional and native-save testing; this owner-reported evidence is separate from retained agent
+checks, not a claim of new agent live queries or exhaustive native-fault tests. Historical header
+filters and sorting remain deferred; source population/calculations and native grants/lifetimes/
+retry rules are unchanged. Acceptance/verification/accepted executable identity:
+`docs/implementation/KST_v2_S22_REPORTS_REDESIGN.md`. Overall Stage 22 is not closed.
+
 All operation routes require `X-KST-Report-Session`, a canonical UUID. Operation IDs are
 client-generated UUIDs and registered before starting acquisition; they are never reused.
 Routes under `/api/v1/reports/historical-shipments`:
@@ -29,9 +37,26 @@ available invoice history. Corporate membership never widens invoice site/domain
 Display/export share effective selected columns. Currency is optional, including when monetary
 fields are selected (explicit owner amendment). Values are nullable strings; decimal strings are exact, dates are ISO
 calendar dates. There are no aggregate totals, unit normalization or accounting-revenue claims.
-The UI persists column IDs only, never filters. It releases its operation on departure/replacement
+The UI persists column IDs and a guarded Reports-only page-size preference, never query filters.
+Reports offers 100/500/1000 rows per page (default 100); the spec/store/native upper page limit is
+1,000. Resizing selects the page containing the previous first visible row without acquisition or
+workbook invalidation. It retrieves one bounded page, not stitched pages or the complete browser
+population. The native JSON transport ceiling is 20 MiB; an oversized response fails explicitly.
+The UI maintains separate draft criteria/columns and applied criteria/frozen operation. Draft edits
+retain displayed results; columns apply on the next Display. Metadata, summaries and export scope
+refer to the applied operation. Valid unchanged criteria can be displayed again to refresh facts.
+Any customer is the initial customer mode; inactive Corp Group/range draft text is never submitted.
+The calendar quick ranges use local business date, inclusive Last 30 days/Last 90 days/Year to date.
+Header filters and sorting remain deferred. It releases its operation on departure/replacement
 and ignores replies from previous visits/operation IDs. A native save worker retains its own
 immutable local file through completion, even after report departure.
+
+Reports now uses the shared format menu → preparation → protected native Save As/recovery UI.
+Historical preparation borrows the complete applied operation, never the draft query/visible page.
+Export presentation cleanup does not release the acquisition; retained host/frozen bytes remain
+subject to existing operation replacement/departure/30-minute expiry. Cancellation's Save again
+reuses the exact prepared workbook. Shared presentation does not broaden Historical saved-artifact
+opening/departure authority or retry limits. See `docs/implementation/KST_v2_S22_REPORTS_REDESIGN.md`.
 
 ## Owner-amended defaults — 2026-10-13
 

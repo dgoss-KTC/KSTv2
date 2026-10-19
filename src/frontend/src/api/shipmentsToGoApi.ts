@@ -4,11 +4,12 @@ import { isRunningInTauri, resolveBackendBaseUrl } from './tauri-bridge';
 export type ShipmentsToGoRequest = components['schemas']['ShipmentsToGoRequestDto'];
 export type ShipmentsToGoPrepared = components['schemas']['ShipmentsToGoPreparedDto'];
 
-export async function generateShipmentsToGo(request: ShipmentsToGoRequest, signal?: AbortSignal): Promise<ShipmentsToGoPrepared> {
+export async function generateShipmentsToGo(request: ShipmentsToGoRequest, signal?: AbortSignal, ownedEpoch?: number): Promise<ShipmentsToGoPrepared> {
   if (isRunningInTauri()) {
     const { invoke } = await import('@tauri-apps/api/core');
-    const epoch = await invoke<number>('component_mrp_begin');
-    const invalidate = () => { void invoke('report_discard').catch(() => {}); };
+    const epoch = ownedEpoch ?? await invoke<number>('component_mrp_begin');
+    signal?.throwIfAborted();
+    const invalidate = () => { void invoke('sop_discard_generation', { epoch }).catch(() => {}); };
     signal?.addEventListener('abort', invalidate, { once: true });
     try {
       return await invoke('component_mrp_generate', { epoch, reportKind: 'ShipmentsToGo', ...request,

@@ -5,11 +5,12 @@ import { isRunningInTauri } from './tauri-bridge';
 export type ComponentMrpRequest = components['schemas']['ComponentMrpRequestDto'];
 export type ComponentMrpPrepared = components['schemas']['ComponentMrpPreparedDto'];
 
-export async function generateComponentMrp(request: ComponentMrpRequest, signal?: AbortSignal): Promise<ComponentMrpPrepared> {
+export async function generateComponentMrp(request: ComponentMrpRequest, signal?: AbortSignal, ownedEpoch?: number): Promise<ComponentMrpPrepared> {
   if (isRunningInTauri()) {
     const { invoke } = await import('@tauri-apps/api/core');
-    const epoch = await invoke<number>('component_mrp_begin');
-    const invalidate = () => { void invoke('component_mrp_begin').catch(() => {}); };
+    const epoch = ownedEpoch ?? await invoke<number>('component_mrp_begin');
+    signal?.throwIfAborted();
+    const invalidate = () => { void invoke('sop_discard_generation', { epoch }).catch(() => {}); };
     signal?.addEventListener('abort', invalidate, { once: true });
     try { return await invoke<ComponentMrpPrepared>('component_mrp_generate', { epoch, ...request }); }
     finally { signal?.removeEventListener('abort', invalidate); }

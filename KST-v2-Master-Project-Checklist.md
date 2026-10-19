@@ -3,7 +3,31 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** **S22-009 Finished Goods UI/header filters — COMPLETE /
+**Current project position:** **Reports redesign — COMPLETE / OWNER-ACCEPTED / CLOSED —
+2026-10-19.** Owner confirmed visual, functional and native-save testing and explicitly accepted
+the scoped implementation, authorizing one complete local checkpoint commit, **not a push**.
+Owner-reported evidence is separate from agent checks, not new automated/native-suite, agent live-query,
+exhaustive-fault, deployment or risk-acceptance evidence. Accepted implementation/tests are unchanged;
+closeout reuses existing verification with explicit staged-path/diff/whitespace, normal hooks and
+post-commit checks only. No repeated suites/builds/AFT/review or sidecar publication.
+One bounded dispatch closes S22-011–015 for Reports and records accepted portions of S22-003/018
+and only Part Info header/query/identity within S22-037. Grouped Reports chrome/forms, typed shared
+export/recovery preserving
+actual report/native authority, Historical draft/applied separation and bounded 100/500/1000 paging.
+No header filters/sorting or source/workbook/locked Stage 9–11/Part Info data behavior changes.
+187 frontend passes/2 inherited skips, 132 backend passes, native export16 passes/2 intentional
+interactive ignores; types/scoped lint/C# formatting/builds/republished sidecar/release pass.
+Independent scoped security review found no confirmed new material blocker at reviewed depth.
+AFT deadline/unmodified native format/Vite exceptions explicit, owner build metadata preserved.
+No agent live queries/app launch, dependencies/capabilities/grant expansion, push/deployment or
+risk acceptance. Owner build metadata remains byte-identical, unstaged/excluded; full evidence,
+logs/caches/secrets/published binaries stay outside Git. Accepted host identity, original checklist,
+verification and closeout: `docs/implementation/KST_v2_S22_REPORTS_REDESIGN.md`.
+Existing Windows backlog IDs reconciled without duplicate or unrelated closure. Broader S22-003/018/
+037 workstreams remain open; Historical header filters/sorting, Part Info data region and overall
+Stage 22 are not complete. Further development requires a separate dispatch.
+
+**Preceding accepted checkpoint:** **S22-009 Finished Goods UI/header filters — COMPLETE /
 OWNER-ACCEPTED / CLOSED — 2026-10-19.** Owner reviewed the application and explicitly accepted
 styling, all five header filters, full-report cascading counts, exact-decimal filtering and
 100/500/1000 paging, authorizing one complete local closeout commit, **not a push**. This is owner-run

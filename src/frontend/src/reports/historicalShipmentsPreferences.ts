@@ -2,6 +2,12 @@ import type { HistoricalShipmentsRequest, HistoricalShipmentsSpec } from '../api
 
 export const hsColumnsKey = 'kst.historicalShipments.columns.v1';
 export const hsPageSize = 100;
+export const hsPageSizeKey = 'kst.historicalShipments.pageSize.v1';
+export const hsPageSizes = [100, 500, 1000] as const;
+export function initialHsPageSize(): number {
+  try { const raw = localStorage.getItem(hsPageSizeKey); return raw !== null && hsPageSizes.some(n => String(n) === raw) ? Number(raw) : hsPageSize; }
+  catch { return hsPageSize; }
+}
 export type Column = HistoricalShipmentsSpec['columns'][number];
 
 export const blankFilters = {

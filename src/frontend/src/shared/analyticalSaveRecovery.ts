@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from 'react';
-import type { AnalyticalExportClient, AnalyticalSaveResult } from '../api/analyticalExportApi';
+import type { AnalyticalSaveResult } from '../api/analyticalExportApi';
+import type { ExcelSavePort } from './excelExportPort';
 
 // Application-lifetime observational recovery survives preparation/workspace/module departure.
-interface SaveRecovery { id: string; owner?: string; label: string; client: AnalyticalExportClient; message: string; pending: boolean; checking: boolean; opening: boolean; result?: AnalyticalSaveResult; openFailed?: boolean; dismissed?: boolean }
+interface SaveRecovery { id: string; owner?: string; label: string; client: ExcelSavePort; message: string; warning?: string | null; pending: boolean; checking: boolean; opening: boolean; result?: AnalyticalSaveResult; openFailed?: boolean; dismissed?: boolean }
 interface PreparationFeedback { owner: string; label: string; preparing: boolean; message: string; actions: { label: string; run: () => void }[]; supersede: () => void }
 let operations: SaveRecovery[] = [];
 let preparation: PreparationFeedback | null = null;
@@ -27,9 +28,9 @@ export function clearAnalyticalPreparation(owner: string) {
   if (preparation?.owner !== owner) return;
   preparation = null; notify();
 }
-export function beginAnalyticalSave(id: string, client: AnalyticalExportClient, owner?: string, label = 'Excel export') {
+export function beginAnalyticalSave(id: string, client: ExcelSavePort, owner?: string, label = 'Excel export', warning?: string | null) {
   if (operations.some(o => o.pending || o.opening)) return false;
-  operations = [...operations, { id, client, owner, label, message: 'Waiting for Save As / protected save to finish…', pending: true, checking: false, opening: false }];
+  operations = [...operations, { id, client, owner, label, warning, message: 'Waiting for Save As / protected save to finish…', pending: true, checking: false, opening: false }];
   notify(); return true;
 }
 export function recordAnalyticalSave(id: string, result?: AnalyticalSaveResult) {

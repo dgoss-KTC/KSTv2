@@ -11,6 +11,15 @@ use std::{
 use tauri::{Emitter, Manager};
 
 const MAX_BYTES: usize = 8 * 1024 * 1024;
+const HISTORICAL_MAX_PAGE_SIZE: u32 = 1000;
+const HISTORICAL_MAX_REPLY_BYTES: usize = 20 * 1024 * 1024;
+fn historical_page_limit(limit: Option<u32>) -> Result<u32, String> {
+    let n = limit.unwrap_or(100);
+    if n == 0 || n > HISTORICAL_MAX_PAGE_SIZE {
+        return Err("Invalid page size.".into());
+    }
+    Ok(n)
+}
 const LIFETIME: Duration = Duration::from_secs(1800);
 #[derive(Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize, Debug)]
 pub enum ReportKind {
@@ -483,10 +492,7 @@ pub async fn historical_shipments_request(
             "release" => client.delete(&base),
             "status" => client.get(&base),
             "page" => {
-                let n = limit.unwrap_or(100);
-                if n == 0 || n > 200 {
-                    return Err("Invalid page size.".into());
-                }
+                let n = historical_page_limit(limit)?;
                 client.get(format!(
                     "{base}/rows?offset={}&limit={n}",
                     offset.unwrap_or(0)
@@ -518,7 +524,8 @@ pub async fn historical_shipments_request(
             .await
             .map_err(|_| "Historical Shipments reply incomplete.")?
         {
-            if metadata.len() + chunk.len() > 4 * 1024 * 1024 {
+            // Five times the former 200-row bound; still a hard transport ceiling, not full history.
+            if metadata.len() + chunk.len() > HISTORICAL_MAX_REPLY_BYTES {
                 return Err(
                     "Historical Shipments page/reply exceeds bounded transport capacity.".into(),
                 );
@@ -1284,6 +1291,17 @@ pub async fn component_mrp_open(
 mod tests {
     use super::*;
     #[test]
+    fn historical_pages_are_explicitly_bounded_for_all_three_report_sizes() {
+        assert_eq!(historical_page_limit(None).unwrap(), 100);
+        for n in [100, 500, 1000] {
+            assert_eq!(historical_page_limit(Some(n)).unwrap(), n);
+        }
+        for n in [0, 1001, u32::MAX] {
+            assert!(historical_page_limit(Some(n)).is_err());
+        }
+        assert_eq!(HISTORICAL_MAX_REPLY_BYTES, 20 * 1024 * 1024);
+    }
+    #[test]
     fn historical_file_payload_survives_departure_only_while_worker_owns_it() {
         use std::os::windows::fs::OpenOptionsExt;
         let root =
@@ -1403,6 +1421,10 @@ mod tests {
             for (id, kind) in [
                 ("analytical", ReportKind::Analytical),
                 ("mrp", ReportKind::ComponentMrp),
+                ("stg", ReportKind::ShipmentsToGo),
+                ("sop", ReportKind::Sop),
+                ("oor", ReportKind::OpenOrderReport),
+                ("historical", ReportKind::HistoricalShipments),
             ] {
                 s.artifacts.insert(
                     id.into(),
@@ -1425,6 +1447,16 @@ mod tests {
             }
             assert!(s.artifacts.contains_key("analytical"));
             assert!(!s.artifacts.contains_key("mrp"));
+            for (id, kind) in [
+                ("stg", ReportKind::ShipmentsToGo),
+                ("sop", ReportKind::Sop),
+                ("oor", ReportKind::OpenOrderReport),
+                ("historical", ReportKind::HistoricalShipments),
+            ] {
+                assert!(!s.artifacts.contains_key(id));
+                assert!(!s.can_open_artifact("analytical", kind));
+                assert!(!s.can_open_artifact(id, kind));
+            }
             assert!(s.can_open_artifact("analytical", ReportKind::Analytical));
             assert!(!s.can_open_artifact("analytical", ReportKind::ComponentMrp));
             assert!(!s.can_open_artifact("missing", ReportKind::Analytical));

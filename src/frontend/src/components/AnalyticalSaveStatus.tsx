@@ -1,11 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { dismissAnalyticalSave, openAnalyticalArtifact, reconcileAnalyticalSave, useAnalyticalExportStatus } from '../shared/analyticalSaveRecovery';
+import { dismissAnalyticalSave, openAnalyticalArtifact, reconcileAnalyticalSave, recordAnalyticalSave, useAnalyticalExportStatus } from '../shared/analyticalSaveRecovery';
+import { isRunningInTauri } from '../api/tauri-bridge';
+import type { AnalyticalSaveResult } from '../api/analyticalExportApi';
 import './AnalyticalExcelExport.css';
 
 /** Persistent application-session recovery, independent of the originating view and toast timer. */
 export function AnalyticalSaveStatus() {
   const { operations, preparation } = useAnalyticalExportStatus();
+  useEffect(() => {
+    if (!isRunningInTauri()) return;
+    let alive = true; let dispose: (() => void) | undefined;
+    void import('@tauri-apps/api/event').then(({ listen }) => listen<{ operationId: string; result: AnalyticalSaveResult }>('component-mrp-operation', event => {
+      if (alive) recordAnalyticalSave(event.payload.operationId, event.payload.result);
+    })).then(unlisten => { if (alive) dispose = unlisten; else unlisten(); }).catch(() => {});
+    return () => { alive = false; dispose?.(); };
+  }, []);
   const visibleOperations = operations.filter(o => !o.dismissed);
   if (!visibleOperations.length && !preparation) return null;
   const blocked = operations.some(o => o.pending || o.opening) || !!preparation?.preparing;
@@ -25,7 +35,7 @@ const ordinarySuccessMessages = new Set(['Workbook saved.', 'Workbook saved; ope
 function SaveOutcomeFeedback({ operation, blocked }: { operation: SaveOperation; blocked: boolean }) {
   const card = useRef<HTMLElement>(null);
   useEffect(() => {
-    if (operation.pending || operation.opening || operation.openFailed || operation.result?.outcome !== 'saved' || operation.result.operationComplete === false || !ordinarySuccessMessages.has(operation.message)) return;
+    if (operation.warning || operation.pending || operation.opening || operation.openFailed || operation.result?.outcome !== 'saved' || operation.result.operationComplete === false || !ordinarySuccessMessages.has(operation.message)) return;
     const element = card.current;
     let active = true; let expired = false;
     const dismissWhenUnfocused = () => {
@@ -40,6 +50,7 @@ function SaveOutcomeFeedback({ operation, blocked }: { operation: SaveOperation;
   return <section ref={card} className="analytical-export-feedback__card" aria-label={`${operation.label} save outcome`}>
       <strong>{operation.label}{operation.result?.outcome === 'saved' ? ' — Saved' : operation.result?.outcome === 'cancelled' ? ' — Cancelled' : operation.result?.outcome === 'failed' ? ' — Failed' : ''}</strong>
       <p role={operation.pending ? 'alert' : 'status'}>{operation.message}</p>
+      {operation.warning && <p>{operation.warning}</p>}
       <div className="analytical-export-feedback__actions">
         {operation.pending && <button type="button" className="analytical-export__button" disabled={operation.checking} onClick={() => void reconcileAnalyticalSave(operation.id)}>{operation.checking ? 'Checking save status…' : 'Check save status'}</button>}
         {!operation.pending && operation.openFailed && <button type="button" className="analytical-export__button" disabled={blocked} onClick={() => void openAnalyticalArtifact(operation.id)}>{operation.opening ? 'Opening…' : 'Open again'}</button>}
