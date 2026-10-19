@@ -5,7 +5,10 @@ export type WorkspaceShipmentsRequest = components['schemas']['WorkspaceShipment
 export type WorkspaceShipmentsSpec = components['schemas']['WorkspaceShipmentsSpecDto'];
 export type WorkspaceShipmentsOperation = components['schemas']['WorkspaceShipmentsOperationDto'];
 export type WorkspaceShipmentsAcquisition = components['schemas']['WorkspaceShipmentsOperationDto'];
-export type WorkspaceShipmentsPage = components['schemas']['HistoricalShipmentsPageDto'];
+export type WorkspaceShipmentsPage = components['schemas']['WorkspaceShipmentsPageDto'];
+export type ShipmentColumnFilter = components['schemas']['ShipmentColumnFilterDto'];
+export type WorkspaceShipmentsView = components['schemas']['WorkspaceShipmentsViewDto'];
+export type WorkspaceShipmentsFacets = components['schemas']['WorkspaceShipmentsFacetsDto'];
 
 /** Local calendar arithmetic (including DST), never UTC ISO truncation. Fresh per screen visit. */
 export function initialWorkspaceShipmentsFilters(today = new Date()): WorkspaceShipmentsRequest {
@@ -39,7 +42,7 @@ export class WorkspaceShipmentsClient {
     return this.operation;
   }
   private async call<T>(operation: NonNullable<WorkspaceShipmentsClient['operation']>, method: string, suffix: string,
-    signal?: AbortSignal, request?: WorkspaceShipmentsRequest): Promise<T> {
+    signal?: AbortSignal, request?: WorkspaceShipmentsRequest | components['schemas']['WorkspaceShipmentsViewRequestDto'] | components['schemas']['WorkspaceShipmentsFacetRequestDto'] | components['schemas']['WorkspaceShipmentsCancelViewDto']): Promise<T> {
     const combined = signal ? AbortSignal.any([signal, operation.abort.signal]) : operation.abort.signal;
     combined.throwIfAborted();
     const url = await this.url(operation.id);
@@ -50,9 +53,11 @@ export class WorkspaceShipmentsClient {
       const problem = await response.json().catch(() => null) as { detail?: string } | null;
       throw new Error(problem?.detail ?? 'Workspace Shipments operation failed.');
     }
-    const result = await response.json() as T;
+    const result = (response.status === 204 ? undefined : await response.json()) as T;
     combined.throwIfAborted();
     if (this.departed || this.operation !== operation) throw new Error('Workspace Shipments reply superseded.');
+    if (result && typeof result === 'object' && 'operationId' in result && result.operationId !== operation.id)
+      throw new Error('Workspace Shipments reply identity does not match.');
     return result;
   }
   private async deleteOperation(id: string): Promise<void> {
@@ -87,8 +92,23 @@ export class WorkspaceShipmentsClient {
       throw error;
     } finally { signal?.removeEventListener('abort', cancel); }
   }
-  page(offset = 0, limit = 100, signal?: AbortSignal): Promise<WorkspaceShipmentsPage> {
-    return this.call(this.current(), 'GET', `/rows?offset=${offset}&limit=${limit}`, signal);
+  page(offset = 0, limit = 100, signal?: AbortSignal, version: number | string = 0): Promise<WorkspaceShipmentsPage> {
+    return this.call<WorkspaceShipmentsPage>(this.current(), 'GET', `/rows?offset=${offset}&limit=${limit}&viewVersion=${version}`, signal).then(page => {
+      if (String(page.viewVersion) !== String(version) || Number(page.offset) !== offset) throw new Error('Shipment page belongs to a different view or offset.');
+      return page;
+    });
+  }
+  view(signal?: AbortSignal): Promise<WorkspaceShipmentsView> {
+    return this.call(this.current(), 'GET', '/view', signal);
+  }
+  setFilters(filters: ShipmentColumnFilter[], expectedVersion: number | string, sequence: number, signal?: AbortSignal): Promise<WorkspaceShipmentsView> {
+    return this.call(this.current(), 'POST', '/view', signal, { filters, expectedVersion, sequence });
+  }
+  cancelView(sequence: number): Promise<void> {
+    return this.call(this.current(), 'POST', '/view/cancel', undefined, { sequence });
+  }
+  values(column: string, search: string, retainedValues: string[], viewVersion: number | string, signal?: AbortSignal): Promise<WorkspaceShipmentsFacets> {
+    return this.call(this.current(), 'POST', '/values', signal, { column, search: search || null, retainedValues, viewVersion });
   }
   status(signal?: AbortSignal): Promise<WorkspaceShipmentsOperation> {
     return this.call(this.current(), 'GET', '', signal);

@@ -1,0 +1,8 @@
+.anchored-popover { position:fixed; z-index:1500; width:300px; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px); overflow:auto; padding:12px; border:1px solid var(--bd-strong); border-radius:10px; background:var(--panel); color:var(--tx); box-shadow:var(--shadow); font-size:12px; }
+.anchored-popover header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.anchored-popover :is(button,input,select) { font:inherit; color:var(--tx); background:var(--chip); border:1px solid var(--bd); border-radius:6px; min-height:var(--density-control-height); padding:3px 8px; max-width:100%; }
+.anchored-popover button { cursor:pointer; }
+.anchored-popover button:disabled { opacity:.55; cursor:not-allowed; }
+.anchored-popover :is(button,input,select):focus-visible { outline:2px solid var(--accent-solid); outline-offset:2px; }
+.anchored-popover button[type='submit'] { background:var(--accent-solid); border-color:var(--accent-solid); color:var(--control-on-accent); font-weight:600; }
+.anchored-popover p { color:var(--tx2); }

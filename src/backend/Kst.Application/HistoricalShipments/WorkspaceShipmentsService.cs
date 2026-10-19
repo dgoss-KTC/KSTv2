@@ -29,7 +29,18 @@ public sealed class DelegateWorkspaceShipmentsReader(Func<WorkspaceShipmentsFilt
 public interface IWorkspaceShipmentsStore
 {
     IHistoricalShipmentsStore Results { get; }
+    ShipmentView GetView(Guid id, string owner);
+    Task<ShipmentView> SetViewAsync(Guid id, string owner, long expectedVersion, long sequence, IReadOnlyList<ShipmentViewFilter> filters, CancellationToken ct);
+    void CancelView(Guid id, string owner, long sequence);
+    Task<WorkspaceShipmentPage> PageAsync(Guid id, string owner, long version, long offset, int limit, CancellationToken ct);
+    Task<ShipmentFacets> FacetsAsync(Guid id, string owner, long version, string column, string? search, IReadOnlyList<string> retainedValues, CancellationToken ct);
 }
+
+public sealed record ShipmentView(Guid OperationId, long Version, long RowCount, long OnTimeNumerator, long OnTimeDenominator, IReadOnlyList<ShipmentViewFilter> Filters);
+public sealed record WorkspaceShipmentPage(ShipmentOperation Operation, ShipmentView View, long Offset, IReadOnlyList<ShipmentRow> Rows);
+public sealed record ShipmentFacetValue(string Value, long Count);
+public sealed record ShipmentFacets(Guid OperationId, long Version, string Column, IReadOnlyList<ShipmentFacetValue> Values,
+    IReadOnlyList<ShipmentFacetValue> RetainedValues, long BlankCount, long DistinctTotal, long MatchingDistinctTotal, bool Truncated);
 
 public sealed class WorkspaceShipmentsService(IWorkspaceConfigurationService workspaces, IWorkspaceShipmentsScopeResolver scopeResolver,
     IWorkspaceShipmentsReader reader, IWorkspaceShipmentsStore store)

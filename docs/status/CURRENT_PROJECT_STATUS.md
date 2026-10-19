@@ -3,6 +3,44 @@
 Date: 2026-10-19
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## S22-010 — Workspace Shipments redesign/filtering amendment — COMPLETE / OWNER-ACCEPTED — 2026-10-19
+
+The owner reviewed and accepted the rebuilt release application on 2026-10-19 and explicitly
+authorized S22-010 closeout and one complete local checkpoint commit, not a push. This owner-run
+acceptance is separate from retained offline tests and does not imply itemized checklist completion,
+additional connected-source parity or exhaustive fault verification.
+
+Starting HEAD `1edbebd`. Explicit owner-dispatched and now accepted amendment to
+accepted Stage 19 Part 2 listing: full frozen-result typed header filters, cascading searchable bounded
+facets, filtered On Time summary and 100/500/1000 Workspace pages. Original acquisition population,
+queries, ordering/calculations, Reports 200 cap, operation ownership/expiry/workers and locked Stages
+9–11 are unchanged. Exact Part/date acquisition scope stays distinct/visible; visit-local filters
+survive Apply/Refresh, page-size preference alone may persist. No export/Open Orders migration.
+
+Final offline scope: **82 backend passes**, **139 frontend passes / 3 inherited skips**; generated
+contracts, type/build/scoped lint/format and release desktop/sidecar builds pass. Separate-context
+independent security review plus final delta reports no confirmed new material blocker at reviewed
+depth. High-cardinality synthetic evidence, source-disabled four-route startup probes and retained
+exceptions/limits are in `docs/implementation/KST_v2_S22_WORKSPACE_SHIPMENTS_REDESIGN.md` and
+`C:\Dev\kst_v2_tmp\Stage22\WorkspaceShipments\evidence\`. AFT TypeScript diagnostics remained partial;
+known broad format/lint exceptions are not passing checks.
+
+**Accepted review target:** `src/tauri/target/release/kst-tauri.exe` (rebuilt embedded frontend, alpha.21).
+Publish/binaries/release sidecars match: 127,519,910 bytes, SHA256
+`6CE2AAB8468E3809032130C2D640F9B2133980CDEC43C336E8BE311438F4BFFE`.
+The running debug app locked its old sidecar, so debug check/copy failed with access denied and
+**debug was not refreshed**; the app was left untouched. This remains an old-debug/new-release
+distinction, not a closeout rebuild requirement. Owner desktop acceptance applies to release; no
+agent-executed desktop UI/live query, installer or deployment is claimed. Retained resource limits
+and unverified fault modes remain documented limitations. The complete accepted implementation,
+shared controls, tests, contracts and closeout are authorized for the local commit; the pre-entry
+modified `tsconfig.tsbuildinfo` remains preserved unstaged and excluded. The closeout changes only
+documentation and reuses verification, with exact staged diff/path/whitespace and post-commit checks;
+no full-suite/build/review rerun, dependency/capability changes, debug refresh or push.
+
+**S22-005 is reopened for a subsequent filtering update.** Its accepted implementation below remains
+the baseline, not undone or migrated here. Stage 22 overall remains open.
+
 ## S22-006 — Component Orders performance diagnostics — COMPLETE / OWNER-ACCEPTED — 2026-10-19
 
 The owner reports checking the timings, conducting a desktop review and explicitly accepting the

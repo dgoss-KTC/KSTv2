@@ -74,13 +74,13 @@
 .mps-workspace__btn--primary {
   background: var(--accent-solid);
   border-color: var(--accent-solid);
-  color: #0c1118;
+  color: var(--control-on-accent);
   font-weight: 600;
 }
 
 .mps-workspace__btn--primary:hover {
   filter: brightness(1.06);
-  color: #0c1118;
+  color: var(--control-on-accent);
 }
 
 .segmented {

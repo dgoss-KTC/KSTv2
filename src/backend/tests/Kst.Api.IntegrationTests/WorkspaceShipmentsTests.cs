@@ -231,7 +231,7 @@ public class WorkspaceShipmentsTests
         Assert.All(page.Rows, r => { Assert.Equal("0000123", r.Cells[5]); Assert.Equal("-5.3125", r.Cells[8]); });
         var tail = await c.GetFromJsonAsync<HistoricalShipmentsPageDto>(path + "/rows?offset=2&limit=2");
         Assert.Equal(new[] { "a", "d" }, tail!.Rows.Select(x => x.PhysicalDetailId)); Assert.Null(tail.Rows[1].Cells[0]);
-        Assert.Equal(HttpStatusCode.BadRequest, (await c.GetAsync(path + "/rows?offset=0&limit=201")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await c.GetAsync(path + "/rows?offset=0&limit=1001")).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await c.DeleteAsync(path)).StatusCode);
         Assert.Equal(HttpStatusCode.Gone, (await c.GetAsync(path)).StatusCode);
     }

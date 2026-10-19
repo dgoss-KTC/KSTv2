@@ -1100,6 +1100,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{assignmentId}/shipments/operations/{id}/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetWorkspaceShipmentsView"];
+        put?: never;
+        post: operations["SetWorkspaceShipmentsView"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/shipments/operations/{id}/view/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CancelWorkspaceShipmentsView"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{assignmentId}/shipments/operations/{id}/values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["GetWorkspaceShipmentsValues"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2136,6 +2184,22 @@ export interface components {
             mpsSnapshotId: string;
             entries: components["schemas"]["PlanningDraftEntryRequestDto"][];
         };
+        ShipmentColumnFilterDto: {
+            column: string;
+            kind: string;
+            mode?: null | string;
+            values?: null | string[];
+            /** @default false */
+            includeBlanks: boolean;
+            text?: null | string;
+            operator?: null | string;
+            value?: null | string;
+            upper?: null | string;
+            /** Format: date */
+            from?: null | string;
+            /** Format: date */
+            to?: null | string;
+        };
         ShipmentsToGoPreparedDto: {
             outcome: string;
             preparationId: null | string;
@@ -2409,6 +2473,47 @@ export interface components {
             workspaces: components["schemas"]["WorkspaceAssignmentDto"][];
             configurationWarning: null | string;
         };
+        WorkspaceShipmentsCancelViewDto: {
+            /** Format: int64 */
+            sequence: number | string;
+        };
+        WorkspaceShipmentsColumnDto: {
+            id: string;
+            label: string;
+            kind: string;
+            provenance: string;
+            defaultSelected: boolean;
+            monetary: boolean;
+            filterKind: null | string;
+        };
+        WorkspaceShipmentsFacetRequestDto: {
+            /** Format: int64 */
+            viewVersion: number | string;
+            column: string;
+            search: null | string;
+            retainedValues: string[];
+        };
+        WorkspaceShipmentsFacetsDto: {
+            /** Format: uuid */
+            operationId: string;
+            /** Format: int64 */
+            viewVersion: number | string;
+            column: string;
+            values: components["schemas"]["WorkspaceShipmentsFacetValueDto"][];
+            retainedValues: components["schemas"]["WorkspaceShipmentsFacetValueDto"][];
+            /** Format: int64 */
+            blankCount: number | string;
+            /** Format: int64 */
+            distinctTotal: number | string;
+            /** Format: int64 */
+            matchingDistinctTotal: number | string;
+            truncated: boolean;
+        };
+        WorkspaceShipmentsFacetValueDto: {
+            value: string;
+            /** Format: int64 */
+            count: number | string;
+        };
         WorkspaceShipmentsOperationDto: {
             /** Format: uuid */
             operationId: string;
@@ -2427,6 +2532,18 @@ export interface components {
             /** Format: int64 */
             onTimeDenominator: null | number | string;
         };
+        WorkspaceShipmentsPageDto: {
+            /** Format: uuid */
+            operationId: string;
+            /** Format: int64 */
+            offset: number | string;
+            /** Format: int64 */
+            rowCount: number | string;
+            columns: string[];
+            rows: components["schemas"]["HistoricalShipmentsRowDto"][];
+            /** Format: int64 */
+            viewVersion: number | string;
+        };
         WorkspaceShipmentsRequestDto: {
             partNumber: null | string;
             /** Format: date */
@@ -2435,9 +2552,38 @@ export interface components {
             shipDateTo: null | string;
         };
         WorkspaceShipmentsSpecDto: {
-            columns: components["schemas"]["HistoricalShipmentsColumnDto"][];
+            columns: components["schemas"]["WorkspaceShipmentsColumnDto"][];
             /** Format: int32 */
             maximumPageSize: number | string;
+            pageSizes: (number | string)[];
+            /** Format: int32 */
+            maximumValues: number | string;
+            /** Format: int32 */
+            maximumTextLength: number | string;
+            /** Format: int32 */
+            maximumDecimalDigits: number | string;
+            /** Format: int32 */
+            maximumDecimalScale: number | string;
+        };
+        WorkspaceShipmentsViewDto: {
+            /** Format: uuid */
+            operationId: string;
+            /** Format: int64 */
+            version: number | string;
+            /** Format: int64 */
+            rowCount: number | string;
+            /** Format: int64 */
+            onTimeNumerator: number | string;
+            /** Format: int64 */
+            onTimeDenominator: number | string;
+            filters: components["schemas"]["ShipmentColumnFilterDto"][];
+        };
+        WorkspaceShipmentsViewRequestDto: {
+            /** Format: int64 */
+            expectedVersion: number | string;
+            /** Format: int64 */
+            sequence: number | string;
+            filters: components["schemas"]["ShipmentColumnFilterDto"][];
         };
     };
     responses: never;
@@ -5906,6 +6052,7 @@ export interface operations {
             query: {
                 offset: number | string;
                 limit: number | string;
+                viewVersion?: number | string;
             };
             header?: never;
             path: {
@@ -5922,7 +6069,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HistoricalShipmentsPageDto"];
+                    "application/json": components["schemas"]["WorkspaceShipmentsPageDto"];
                 };
             };
             /** @description Bad Request */
@@ -5945,6 +6092,225 @@ export interface operations {
             };
             /** @description Gone */
             410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetWorkspaceShipmentsView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceShipmentsViewDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SetWorkspaceShipmentsView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceShipmentsViewRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceShipmentsViewDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CancelWorkspaceShipmentsView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceShipmentsCancelViewDto"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetWorkspaceShipmentsValues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceShipmentsFacetRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceShipmentsFacetsDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -6,7 +6,7 @@ using Kst.Domain.HistoricalShipments;
 namespace Kst.Infrastructure.HistoricalShipments;
 
 /// <summary>Private process-root files; no caller paths. Bounded slots/pages; disk-backed row index.</summary>
-public sealed class FileHistoricalShipmentsStore : IHistoricalShipmentsStore, IDisposable
+public sealed partial class FileHistoricalShipmentsStore : IHistoricalShipmentsStore, IDisposable
 {
     private sealed class Entry(Guid id, string owner, string directory, DateTimeOffset expires)
     {
@@ -22,6 +22,10 @@ public sealed class FileHistoricalShipmentsStore : IHistoricalShipmentsStore, ID
         public string Index => Path.Combine(Directory, "index.bin");
         public string Workbook => Path.Combine(Directory, "workbook.xlsx");
         public string PendingWorkbook => Path.Combine(Directory, "workbook.pending");
+        public ShipmentView? View;
+        public long ViewSequence;
+        public CancellationTokenSource? ViewCancel;
+        public string ViewIndex => Path.Combine(Directory, "view.bin");
     }
     private readonly object _gate = new();
     private readonly Dictionary<Guid, Entry> _entries = [];

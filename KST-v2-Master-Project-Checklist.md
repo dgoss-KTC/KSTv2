@@ -3,8 +3,17 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** S22-005 Customer Open Orders UI is **COMPLETE / OWNER-ACCEPTED —
-2026-10-19**, including lifecycle, Windows pointer-drag and numeric-focus corrections; see §22.3.
+**Current project position:** **S22-010 Workspace Shipments redesign is COMPLETE / OWNER-ACCEPTED —
+2026-10-19**. The owner reviewed/accepted the rebuilt release application and authorized closeout
+and one complete local checkpoint commit, not a push. Explicit accepted Stage 19 Part 2 listing
+amendment preserves acquisition/source/math; bounded disk-backed views/facets and Workspace-only
+100/500/1000 pages are delivered. See `docs/implementation/KST_v2_S22_WORKSPACE_SHIPMENTS_REDESIGN.md`
+for 82 backend / 139 frontend passes (3 skips), independent security review, release artifact identity,
+source-disabled probes, known exceptions and owner-run acceptance. Published/binaries/release sidecars
+match; debug was blocked by the running app and remains old, not refreshed or included in acceptance
+of the rebuilt release artifact. Existing verification is reused; unrelated build metadata stays unstaged.
+**S22-005 Customer Open Orders is reopened for a subsequent filtering update**; its 2026-10-19
+owner-accepted UI/lifecycle/pointer/numeric-focus implementation remains the baseline; see §22.3.
 Stage 22 remains open. Earlier Stage 22 MPS drill-down and subsequent MPS/BOM export pilot — **IMPLEMENTED /
 OFFLINE-VERIFIED; ACCEPTED MPS/EXPORT BEHAVIOR, REMAINING OWNER VALIDATION PENDING — 2026-10-16**. Accepted stage baseline remains
 Stage 21 (`1831fb7`). Stage 22 overall is in progress, not accepted or complete. See
@@ -1823,6 +1832,18 @@ recovery. See `docs/implementation/KST_v2_STAGE_22_MPS_BOM_EXPORT_PILOT.md`. Its
 security review reports no confirmed new material defect; that is not owner/risk acceptance.
 Other report migrations and operational CSV workflows are outside this batch.
 
+- [x] **S22-010 Workspace Shipments redesign — COMPLETE / OWNER-ACCEPTED — 2026-10-19.** Owner-run
+      review accepted the rebuilt release application. Full-result typed header filters, cascading
+      facets, atomic disk-backed views, cancellation/version protection, filtered On Time Rate and
+      Workspace 100/500/1000 paging explicitly amend the Stage 19 Part 2 listing, not acquisition,
+      source/math or Reports' 200 cap. Reused evidence: 82 backend passes; 139 frontend passes / 3
+      inherited skips; retained build/type/scoped lint/format/publication and independent security
+      review. Partial AFT, inherited broad lint/format exceptions, resource limits and unverified fault
+      modes remain explicit. Published/binaries/release sidecars match; debug remains old after its
+      lock-blocked rebuild. Owner authorized complete local implementation/tests/contracts/shared
+      controls/closeout commit; unrelated build metadata, local evidence and executables are excluded.
+      See `docs/implementation/KST_v2_S22_WORKSPACE_SHIPMENTS_REDESIGN.md`. Stage 22 remains open.
+
 Separately owner-authorized **S22-005 Customer Open Orders** redesign (implemented 2026-10-16) is
 **COMPLETE / OWNER-ACCEPTED — 2026-10-19**. The owner completed all 24 items in the supplied
 `OpenOrdersUI\evidence\OWNER_REVIEW_CHECKLIST.md` and explicitly accepted all session changes,
@@ -1844,6 +1865,10 @@ See `docs/implementation/KST_v2_S22_005_OPEN_ORDERS_UI.md`. Owner checklist comp
 evidence, not proof of external QXtend acceptance. The owner separately authorized closeout docs and
 the complete local S22-005 commit, not a push or next implementation item. No agent-run live source
 access or shared deployment occurred; Stage 22 remains open. Large local evidence/build outputs stay outside Git.
+
+**Subsequent scope:** S22-005 remains **reopened for its subsequent filtering update**. The accepted
+2026-10-19 implementation above remains its original baseline; S22-010 does not migrate Open Orders
+or authorize that next implementation here.
 
 - [ ] Work in bounded owner-review batches rather than one monolithic change set.
 - [ ] Improve cross-view consistency, scrolling, sizing, navigation, keyboard behavior, filters,

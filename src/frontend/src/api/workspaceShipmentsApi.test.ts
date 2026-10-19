@@ -14,7 +14,7 @@ describe('Workspace Shipments independent transport', () => {
     expect(initialWorkspaceShipmentsFilters(today)).toEqual({ partNumber: null, shipDateFrom: from, shipDateTo: to });
   });
   it('uses assignment routes, literal filters, separate visit owners and bounded paging; refresh releases old result', async () => {
-    const fetch = vi.fn().mockImplementation(async () => response({ rowCount: 12001, rows: [{ physicalDetailId: 'different' }] }));
+    const fetch = vi.fn().mockImplementation(async () => response({ rowCount: 12001, offset: 12000, viewVersion: 0, rows: [{ physicalDetailId: 'different' }] }));
     vi.stubGlobal('fetch', fetch);
     const a = new WorkspaceShipmentsClient('assignment-a'); const b = new WorkspaceShipmentsClient('assignment-b');
     await getWorkspaceShipmentsSpec('assignment-a'); await a.acquire(request); await a.page(12000, 100); await b.acquire(request);
@@ -74,5 +74,30 @@ describe('Workspace Shipments independent transport', () => {
     await expect(client.status()).resolves.toEqual({});
     expect(fetch.mock.calls.filter(c => c[1].method === 'DELETE').every(c => !newId.startsWith(c[0]))).toBe(true);
     await client.release();
+  });
+  it('filters, facets, view cancellation and larger pages stay on the owned operation without another acquisition or delete', async () => {
+    const fetch = vi.fn().mockImplementation(async (url: string, options: RequestInit) => {
+      if (url.endsWith('/view/cancel')) return { ok: true, status: 204 };
+      if (url.includes('/rows?')) return response({ viewVersion: 7, offset: 1000, rows: [] });
+      if (options.method === 'POST' && url.endsWith('/view')) return response({ version: 7 });
+      return response();
+    });
+    vi.stubGlobal('fetch', fetch); const client = new WorkspaceShipmentsClient('a'); await client.acquire(request);
+    await client.setFilters([{ column: 'itemNumber', kind: 'contains', text: '%_', includeBlanks: false }], 6, 12);
+    await client.values('itemNumber', '%_', ['retained'], 7); await client.page(1000, 1000, undefined, 7); await client.cancelView(12); await client.view();
+    expect(fetch.mock.calls.filter(c => c[0].endsWith('/acquire'))).toHaveLength(1);
+    expect(fetch.mock.calls.filter(c => c[1].method === 'DELETE')).toHaveLength(0);
+    const filter = fetch.mock.calls.find(c => c[0].endsWith('/view') && c[1].method === 'POST')!;
+    expect(JSON.parse(filter[1].body as string)).toEqual({ expectedVersion: 6, sequence: 12, filters: [{ column: 'itemNumber', kind: 'contains', text: '%_', includeBlanks: false }] });
+    const facet = fetch.mock.calls.find(c => c[0].endsWith('/values'))!;
+    expect(JSON.parse(facet[1].body as string)).toEqual({ column: 'itemNumber', search: '%_', retainedValues: ['retained'], viewVersion: 7 });
+    expect(fetch.mock.calls.find(c => c[0].includes('/rows?'))![0]).toContain('limit=1000&viewVersion=7');
+  });
+  it('rejects a page version, offset or operation mismatch even when its HTTP reply is successful', async () => {
+    const fetch = vi.fn().mockResolvedValue(response()); vi.stubGlobal('fetch', fetch);
+    const client = new WorkspaceShipmentsClient('a'); await client.acquire(request);
+    fetch.mockResolvedValueOnce(response({ viewVersion: 8, offset: 0, rows: [] })); await expect(client.page(0, 100, undefined, 7)).rejects.toThrow('different view');
+    fetch.mockResolvedValueOnce(response({ viewVersion: 7, offset: 100, rows: [] })); await expect(client.page(0, 100, undefined, 7)).rejects.toThrow('different view');
+    fetch.mockResolvedValueOnce(response({ operationId: 'wrong', viewVersion: 7, offset: 0, rows: [] })); await expect(client.page(0, 100, undefined, 7)).rejects.toThrow('identity');
   });
 });
