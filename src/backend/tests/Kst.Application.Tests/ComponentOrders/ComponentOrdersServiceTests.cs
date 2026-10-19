@@ -13,10 +13,14 @@ using Kst.Infrastructure.Mps;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Diagnostics;
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Xunit.Abstractions;
 
 namespace Kst.Application.Tests.ComponentOrders;
 
-public sealed class ComponentOrdersServiceTests
+public sealed class ComponentOrdersServiceTests(ITestOutputHelper output)
 {
     private static readonly Guid WorkspaceId = Guid.NewGuid();
     private static readonly DateOnly Today = new(2026, 9, 10);
@@ -71,7 +75,8 @@ public sealed class ComponentOrdersServiceTests
     private static Fixture Build(
         Func<string, string, DateOnly, CancellationToken, Task<IReadOnlyList<BomOccurrence>>>? bom = null,
         Func<string, IReadOnlyList<string>, DateOnly, CancellationToken, Task<IReadOnlyList<ComponentOrderLine>>>? poReader = null,
-        Func<ComponentOrderEnrichmentRequest, CancellationToken, Task<ComponentOrderEnrichmentResult>>? enrichment = null)
+        Func<ComponentOrderEnrichmentRequest, CancellationToken, Task<ComponentOrderEnrichmentResult>>? enrichment = null,
+        ILogger<ComponentOrdersService>? logger = null)
     {
         var mpsStore = new InMemoryMpsSnapshotStore();
         var cacheStore = new InMemoryComponentOrdersCacheStore();
@@ -103,7 +108,7 @@ public sealed class ComponentOrdersServiceTests
             poReaderDelegate,
             enrichmentReader,
             cacheStore,
-            NullLogger<ComponentOrdersService>.Instance);
+            logger ?? NullLogger<ComponentOrdersService>.Instance);
 
         return new Fixture { Service = service, MpsStore = mpsStore, BomParentsRead = bomParentsRead, PoReaderComponentBatches = poReaderBatches, EnrichmentRequests = enrichmentRequests };
     }
@@ -454,5 +459,186 @@ public sealed class ComponentOrdersServiceTests
         cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
+    }
+
+    [Fact]
+    public async Task Timings_CorrelateNestedPhases_AndDistinguishCacheHit()
+    {
+        var logger = new TimingLogger();
+        var fixture = Build(logger: logger);
+        var snapshotId = SeedSnapshot(fixture.MpsStore, "P1", "P2");
+        await fixture.Service.GetComponentOrdersAsync(WorkspaceId, snapshotId, Today);
+
+        var timings = logger.Timings.ToArray();
+        Assert.Single(timings.Select(t => t["OperationId"]).Distinct());
+        Assert.All(timings, t => Assert.True((double)t["PhaseElapsedMs"]! >= 0));
+        var service = Assert.Single(timings, t => Equals(t["Phase"], "Service"));
+        var scope = Assert.Single(timings, t => Equals(t["Phase"], "BomScope"));
+        Assert.Equal(service["SpanId"], scope["ParentSpanId"]);
+        Assert.Equal("Loaded", service["Outcome"]);
+        Assert.Contains(timings, t => Equals(t["Phase"], "CacheLookup") && Equals(t["Outcome"], "Miss"));
+        Assert.Equal(2, timings.Count(t => Equals(t["Phase"], "BomGateWait")));
+
+        logger.Timings.Clear();
+        await fixture.Service.GetComponentOrdersAsync(WorkspaceId, snapshotId, Today);
+        Assert.Contains(logger.Timings, t => Equals(t["Phase"], "CacheLookup") && Equals(t["Outcome"], "Hit"));
+        Assert.DoesNotContain(logger.Timings, t => Equals(t["Phase"], "BomScope") || Equals(t["Phase"], "PoSource"));
+        Assert.Null(Activity.Current);
+    }
+
+    [Theory]
+    [InlineData(false, "Failed", ComponentOrdersOutcomeKind.Unavailable)]
+    [InlineData(true, "Cancelled", null)]
+    public async Task Timings_PreserveFailuresAndCancellation_WithoutExceptionContents(
+        bool cancel, string expectedOutcome, ComponentOrdersOutcomeKind? resultKind)
+    {
+        const string sensitive = "synthetic-sensitive-free-text";
+        var logger = new TimingLogger();
+        var fixture = Build(poReader: (_, _, _, _) => cancel
+            ? throw new OperationCanceledException(sensitive)
+            : throw new InvalidOperationException(sensitive), logger: logger);
+        var snapshot = SeedSnapshot(fixture.MpsStore, "P1");
+        if (cancel)
+            await Assert.ThrowsAsync<OperationCanceledException>(() => fixture.Service.GetComponentOrdersAsync(WorkspaceId, snapshot, Today));
+        else
+            Assert.Equal(resultKind, (await fixture.Service.GetComponentOrdersAsync(WorkspaceId, snapshot, Today)).Kind);
+
+        Assert.Contains(logger.Timings, t => Equals(t["Phase"], "PoSource") && Equals(t["Outcome"], expectedOutcome));
+        Assert.DoesNotContain(logger.Messages, message => message.Contains(sensitive, StringComparison.Ordinal));
+        Assert.All(logger.Exceptions, exception => Assert.Null(exception));
+    }
+
+    [Theory]
+    [InlineData(12, 100, 500, 4)]
+    [InlineData(120, 200, 5000, 8)]
+    public async Task SyntheticApplicationProfile_RecordsSamples_AndPreservesCompleteOutputs(
+        int parentCount, int occurrencesPerParent, int partCount, int linesPerPart)
+    {
+        // Generated, in-memory data only: no source acquisition, network, SQL/cache simulation or latency assertion.
+        var parents = Enumerable.Range(0, parentCount).Select(i => $"P{i}").ToArray();
+        var bom = parents.Select((p, i) => (p, rows: (IReadOnlyList<BomOccurrence>)Enumerable.Range(0, occurrencesPerParent)
+            .Select(j => Occ($"C{(i * 100 + j) % partCount}")).ToArray())).ToDictionary(x => x.p, x => x.rows);
+        var parts = parents.SelectMany(p => bom[p]).Select(row => row.ComponentPart).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var raw = parts.SelectMany((part, i) => Enumerable.Range(0, linesPerPart).Select(j =>
+            Line(j % 2 == 0 ? part : part.ToLowerInvariant(), j % 3 == 0 ? null : Today.AddDays(j), $"PO-{i}-{j}",
+                j % 4 == 0 ? null : j % 2 == 0 ? "Supplier" : "supplier") with
+            {
+                Description = j % 5 == 0 ? null : "synthetic description",
+                OpenQuantity = 1.2345678901m + j,
+                Confirmed = j % 3 == 0 ? null : j % 2 == 0,
+                IsKss = j % 2 == 0,
+                TrackingInfo = "synthetic tracking"
+            })).Reverse().ToArray();
+        var comments = parts.ToDictionary(p => p, _ => (string?)"synthetic\r\ncomment", StringComparer.Ordinal);
+        var risks = new Dictionary<string, ComponentOrderSupplierRisk>(StringComparer.Ordinal)
+        {
+            ["Supplier"] = new(true, false),
+            ["supplier"] = new(false, true)
+        };
+        var expectedLines = raw.Select(line => line with
+        {
+            IsCreditHold = line.SupplierIdentifier is { } supplier && risks.TryGetValue(supplier, out var risk) ? risk.IsCreditHold : null,
+            IsCia = line.SupplierIdentifier is { } key && risks.TryGetValue(key, out var cia) ? cia.IsCia : null,
+            CurrentComments = comments.GetValueOrDefault(line.ComponentPart)
+        }).ToArray();
+        var expected = JsonSerializer.Serialize(ComponentOrdersBuilder.BuildGroups(expectedLines));
+        var elapsed = new List<double>();
+        var allocated = new List<long>();
+        var phaseSamples = new Dictionary<string, List<double>>();
+        for (var run = 0; run < 8; run++)
+        {
+            var logger = new TimingLogger();
+            var fixture = Build(bom: (_, parent, _, _) => Task.FromResult(bom[parent]),
+                poReader: (_, _, _, _) => Task.FromResult<IReadOnlyList<ComponentOrderLine>>(raw),
+                enrichment: (_, _) => Task.FromResult(new ComponentOrderEnrichmentResult(comments, risks)), logger: logger);
+            var snapshot = SeedSnapshot(fixture.MpsStore, parents);
+            var beforeAllocation = GC.GetAllocatedBytesForCurrentThread();
+            var started = Stopwatch.GetTimestamp();
+            var result = await fixture.Service.GetComponentOrdersAsync(WorkspaceId, snapshot, Today);
+            var duration = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            var bytes = GC.GetAllocatedBytesForCurrentThread() - beforeAllocation;
+            Assert.Equal(expected, JsonSerializer.Serialize(result.Groups));
+            Assert.Equal(parts, Assert.Single(fixture.PoReaderComponentBatches));
+            if (run > 0)
+            {
+                elapsed.Add(duration);
+                allocated.Add(bytes);
+                foreach (var timing in logger.Timings.Where(t => new[] { "BomScope", "Enrichment", "Grouping" }.Contains(t["Phase"])))
+                {
+                    var phase = (string)timing["Phase"]!;
+                    if (!phaseSamples.TryGetValue(phase, out var samples)) phaseSamples[phase] = samples = [];
+                    samples.Add((double)timing["PhaseElapsedMs"]!);
+                }
+            }
+            Assert.Equal(expected, JsonSerializer.Serialize((await fixture.Service.GetComponentOrdersAsync(WorkspaceId, snapshot, Today)).Groups));
+            Assert.Single(fixture.PoReaderComponentBatches);
+        }
+        elapsed.Sort();
+        allocated.Sort();
+        output.WriteLine($"SYNTHETIC ONLY parents={parentCount} occurrences={parentCount * occurrencesPerParent} components={parts.Length} lines={raw.Length}; 1 warmup + 7 samples; total ms median={elapsed[3]:F3} range={elapsed[0]:F3}..{elapsed[^1]:F3}; median allocated bytes={allocated[3]}");
+        foreach (var (phase, samples) in phaseSamples)
+        {
+            samples.Sort();
+            output.WriteLine($"{phase} inclusive ms median={samples[3]:F3} range={samples[0]:F3}..{samples[^1]:F3}");
+        }
+    }
+
+    [Fact]
+    public async Task ThrowingTimingSink_DoesNotStrandBomPermits_OrPreventSuccessfulLoad()
+    {
+        var fixture = Build(logger: new TimingLogger(throwTimings: true));
+        var snapshot = SeedSnapshot(fixture.MpsStore, Enumerable.Range(0, 12).Select(i => $"P{i}").ToArray());
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var result = await fixture.Service.GetComponentOrdersAsync(WorkspaceId, snapshot, Today, cancellation.Token);
+        Assert.Equal(ComponentOrdersOutcomeKind.Loaded, result.Kind);
+        Assert.Equal(12, fixture.BomParentsRead.Count);
+    }
+
+    [Fact]
+    public async Task ThrowingTimingSink_PreservesOriginalFailureAndCancellation_AndResourceHandoff()
+    {
+        var logger = new TimingLogger(throwTimings: true);
+        var failure = new InvalidOperationException("synthetic failure");
+        var cancelled = new OperationCanceledException("synthetic cancellation");
+        Assert.Same(failure, await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            ComponentOrdersTiming.MeasureAsync<int>(logger, "SyntheticFailure", () => throw failure)));
+        Assert.Same(cancelled, await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            ComponentOrdersTiming.MeasureAsync<int>(logger, "SyntheticCancelled", () => throw cancelled)));
+        Assert.Same(failure, Assert.Throws<InvalidOperationException>(() =>
+            ComponentOrdersTiming.Measure<int>(logger, "SyntheticSyncFailure", () => throw failure)));
+        var resource = new SyntheticResource();
+        using (var owned = await ComponentOrdersTiming.MeasureAsync(logger, "SyntheticOpen", () => Task.FromResult(resource)))
+            Assert.Same(resource, owned);
+        Assert.True(resource.Disposed);
+    }
+
+    private sealed class SyntheticResource : IDisposable
+    {
+        public bool Disposed { get; private set; }
+        public void Dispose() => Disposed = true;
+    }
+
+    private sealed class TimingLogger(bool throwTimings = false) : ILogger<ComponentOrdersService>
+    {
+        public ConcurrentQueue<Dictionary<string, object?>> Timings { get; } = new();
+        public ConcurrentQueue<string> Messages { get; } = new();
+        public ConcurrentQueue<Exception?> Exceptions { get; } = new();
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Messages.Enqueue(formatter(state, exception));
+            Exceptions.Enqueue(exception);
+            if (state is IEnumerable<KeyValuePair<string, object?>> properties)
+            {
+                var fields = properties.ToDictionary(p => p.Key, p => p.Value);
+                if (fields.ContainsKey("PhaseElapsedMs"))
+                {
+                    if (throwTimings) throw new InvalidOperationException("synthetic timing sink failure");
+                    Timings.Enqueue(fields);
+                }
+            }
+        }
     }
 }

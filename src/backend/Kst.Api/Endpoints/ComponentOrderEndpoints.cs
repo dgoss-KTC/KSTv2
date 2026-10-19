@@ -40,24 +40,39 @@ public static class ComponentOrderEndpoints
         if (errors.Count > 0)
             return Results.ValidationProblem(errors);
 
+        using var operation = ComponentOrdersTiming.StartOperation();
         var stopwatch = Stopwatch.StartNew();
+        var outcome = "Failed";
+        int? groupCount = null;
         logger.LogInformation(
-            "Stage 10 component-orders request accepted. WorkspaceId={WorkspaceId} SnapshotId={SnapshotId}",
-            assignmentId, parsedSnapshotId.Value);
+            "Stage 10 component-orders request accepted. OperationId={OperationId} WorkspaceId={WorkspaceId} SnapshotId={SnapshotId}",
+            operation.TraceId.ToString(), assignmentId, parsedSnapshotId.Value);
 
         try
         {
             var result = await service.GetComponentOrdersAsync(
                 assignmentId, parsedSnapshotId, DateOnly.FromDateTime(clock.LocalNow.Date), cancellationToken);
-            stopwatch.Stop();
-            logger.LogInformation(
-                "Stage 10 component-orders request completed. WorkspaceId={WorkspaceId} SnapshotId={SnapshotId} Outcome={Outcome} ElapsedMs={ElapsedMs}",
-                assignmentId, parsedSnapshotId.Value, result.Kind, stopwatch.ElapsedMilliseconds);
-            return ToResult(result);
+            var response = ComponentOrdersTiming.Measure(logger, "ResponsePreparation", () => ToResult(result),
+                result.Groups?.Count, outcome: _ => result.Kind.ToString());
+            outcome = result.Kind.ToString();
+            groupCount = result.Groups?.Count;
+            return response;
         }
         catch (ComponentOrdersWorkspaceNotFoundException)
         {
+            outcome = "WorkspaceNotFound";
             return Results.NotFound();
+        }
+        catch (OperationCanceledException) { outcome = "Cancelled"; throw; }
+        finally
+        {
+            try
+            {
+                logger.LogInformation(
+                    "Stage 10 component-orders request prepared. OperationId={OperationId} WorkspaceId={WorkspaceId} SnapshotId={SnapshotId} Outcome={Outcome} GroupCount={GroupCount} PreparationElapsedMs={PreparationElapsedMs}",
+                    operation.TraceId.ToString(), assignmentId, parsedSnapshotId.Value, outcome, groupCount, stopwatch.Elapsed.TotalMilliseconds);
+            }
+            catch { /* Response/cancellation behavior does not depend on diagnostic sink availability. */ }
         }
     }
 

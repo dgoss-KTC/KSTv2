@@ -3,6 +3,45 @@
 Date: 2026-10-19
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## S22-006 — Component Orders performance diagnostics — COMPLETE / OWNER-ACCEPTED — 2026-10-19
+
+The owner reports checking the timings, conducting a desktop review and explicitly accepting the
+update on 2026-10-19. This is owner-run acceptance evidence, separate from the offline verification
+below. No numerical live timings, sample counts or controlled speedup are inferred from that report.
+
+2026-10-19, starting HEAD `3de4830`. Bounded instrumentation-only checkpoint adds correlated,
+client-observed workspace/cache/BOM wait/read/dedup, PO connection/query-batch/mapping,
+Shortages connection/comment/supplier/enrichment, grouping and DTO preparation timings. Conventional
+PO and independent KSS remain one unchanged SQL statement; no isolated server execution time is
+claimed. Existing cache/refresh, SQL, 250/1,000 batching, concurrency eight, locked algorithms,
+API contracts, UI/export and security boundaries are unchanged. No demonstrated application
+optimization was installed and no production speedup is claimed.
+
+Final focused offline tests **120 passed** (8 Domain, 24 Application, 68 QAD/BOM/Shortages, 10 API,
+10 architecture); isolated Release Application rerun **24 passed**. Generated 2,000-/40,000-line
+profiles show application-only medians **2.110 / 51.241 ms**, not live-source measurements.
+Changed-file format and scoped diagnostics pass. Independent security review's conditional timing-sink
+failure finding was corrected, fault-injection tested and independently marked resolved at its
+source/offline boundary; no confirmed new material blocker remains at reviewed depth.
+
+Sidecar publication, offline native check/debug/release builds and final source-disabled copied-sidecar
+startup/loopback probes pass. Four sidecar copies match (127,450,278 bytes; final hash in record).
+No agent-run live reads, dependency installs, staging, commits, pushes or shared deployment.
+Pre-entry `src/frontend/tsconfig.tsbuildinfo` change is preserved. Inherited format/lint exceptions
+are not passes; inherited Fluent Assertions licensing notice remains a separate owner entitlement
+item. S22-006 is complete and owner-accepted; Stage 22 remains open. This documentation-only
+acceptance update reuses existing verification and does not authorize a commit, push or further tuning.
+
+Subsequent owner instruction explicitly authorizes one local S22-006 checkpoint commit covering the
+accepted implementation/tests and closeout documentation. Pre-entry frontend build metadata is excluded
+and remains unstaged; local evidence/binaries are not included. Existing verification is reused; no
+push, new implementation, live queries or shared deployment is authorized by this commit-only step.
+
+Request trace, timing interpretation, verification limits and compact ordinary-app miss/hit/explicit
+MPS-refresh procedure: `docs/implementation/KST_v2_S22_006_COMPONENT_ORDERS_PERFORMANCE.md`.
+Full local evidence: `C:\Dev\kst_v2_tmp\Stage22\S22-006\`. PERF-001 still requires representative
+shared QAD/MPS measurements and DBA-reviewed plan/index evidence before any SQL/batch/index tuning.
+
 ## S22-005 — Customer Open Orders redesign — COMPLETE / OWNER-ACCEPTED — 2026-10-19
 
 The owner confirmed completion of `OWNER_REVIEW_CHECKLIST.md` (all 24 items checked) and explicitly

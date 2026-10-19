@@ -57,6 +57,7 @@ public sealed class QadComponentOrderReader
         DateOnly today,
         CancellationToken cancellationToken = default)
     {
+        using var activity = new Activity("ComponentOrders.QadReader").Start();
         var stopwatch = Stopwatch.StartNew();
         if (!_options.IsConfigured)
             throw new InvalidOperationException("QAD connection is not configured.");
@@ -74,13 +75,14 @@ public sealed class QadComponentOrderReader
             "Stage 10 component-order reader starting. NormalizedComponentCount={NormalizedComponentCount} BatchCount={BatchCount} ElapsedMs={ElapsedMs}",
             lookupKeys.Count, batches.Count, stopwatch.ElapsedMilliseconds);
         _logger.LogInformation("Stage 10 component-order connection open started. ElapsedMs={ElapsedMs}", stopwatch.ElapsedMilliseconds);
-        await using var connection = await QadConnectionFactory.OpenAsync(_options, cancellationToken);
+        await using var connection = await OpenTimedAsync();
         _logger.LogInformation("Stage 10 component-order connection open completed. ElapsedMs={ElapsedMs}", stopwatch.ElapsedMilliseconds);
 
         var results = new List<ComponentOrderLine>(lookupKeys.Count);
         for (var i = 0; i < batches.Count; i++)
         {
             var batch = batches[i];
+            using var batchActivity = new Activity("ComponentOrders.QadBatch").Start();
             var batchStopwatch = Stopwatch.StartNew();
             _logger.LogInformation(
                 "Stage 10 component-order batch started. BatchIndex={BatchIndex} BatchCount={BatchCount} ScopedComponentCount={ScopedComponentCount} ElapsedMs={ElapsedMs}",
@@ -92,21 +94,72 @@ public sealed class QadComponentOrderReader
                 commandTimeout: _options.CommandTimeoutSeconds,
                 cancellationToken: cancellationToken);
 
-            var rawRows = await connection.QueryAsync<QadComponentOrderLineRawRow>(command);
-            var normalized = rawRows.Select(Normalize).ToList();
-            batchStopwatch.Stop();
-
-            _logger.LogInformation(
-                "Stage 10 component-order batch completed. BatchIndex={BatchIndex} BatchCount={BatchCount} ScopedComponentCount={ScopedComponentCount} ReturnedRowCount={ReturnedRowCount} BatchElapsedMs={BatchElapsedMs} ElapsedMs={ElapsedMs}",
-                i + 1, batches.Count, batch.Count, normalized.Count, batchStopwatch.ElapsedMilliseconds, stopwatch.ElapsedMilliseconds);
-
-            results.AddRange(normalized);
+            var outcome = "Failed";
+            var phase = "Query";
+            var phaseStarted = Stopwatch.GetTimestamp();
+            double? queryElapsedMs = null;
+            double? mappingElapsedMs = null;
+            int? returnedRowCount = null;
+            try
+            {
+                // Dapper's buffered query includes transfer and materialization, not just server execution.
+                // Conventional PO and independent KSS predicates execute in this same statement.
+                var rawRows = await connection.QueryAsync<QadComponentOrderLineRawRow>(command);
+                queryElapsedMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+                phase = "Mapping";
+                phaseStarted = Stopwatch.GetTimestamp();
+                var normalized = rawRows.Select(Normalize).ToList();
+                mappingElapsedMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+                returnedRowCount = normalized.Count;
+                results.AddRange(normalized);
+                outcome = "Succeeded";
+            }
+            catch (OperationCanceledException) { outcome = "Cancelled"; throw; }
+            finally
+            {
+                if (phase == "Query" && queryElapsedMs is null)
+                    queryElapsedMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+                if (phase == "Mapping" && mappingElapsedMs is null)
+                    mappingElapsedMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+                try
+                {
+                    _logger.LogInformation(
+                        "Component Orders QAD batch timing. OperationId={OperationId} SpanId={SpanId} ParentSpanId={ParentSpanId} Phase=PoAndKssBatch Outcome={Outcome} LastPhase={LastPhase} BatchIndex={BatchIndex} BatchCount={BatchCount} InputCount={InputCount} OutputCount={OutputCount} QueryElapsedMs={QueryElapsedMs} MappingElapsedMs={MappingElapsedMs} PhaseElapsedMs={PhaseElapsedMs}",
+                        batchActivity.TraceId.ToString(), batchActivity.SpanId.ToString(), batchActivity.ParentSpanId.ToString(),
+                        outcome, phase, i + 1, batches.Count, batch.Count, returnedRowCount,
+                        queryElapsedMs, mappingElapsedMs, batchStopwatch.Elapsed.TotalMilliseconds);
+                }
+                catch { /* Timing sinks must not replace source failure/cancellation. */ }
+            }
         }
 
         _logger.LogInformation(
             "Stage 10 component-order reader completed. NormalizedComponentCount={NormalizedComponentCount} BatchCount={BatchCount} ReturnedRowCount={ReturnedRowCount} ElapsedMs={ElapsedMs}",
             lookupKeys.Count, batches.Count, results.Count, stopwatch.ElapsedMilliseconds);
         return results;
+
+        async Task<Microsoft.Data.SqlClient.SqlConnection> OpenTimedAsync()
+        {
+            var started = Stopwatch.GetTimestamp();
+            var outcome = "Failed";
+            try
+            {
+                var opened = await QadConnectionFactory.OpenAsync(_options, cancellationToken);
+                outcome = "Succeeded";
+                return opened;
+            }
+            catch (OperationCanceledException) { outcome = "Cancelled"; throw; }
+            finally
+            {
+                try
+                {
+                    _logger.LogInformation(
+                        "Component Orders QAD connection timing. OperationId={OperationId} SpanId={SpanId} Phase=PoConnection Outcome={Outcome} PhaseElapsedMs={PhaseElapsedMs}",
+                        activity.TraceId.ToString(), activity.SpanId.ToString(), outcome, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+                }
+                catch { /* The caller must receive ownership of an opened connection even if diagnostics fail. */ }
+            }
+        }
     }
 
     /// <summary>

@@ -62,24 +62,57 @@ public sealed class QadBomReader
         var domain = QadSiteDomainMap.Resolve(site);
         var stopwatch = Stopwatch.StartNew();
 
-        await using var connection = await QadConnectionFactory.OpenAsync(_options, cancellationToken);
+        var phase = "Connection";
+        var phaseStarted = Stopwatch.GetTimestamp();
+        double? connectionElapsedMs = null;
+        double? queryElapsedMs = null;
+        double? traversalElapsedMs = null;
+        int? sourceRowCount = null;
+        int? occurrenceCount = null;
+        var outcome = "Failed";
+        try
+        {
+            await using var connection = await QadConnectionFactory.OpenAsync(_options, cancellationToken);
+            connectionElapsedMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+            phase = "Query";
+            phaseStarted = Stopwatch.GetTimestamp();
+            var (sql, parameters) = BuildQuery(domain, site, normalizedParent, effectiveDate);
+            var command = new CommandDefinition(
+                sql,
+                parameters,
+                commandTimeout: _options.CommandTimeoutSeconds,
+                cancellationToken: cancellationToken);
 
-        var (sql, parameters) = BuildQuery(domain, site, normalizedParent, effectiveDate);
-        var command = new CommandDefinition(
-            sql,
-            parameters,
-            commandTimeout: _options.CommandTimeoutSeconds,
-            cancellationToken: cancellationToken);
-
-        var rawRows = (await connection.QueryAsync<QadBomStructuralRawRow>(command)).ToList();
-        var occurrences = TraverseDepthFirst(normalizedParent, rawRows);
-        stopwatch.Stop();
-
-        _logger.LogInformation(
-            "BOM structural read for parent {ParentPart} in domain {Domain} (effective {EffectiveDate}) returned {OccurrenceCount} occurrences in {ElapsedMs}ms.",
-            normalizedParent, domain, effectiveDate, occurrences.Count, stopwatch.ElapsedMilliseconds);
-
-        return occurrences;
+            var rawRows = (await connection.QueryAsync<QadBomStructuralRawRow>(command)).ToList();
+            queryElapsedMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+            sourceRowCount = rawRows.Count;
+            phase = "Traversal";
+            phaseStarted = Stopwatch.GetTimestamp();
+            var occurrences = TraverseDepthFirst(normalizedParent, rawRows);
+            traversalElapsedMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+            occurrenceCount = occurrences.Count;
+            outcome = "Succeeded";
+            stopwatch.Stop();
+            return occurrences;
+        }
+        catch (OperationCanceledException) { outcome = "Cancelled"; throw; }
+        finally
+        {
+            if (phase == "Connection" && connectionElapsedMs is null)
+                connectionElapsedMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+            if (phase == "Query" && queryElapsedMs is null)
+                queryElapsedMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+            if (phase == "Traversal" && traversalElapsedMs is null)
+                traversalElapsedMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+            try
+            {
+                _logger.LogInformation(
+                    "BOM structural read timing. OperationId={OperationId} SpanId={SpanId} Phase=BomSource Outcome={Outcome} LastPhase={LastPhase} SourceRowCount={SourceRowCount} OccurrenceCount={OccurrenceCount} ConnectionElapsedMs={ConnectionElapsedMs} QueryElapsedMs={QueryElapsedMs} TraversalElapsedMs={TraversalElapsedMs} PhaseElapsedMs={PhaseElapsedMs}",
+                    Activity.Current?.TraceId.ToString(), Activity.Current?.SpanId.ToString(), outcome, phase, sourceRowCount, occurrenceCount,
+                    connectionElapsedMs, queryElapsedMs, traversalElapsedMs, stopwatch.Elapsed.TotalMilliseconds);
+            }
+            catch { /* Timing sinks must not replace source failure/cancellation. */ }
+        }
     }
 
     /// <summary>

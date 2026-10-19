@@ -64,12 +64,24 @@ public sealed class ComponentOrdersService
         DateOnly today,
         CancellationToken cancellationToken = default)
     {
+        using var operation = ComponentOrdersTiming.StartOperation();
+        return await ComponentOrdersTiming.MeasureAsync(_logger, "Service", () =>
+            GetCoreAsync(workspaceId, requestedSnapshotId, today, cancellationToken),
+            outcome: result => result.Kind.ToString());
+    }
+
+    private async Task<ComponentOrdersResult> GetCoreAsync(
+        Guid workspaceId,
+        SnapshotId requestedSnapshotId,
+        DateOnly today,
+        CancellationToken cancellationToken)
+    {
         var stopwatch = Stopwatch.StartNew();
         cancellationToken.ThrowIfCancellationRequested();
         _logger.LogInformation(
             "Stage 10 component orders service started. WorkspaceId={WorkspaceId} SnapshotId={SnapshotId}",
             workspaceId, requestedSnapshotId.Value);
-        var workspace = await FindWorkspaceAsync(workspaceId);
+        var workspace = await ComponentOrdersTiming.MeasureAsync(_logger, "Workspace", () => FindWorkspaceAsync(workspaceId));
 
         var state = _mpsSnapshots.GetState(workspaceId);
         if (state.Snapshot is null)
@@ -91,7 +103,9 @@ public sealed class ComponentOrdersService
             "Stage 10 component orders resolved current snapshot. WorkspaceId={WorkspaceId} SnapshotId={SnapshotId} ResolvedParentCount={ResolvedParentCount} ElapsedMs={ElapsedMs}",
             workspaceId, requestedSnapshotId.Value, state.Snapshot.ResolvedParts.Count, stopwatch.ElapsedMilliseconds);
 
-        var cached = _cache.Get(workspaceId, requestedSnapshotId, today);
+        var cached = ComponentOrdersTiming.Measure(_logger, "CacheLookup",
+            () => _cache.Get(workspaceId, requestedSnapshotId, today),
+            outcome: entry => entry is null ? "Miss" : "Hit");
         if (cached is not null)
         {
             _logger.LogInformation(
@@ -109,8 +123,9 @@ public sealed class ComponentOrdersService
             _logger.LogInformation(
                 "Stage 10 component orders BOM scope phase started. WorkspaceId={WorkspaceId} SnapshotId={SnapshotId} ResolvedParentCount={ResolvedParentCount} ElapsedMs={ElapsedMs}",
                 workspaceId, requestedSnapshotId.Value, state.Snapshot.ResolvedParts.Count, stopwatch.ElapsedMilliseconds);
-            var components = await ResolveComponentPartsAsync(
-                workspaceId, requestedSnapshotId, workspace.Site, state.Snapshot.ResolvedParts, today, stopwatch, cancellationToken);
+            var components = await ComponentOrdersTiming.MeasureAsync(_logger, "BomScope", () => ResolveComponentPartsAsync(
+                workspaceId, requestedSnapshotId, workspace.Site, state.Snapshot.ResolvedParts, today, stopwatch, cancellationToken),
+                state.Snapshot.ResolvedParts.Count, parts => parts.Count);
 
             _logger.LogInformation(
                 "Stage 10 component orders BOM scope phase completed. WorkspaceId={WorkspaceId} SnapshotId={SnapshotId} ComponentCount={ComponentCount} ElapsedMs={ElapsedMs}",
@@ -118,12 +133,15 @@ public sealed class ComponentOrdersService
 
             IReadOnlyList<ComponentOrderLine> lines = components.Count == 0
                 ? []
-                : await ReadComponentOrdersAsync(workspaceId, requestedSnapshotId, workspace.Site, components, today, stopwatch, cancellationToken);
+                : await ComponentOrdersTiming.MeasureAsync(_logger, "PoSource", () =>
+                    ReadComponentOrdersAsync(workspaceId, requestedSnapshotId, workspace.Site, components, today, stopwatch, cancellationToken),
+                    components.Count, rows => rows.Count);
 
             var enrichmentAvailability = ComponentOrdersEnrichmentAvailability.Available;
             try
             {
-                lines = await EnrichAsync(workspace.Site, lines, cancellationToken);
+                lines = await ComponentOrdersTiming.MeasureAsync(_logger, "Enrichment", () =>
+                    EnrichAsync(workspace.Site, lines, cancellationToken), lines.Count, rows => rows.Count);
             }
             catch (OperationCanceledException) { throw; }
             catch
@@ -132,7 +150,8 @@ public sealed class ComponentOrdersService
                 enrichmentAvailability = ComponentOrdersEnrichmentAvailability.Unavailable;
             }
 
-            var groups = ComponentOrdersBuilder.BuildGroups(lines);
+            var groups = ComponentOrdersTiming.Measure(_logger, "Grouping", () => ComponentOrdersBuilder.BuildGroups(lines),
+                lines.Count, result => result.Count);
 
             // A refresh that completed while we were reading supersedes this result; never cache or serve it.
             if (_mpsSnapshots.GetState(workspaceId).Snapshot?.Id != requestedSnapshotId)
@@ -151,9 +170,10 @@ public sealed class ComponentOrdersService
             return ComponentOrdersResult.Loaded(requestedSnapshotId, groups, enrichmentAvailability);
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _logger.LogError(ex,
+            // Source exceptions can carry source text; timing diagnostics retain only the category.
+            _logger.LogError(
                 "Stage 10 component orders service completed. WorkspaceId={WorkspaceId} Site={Site} SnapshotId={SnapshotId} Outcome={Outcome} ElapsedMs={ElapsedMs}",
                 workspaceId, workspace.Site, requestedSnapshotId.Value, ComponentOrdersOutcomeKind.Unavailable, stopwatch.ElapsedMilliseconds);
             return ComponentOrdersResult.Unavailable;
@@ -172,8 +192,9 @@ public sealed class ComponentOrdersService
             site,
             DistinctExact(lines.Select(line => line.ComponentPart)),
             DistinctExact(lines.Select(line => line.SupplierIdentifier)));
-        var enrichment = await _enrichment.ReadAsync(request, cancellationToken);
-        return lines.Select(line =>
+        var enrichment = await ComponentOrdersTiming.MeasureAsync(_logger, "EnrichmentSource", () =>
+            _enrichment.ReadAsync(request, cancellationToken), request.ComponentIdentifiers.Count);
+        return ComponentOrdersTiming.Measure(_logger, "EnrichmentMapping", () => lines.Select(line =>
         {
             bool? isCreditHold = null;
             bool? isCia = null;
@@ -189,7 +210,7 @@ public sealed class ComponentOrdersService
                 IsCia = isCia,
                 CurrentComments = enrichment.CommentsByComponent.TryGetValue(line.ComponentPart, out var comment) ? comment : null
             };
-        }).ToList();
+        }).ToList(), lines.Count, result => result.Count);
     }
 
     private static IReadOnlyList<string> DistinctExact(IEnumerable<string?> values)
@@ -201,7 +222,7 @@ public sealed class ComponentOrdersService
         return result;
     }
 
-        /// <summary>
+    /// <summary>
     /// Derives the workspace component scope: every resolved MPS parent's current-effective
     /// multi-level BOM at the business date, with component parts deduplicated case-insensitively
     /// (first occurrence kept, in resolved-parent order — independent of which parent's read
@@ -240,29 +261,41 @@ public sealed class ComponentOrdersService
         }
         await Task.WhenAll(reads);
 
-        var components = new List<string>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < resolvedParts.Count; i++)
-        {
-            foreach (var occurrence in occurrencesByParent[i]!)
-            {
-                if (seen.Add(occurrence.ComponentPart))
-                    components.Add(occurrence.ComponentPart);
-            }
-        }
+        return ComponentOrdersTiming.Measure(_logger, "BomDeduplication", CollectComponents,
+            resolvedParts.Count, result => result.Count);
 
-        return components;
+        IReadOnlyList<string> CollectComponents()
+        {
+            var components = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (var i = 0; i < resolvedParts.Count; i++)
+            {
+                foreach (var occurrence in occurrencesByParent[i]!)
+                {
+                    if (seen.Add(occurrence.ComponentPart))
+                        components.Add(occurrence.ComponentPart);
+                }
+            }
+
+            return components;
+        }
 
         async Task ReadOneAsync(int index, MpsResolvedPart parent)
         {
-            await gate.WaitAsync(cancellationToken);
+            await ComponentOrdersTiming.MeasureAsync(_logger, "BomGateWait", async () =>
+            {
+                await gate.WaitAsync(cancellationToken);
+                return true;
+            }, index: index + 1);
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 _logger.LogInformation(
                     "Stage 10 component orders BOM read started. WorkspaceId={WorkspaceId} SnapshotId={SnapshotId} ParentIndex={ParentIndex} ParentCount={ParentCount} ElapsedMs={ElapsedMs}",
                     workspaceId, snapshotId.Value, index + 1, resolvedParts.Count, stopwatch.ElapsedMilliseconds);
-                var occurrences = await _bom.ReadAsync(site, parent.ParentPart, today, cancellationToken);
+                var occurrences = await ComponentOrdersTiming.MeasureAsync(_logger, "BomParent", () =>
+                    _bom.ReadAsync(site, parent.ParentPart, today, cancellationToken),
+                    count: rows => rows.Count, index: index + 1);
                 _logger.LogInformation(
                     "Stage 10 component orders BOM read completed. WorkspaceId={WorkspaceId} SnapshotId={SnapshotId} ParentIndex={ParentIndex} ParentCount={ParentCount} OccurrenceCount={OccurrenceCount} ElapsedMs={ElapsedMs}",
                     workspaceId, snapshotId.Value, index + 1, resolvedParts.Count, occurrences.Count, stopwatch.ElapsedMilliseconds);

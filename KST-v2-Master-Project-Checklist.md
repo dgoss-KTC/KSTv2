@@ -1797,7 +1797,11 @@ A substantial new standalone capability requires its own explicit roadmap dispos
       breaking headers, selection, or layout.
 - [ ] Revisit Stage 9 presentation, workflow, explanation, and measured performance without silently
       changing its accepted shortage algorithm.
-- [ ] Reassess Stage 10 `PERF-001` using current measurements.
+- [~] Reassess Stage 10 `PERF-001` using current measurements. S22-006 instrumentation/offline
+      profiling COMPLETE / OWNER-ACCEPTED 2026-10-19; owner reports checking timings and conducting
+      desktop review. No numerical live baseline or speedup is inferred. No SQL or application
+      optimization installed; representative shared QAD/MPS baseline and DBA-reviewed
+      plan/index gate retained. See `docs/implementation/KST_v2_S22_006_COMPONENT_ORDERS_PERFORMANCE.md`.
 - [ ] Include accepted minor Stage 11 cosmetic refinements and fine-tuning.
 - [ ] Resolve UI Navigation & Keyboard Ergonomics B items.
 - [ ] Reconcile parent-part CSV import from the Stage 4 backlog.

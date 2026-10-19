@@ -1,6 +1,9 @@
 using Kst.Application.ComponentOrders;
+using System.Diagnostics;
 using Kst.Integrations.Shortages.Options;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Kst.Integrations.Shortages.ComponentOrders;
 
@@ -12,9 +15,14 @@ public sealed class ShortagesComponentOrderEnrichmentReader : IComponentOrderEnr
 {
     private const int BatchSize = 1000;
     private readonly ShortagesSecretFileLoader _secretLoader;
+    private readonly ILogger<ShortagesComponentOrderEnrichmentReader> _logger;
 
-    public ShortagesComponentOrderEnrichmentReader(ShortagesSecretFileLoader? secretLoader = null) =>
+    public ShortagesComponentOrderEnrichmentReader(ShortagesSecretFileLoader? secretLoader = null,
+        ILogger<ShortagesComponentOrderEnrichmentReader>? logger = null)
+    {
         _secretLoader = secretLoader ?? new ShortagesSecretFileLoader();
+        _logger = logger ?? NullLogger<ShortagesComponentOrderEnrichmentReader>.Instance;
+    }
 
     public async Task<ComponentOrderEnrichmentResult> ReadAsync(
         ComponentOrderEnrichmentRequest request,
@@ -32,24 +40,48 @@ public sealed class ShortagesComponentOrderEnrichmentReader : IComponentOrderEnr
             throw new InvalidOperationException("Shortages connection is not configured.");
 
         await using var connection = new SqlConnection(ShortagesConnectionStringFactory.Build(settings));
-        await connection.OpenAsync(cancellationToken);
+        await ComponentOrdersTiming.MeasureAsync(_logger, "ShortagesConnection", async () =>
+        {
+            await connection.OpenAsync(cancellationToken);
+            return true;
+        });
 
         var comments = new Dictionary<string, string?>(StringComparer.Ordinal);
+        var commentBatchIndex = 0;
         foreach (var batch in Batch(components))
         {
-            await using var command = BuildCommentCommand(connection, request.Site, batch);
-            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
-                comments[reader.GetString(0)] = NormalizeComment(reader.IsDBNull(1) ? null : reader.GetString(1));
+            var index = ++commentBatchIndex;
+            await ComponentOrdersTiming.MeasureAsync(_logger, "CommentsBatch", async () =>
+            {
+                await using var command = BuildCommentCommand(connection, request.Site, batch);
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+                var rowCount = 0;
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    comments[reader.GetString(0)] = NormalizeComment(reader.IsDBNull(1) ? null : reader.GetString(1));
+                    rowCount++;
+                }
+                return rowCount;
+            }, batch.Count, count: rows => rows, index: index);
         }
 
         var risks = new Dictionary<string, ComponentOrderSupplierRisk>(StringComparer.Ordinal);
+        var supplierBatchIndex = 0;
         foreach (var batch in Batch(suppliers))
         {
-            await using var command = BuildSupplierCommand(connection, batch);
-            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
-                risks[reader.GetString(0)] = MapRisk(reader.GetBoolean(1), reader.GetBoolean(2));
+            var index = ++supplierBatchIndex;
+            await ComponentOrdersTiming.MeasureAsync(_logger, "SuppliersBatch", async () =>
+            {
+                await using var command = BuildSupplierCommand(connection, batch);
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+                var rowCount = 0;
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    risks[reader.GetString(0)] = MapRisk(reader.GetBoolean(1), reader.GetBoolean(2));
+                    rowCount++;
+                }
+                return rowCount;
+            }, batch.Count, count: rows => rows, index: index);
         }
 
         return new ComponentOrderEnrichmentResult(comments, risks);
