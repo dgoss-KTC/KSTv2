@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient, ApiError, type FinishedGoodsResponseDto } from '../api/client';
 import { resolveBackendBaseUrl } from '../api/tauri-bridge';
-import { emptyFinishedGoodsFilters, finishedGoodsRows, type FinishedGoodsFilters } from '../finishedGoods/report';
+import { FINISHED_GOODS_COLUMNS, finishedGoodsRows } from '../finishedGoods/report';
+import { FinishedGoodsFilter } from '../finishedGoods/FinishedGoodsFilter';
+import { FINISHED_GOODS_PAGE_SIZES, preferredFinishedGoodsPageSize, storeFinishedGoodsPageSize, type FinishedGoodsPageSize } from '../finishedGoods/pageSize';
+import type { ColumnFilter } from './shared/ColumnFilterEditor';
 import { formatDecimal } from '../shared/exactDecimal';
 import { formatReportTimestamp } from '../openOrders/report';
 import './FinishedGoodsPanel.css';
@@ -10,7 +13,7 @@ interface Props { assignmentId: string; snapshotId: string | null; site: string 
 
 // A new mounted session for each scope protects A→B→A, including requests that ignore cancellation.
 export function FinishedGoodsPanel(props: Props) {
-  if (!props.snapshotId) return <section className="finished-goods"><h3>Finished Goods</h3><p>Load the workspace MPS first to resolve its part scope.</p></section>;
+  if (!props.snapshotId) return <section className="finished-goods"><div className="finished-goods__toolbar"><h3>Finished Goods</h3></div><p className="finished-goods__state">Load the workspace MPS first to resolve its part scope.</p></section>;
   return <FinishedGoodsSession key={JSON.stringify([props.assignmentId, props.snapshotId, props.site])} {...props} snapshotId={props.snapshotId} />;
 }
 
@@ -18,13 +21,17 @@ function FinishedGoodsSession({ assignmentId, snapshotId, site }: Props & { snap
   const [report, setReport] = useState<FinishedGoodsResponseDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<FinishedGoodsFilters>(emptyFinishedGoodsFilters);
+  const [filters, setFilters] = useState<ColumnFilter[]>([]);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(preferredFinishedGoodsPageSize);
+  const [openColumn, setOpenColumn] = useState<string | null>(null);
+  const anchor = useRef<HTMLElement | null>(null);
   const request = useRef(0);
   const active = useRef(false);
 
   const acquire = useCallback(async (refresh: boolean) => {
     const token = ++request.current;
+    setOpenColumn(null);
     setLoading(true); setError(null);
     try {
       const client = new ApiClient(await resolveBackendBaseUrl());
@@ -57,44 +64,60 @@ function FinishedGoodsSession({ assignmentId, snapshotId, site }: Props & { snap
   }, [acquire]);
 
   const rows = useMemo(() => finishedGoodsRows(report?.rows ?? [], filters), [report, filters]);
-  const pageSize = 100;
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(page, pageCount - 1);
-  const updateFilter = (field: keyof FinishedGoodsFilters, value: string) => {
-    setFilters(previous => ({ ...previous, [field]: value })); setPage(0);
+  const first = currentPage * pageSize;
+  const changeFilters = (next: ColumnFilter[]) => {
+    setFilters(next); setPage(0); setOpenColumn(null);
+  };
+  const resize = (size: FinishedGoodsPageSize) => {
+    setPage(Math.floor(first / size)); setPageSize(size); storeFinishedGoodsPageSize(size);
   };
 
   return <section className="finished-goods" aria-label="Finished Goods inventory" aria-busy={loading}>
     <div className="finished-goods__toolbar"><h3>Finished Goods</h3>
-      <button type="button" disabled={loading} onClick={() => void acquire(true)}>Refresh Finished Goods</button>
+      <span className="finished-goods__meta">{report ? `Acquired: ${formatReportTimestamp(report.acquiredAtUtc)} · USD` : 'Current positive on-hand inventory · USD'}</span>
+      <button className="finished-goods__primary" type="button" aria-label="Refresh Finished Goods" disabled={loading} onClick={() => void acquire(true)}>Refresh</button>
     </div>
-    <p className="finished-goods__meta">{report ? `Acquired: ${formatReportTimestamp(report.acquiredAtUtc)} · USD · ${rows.length} of ${report.rows.length} rows` : 'Current positive on-hand inventory · USD'}</p>
-    {loading && <p role="status">{report ? 'Refreshing Finished Goods…' : 'Loading Finished Goods…'}</p>}
+    {loading && <p className="finished-goods__state" role="status">{report ? 'Refreshing Finished Goods…' : 'Loading Finished Goods…'}</p>}
     {report?.isStale && <p role="alert" className="finished-goods__warning">{report.warning ?? 'Showing stale Finished Goods inventory. Refresh to try again.'}</p>}
     {error && <p role="alert" className="finished-goods__warning">{error}</p>}
-    <div className="finished-goods__filters">
-      {(['product', 'location', 'lot'] as const).map(field => <label key={field}>{field[0].toUpperCase() + field.slice(1)} filter
-        <input value={filters[field]} onChange={event => updateFilter(field, event.target.value)} type="text" />
-      </label>)}
-    </div>
     {report && <>
       <div className="finished-goods__grid" tabIndex={0} role="region" aria-label="Finished Goods table">
-        <table><thead><tr>{['Product', 'Location', 'Lot', 'On Hand', 'Value'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
+        <table><thead><tr>{FINISHED_GOODS_COLUMNS.map(column => {
+          const filtered = filters.some(f => f.column === column.id);
+          return <th key={column.id} scope="col" className={`${column.kind === 'decimal' ? 'finished-goods__number ' : ''}${filtered ? 'finished-goods__active' : ''}`}>
+            <span>{column.label}</span><button className="finished-goods__funnel" type="button" aria-label={`Filter ${column.label}${filtered ? ', filter active' : ''}`}
+              aria-haspopup="dialog" aria-expanded={openColumn === column.id} disabled={loading}
+              onClick={event => { anchor.current = event.currentTarget; setOpenColumn(openColumn === column.id ? null : column.id); }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill={filtered ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><path d="M2.5 3.5h11l-4.2 5v4l-2.6-1.4V8.5z" /></svg>
+            </button>
+          </th>;
+        })}</tr></thead>
           <tbody>{rows.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map(row => <tr key={row.rowId}>
-            <td title={row.reference == null ? undefined : `Reference: ${row.reference}`}>{row.product}</td>
+            <td className="finished-goods__product" title={row.reference == null ? undefined : `Reference: ${row.reference}`}>{row.product}</td>
             <td>{row.location ?? ''}</td>
             <td>{row.lot ?? ''}{row.isRma && <span className="finished-goods__rma" title="Informational return-material lot; included in on-hand and value">RMA</span>}</td>
             <td className="finished-goods__number" title={row.onHand}>{formatDecimal(row.onHand, null)}</td>
             <td className="finished-goods__number" title={`USD ${row.value}${row.isMissingPrice ? ' · No price records; valued at $0' : ''}`}>${formatDecimal(row.value, 2)}</td>
           </tr>)}</tbody>
         </table>
+        {rows.length === 0 && <p className="finished-goods__state" role="status">{report.rows.length === 0 ? 'No positive on-hand inventory in this workspace scope.' : 'No inventory matches these filters.'}</p>}
       </div>
-      {rows.length === 0 && <p role="status">{report.rows.length === 0 ? 'No positive on-hand inventory in this workspace scope.' : 'No inventory matches these filters.'}</p>}
-      {pageCount > 1 && <div className="finished-goods__page">
-        <button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button>
-        <span>Page {currentPage + 1} of {pageCount}</span>
-        <button disabled={currentPage + 1 === pageCount} onClick={() => setPage(currentPage + 1)}>Next</button>
-      </div>}
+      <div className="finished-goods__footer">
+        <span role="status">{rows.length ? `Rows ${(first + 1).toLocaleString()}–${Math.min(first + pageSize, rows.length).toLocaleString()} of ${rows.length.toLocaleString()}` : 'Rows 0 of 0'}{filters.length > 0 && ` · filtered from ${report.rows.length.toLocaleString()}`}</span>
+        {filters.length > 0 && <button type="button" disabled={loading} onClick={() => changeFilters([])}>Clear filters ({filters.length})</button>}
+        <div role="group" aria-label="Rows per page" className="finished-goods__sizes"><span>Rows per page</span>{FINISHED_GOODS_PAGE_SIZES.map(size => <button key={size} type="button" aria-pressed={pageSize === size} disabled={loading} onClick={() => resize(size)}>{size}</button>)}</div>
+        <nav className="finished-goods__pager" aria-label="Result pages">
+          <button type="button" disabled={loading || currentPage === 0} onClick={() => setPage(0)}>First</button>
+          <button type="button" disabled={loading || currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button>
+          <span>Page {currentPage + 1} of {pageCount}</span>
+          <button type="button" disabled={loading || currentPage + 1 === pageCount} onClick={() => setPage(currentPage + 1)}>Next</button>
+          <button type="button" disabled={loading || currentPage + 1 === pageCount} onClick={() => setPage(pageCount - 1)}>Last</button>
+        </nav>
+      </div>
     </>}
+    {openColumn && report && <FinishedGoodsFilter key={openColumn} field={openColumn} rows={report.rows} filters={filters} anchor={anchor}
+      onClose={() => setOpenColumn(null)} onApply={filter => changeFilters([...filters.filter(f => f.column !== openColumn), ...(filter ? [filter] : [])])} />}
   </section>;
 }

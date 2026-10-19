@@ -3,6 +3,34 @@
 Date: 2026-10-19
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## S22-009 — Finished Goods UI/header filters — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-19
+
+The owner reviewed the application and explicitly accepted styling, all five header filters,
+full-report cascading counts, exact-decimal filtering and 100/500/1000 paging. This is owner-run
+visual/interaction evidence, not additional agent desktop/live-query/native-suite/exhaustive-fault,
+installer, deployment or risk-acceptance evidence. One complete local closeout commit is explicitly
+authorized, **not a push**. Accepted implementation/tests match retained evidence and are unchanged;
+existing verification is reused, with exact staged-path/diff/whitespace, normal hook and post-commit
+checks only. No repeated suites/builds/AFT/security review or sidecar publish for closeout.
+
+Windows entry HEAD `f83c2b5`. Accepted report frame/density/themes, five accessible header funnels,
+unchanged shared editor/popover via local adapter, full-loaded-report AND predicates/cascading facets
+and exact source-decimal conditions before rounding. Guarded Finished Goods-only 100/500/1000
+preference (default 100), first-row-preserving resizing and valid reset/clamped/empty paging.
+Acquisition/cache/stale/identity/obsolete protection, physical rows/order, USD valuation and warnings
+unchanged; no backend/source/contract/shared-component/dependency/export/native authority change.
+
+Offline **48 frontend tests passed / zero skips**, typecheck, changed-file lint, frontend build and
+offline embedded release build pass. Initial AFT fresh/clean; final requests deadline-failed. Known
+broad lint/format/Vite exceptions retained. Sidecars unchanged, no republish; owner build-info bytes
+preserved unstaged/excluded. No agent live queries, app launch, installs, deployment or push.
+Review release `src/tauri/target/release/kst-tauri.exe`: **15,302,656 bytes**, SHA256
+`10B2A4458677DB70E8917BC23685549A00C9B3B88065CDA506DCCD0E8EE1270D` (final asset names embedded).
+Scope/security screening/evidence/owner checklist: `docs/implementation/KST_v2_S22_009_FINISHED_GOODS_UI.md`;
+full evidence `C:\dev\kst_v2_tmp\Stage22\FinishedGoods\evidence\` and `commit-closeout\`.
+Local Windows S22-009 backlog entry is closed; evidence/binaries remain outside Git. S22-009 is closed;
+Stage 22 remains open. Preceding accepted checkpoints below remain unchanged.
+
 ## S22-005 reopened header filtering + pagination — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-19
 
 The owner completed the final desktop checklist, confirmed everything works, explicitly accepted both

@@ -3,7 +3,26 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** **S22-005 reopened header filtering + pagination — COMPLETE /
+**Current project position:** **S22-009 Finished Goods UI/header filters — COMPLETE /
+OWNER-ACCEPTED / CLOSED — 2026-10-19.** Owner reviewed the application and explicitly accepted
+styling, all five header filters, full-report cascading counts, exact-decimal filtering and
+100/500/1000 paging, authorizing one complete local closeout commit, **not a push**. This is owner-run
+visual/interaction evidence, not additional agent desktop/live-query/native-suite/exhaustive-fault,
+installer, deployment or risk acceptance. Accepted implementation/tests are unchanged; existing
+verification is reused, with staged-path/diff/whitespace, normal hooks and post-commit checks only.
+No repeated suites/builds/AFT/security review or sidecar publish. Themed report frame, five accessible
+header funnels/shared editor, full-report cascading counts and exact source-decimal predicates;
+separate guarded 100/500/1000 page-size preference, first-row-preserving resizing and valid resets.
+Physical inventory rows/order, acquisition/identity/stale protections and valuation unchanged.
+48 offline frontend passes (zero skips), typecheck/changed-file lint/frontend/offline release builds
+pass; initial clean AFT, later deadline failures; existing broad verification exceptions retained.
+Sidecars unchanged/not republished, owner build metadata preserved. No live queries, app launch,
+dependencies, backend/contracts, export, push or deployment. Owner build metadata remains unstaged
+and excluded; evidence/binaries stay outside Git; local Windows S22-009 backlog entry is closed.
+Accepted release executable, exact identity, security trigger screen, local evidence and historical checklist:
+`docs/implementation/KST_v2_S22_009_FINISHED_GOODS_UI.md`. Stage 22 remains open.
+
+**Preceding accepted checkpoint:** **S22-005 reopened header filtering + pagination — COMPLETE /
 OWNER-ACCEPTED / CLOSED — 2026-10-19.** The owner completed the final desktop checklist, confirmed
 everything works and explicitly accepted both additions, authorizing one complete local commit,
 not a push. Owner-run acceptance does not add live-query/native-test/external-QXtend or deployment

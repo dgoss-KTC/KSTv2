@@ -1,5 +1,19 @@
 # Stage 15 — Finished Goods: accepted source and decision ledger
 
+## S22-009 presentation/filtering amendment — 2026-10-19
+
+Owner authorizes replacing separate Product/Location/Lot Contains inputs with shared-editor header
+funnels: Values / literal case-insensitive Contains for those columns, exact numeric conditions on
+existing On Hand/Value strings. Complete loaded-report AND filtering/cascading facets precede paging;
+100/500/1000 replaces fixed 100, with a separate guarded size-only preference. This explicitly amends
+the older filter/paging presentation below, not inventory population, row identity/order, valuation,
+price absence/error, source reads or acquisition/scope/stale semantics. No export. Implementation and
+48 passing offline frontend tests recorded in `KST_v2_S22_009_FINISHED_GOODS_UI.md`. On 2026-10-19
+the owner reviewed/accepted styling, all five filters, cascading counts, exact-decimal filtering and
+paging; **S22-009 COMPLETE / OWNER-ACCEPTED / CLOSED**. Owner-run visual/interaction evidence is
+distinct from retained offline tests; closeout reuses verification and authorizes one local commit,
+not a push. Stage 22 remains open. Original Stage 15 acceptance below is preserved.
+
 ## Final owner acceptance — 2026-10-08
 
 **Stage15 COMPLETE / OWNER-ACCEPTED.** Owner explicitly confirms visible Finished Goods loading,
