@@ -63,6 +63,82 @@ described below; none of the 13.2 bounded samples validates full-workspace perfo
 
 ## Checkpoint 13.3 Report Mode
 
+### S22-005 pagination addition — 2026-10-19 (complete / owner-accepted)
+
+The owner explicitly supersedes the fixed 100-row requirement in the header-filter amendment below.
+Report and Plan now offer **100 / 500 / 1000**, default 100, in the themed **Rows per page** button
+group. One guarded preference `kst.openOrders.pageSize.v1` is shared across modes/workspaces,
+separate from Shipments and named views. Only supported strings load/persist; invalid/missing/unavailable
+storage falls back to 100 and storage failures never prevent session use.
+
+Size changes choose `floor(previousFirstRowOffset / newSize)` using the currently clamped page.
+All ranges/pages, hidden-change accounting and Find row use the selected size; existing result/mode
+clamping/reset behavior and empty messages remain. This is entirely local rendering of the existing
+complete report: no server paging, new acquisition or API contract change. Proposals, in-progress
+inputs and drafts survive, and size changes do not save unchanged drafts. Page size/position remain
+outside export context; Report export selects every matching row in the displayed column order and
+Save again retains its exact preparation. Operational generation/save/recovery/feedback are unchanged.
+Verification, accepted final release identity and owner-completed checklist are in the S22-005
+implementation record. The owner explicitly accepted the combined filtering/pagination follow-up
+after desktop review on 2026-10-19; this is not new agent live-query/native-suite or external-QXtend
+acceptance evidence. The closeout reuses existing verification; Stage 22 remains open.
+
+### S22-005 reopened header-filter amendment — 2026-10-19 (complete / owner-accepted)
+
+This owner-dispatched frontend amendment supersedes the historical + Filter/chip presentation below,
+not the accepted source/snapshot, business ordering, planning, operational CSV or cache ownership rules.
+Header funnels use the shared S22-010 anchored filter editor; a compact **Filters** menu reviews all
+fields, including hidden columns and filter-only Salesperson. No report/export column is added.
+
+- Seven-field literal quick search remains OR within its fields and AND with all committed column
+  predicates. The complete loaded report is filtered before unchanged sorting/local pagination
+  (initially 100 rows; superseded by the accepted configurable sizes above);
+  no Shipments disk-backed operations or new source reads are introduced.
+- Text columns offer exact Values (case-distinct source identities) and case-insensitive literal
+  Contains; `%`/`_` are ordinary characters. Contains defaults to excluding blanks, preserving the
+  accepted original text rule; explicit blank inclusion is an intentional new option. Null/empty are
+  blank, while whitespace and literal caption-looking strings remain actual values.
+- Numeric columns use exact decimal predicates Equals, Greater than, Less than and inclusive Between,
+  with optional blanks. Nullable Partials uses Yes/No/blank values. Dates use inclusive local calendar
+  ranges; **Due Date still requires both valid bounds and excludes blanks**. Other retrieved dates
+  allow either bound and explicit blank inclusion. Open Orders does not inherit Shipments shortcuts.
+- Product Line offers Values/Contains plus its existing inclusive **text Range**, English comparison
+  with base sensitivity (case-insensitive), not numeric ordering. Either bound is allowed; blank
+  product lines do not match a range. A field has one committed predicate at a time.
+- Facets count the full loaded population after quick search and all other committed field filters,
+  excluding their own field. Values show at most 1,000 frequency-ranked entries (ordinal tie-break),
+  while search scans all eligible values. Selected/exception values outside that list remain reachable,
+  with zero counts where appropriate. At most 1,000 explicit selection exceptions are allowed.
+  Global Select all includes **undisplayed** eligible values and blanks (exclude-empty); search bulk
+  is explicitly **displayed results only**, retaining hidden exceptions. A display cap never truncates
+  the matching report/export population. No cross-visit filter persistence is added.
+- Explicit Apply commits; Cancel/Escape/outside dismissal discard editor drafts. Clear filter commits
+  removal of that field only. Filters → Clear column filters keeps quick search. The toolbar's
+  **Clear search and filters** clears both, never proposals. Headers remain available with no matches.
+- Column views still store only visibility/order; hiding a column or switching a view retains its
+  filter. Required Plan columns, modified-view decisions, pointer and keyboard moves are unchanged.
+  Funnel input cannot start a column drag; the popup is portaled outside table clipping.
+- Plan filters/counts use **retrieved**, not proposed, values. The Plan notice and original-value
+  annotations explain the distinction. Changed-only is a separate presentation control, not a facet
+  population. Find row clears quick search, column filters and changed-only, navigates to the correct
+  page and focuses/scrolls the row. Generation still validates every changed workspace proposal,
+  independent of displayed filters/pages. No Reason Code/Planning-status filters are introduced.
+- Analytical export still sends ordered matching cached line keys and selected report columns to the
+  existing typed adapter. Every matching row across pages is included; server-owned cached cells,
+  protected Save As, exact-preparation retry, recovery and eight-second feedback remain. Committed
+  filters participate in export context; popup drafts, facet searches, focus and page changes do not.
+
+**Small contract-first extension:** `OpenOrderLineDto.numericText` exposes invariant strings for
+`open`, `extPrice`, `unitPrice`, `allocated`, `picked`, `siteQoh` (last three nullable). These serialize
+the same existing values at the DTO boundary; numeric display fields remain unchanged. Order Qty and
+raw Price filtering reuse existing exact `planningValues`; Line is an exactly representable SQL int.
+Missing exact report text from an old sidecar blocks the affected numeric editor rather than using
+rounded numbers. OpenAPI and generated TypeScript are synchronized. No query/calculation changes.
+
+Implementation, independent review, local evidence/build identities and owner checks:
+`docs/implementation/KST_v2_S22_005_OPEN_ORDERS_UI.md`. This amendment has its own explicit
+2026-10-19 owner acceptance, separate from the original S22-005 implementation below.
+
 The workspace navigation loads `GET /open-orders` only after the workspace's already-loaded MPS
 snapshot exists. The UI retains the complete response and sorts all lines locally by Customer Name,
 Item Number, Due Date; page size 100 limits rendered DOM rows only. Filters (AND-combined) and

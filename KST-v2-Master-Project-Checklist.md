@@ -3,7 +3,37 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** **S22-010 Workspace Shipments redesign is COMPLETE / OWNER-ACCEPTED —
+**Current project position:** **S22-005 reopened header filtering + pagination — COMPLETE /
+OWNER-ACCEPTED / CLOSED — 2026-10-19.** The owner completed the final desktop checklist, confirmed
+everything works and explicitly accepted both additions, authorizing one complete local commit,
+not a push. Owner-run acceptance does not add live-query/native-test/external-QXtend or deployment
+evidence. Fixed 100 is explicitly superseded by 100/500/1000 (default 100), one
+guarded Open Orders preference shared across modes/workspaces. First-visible-row preservation,
+selected-size paging/hidden changes/Find row, exact draft/input retention and full-population prepared
+exports pass. Pagination 168 frontend passes/2 inherited skips, type/lint/build pass; reuse unchanged
+backend/native/security evidence, no sidecar publication. New embedded release 15,302,656 bytes/hash
+B599F27E… supersedes the prior host; exact identity/checklist/evidence in the S22-005 record and
+`evidence/pagination/`. Header filters retain 232 frontend passes/2 inherited skips, 96 backend passes
+and actual synthetic XLSX checks; pagination's 168/2 overlaps and is not additive. Closeout reuses
+verification, with full staged-path/diff/whitespace and normal hook/post-commit checks, not repeated
+suites/builds/security review. Existing format/AFT limitations remain explicit. Owner build metadata
+is preserved unstaged/excluded; local evidence/binaries stay outside Git. No push/deployment/live-query
+claim; original acceptance/reopening and S22-010 commit remain preserved. Stage 22 remains open.
+
+**Preceding header-filter implementation:** **S22-005 reopened header filtering — IMPLEMENTED / OFFLINE-VERIFIED;
+OWNER REVIEW PENDING AT HANDOFF — 2026-10-19; subsequently accepted above.** Header funnels and the shared S22-010 editor now refine the complete
+loaded report, with hidden/filter-only menu access, exact numeric text, unchanged search/sort/100-row
+pages and retrieved-value Plan semantics. Proposals/drafts/operational scope and analytical-save
+safeguards remain. Final 232 frontend passes / 2 inherited skips, 96 backend passes, inspected synthetic
+XLSX and independent review with no confirmed material blocker at bounded depth; format/AFT exceptions
+remain explicit. Release desktop rebuilt and sidecar republished; all four copies including formerly
+stale debug now match. Review target/identities/checklist and limits are in
+`docs/implementation/KST_v2_S22_005_OPEN_ORDERS_UI.md`. Original S22-005 acceptance is preserved;
+that handoff preceded combined follow-up acceptance. No live agent source reads, installs, staging,
+commit, push or deployment occurred in that implementation phase; original build metadata remains
+byte-identical/unstaged. Stage 22 remains open.
+
+**Preceding accepted checkpoint:** **S22-010 Workspace Shipments redesign is COMPLETE / OWNER-ACCEPTED —
 2026-10-19**. The owner reviewed/accepted the rebuilt release application and authorized closeout
 and one complete local checkpoint commit, not a push. Explicit accepted Stage 19 Part 2 listing
 amendment preserves acquisition/source/math; bounded disk-backed views/facets and Workspace-only
@@ -12,8 +42,9 @@ for 82 backend / 139 frontend passes (3 skips), independent security review, rel
 source-disabled probes, known exceptions and owner-run acceptance. Published/binaries/release sidecars
 match; debug was blocked by the running app and remains old, not refreshed or included in acceptance
 of the rebuilt release artifact. Existing verification is reused; unrelated build metadata stays unstaged.
-**S22-005 Customer Open Orders is reopened for a subsequent filtering update**; its 2026-10-19
-owner-accepted UI/lifecycle/pointer/numeric-focus implementation remains the baseline; see §22.3.
+**At that closeout S22-005 Customer Open Orders was reopened for a subsequent filtering update**;
+its original 2026-10-19 accepted UI/lifecycle/pointer/numeric-focus implementation remained the
+baseline. The subsequent filtering/pagination follow-up is now closed as accepted; see §22.3.
 Stage 22 remains open. Earlier Stage 22 MPS drill-down and subsequent MPS/BOM export pilot — **IMPLEMENTED /
 OFFLINE-VERIFIED; ACCEPTED MPS/EXPORT BEHAVIOR, REMAINING OWNER VALIDATION PENDING — 2026-10-16**. Accepted stage baseline remains
 Stage 21 (`1831fb7`). Stage 22 overall is in progress, not accepted or complete. See
@@ -1866,9 +1897,15 @@ evidence, not proof of external QXtend acceptance. The owner separately authoriz
 the complete local S22-005 commit, not a push or next implementation item. No agent-run live source
 access or shared deployment occurred; Stage 22 remains open. Large local evidence/build outputs stay outside Git.
 
-**Subsequent scope:** S22-005 remains **reopened for its subsequent filtering update**. The accepted
-2026-10-19 implementation above remains its original baseline; S22-010 does not migrate Open Orders
-or authorize that next implementation here.
+**Subsequent reopening and closure:** S22-005 was reopened after that original acceptance, with
+`e3585f1` as the follow-up baseline. Header filters/shared editor/cascading facets/exact-value DTO
+companions and configurable 100/500/1000 pages are now **COMPLETE / OWNER-ACCEPTED / CLOSED —
+2026-10-19**. Owner completed the final desktop checklist, confirmed everything works and authorized
+the complete local follow-up commit, not a push. Header-filter 232/2 frontend, 96 backend and actual
+XLSX evidence are retained; pagination 168/2 frontend overlaps, not additive, and reused unchanged
+backend/native evidence without sidecar republish. Accepted release hash B599F27E… embeds final assets;
+full identity/limits/history in the S22-005 record. C# formatting/partial AFT remain exceptions. Original
+acceptance and S22-010 remain intact; Stage 22 stays open and no next feature is authorized.
 
 - [ ] Work in bounded owner-review batches rather than one monolithic change set.
 - [ ] Improve cross-view consistency, scrolling, sizing, navigation, keyboard behavior, filters,

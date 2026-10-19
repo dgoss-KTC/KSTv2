@@ -15,7 +15,12 @@ public sealed record OpenOrderLineDto(
     string? ProductLine, string? QaHold, string? Remarks, string? Revision,
     string? ShipAcct, string? ShipTo, string? ShipVia, decimal? SiteQoh,
     string? SoHoldStatus, string? SoType, bool? Consignment,
-    OpenOrderDraftValuesDto PlanningValues, string ShippedQtyText);
+    OpenOrderDraftValuesDto PlanningValues, string ShippedQtyText,
+    OpenOrderReportNumericTextDto NumericText);
+
+// Exact retrieved values for frontend filtering; existing numeric display/export contracts remain.
+public sealed record OpenOrderReportNumericTextDto(
+    string Open, string ExtPrice, string UnitPrice, string? Allocated, string? Picked, string? SiteQoh);
 
 public sealed record OpenOrdersResponseDto(
     Guid WorkspaceId, string Site, string MpsSnapshotId, string OpenOrdersSnapshotId,

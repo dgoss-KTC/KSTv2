@@ -8055,7 +8055,8 @@
           "soType",
           "consignment",
           "planningValues",
-          "shippedQtyText"
+          "shippedQtyText",
+          "numericText"
         ],
         "type": "object",
         "properties": {
@@ -8264,6 +8265,9 @@
           },
           "shippedQtyText": {
             "type": "string"
+          },
+          "numericText": {
+            "$ref": "#/components/schemas/OpenOrderReportNumericTextDto"
           }
         }
       },
@@ -8318,6 +8322,46 @@
             "$ref": "#/components/schemas/OpenOrderDraftValuesDto"
           },
           "reasonCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "OpenOrderReportNumericTextDto": {
+        "required": [
+          "open",
+          "extPrice",
+          "unitPrice",
+          "allocated",
+          "picked",
+          "siteQoh"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "string"
+          },
+          "extPrice": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "string"
+          },
+          "allocated": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "picked": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "siteQoh": {
             "type": [
               "null",
               "string"

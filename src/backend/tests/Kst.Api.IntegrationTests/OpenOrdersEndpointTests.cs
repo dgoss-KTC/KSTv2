@@ -15,6 +15,89 @@ namespace Kst.Api.IntegrationTests;
 public sealed class OpenOrdersEndpointTests
 {
     [Fact]
+    public async Task ReportExposesExactRetrievedNumericTextWithoutChangingNumericOrPlanningValues()
+    {
+        var line = Line() with
+        {
+            Allocated = 9007199254740993.0000000001m,
+            Picked = -0.00000000000000000001m,
+            SiteQoh = null,
+            SourceValues = new(null, null, null, null, 9007199254740993m, 0.00000000000000000001m)
+        };
+        await using var factory = new KstApiFactory
+        {
+            OpenOrdersSourceReader = new DelegateOpenOrdersSourceReader((_, _, _) =>
+                Task.FromResult<IReadOnlyList<OpenOrderLine>>([line]))
+        };
+        using var client = factory.CreateClient();
+        var id = await CreateAsync(client);
+        var snapshot = Seed(factory.Services.GetRequiredService<IMpsSnapshotStore>(), id, "P-1");
+        var report = (await client.GetFromJsonAsync<OpenOrdersResponseDto>($"/api/v1/workspaces/{id}/open-orders?mpsSnapshotId={snapshot.Id}"))!;
+        var dto = Assert.Single(report.Lines);
+        Assert.Equal("9007199254740993.0000000001", dto.NumericText.Allocated);
+        Assert.Equal("-0.00000000000000000001", dto.NumericText.Picked);
+        Assert.Null(dto.NumericText.SiteQoh);
+        Assert.Equal(line.Open.ToString(System.Globalization.CultureInfo.InvariantCulture), dto.NumericText.Open);
+        Assert.Equal(line.ExtPrice.ToString(System.Globalization.CultureInfo.InvariantCulture), dto.NumericText.ExtPrice);
+        Assert.Equal(line.UnitPrice.ToString(System.Globalization.CultureInfo.InvariantCulture), dto.NumericText.UnitPrice);
+        Assert.Equal("9007199254740993", dto.PlanningValues.OrderQty);
+        Assert.Equal("0.00000000000000000001", dto.PlanningValues.Price);
+        Assert.Equal(line.Allocated, dto.Allocated);
+    }
+
+    [Fact]
+    public async Task HeaderFilterSelectionProducesIndependentlyExpectedWorkbookRowsAndColumnsWithoutReread()
+    {
+        var reads = 0;
+        var lines = Enumerable.Range(0, 305).Select(i => Line() with
+        {
+            Key = new("TEST", $"SO-{i:D3}", 1),
+            CustomerPart = $"Synthetic {i}",
+            Allocated = i >= 100 && i % 2 == 0 ? 9007199254740993.0000000002m : 9007199254740993.0000000001m
+        }).ToArray();
+        await using var factory = new KstApiFactory
+        {
+            OpenOrdersSourceReader = new DelegateOpenOrdersSourceReader((_, _, _) =>
+            {
+                reads++;
+                return Task.FromResult<IReadOnlyList<OpenOrderLine>>(lines);
+            })
+        };
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-KST-Report-Session", Guid.NewGuid().ToString());
+        var id = await CreateAsync(client);
+        var snapshot = Seed(factory.Services.GetRequiredService<IMpsSnapshotStore>(), id, "P-1");
+        var report = (await client.GetFromJsonAsync<OpenOrdersResponseDto>($"/api/v1/workspaces/{id}/open-orders?mpsSnapshotId={snapshot.Id}"))!;
+        // Independent expected client selection: even row identities 100..304, including page two.
+        // The server accepts keys only and resolves every cell from its retained report, not the UI.
+        var keys = Enumerable.Range(0, 103).Select(i => new OpenOrderLineKeyDto("TEST", $"SO-{100 + i * 2:D3}", 1)).ToArray();
+        var selection = new ExportOpenOrdersReportRequestDto(snapshot.Id.ToString(), report.OpenOrdersSnapshotId,
+            keys, ["customerPart", "order", "extPrice"]);
+        using var generated = await client.PostAsJsonAsync("/api/v1/reports/analytical", OpenOrdersAnalytical(id, snapshot.Id.Value, selection));
+        generated.EnsureSuccessStatusCode();
+        var prepared = (await generated.Content.ReadFromJsonAsync<AnalyticalExportPreparedDto>())!;
+        var bytes = await client.GetByteArrayAsync($"/api/v1/reports/analytical/preparations/{prepared.PreparationId}/bytes");
+        using var book = new XLWorkbook(new MemoryStream(bytes));
+        var sheet = book.Worksheet("Open Orders");
+        Assert.Equal(104, sheet.LastRowUsed()!.RowNumber());
+        Assert.Equal(3, sheet.LastColumnUsed()!.ColumnNumber());
+        Assert.Equal("Customer Part", sheet.Cell(1, 1).GetString());
+        Assert.Equal("SO", sheet.Cell(1, 2).GetString());
+        Assert.Equal("Ext Price", sheet.Cell(1, 3).GetString());
+        for (var i = 0; i < 103; i++)
+        {
+            Assert.Equal($"Synthetic {100 + i * 2}", sheet.Cell(i + 2, 1).GetString());
+            Assert.Equal($"SO-{100 + i * 2:D3}", sheet.Cell(i + 2, 2).GetString());
+            Assert.Equal(0.0375, sheet.Cell(i + 2, 3).GetDouble());
+            Assert.False(sheet.Cell(i + 2, 1).HasFormula);
+        }
+        Assert.Equal(1, reads);
+        var evidenceRoot = Environment.GetEnvironmentVariable("KST_OPEN_ORDERS_EVIDENCE_ROOT");
+        if (evidenceRoot is not null)
+            await File.WriteAllBytesAsync(Path.Combine(evidenceRoot, "Synthetic-Open-Orders-Filtered-103-rows.xlsx"), bytes);
+    }
+
+    [Fact]
     public async Task AnalyticalPreparationUsesExactCachedSelectionAcrossPagesAndSessionBoundBytesWithoutReread()
     {
         var reads = 0;

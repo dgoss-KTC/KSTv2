@@ -78,6 +78,6 @@ export function useColumnDrag(ids: readonly PlanColumnId[], context: string,
     win.addEventListener('blur', stop); element.addEventListener('lostpointercapture', stop);
     element.setPointerCapture?.(pointerId);
   }
-  return { start, feedback };
+  return { start, feedback, cancel };
 }
 

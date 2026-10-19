@@ -1,0 +1,13 @@
+.shipment-filter { display:flex; flex-direction:column; gap:8px; }
+.shipment-filter > label { display:flex; flex-direction:column; gap:4px; color:var(--tx2); }
+.shipment-filter .shipment-filter__value { display:flex; flex-direction:row; align-items:center; gap:7px; overflow-wrap:anywhere; }
+.shipment-filter input[type='checkbox'] { min-height:0; flex-shrink:0; accent-color:var(--accent-solid); }
+.shipment-filter__list { max-height:240px; overflow:auto; padding:4px; border:1px solid var(--bd-soft); background:var(--grid); border-radius:6px; }
+.shipment-filter__value-row { display:flex; align-items:center; gap:8px; padding:3px; }
+.shipment-filter__value-row > span { margin-left:auto; color:var(--tx2); }
+.shipment-filter__modes, .shipment-filter footer { display:flex; flex-wrap:wrap; gap:6px; }
+.shipment-filter footer { justify-content:flex-end; }
+.shipment-filter footer button:first-child { margin-right:auto; }
+.shipment-filter p { margin:0; font-size:11.5px; }
+.shipment-filter [role='alert'] { color:var(--danger-tx); }
+.shipment-filter [aria-pressed='true'] { background:var(--accent-soft); color:var(--tx); border-color:var(--accent-solid); }

@@ -3,11 +3,13 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { act } from 'react';
+import userEvent from '@testing-library/user-event';
 import { OpenOrdersPanel } from './OpenOrdersPanel';
 import type { OpenOrdersResponseDto } from '../api/client';
 import type { OrderLine } from '../openOrders/report';
 import { ApiError } from '../api/client';
 import { columnPointer } from '../openOrders/pointerTestSupport';
+import { OPEN_ORDERS_PAGE_SIZE_KEY } from '../openOrders/pageSize';
 
 const get = vi.fn(); const refresh = vi.fn(); const exportReport = vi.fn(); const exportQxtend = vi.fn(); const save = vi.fn(); const saveCsv = vi.fn(); const restoreDraft = vi.fn(); const draftPresence = vi.fn(); const saveDraft = vi.fn(); const deleteDraft = vi.fn();
 vi.mock('../api/tauri-bridge', () => ({ resolveBackendBaseUrl: () => Promise.resolve('http://localhost'), isRunningInTauri: () => false }));
@@ -26,6 +28,7 @@ function response(count: number, isStale = false): OpenOrdersResponseDto {
   const template: OrderLine = { key: { domain: 'D', salesOrder: 'SO-1', line: 1 }, itemNumber: 'P-1', site: 'SW', purchaseOrder: 'PO', stat: 'A',
     shippedQty: 1, sourceValues: { dueDate: '2027-01-01', performDate: null, requiredDate: null, dockDate: null, orderQty: 3, price: '0.125' },
     planningValues: { dueDate: '2027-01-01', performDate: null, requiredDate: null, dockDate: null, orderQty: '3', price: '0.125' }, shippedQtyText: '1',
+    numericText: { open: '2', extPrice: '0.250', unitPrice: '0', allocated: null, picked: null, siteQoh: null },
     open: 2, extPrice: '0.250', unitPrice: 0, allocated: null, customer: 'C1', customerName: 'Acme', salesperson: 'SP',
     customerPart: null, ios: 'IOS', lineComments: '', lineHold: null, partials: null, picked: null, plnr: null, prodStat: null,
     productLine: 'B', qaHold: null, remarks: null, revision: null, shipAcct: null, shipTo: null, shipVia: null,
@@ -35,12 +38,32 @@ function response(count: number, isStale = false): OpenOrdersResponseDto {
     lines: Array.from({ length: count }, (_, i) => ({ ...template, key: { ...template.key, salesOrder: `SO-${i + 1}` } })) };
 }
 
+function paginationResponse(count = 1205): OpenOrdersResponseDto {
+  const data = response(count);
+  data.lines = data.lines.map((line, i) => ({ ...line, key: { ...line.key, salesOrder: `SO-${String(i + 1).padStart(4, '0')}` } }));
+  return data;
+}
+function choosePageSize(size: number) {
+  fireEvent.click(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: String(size) }));
+}
+
+function openFilter(label: string) {
+  const funnel = screen.queryByRole('button', { name: new RegExp(`^Filter ${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}( \\(active\\))?$`) });
+  if (funnel) fireEvent.click(funnel);
+  else {
+    fireEvent.click(screen.getByRole('button', { name: /^Filters(?: \(\d+\))?$/ }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?: \\(| •|$)`) }));
+  }
+}
 function applyTextFilter(type: string, value: string) {
-  fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
-  fireEvent.change(screen.getByRole('combobox', { name: 'Filter' }), { target: { value: type } });
-  const name = { customerName: 'Customer Name contains', customer: 'Customer # contains', salesperson: 'Salesperson contains', ios: 'IOS contains', so: 'SO contains', po: 'PO contains', itemNumber: 'Item Number contains' }[type]!;
-  fireEvent.change(screen.getByRole('searchbox', { name: `${name} value` }), { target: { value } });
-  fireEvent.click(screen.getByRole('button', { name: `Apply ${name} filter` }));
+  const label = { customerName: 'Customer Name', customer: 'Customer #', salesperson: 'Salesperson', ios: 'IOS', so: 'SO', po: 'PO', itemNumber: 'Item Number' }[type]!;
+  openFilter(label); fireEvent.click(screen.getByRole('button', { name: 'Contains' }));
+  fireEvent.change(screen.getByLabelText(`${label} contains`), { target: { value } });
+  if (screen.getByLabelText('Include blank values').getAttribute('checked') !== null || (screen.getByLabelText('Include blank values') as HTMLInputElement).checked) fireEvent.click(screen.getByLabelText('Include blank values'));
+  fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+}
+function clearColumnFilter(label: string) {
+  openFilter(label); fireEvent.click(screen.getByRole('button', { name: 'Clear filter' }));
 }
 function togglePlan() {
   fireEvent.click(screen.getByRole('button', { name: screen.getByRole('button', { name: 'Plan' }).getAttribute('aria-pressed') === 'true' ? 'Report' : 'Plan' }));
@@ -59,6 +82,208 @@ afterEach(() => {
 });
 
 describe('Customer Open Orders panel', () => {
+  it('pages the complete 1205-row report at all three sizes, retaining the previous first row and partial-page ranges', async () => {
+    const data = paginationResponse(); get.mockResolvedValue(data);
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table');
+    const sizes = screen.getByRole('group', { name: 'Rows per page' });
+    expect(within(sizes).getAllByRole('button').map(b => b.textContent)).toEqual(['100', '500', '1000']);
+    expect(within(sizes).getByRole('button', { name: '100' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText(/Rows 1–100 of 1205/)).toBeInTheDocument();
+    for (let i = 0; i < 11; i++) fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    expect(screen.getByText(/Rows 1101–1200 of 1205/)).toBeInTheDocument();
+    const fiveHundred = within(sizes).getByRole('button', { name: '500' }); fiveHundred.focus();
+    await userEvent.setup().keyboard('{Enter}');
+    expect(fiveHundred).toHaveFocus(); expect(fiveHundred).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Page 3 of 3')).toBeInTheDocument();
+    expect(screen.getByText(/Rows 1001–1205 of 1205/)).toBeInTheDocument();
+    expect(screen.getByText('SO-1101')).toBeInTheDocument();
+    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(206);
+    choosePageSize(1000);
+    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
+    expect(screen.getByText(/Rows 1001–1205 of 1205/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Previous page' }));
+    expect(screen.getByText(/Rows 1–1000 of 1205/)).toBeInTheDocument();
+    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(1001);
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' })); choosePageSize(100);
+    expect(screen.getByText('Page 11 of 13')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' })); fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    expect(screen.getByText(/Rows 1201–1205 of 1205/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+    expect(get).toHaveBeenCalledTimes(1); expect(refresh).not.toHaveBeenCalled(); expect(saveDraft).not.toHaveBeenCalled();
+  }, 30_000);
+  it('clamps later pages for search/filter, empty results, refresh and mode/changed-only changes without losing the selected size', async () => {
+    get.mockResolvedValue(paginationResponse()); refresh.mockResolvedValue(paginationResponse(7));
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table');
+    choosePageSize(1000); fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'SO-1205' } });
+    expect(screen.getByText(/Rows 1–1 of 1/)).toBeInTheDocument(); expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'absent' } });
+    expect(screen.getByText('No open orders match the current filters.')).toBeInTheDocument();
+    expect(screen.getByText(/Rows 0–0 of 0/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled(); expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search and filters' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' })); applyTextFilter('so', 'SO-120');
+    expect(screen.getByText(/Rows 1–6 of 6/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search and filters' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' })); togglePlan();
+    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Show changed rows' }));
+    expect(screen.getByText('Page 1 of 1')).toBeInTheDocument(); expect(screen.getByText(/Rows 0–0 of 0/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Show changed rows' })); togglePlan();
+    choosePageSize(500); fireEvent.click(screen.getByRole('button', { name: 'Next page' })); fireEvent.click(screen.getByRole('button', { name: 'Refresh report' }));
+    await screen.findByText(/7 scoped lines/); expect(screen.getByText(/Rows 1–7 of 7/)).toBeInTheDocument();
+    expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: '500' })).toHaveAttribute('aria-pressed', 'true');
+    expect(get).toHaveBeenCalledTimes(1); expect(refresh).toHaveBeenCalledTimes(1);
+  }, 60_000);
+  it('preserves exact proposals, in-progress inputs and drafts, with correct hidden counts and Find row at 500 and 1000', async () => {
+    const data = paginationResponse(); data.lines[0].planningValues.price = '12.3456789012';
+    get.mockResolvedValue(data); render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table'); togglePlan();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-0001/1' }), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' }));
+    await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
+    expect(saveDraft.mock.calls[0][1].proposals[0].proposed.price).toBe('12.3456789012');
+    await act(async () => { choosePageSize(500); });
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    await act(async () => { choosePageSize(100); });
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Due Date proposal SO-0001/1' }), { target: { value: '1/' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Price proposal SO-0001/1' }), { target: { value: '.' } });
+    choosePageSize(500); fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-0601/1' }), { target: { value: '5' } });
+    expect(screen.getByText(/1 outside current filter\/page view/)).toBeInTheDocument();
+    choosePageSize(1000);
+    expect(screen.getByText(/0 outside current filter\/page view/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Due Date proposal SO-0001/1' })).toHaveValue('1/');
+    expect(screen.getByRole('textbox', { name: 'Price proposal SO-0001/1' })).toHaveValue('.');
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    expect(screen.getByText(/2 outside current filter\/page view/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Show changes outside this view' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Find row' })[1]);
+    expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
+    expect(document.activeElement).toHaveAttribute('data-order-row', JSON.stringify(['D', 'SO-0601', 1]));
+    choosePageSize(500);
+    expect(screen.getByText(/1 outside current filter\/page view/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Find row' }));
+    expect(screen.getByText(/Rows 501–1000 of 1205/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-0601/1' })).toHaveValue('5');
+    choosePageSize(1000);
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-0001/1' })).toHaveValue('4');
+    expect(screen.getByRole('textbox', { name: 'Due Date proposal SO-0001/1' })).toHaveValue('1/');
+    expect(saveDraft).toHaveBeenCalledTimes(1); expect(deleteDraft).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledTimes(1); expect(refresh).not.toHaveBeenCalled();
+  }, 60_000);
+  it('shares its validated preference across Report/Plan and workspaces, and works when preference storage is unavailable', async () => {
+    localStorage.setItem(OPEN_ORDERS_PAGE_SIZE_KEY, '500'); get.mockResolvedValue(paginationResponse(2));
+    const ui = render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table');
+    expect(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: '500' })).toHaveAttribute('aria-pressed', 'true');
+    togglePlan(); choosePageSize(1000);
+    expect(localStorage.getItem(OPEN_ORDERS_PAGE_SIZE_KEY)).toBe('1000');
+    ui.rerender(<OpenOrdersPanel key="B" assignmentId="B" snapshotId="snap-1" />); await screen.findByRole('table');
+    expect(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: '1000' })).toHaveAttribute('aria-pressed', 'true');
+    ui.unmount();
+    const read = vi.spyOn(localStorage, 'getItem').mockImplementation(() => { throw new Error('Unavailable'); });
+    const write = vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('Unavailable'); });
+    try {
+      render(<OpenOrdersPanel assignmentId="C" snapshotId="snap-1" />); await screen.findByRole('table');
+      expect(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: '100' })).toHaveAttribute('aria-pressed', 'true');
+      choosePageSize(500);
+      expect(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: '500' })).toHaveAttribute('aria-pressed', 'true');
+    } finally { read.mockRestore(); write.mockRestore(); }
+  });
+  it('keeps funnel and popup pointer/keyboard input out of column dragging, with focus containment and return', async () => {
+    get.mockResolvedValue(response(1)); render(<div className="shell" data-theme="dark"><OpenOrdersPanel assignmentId="A" snapshotId="snap-1" /></div>);
+    await screen.findByRole('table');
+    const funnel = screen.getByRole('button', { name: 'Filter SO' });
+    columnPointer('pointerdown', funnel, 200, 30); columnPointer('pointermove', document, 400, 30); columnPointer('pointerup', document, 400, 30);
+    expect(document.documentElement).not.toHaveClass('orders-column-dragging');
+    const before = screen.getAllByRole('columnheader').map(h => h.textContent);
+    fireEvent.keyDown(funnel, { altKey: true, key: 'ArrowRight' });
+    expect(screen.getAllByRole('columnheader').map(h => h.textContent)).toEqual(before);
+    fireEvent.click(funnel);
+    const dialog = screen.getByRole('dialog', { name: 'Filter SO' });
+    expect(dialog.closest('.shell')).toHaveAttribute('data-theme', 'dark');
+    expect(screen.getByRole('region', { name: 'Scrollable Customer Open Orders report' })).not.toContainElement(dialog);
+    await screen.findByLabelText('Value: SO-1');
+    fireEvent.pointerDown(screen.getByLabelText('Search values'));
+    fireEvent.change(screen.getByLabelText('Search values'), { target: { value: 'nothing' } });
+    const apply = screen.getByRole('button', { name: 'Apply' }); apply.focus(); fireEvent.keyDown(apply, { key: 'Tab' });
+    expect(screen.getByRole('button', { name: 'Close Filter SO' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' })); expect(funnel).toHaveFocus();
+    expect(screen.getByText(/1 matching filters/)).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('columnheader', { name: 'SO' }), { altKey: true, key: 'ArrowRight' });
+    expect(screen.getAllByRole('columnheader')[2]).toHaveAccessibleName('SO');
+  });
+  it('filters against retrieved exact Plan values without removing edited rows, and generates all workspace proposals outside filters', async () => {
+    const data = response(2); get.mockResolvedValue(data); exportQxtend.mockResolvedValue({ files: [{ kind: 'quantity', fileName: 'UpdateQuantities.csv', contentBase64: 'TQ==' }] });
+    render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table'); togglePlan();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-1/1' }), { target: { value: 'Planning' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-2/1' }), { target: { value: '5' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reason Code SO-2/1' }), { target: { value: 'Planning' } });
+    openFilter('Order Qty'); fireEvent.change(screen.getByLabelText('Value'), { target: { value: '3.0000000000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' })).toHaveValue('4');
+    expect(screen.getByText(/Filters and value counts use retrieved values/)).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '6' } });
+    expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
+    applyTextFilter('so', 'SO-2');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Show changed rows' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate files…' }));
+    await waitFor(() => expect(exportQxtend).toHaveBeenCalledTimes(1));
+    expect(exportQxtend.mock.calls[0][1].proposals.map((p: { key: { salesOrder: string } }) => p.key.salesOrder)).toEqual(['SO-1', 'SO-2']);
+    fireEvent.click(screen.getByRole('button', { name: 'Show changes outside this view' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Find row' }));
+    expect(screen.getByRole('checkbox', { name: 'Show changed rows' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
+    expect(document.activeElement).toHaveAttribute('data-order-row', JSON.stringify(['D', 'SO-1', 1]));
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' })).toHaveValue('6');
+  });
+  it('retains a filter while hiding its column, switching a saved columns-only view, and clearing columns without clearing search', async () => {
+    get.mockResolvedValue(response(2)); render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table');
+    applyTextFilter('so', 'SO-1');
+    fireEvent.click(screen.getByRole('button', { name: /Columns 9 of/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hide SO' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save as new' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'View name' }), { target: { value: 'Hidden SO' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('button', { name: 'Filter SO (active)' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'SP' } });
+    openFilter('SO'); expect(screen.getByLabelText('SO contains')).toHaveValue('SO-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByText(/1 matching filters/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /View: Hidden SO/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Default' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.getByRole('button', { name: 'Filter SO (active)' })).toBeInTheDocument();
+    expect(screen.getByText(/1 matching filters/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /View: Default/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hidden SO' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('button', { name: 'Filter SO (active)' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Filters (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear column filters (keep quick search)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.getByRole('searchbox', { name: 'Search open orders' })).toHaveValue('SP');
+    expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
+  });
+  it('keeps the accepted Contains blank default and explicitly blocks numeric filters against an old sidecar contract', async () => {
+    const data = response(2); data.lines[1].customerName = null;
+    for (const line of data.lines) Reflect.deleteProperty(line, 'numericText');
+    get.mockResolvedValue(data); render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table');
+    openFilter('Customer Name'); fireEvent.click(screen.getByRole('button', { name: 'Contains' }));
+    expect(screen.getByLabelText('Include blank values')).not.toBeChecked();
+    fireEvent.change(screen.getByLabelText('Customer Name contains'), { target: { value: 'Acme' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    expect(screen.getByText(/1 matching filters/)).toBeInTheDocument();
+    openFilter('Open'); fireEvent.change(screen.getByLabelText('Value'), { target: { value: '2' } });
+    expect(screen.getByRole('alert')).toHaveTextContent('Exact report values unavailable');
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByText(/1 matching filters/)).toBeInTheDocument();
+  });
   it('reorders Plan headers with pointer capture without changing proposals or generation guards', async () => {
     get.mockResolvedValue(response(1)); render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table'); togglePlan();
@@ -81,7 +306,7 @@ describe('Customer Open Orders panel', () => {
     await screen.findByRole('table'); togglePlan();
     fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'no-match' } });
-    expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument(); expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument(); expect(screen.getByText('No open orders match the current filters.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Show changes outside this view' }));
     fireEvent.click(screen.getByRole('button', { name: 'Find row' }));
     expect(screen.getByRole('searchbox', { name: 'Search open orders' })).toHaveValue('');
@@ -97,8 +322,8 @@ describe('Customer Open Orders panel', () => {
     await screen.findByRole('table'); fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'SO-205' } });
     expect(screen.getByText(/Rows 1–1 of 1/)).toBeInTheDocument(); expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
-    const trigger = screen.getByRole('button', { name: '+ Filter' }); fireEvent.click(trigger);
-    expect(screen.getByRole('dialog', { name: 'Add or edit report filter' })).toBeInTheDocument();
+    const trigger = screen.getByRole('button', { name: 'Filter SO' }); fireEvent.click(trigger);
+    expect(screen.getByRole('dialog', { name: 'Filter SO' })).toBeInTheDocument();
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' }); expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); expect(trigger).toHaveFocus();
     fireEvent.click(trigger); fireEvent.pointerDown(document.body); expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); expect(trigger).toHaveFocus();
   });
@@ -534,11 +759,11 @@ describe('Customer Open Orders panel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Hide Due Date' }));
     fireEvent.click(screen.getByRole('button', { name: 'Show Customer Name' }));
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
-    fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Customer Name contains value' }), { target: { value: 'acm' } });
+    openFilter('Customer Name'); fireEvent.click(screen.getByRole('button', { name: 'Contains' }));
+    fireEvent.change(screen.getByLabelText('Customer Name contains'), { target: { value: 'acm' } });
     expect(screen.getByText(/235 matching filters/)).toBeInTheDocument(); // draft is not applied
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Customer Name contains filter' }));
-    expect(screen.getByRole('button', { name: 'Remove Customer Name contains filter' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    expect(screen.getByRole('button', { name: 'Filter Customer Name (active)' })).toBeInTheDocument();
     expect(screen.getByText(/235 matching filters/)).toBeInTheDocument();
     expect(screen.getByText(/Rows 1–100 of 235/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
@@ -590,20 +815,19 @@ describe('Customer Open Orders panel', () => {
     applyTextFilter('salesperson', 'S1');
     applyTextFilter('ios', 'I1');
     expect(screen.getByText(/1 matching filters/)).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /^Remove .* filter$/ })).toHaveLength(4);
-    fireEvent.click(screen.getByRole('button', { name: /Edit Customer # contains filter/ }));
-    expect(screen.getByRole('searchbox', { name: 'Customer # contains value' })).toHaveValue('C1');
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Customer # contains value' }), { target: { value: 'C2' } });
+    expect(screen.getByRole('button', { name: 'Filters (4)' })).toBeInTheDocument();
+    openFilter('Customer #');
+    expect(screen.getByLabelText('Customer # contains')).toHaveValue('C1');
+    fireEvent.change(screen.getByLabelText('Customer # contains'), { target: { value: 'C2' } });
     expect(screen.getByText(/1 matching filters/)).toBeInTheDocument(); // still applied C1
-    fireEvent.submit(screen.getByRole('form', { name: 'Add or edit report filter' })); // Enter
+    fireEvent.submit(screen.getByRole('button', { name: 'Apply' }).closest('form')!); // Enter
     expect(screen.getByText(/0 matching filters/)).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /^Remove .* filter$/ })).toHaveLength(4);
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Salesperson contains filter' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Remove IOS contains filter' }));
+    expect(screen.getByRole('button', { name: 'Filters (4)' })).toBeInTheDocument();
+    clearColumnFilter('Salesperson'); clearColumnFilter('IOS');
     expect(screen.getByText(/1 matching filters/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Customer Name contains filter' }));
+    clearColumnFilter('Customer Name');
     expect(screen.getByText(/1 matching filters/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Customer # contains filter' }));
+    clearColumnFilter('Customer #');
     expect(screen.getByText(/3 matching filters/)).toBeInTheDocument();
     expect(get).toHaveBeenCalledTimes(1);
   });
@@ -619,33 +843,33 @@ describe('Customer Open Orders panel', () => {
     await screen.findByText(/4 scoped lines/);
     expect(screen.getAllByText('1/1/2027').length).toBeGreaterThan(0);
     expect(screen.getByText(/Acquired/)).not.toHaveTextContent('2026-09-30T10:00:00Z');
-    fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Customer Name contains filter' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Enter a filter value');
+    openFilter('Customer Name'); fireEvent.click(screen.getByRole('button', { name: 'Contains' }));
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter text to match');
     expect(screen.getByText(/4 matching filters/)).toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Filter' }), { target: { value: 'productLine' } });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Product Line range from' }), { target: { value: 'B' } });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Product Line range to' }), { target: { value: 'A' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Product Line range filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' })); openFilter('Product Line');
+    fireEvent.click(screen.getByRole('button', { name: 'Range' }));
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: 'B' } });
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: 'A' } });
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
     expect(screen.getByRole('alert')).toHaveTextContent('From must be on or before To');
-    fireEvent.change(screen.getByRole('textbox', { name: 'Product Line range to' }), { target: { value: 'C' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Product Line range filter' }));
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: 'C' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Filter' }), { target: { value: 'dueDate' } });
-    fireEvent.change(screen.getByLabelText('Due Date range from'), { target: { value: '2027-01-02' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Due Date range filter' }));
+    openFilter('Due Date');
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2027-01-02' } });
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
     expect(screen.getByRole('alert')).toHaveTextContent('both Due Date boundaries');
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Due Date range to'), { target: { value: '2027-01-02' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Due Date range filter' }));
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2027-01-02' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     expect(screen.getByText(/1 matching filters/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     await waitFor(() => expect(exportReport).toHaveBeenCalledWith('A', expect.objectContaining({ lineKeys: [data.lines[1].key] })));
     expect(data.lines[1].extPrice).toBe('0.250');
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Due Date range filter' }));
+    clearColumnFilter('Due Date');
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Product Line range filter' }));
+    clearColumnFilter('Product Line');
     expect(screen.getByText(/4 matching filters/)).toBeInTheDocument();
     expect(get).toHaveBeenCalledTimes(1);
   });
@@ -677,19 +901,17 @@ describe('Customer Open Orders panel', () => {
     get.mockResolvedValue(response(1));
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table');
-    fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Filter' }), { target: { value: 'dueDate' } });
-    const from = screen.getByLabelText('Due Date range from');
-    const to = screen.getByLabelText('Due Date range to');
+    openFilter('Due Date');
+    const from = screen.getByLabelText('From'); const to = screen.getByLabelText('To');
     fireEvent.change(from, { target: { value: '2027-02-30' } });
     fireEvent.change(to, { target: { value: '2027-03-01' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Due Date range filter' }));
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
     expect(screen.getByRole('alert')).toHaveTextContent('Enter both Due Date boundaries'); // browser date control rejects invalid date
     fireEvent.change(from, { target: { value: '2027-03-02' } });
     fireEvent.change(to, { target: { value: '2027-03-01' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Due Date range filter' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('From must be on or before To');
-    expect(screen.queryByRole('button', { name: 'Remove Due Date range filter' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('From must not exceed To');
+    expect(screen.queryByRole('button', { name: 'Filter Due Date (active)' })).not.toBeInTheDocument();
   });
 
   it('applies one-sided Product Line bounds and edits a range without affecting an independent filter', async () => {
@@ -701,19 +923,18 @@ describe('Customer Open Orders panel', () => {
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByText(/3 scoped lines/);
     applyTextFilter('customer', 'C1');
-    fireEvent.click(screen.getByRole('button', { name: '+ Filter' }));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Filter' }), { target: { value: 'productLine' } });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Product Line range from' }), { target: { value: 'B' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Product Line range filter' }));
+    openFilter('Product Line'); fireEvent.click(screen.getByRole('button', { name: 'Range' }));
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: 'B' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Edit Product Line range filter/ })).toHaveTextContent('B – Any');
-    fireEvent.click(screen.getByRole('button', { name: /Edit Product Line range filter/ }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Product Line range from' }), { target: { value: '' } });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Product Line range to' }), { target: { value: 'B' } });
-    fireEvent.submit(screen.getByRole('form', { name: 'Add or edit report filter' }));
+    openFilter('Product Line'); expect(screen.getByLabelText('From')).toHaveValue('B');
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: 'B' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Apply' }).closest('form')!);
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Edit Product Line range filter/ })).toHaveTextContent('Any – B');
-    expect(screen.getByRole('button', { name: 'Remove Customer # contains filter' })).toBeInTheDocument();
+    openFilter('Product Line'); expect(screen.getByLabelText('To')).toHaveValue('B');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('button', { name: 'Filters (2)' })).toBeInTheDocument();
     expect(get).toHaveBeenCalledTimes(1);
   });
 
@@ -731,17 +952,17 @@ describe('Customer Open Orders panel', () => {
     applyTextFilter('po', 'O-91');
     applyTextFilter('itemNumber', 'm-77');
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /^Remove .* filter$/ })).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Filters (3)' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     await waitFor(() => expect(exportReport).toHaveBeenCalledWith('A', expect.objectContaining({ lineKeys: [data.lines[0].key, data.lines[1].key] })));
     expect(save).not.toHaveBeenCalled(); // no old direct-save helper; shared export is verified separately
-    fireEvent.click(screen.getByRole('button', { name: /Edit PO contains filter/ }));
-    fireEvent.change(screen.getByRole('searchbox', { name: 'PO contains value' }), { target: { value: 'missing' } });
+    openFilter('PO');
+    fireEvent.change(screen.getByLabelText('PO contains'), { target: { value: 'missing' } });
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
-    fireEvent.submit(screen.getByRole('form', { name: 'Add or edit report filter' }));
+    fireEvent.submit(screen.getByRole('button', { name: 'Apply' }).closest('form')!);
     expect(screen.getByText(/0 matching filters/)).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /^Remove .* filter$/ })).toHaveLength(3);
-    fireEvent.click(screen.getByRole('button', { name: 'Remove PO contains filter' }));
+    expect(screen.getByRole('button', { name: 'Filters (3)' })).toBeInTheDocument();
+    clearColumnFilter('PO');
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();
     expect(get).toHaveBeenCalledTimes(1);
   });

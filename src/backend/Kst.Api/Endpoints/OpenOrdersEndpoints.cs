@@ -276,5 +276,8 @@ public static class OpenOrdersEndpoints
         line.LineHold, line.Partials, line.Picked, line.Plnr, line.ProdStat, line.ProductLine,
         line.QaHold, line.Remarks, line.Revision, line.ShipAcct, line.ShipTo, line.ShipVia,
         line.SiteQoh, line.SoHoldStatus, line.SoType, line.Consignment,
-        ValuesDto(line.SourceValues), line.ShippedQty.ToString(CultureInfo.InvariantCulture));
+        ValuesDto(line.SourceValues), line.ShippedQty.ToString(CultureInfo.InvariantCulture),
+        new(line.Open.ToString(CultureInfo.InvariantCulture), line.ExtPrice.ToString(CultureInfo.InvariantCulture),
+            line.UnitPrice.ToString(CultureInfo.InvariantCulture), line.Allocated?.ToString(CultureInfo.InvariantCulture),
+            line.Picked?.ToString(CultureInfo.InvariantCulture), line.SiteQoh?.ToString(CultureInfo.InvariantCulture)));
 }

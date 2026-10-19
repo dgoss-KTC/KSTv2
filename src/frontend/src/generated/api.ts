@@ -1835,6 +1835,7 @@ export interface components {
             consignment: null | boolean;
             planningValues: components["schemas"]["OpenOrderDraftValuesDto"];
             shippedQtyText: string;
+            numericText: components["schemas"]["OpenOrderReportNumericTextDto"];
         };
         OpenOrderLineKeyDto: {
             domain: string;
@@ -1849,6 +1850,14 @@ export interface components {
             original: components["schemas"]["OpenOrderDraftValuesDto"];
             proposed: components["schemas"]["OpenOrderDraftValuesDto"];
             reasonCode: null | string;
+        };
+        OpenOrderReportNumericTextDto: {
+            open: string;
+            extPrice: string;
+            unitPrice: string;
+            allocated: null | string;
+            picked: null | string;
+            siteQoh: null | string;
         };
         OpenOrderReportPreparedDto: {
             outcome: string;

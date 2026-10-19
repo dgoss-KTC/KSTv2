@@ -1,8 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient, ApiError, type OpenOrdersResponseDto, type OpenOrdersQxtendResponseDto } from '../api/client';
 import { resolveBackendBaseUrl } from '../api/tauri-bridge';
-import { COLUMNS, DATE_COLUMNS, NUMERIC_COLUMNS, emptyFilters, formatReportDate, formatReportTimestamp, reportRows, type Filters, type ColumnId } from '../openOrders/report';
-import { FilterBuilder } from '../openOrders/FilterBuilder';
+import { COLUMNS, DATE_COLUMNS, NUMERIC_COLUMNS, formatReportDate, formatReportTimestamp, type ColumnId } from '../openOrders/report';
+import { OrderFilterEditor, OrderFiltersMenu } from '../openOrders/OrderHeaderFilters';
+import { filteredOrderRows, filterSummary } from '../openOrders/headerFilters';
+import { OPEN_ORDERS_PAGE_SIZES, loadOpenOrdersPageSize, saveOpenOrdersPageSize, type OpenOrdersPageSize } from '../openOrders/pageSize';
+import type { ColumnFilter } from './shared/ColumnFilterEditor';
 import { ConfirmDialog } from './ConfirmDialog';
 import { changed, equalDecimal, issues, keyOf, multiply, parsePlanningDate, planningNumberDisplay, subtract, valuesOf, REASONS, type Editable, type Proposal } from '../openOrders/planning';
 import { type PlanColumnId } from '../openOrders/planLayout';
@@ -28,8 +31,17 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
   const search = searchState.identity === assignmentId ? searchState.value : '';
   const [announcement, announce] = useState('');
   const [showHidden, setShowHidden] = useState(false);
+  const findTarget = useRef<string | null>(null);
+  const grid = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!findTarget.current) return;
+    const row = [...(grid.current?.querySelectorAll<HTMLElement>('[data-order-row]') ?? [])].find(r => r.dataset.orderRow === findTarget.current);
+    if (row) { row.focus({ preventScroll: true }); row.scrollIntoView?.({ block: 'nearest' }); findTarget.current = null; }
+  });
   const businessDate = useLocalBusinessDate();
-  const [filterState, setFilters] = useState<{ identity: string; value: Filters }>(() => ({ identity: assignmentId, value: emptyFilters }));
+  const [filterState, setFilters] = useState<{ identity: string; value: ColumnFilter[] }>(() => ({ identity: assignmentId, value: [] }));
+  const [filterPopup, setFilterPopup] = useState<{ identity: string; field: string } | null>(null);
+  const filterAnchor = useRef<HTMLElement | null>(null);
   const [loaded, setLoaded] = useState<{ identity: string; report: OpenOrdersResponseDto } | null>(null);
   const [pendingIdentity, setPending] = useState<string | null>(null);
   const [failureState, setFailure] = useState<{ identity: string; kind: Failure } | null>(null);
@@ -37,6 +49,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
   const [exportingState, setExporting] = useState<{ identity: string; active: boolean } | null>(null);
   const [prepared, setPrepared] = useState<{ identity: string; signature: string; files: OpenOrdersQxtendResponseDto['files']; statuses: Record<string, string> } | null>(null);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(loadOpenOrdersPageSize);
   const [planMode, setPlanMode] = useState(false);
   const [saveDraft, setSaveDraft] = useState(false);
   const [proposals, setProposals] = useState<Record<string, Proposal>>({});
@@ -87,12 +100,12 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
   useEffect(() => { invalidDateInputs.current.clear(); }, [assignmentId]);
   const exporting = exportingState?.identity === identity && exportingState.active;
   const layout = reportViews.layout;
-  const filters = filterState.identity === assignmentId ? filterState.value : emptyFilters;
+  const filters = useMemo(() => filterState.identity === assignmentId ? filterState.value : [], [filterState, assignmentId]);
   const pending = pendingIdentity === identity;
   const failure = failureState?.identity === identity ? failureState.kind : null;
   const report = loaded?.identity === identity ? loaded.report : null;
   const sourceChanged = ((loaded !== null && loaded.identity !== identity) || lastDraftMps !== snapshotId) && proposalAssignment === assignmentId && Object.values(proposals).some(changed);
-  const rows = useMemo(() => reportRows(report?.lines ?? [], filters, search), [report, filters, search]);
+  const rows = useMemo(() => filteredOrderRows(report?.lines ?? [], filters, search), [report, filters, search]);
   const reportVisible = layout.order.filter(id => layout.visible.includes(id));
   const activeViews = planMode ? planViews : reportViews;
   const activeLayout = activeViews.layout;
@@ -115,7 +128,6 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
   const draftBlocked = savedState === 'checking' || savedState === 'unavailable' || savedState === 'presence-error' || checkingDraftFor === identity || !!restoreCandidate;
   const invalidDateEntries = Object.values(dateInputs).filter(text => parsePlanningDate(text) === undefined).length;
   const displayedRows = planMode && onlyChanged ? rows.filter(r => scopedProposals[keyOf(r.key)] && changed(scopedProposals[keyOf(r.key)])) : rows;
-  const pageSize = 100;
   const pageCount = Math.max(1, Math.ceil(displayedRows.length / pageSize));
   const currentPage = Math.min(page, pageCount - 1);
   const hiddenChanges = staged.filter(p => !displayedRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize).some(r => keyOf(r.key) === keyOf(p.key))).length;
@@ -288,7 +300,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
     activeViews.change(next);
     announce(`${columnLabel(source)} moved to position ${next.order.filter(id => next.visible.includes(id)).indexOf(source) + 1}. View modified.`);
   };
-  const applyFilters = (next: Filters) => { setFilters({ identity: assignmentId, value: next }); setPage(0); };
+  const applyFilters = (next: ColumnFilter[]) => { setFilters({ identity: assignmentId, value: next }); setPage(0); };
   const visibleMove = (source: PlanColumnId, offset: -1 | 1) => {
     const index = visible.indexOf(source);
     if (index < 0 || index + offset < 0 || index + offset >= visible.length) return;
@@ -297,7 +309,16 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
   const columnDrag = useColumnDrag(visible, JSON.stringify([identity, planMode, visible]), move, 'x');
   const dropColumn = columnDrag.feedback?.target;
   const dragColumn = columnDrag.feedback?.source;
-  const clearFilters = () => { applyFilters(emptyFilters); setSearch({ identity: assignmentId, value: '' }); };
+  const clearFilters = () => { applyFilters([]); setSearch({ identity: assignmentId, value: '' }); };
+  const resizePage = (size: OpenOrdersPageSize) => {
+    setPage(Math.floor(currentPage * pageSize / size));
+    setPageSize(size);
+    saveOpenOrdersPageSize(size);
+  };
+  const filterContext = `${identity}:${planMode}:${report?.openOrdersSnapshotId ?? ''}`;
+  const editFilter = (field: string, anchor: HTMLElement) => {
+    columnDrag.cancel(); filterAnchor.current = anchor; setFilterPopup({ identity: filterContext, field });
+  };
   const exportReason = !report ? 'Load a current report before exporting.' : pending ? 'Wait for report refresh to finish.' : report.isStale || failure ? 'Refresh the report before exporting.'
     : !rows.length ? 'No matching rows to export.' : !reportVisible.length ? 'Select at least one report column.' : undefined;
   const reportExportRequest = () => {
@@ -337,18 +358,35 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
     {report && <>
       <div className="open-orders__query">
         <input type="search" aria-label="Search open orders" placeholder="Search SO, PO, item, customer, salesperson…" value={search} onChange={e => { setSearch({ identity: assignmentId, value: e.target.value }); setPage(0); }} />
-        <FilterBuilder key={assignmentId} filters={filters} onChange={applyFilters} />
-        {(search || Object.values(filters).some(Boolean)) && <button type="button" onClick={clearFilters}>Clear search and filters</button>}
+        <OrderFiltersMenu key={`filters:${assignmentId}:${planMode}`} filters={filters} visible={visible} onEdit={editFilter} onClear={() => applyFilters([])} />
+        {(search || filters.length > 0) && <button type="button" onClick={clearFilters}>Clear search and filters</button>}
         <OrderColumns key={`${assignmentId}:${planMode}`} views={activeViews} mode={planMode ? 'plan' : 'report'} move={move} announce={announce} />
       </div>
+      {planMode && <p className="open-orders__filter-basis">Filters and value counts use retrieved values, not proposals. Edited cells show their original values; editing does not remove a row from the filter results.</p>}
+      {filterPopup?.identity === filterContext && <OrderFilterEditor key={`${filterContext}:${filterPopup.field}`}
+        field={filterPopup.field} lines={report.lines} filters={filters} search={search} anchor={filterAnchor}
+        onClose={() => setFilterPopup(null)} onApply={filter => {
+          const next = filters.filter(f => f.column !== filterPopup.field);
+          if (filter) next.push(filter);
+          next.sort((a, b) => a.column.localeCompare(b.column));
+          if (JSON.stringify(next) !== JSON.stringify(filters)) applyFilters(next);
+          setFilterPopup(null);
+        }} />}
       <span className="open-orders__sr-only" role="status">{announcement}</span>
-      {displayedRows.length === 0 ? <div className="open-orders__state">{report.lines.length === 0 ? 'No open orders in this workspace scope.' : 'No open orders match the current filters.'}</div> : <>
-        <div className="open-orders__grid" data-column-drag-surface="headers" role="region" tabIndex={0} aria-label="Scrollable Customer Open Orders report">
-          <table><thead><tr>{visible.map(id => <th scope="col" key={id} data-order-column={id} draggable={false} tabIndex={0} title="Drag to reorder, or Alt+Left / Alt+Right"
+      {displayedRows.length === 0 && <div className="open-orders__state">{report.lines.length === 0 ? 'No open orders in this workspace scope.' : 'No open orders match the current filters.'}</div>}
+        <div ref={grid} className="open-orders__grid" data-column-drag-surface="headers" role="region" tabIndex={0} aria-label="Scrollable Customer Open Orders report">
+          <table><thead><tr>{visible.map(id => <th scope="col" key={id} aria-label={columnLabel(id)} data-order-column={id} draggable={false} tabIndex={0} title="Drag to reorder, or Alt+Left / Alt+Right"
             className={`${NUMERIC_COLUMNS.has(id as ColumnId) ? 'open-orders__num' : ''} ${dropColumn === id ? 'open-orders__drop' : ''} ${dragColumn === id ? 'open-orders__drag' : ''}`}
-            onKeyDown={event => { if (event.altKey && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); visibleMove(id, event.key === 'ArrowLeft' ? -1 : 1); } }}
+            onKeyDown={event => { if (event.target === event.currentTarget && event.altKey && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); visibleMove(id, event.key === 'ArrowLeft' ? -1 : 1); } }}
             onPointerDown={event => columnDrag.start(event, id)} onDragStart={event => event.preventDefault()}>
-            <span aria-hidden="true" className="open-orders__grip">⠿ </span>{columnLabel(id)}</th>)}{planMode && <><th scope="col" className="open-orders__reason">Reason Code</th><th scope="col" className="open-orders__actions-heading">Planning status</th></>}</tr></thead>
+            <span aria-hidden="true" className="open-orders__grip">⠿ </span>{columnLabel(id)}<button type="button" className="open-orders__funnel"
+              aria-label={`Filter ${columnLabel(id)}${filters.some(f => f.column === id) ? ' (active)' : ''}`}
+              aria-haspopup="dialog" aria-expanded={filterPopup?.identity === filterContext && filterPopup.field === id}
+              data-active={filters.some(f => f.column === id) || undefined}
+              title={filters.find(f => f.column === id) ? filterSummary(filters.find(f => f.column === id)!) : `Filter ${columnLabel(id)}`}
+              onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); editFilter(id, event.currentTarget); }}>
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16"><path d="M2 3h12L9.5 8v4l-3 1V8Z" fill="none" stroke="currentColor" strokeWidth="1.4" /></svg>
+            </button></th>)}{planMode && <><th scope="col" className="open-orders__reason">Reason Code</th><th scope="col" className="open-orders__actions-heading">Planning status</th></>}</tr></thead>
             <tbody>{displayedRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map(r => { const key = keyOf(r.key); const p = proposals[key]; const original = p?.original ?? valuesOf(r); const proposed = p?.proposed ?? original;
               const rowIssues = p ? [...new Set([...issues(p, r, report.isStale || !!failure || pending), ...(restoreIssues[key] ?? [])])] : [];
               const editor = (field: Editable, label: string) => {
@@ -397,7 +435,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
                   {wasChanged && <small>Original: {isDate ? formatReportDate(original[field] as string | null) || '(empty)' : planningNumberDisplay(field as 'orderQty' | 'price', String(original[field]))}</small>}
                 </div>;
               };
-              return <tr className={`open-orders__row${p && changed(p) ? ' open-orders__row--changed' : ''}`} key={key}>
+              return <tr data-order-row={key} tabIndex={-1} className={`open-orders__row${p && changed(p) ? ' open-orders__row--changed' : ''}`} key={key}>
               {visible.map(id => { const value = id === 'orderQty' || id === 'price' ? null : COLUMNS.find(c => c.id === id)!.value(r);
                 const dateField = id === 'dueDate' || id === 'performDate' || id === 'requiredDate' || id === 'dockDate' ? id : null;
                 return <td data-drop={dropColumn === id || undefined} data-drag={dragColumn === id || undefined} className={NUMERIC_COLUMNS.has(id as ColumnId) ? 'open-orders__num' : id === 'itemNumber' || id === 'order' ? 'open-orders__identity' : undefined} key={id}>
@@ -409,7 +447,6 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
               </td>; })}{planMode && <><td className="open-orders__reason"><select data-plan-editor="" aria-label={`Reason Code ${r.key.salesOrder}/${r.key.line}`} value={p?.reasonCode ?? ''} onChange={e => update(r, 'reasonCode', e.target.value || null)}><option value="">Select reason</option>{REASONS.map(reason => <option key={reason} value={reason}>{reason}</option>)}</select></td>
                 <td className="open-orders__actions">{p && <><span className={rowIssues.length ? 'open-orders__review' : 'open-orders__changed'} title={rowIssues.join(' ')}>{rowIssues.length ? 'Review' : 'Changed'}</span><button type="button" onClick={() => undo(key)}>Undo {r.key.salesOrder}/{r.key.line}</button>{rowIssues.length > 0 && <small className="open-orders__review">{rowIssues.join(' ')}</small>}</>}</td></>}</tr>; })}</tbody></table>
         </div>
-      </>}
       {planMode && <div className="open-orders__planning-summary open-orders__dock" role="status">
         {staged.length} changed across workspace · {incomplete.length} missing Reason Code · {conflicts.length} conflicts · {hiddenChanges} outside current filter/page view. {report.isStale || failure || pending || conflicts.length || incomplete.length || invalidDateEntries || draftBlocked || sourceChanged ? 'Not export-ready.' : 'Generate files validates changed lines against QAD before preparing CSVs.'}
         <label><input type="checkbox" checked={onlyChanged} onChange={e => { setOnlyChanged(e.target.checked); setPage(0); }} /> Show changed rows</label>
@@ -424,11 +461,12 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
       </div>}
       {planMode && showHidden && hiddenChanges > 0 && <div className="open-orders__hidden-changes">Changes outside current results: {staged.filter(p => !displayedRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize).some(r => keyOf(r.key) === keyOf(p.key))).map(p => <div key={keyOf(p.key)}>
         {p.key.salesOrder} / {p.key.line} ({p.itemNumber}) · {rowByKey.has(keyOf(p.key)) ? 'filtered or on another page' : 'missing from report — conflict'} · {[...issues(p, rowByKey.get(keyOf(p.key)), report.isStale || !!failure || pending), ...(restoreIssues[keyOf(p.key)] ?? [])].join(' ')} · Original {JSON.stringify(p.original)} → Proposed {JSON.stringify(p.proposed)} · {p.reasonCode ?? 'Reason Code missing'}
-        {rowByKey.has(keyOf(p.key)) && <button type="button" onClick={() => { setOnlyChanged(false); clearFilters(); const index = reportRows(report.lines, emptyFilters).findIndex(r => keyOf(r.key) === keyOf(p.key)); if (index >= 0) setPage(Math.floor(index / pageSize)); }}>Find row</button>}
+        {rowByKey.has(keyOf(p.key)) && <button type="button" onClick={() => { setOnlyChanged(false); clearFilters(); const index = filteredOrderRows(report.lines, []).findIndex(r => keyOf(r.key) === keyOf(p.key)); if (index >= 0) { findTarget.current = keyOf(p.key); setPage(Math.floor(index / pageSize)); } }}>Find row</button>}
         <button type="button" onClick={() => undo(keyOf(p.key))}>Undo {p.key.salesOrder}/{p.key.line}</button>
       </div>)}</div>}
       <footer className="open-orders__page"><span>Rows {displayedRows.length ? currentPage * pageSize + 1 : 0}–{Math.min((currentPage + 1) * pageSize, displayedRows.length)} of {displayedRows.length} · filtered from {report.lines.length} lines · {rows.length} matching filters</span>
         <span className="open-orders__footer-purpose">{planMode ? 'External QXtend processing required; KST submits nothing.' : report.isStale || failure || pending ? 'Not current; do not use for operational/QXtend validation.' : 'Report only; not operational/QXtend validation.'}</span>
+        <div role="group" aria-label="Rows per page" className="open-orders__sizes"><span>Rows per page</span>{OPEN_ORDERS_PAGE_SIZES.map(size => <button key={size} type="button" aria-pressed={pageSize === size} onClick={() => resizePage(size)}>{size}</button>)}</div>
         <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous page</button><span>Page {currentPage + 1} of {pageCount}</span><button type="button" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}>Next page</button>
       </footer>
     </>}

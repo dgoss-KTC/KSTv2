@@ -3,6 +3,59 @@
 Date: 2026-10-19
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## S22-005 reopened header filtering + pagination — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-19
+
+The owner completed the final desktop checklist, confirmed everything works, explicitly accepted both
+header filters/shared editor/exact values and pagination, and authorized one complete local commit,
+**not a push**. This is owner-run/reported acceptance, not new agent desktop/native-test/live-query,
+external QXtend, installer, deployment or risk-acceptance evidence. Original S22-005 acceptance and
+the subsequent reopening are preserved below; accepted S22-010 commit `e3585f1` remains intact.
+Authorized addition supersedes fixed 100: both modes offer 100/500/1000 (default 100), one guarded
+Open Orders-only global preference. First-row-preserving resizing, selected-size Find row/hidden
+counts, valid empty/clamped pages and unchanged all-population prepared exports are verified.
+Final pagination scope: **168 frontend passed / 2 inherited skips**, types/lint/frontend/release build
+pass; existing 96 backend/native/header-filter evidence reused, no sidecar publish or repeated security
+review. Existing C# format/AFT exceptions remain; pagination production diagnostics fresh, final test
+diagnostics partial. Current host **15,302,656 bytes**, SHA256
+`B599F27E13005836148A47108B9A5E51781A84F11F601C356ECE2D37AA1D53C2`, alpha.21 at
+`src/tauri/target/release/kst-tauri.exe`; verified final assets embedded. Supersedes the preceding
+header-filter host identity below. Sidecars/owner build-info bytes unchanged. Header-filter verification
+is **232 frontend passes / 2 inherited skips, 96 backend passes**, actual synthetic XLSX checks and
+independent review. The **168 / 2 pagination** scope overlaps; do not add frontend counts. Closeout
+reuses these checks without rerunning suites/builds/review or republishing the sidecar. Exact staged
+diff/path/whitespace and post-commit checks honor normal hooks. Only accepted work/closeout is included;
+original `tsconfig.tsbuildinfo` remains byte-identical, unstaged and excluded. No installs, live queries,
+submissions, deployment or push. Evidence: prior root plus `pagination/`; checklist/closure and the local
+Windows backlog update are recorded in S22-005 implementation record. **Stage 22 remains open**.
+
+### Preceding header-filter implementation evidence (build identity superseded above)
+
+Entry HEAD `e3585f141dd67137a757c36de25133a970c8cbc0`; original accepted S22-005 UI, lifecycle,
+pointer and numeric-focus corrections remain. Header funnels/shared S22-010 editor replace chips;
+Filters retains hidden/filter-only access and Product Line text Range. Full-loaded-report predicates
+and cascading facets combine with seven-field quick search before unchanged sorting/100-row pages.
+Plan filters use retrieved values, not proposals; all-workspace generation/drafts/epochs and analytical
+save/recovery/eight-second feedback remain. A small DTO-only invariant numeric-text extension avoids
+rounded numeric predicates; generated contracts synchronized. No source/query/calculation/locked-stage,
+dependency/capability/native authority changes or new source reads.
+
+Final offline: **232 frontend passed / 2 inherited skips**, **96 backend passed**; actual 205-/103-row
+synthetic XLSX inspected, types/scoped lint/build pass. Independent separate-context review plus final
+delta finds no confirmed new material blocker at reviewed depth. Scoped formatting fails and broader
+AFT remains partial/deadline-limited; known exceptions are not passes. Full evidence/owner checklist:
+`docs/implementation/KST_v2_S22_005_OPEN_ORDERS_UI.md` and
+`C:\dev\kst_v2_tmp\Stage22\OpenOrdersHeaderFilters\evidence\`.
+
+**Refreshed review executable:** `src/tauri/target/release/kst-tauri.exe` (alpha.21), 15,302,144 bytes,
+SHA256 `1AC4BFB57FD5BA8FF62AD07DE4C13E46F22F8D3DE1392F02DF165137C5A6CEE7`.
+Final frontend assets verified embedded. Published/binaries/release/**debug** sidecars now match:
+127,524,006 bytes, SHA256 `DD92C835760B90D88EB5516E522B0EA15DDD53B663D326A4A09B4ABBCD209FD7`.
+The prior S22-010 stale-debug-sidecar exception below is historical and resolved by this copy;
+debug still uses the configured dev server, so review release. Source-disabled four-route probes pass;
+no agent desktop UI/live source/native Save As/installer/deployment claim. At that handoff owner
+acceptance was pending and the index was empty; the combined follow-up is now accepted above.
+Owner build metadata remains preserved byte-for-byte and excluded. Stage 22 remains open.
+
 ## S22-010 — Workspace Shipments redesign/filtering amendment — COMPLETE / OWNER-ACCEPTED — 2026-10-19
 
 The owner reviewed and accepted the rebuilt release application on 2026-10-19 and explicitly
@@ -38,8 +91,9 @@ modified `tsconfig.tsbuildinfo` remains preserved unstaged and excluded. The clo
 documentation and reuses verification, with exact staged diff/path/whitespace and post-commit checks;
 no full-suite/build/review rerun, dependency/capability changes, debug refresh or push.
 
-**S22-005 is reopened for a subsequent filtering update.** Its accepted implementation below remains
-the baseline, not undone or migrated here. Stage 22 overall remains open.
+**At the S22-010 closeout, S22-005 was reopened for a subsequent filtering update.** Its original
+accepted implementation remained the baseline; the subsequent combined follow-up closure is recorded
+above, not part of S22-010 acceptance. Stage 22 overall remains open.
 
 ## S22-006 — Component Orders performance diagnostics — COMPLETE / OWNER-ACCEPTED — 2026-10-19
 
