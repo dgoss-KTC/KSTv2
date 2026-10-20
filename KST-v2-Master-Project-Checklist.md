@@ -3,7 +3,20 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** **S22-004 Planning View-selected bottom totals — COMPLETE /
+**Current project position:** **S22-017 bounded workbook-save retirement / corresponding S22-036
+disposition — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20.** Acceptance and one local commit
+authorized based on the supplied implementation report and offline evidence, not independent desktop
+verification. Only the superseded helper, its obsolete unit tests and helper-specific panel-test
+scaffolding are retired; active exports and all backend/native/contracts/dependencies are unchanged.
+Reuse eight-suite 115 passes/two inherited skips, lint/types/build/scoped-diagnostics evidence; known
+Vite warnings, AFT limitations and inherited formatting/lint exceptions remain explicit. Final staged
+paths/full diff/new record/whitespace, normal hooks and post-commit checks apply; no repeat suites/builds
+solely for committing. Actual checkpoint-entry build-info stays byte-identical, unstaged/excluded;
+bulky evidence stays outside Git. Record: `docs/implementation/KST_v2_S22_017_WORKBOOK_SAVE_RETIREMENT.md`.
+Existing backlog rows record only this bounded closure; broader S22-017 and Stage 22 remain open.
+No push, live access, submission/import or deployment; further work requires separate dispatch.
+
+**Preceding accepted checkpoint:** **S22-004 Planning View-selected bottom totals — COMPLETE /
 OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner reviewed the rebuilt desktop, confirmed correct behavior
 and explicitly accepted S22-004; acceptance closeout and one complete local commit authorized, **not a
 push**. Owner desktop acceptance is distinct from agent offline verification, not exhaustive checklist,

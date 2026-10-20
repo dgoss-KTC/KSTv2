@@ -11,13 +11,12 @@ import { ApiError } from '../api/client';
 import { columnPointer } from '../openOrders/pointerTestSupport';
 import { OPEN_ORDERS_PAGE_SIZE_KEY } from '../openOrders/pageSize';
 
-const get = vi.fn(); const refresh = vi.fn(); const exportReport = vi.fn(); const exportQxtend = vi.fn(); const save = vi.fn(); const saveCsv = vi.fn(); const restoreDraft = vi.fn(); const draftPresence = vi.fn(); const saveDraft = vi.fn(); const deleteDraft = vi.fn();
+const get = vi.fn(); const refresh = vi.fn(); const exportReport = vi.fn(); const exportQxtend = vi.fn(); const saveCsv = vi.fn(); const restoreDraft = vi.fn(); const draftPresence = vi.fn(); const saveDraft = vi.fn(); const deleteDraft = vi.fn();
 vi.mock('../api/tauri-bridge', () => ({ resolveBackendBaseUrl: () => Promise.resolve('http://localhost'), isRunningInTauri: () => false }));
 vi.mock('../api/client', async (original) => ({ ...(await original<typeof import('../api/client')>()),
   ApiClient: class { getOpenOrders = get; refreshOpenOrders = refresh; exportOpenOrdersReport = exportReport; exportOpenOrdersQxtend = exportQxtend;
     restoreOpenOrdersDraft = restoreDraft; getOpenOrdersDraftPresence = draftPresence; saveOpenOrdersDraft = saveDraft; deleteOpenOrdersDraft = deleteDraft; },
 }));
-vi.mock('../longTermShortages/saveLongTermShortagesWorkbook', () => ({ saveLongTermShortagesWorkbook: (...args: unknown[]) => save(...args) }));
 vi.mock('../openOrders/saveQxtendCsv', () => ({ saveQxtendCsv: (...args: unknown[]) => saveCsv(...args) }));
 // Panel tests isolate the existing analytical save state machine; the integration suite uses it for real.
 vi.mock('./AnalyticalExcelExport', () => ({ AnalyticalExcelExport: ({ request, disabledReason, scopeLabel }: {
@@ -69,7 +68,7 @@ function togglePlan() {
   fireEvent.click(screen.getByRole('button', { name: screen.getByRole('button', { name: 'Plan' }).getAttribute('aria-pressed') === 'true' ? 'Report' : 'Plan' }));
 }
 
-beforeEach(() => { get.mockReset(); refresh.mockReset(); exportReport.mockReset(); exportQxtend.mockReset(); saveCsv.mockReset(); draftPresence.mockReset(); save.mockReset(); restoreDraft.mockReset(); saveDraft.mockReset(); deleteDraft.mockReset();
+beforeEach(() => { get.mockReset(); refresh.mockReset(); exportReport.mockReset(); exportQxtend.mockReset(); saveCsv.mockReset(); draftPresence.mockReset(); restoreDraft.mockReset(); saveDraft.mockReset(); deleteDraft.mockReset();
   draftPresence.mockResolvedValue({ exists: false });
   restoreDraft.mockResolvedValue({ exists: false, restored: false, warning: null, freshReport: null, rows: [] });
   saveDraft.mockResolvedValue({ exists: true, restored: true, warning: null, freshReport: null, rows: [] }); deleteDraft.mockResolvedValue(undefined);
@@ -734,7 +733,7 @@ describe('Customer Open Orders panel', () => {
   });
 
   it('pages large synthetic results without truncating export; filters hidden fields, reorders using keyboard and isolates workspaces', async () => {
-    get.mockResolvedValue(response(235)); exportReport.mockResolvedValue({ blob: new Blob(), fileName: 'Open.xlsx' }); save.mockResolvedValue({ kind: 'saved', fileName: 'Open.xlsx' });
+    get.mockResolvedValue(response(235)); exportReport.mockResolvedValue({ blob: new Blob(), fileName: 'Open.xlsx' });
     const { rerender } = render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByText(/235 scoped lines/);
     expect(screen.getAllByRole('row')).toHaveLength(101);
@@ -776,7 +775,7 @@ describe('Customer Open Orders panel', () => {
 
   it('marks failed refresh stale, disables export and recovers after refresh', async () => {
     get.mockResolvedValue(response(1)); refresh.mockResolvedValueOnce(response(1, true)).mockResolvedValueOnce(response(1));
-    exportReport.mockResolvedValue({ blob: new Blob(), fileName: 'Open.xlsx' }); save.mockResolvedValueOnce({ kind: 'cancelled' }).mockRejectedValueOnce(new Error('disk'));
+    exportReport.mockResolvedValue({ blob: new Blob(), fileName: 'Open.xlsx' });
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByRole('table');
     fireEvent.click(screen.getByRole('button', { name: 'Refresh report' }));
@@ -838,7 +837,7 @@ describe('Customer Open Orders panel', () => {
     data.lines[1] = { ...data.lines[1], productLine: 'B', sourceValues: { ...data.lines[1].sourceValues, dueDate: '2027-01-02' } };
     data.lines[2] = { ...data.lines[2], productLine: 'C', sourceValues: { ...data.lines[2].sourceValues, dueDate: '2027-01-03' } };
     data.lines[3] = { ...data.lines[3], productLine: null, sourceValues: { ...data.lines[3].sourceValues, dueDate: null } };
-    get.mockResolvedValue(data); exportReport.mockResolvedValue({ blob: new Blob(), fileName: 'Open.xlsx' }); save.mockResolvedValue({ kind: 'saved', fileName: 'Open.xlsx' });
+    get.mockResolvedValue(data); exportReport.mockResolvedValue({ blob: new Blob(), fileName: 'Open.xlsx' });
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByText(/4 scoped lines/);
     expect(screen.getAllByText('1/1/2027').length).toBeGreaterThan(0);
@@ -944,7 +943,6 @@ describe('Customer Open Orders panel', () => {
     data.lines[1] = { ...data.lines[1], key: { ...data.lines[1].key, salesOrder: 'SO-42b' }, purchaseOrder: 'PO-91b', itemNumber: 'ITEM-77b' };
     data.lines[2] = { ...data.lines[2], purchaseOrder: null, itemNumber: 'OTHER' };
     get.mockResolvedValue(data); exportReport.mockResolvedValue({ blob: new Blob(), fileName: null });
-    save.mockResolvedValue({ kind: 'saved', fileName: 'renamed-by-owner.xlsx' });
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" workspaceName="Shure SMT" site="SW" />);
     await screen.findByText(/3 scoped lines/);
     applyTextFilter('so', 'o-42');
@@ -955,7 +953,6 @@ describe('Customer Open Orders panel', () => {
     expect(screen.getByRole('button', { name: 'Filters (3)' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     await waitFor(() => expect(exportReport).toHaveBeenCalledWith('A', expect.objectContaining({ lineKeys: [data.lines[0].key, data.lines[1].key] })));
-    expect(save).not.toHaveBeenCalled(); // no old direct-save helper; shared export is verified separately
     openFilter('PO');
     fireEvent.change(screen.getByLabelText('PO contains'), { target: { value: 'missing' } });
     expect(screen.getByText(/2 matching filters/)).toBeInTheDocument();

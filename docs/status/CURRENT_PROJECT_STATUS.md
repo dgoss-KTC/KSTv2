@@ -3,6 +3,29 @@
 Date: 2026-10-20
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## S22-017 — bounded workbook-save retirement / S22-036 disposition — 2026-10-20
+
+**BOUNDED RETIREMENT / S22-036 DISPOSITION — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20.**
+Owner authorizes acceptance closeout and one complete local commit, not a push, based on the supplied
+implementation report and offline evidence; no independent desktop verification is claimed.
+Explicit owner dispatch from
+`c787237` removes only the superseded frontend workbook-save helper, its four obsolete unit tests
+and helper-specific scaffolding in the two panel tests. Active protected exports, independent full
+filtered/sorted populations/selected columns, retry/recovery/browser restrictions and operational
+CSV behavior remain unchanged. Historical references and accepted deliveries are preserved.
+
+Focused offline checks: **115 frontend passes / zero failures / two inherited screenshot-fixture
+skips (eight files)**; changed-file lint, typecheck, frontend build and post-edit scoped diagnostics
+pass. Known Vite warnings remain. Actual entry build-info bytes preserved, unstaged/excluded
+(SHA256 `2B79FB70977593B1C5D3699EF3C198E6CF92AA27B01EF062B085FE1307497195`). No backend/native/
+contract/dependency/capability changes, sidecar/release build or live access. Closeout reuses existing
+verification with final staged paths/full diff/new record/whitespace, normal hooks and post-commit
+contents/tree checks; no repeated suites/builds or additional independent review solely for committing.
+Record/evidence: `docs/implementation/KST_v2_S22_017_WORKBOOK_SAVE_RETIREMENT.md`.
+Only existing S22-017/S22-036 backlog rows updated; only this retirement and corresponding disposition
+closed. Broader S22-017 and Stage 22 remain open. Evidence/binaries/logs stay outside Git; no push,
+submission/import or deployment. Further development requires separate dispatch.
+
 ## S22-004 — Planning View-selected bottom totals — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20
 
 The owner reports reviewing the rebuilt desktop, confirming correct behavior and explicitly accepting

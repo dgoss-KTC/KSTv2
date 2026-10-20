@@ -11,7 +11,6 @@ import { rememberAnalyticalOpenPreference } from '../shared/analyticalOpenPrefer
 import type { LongTermShortageRow, LongTermShortagesScreen as LongTermShortagesResponse } from '../api/longTermShortagesApi';
 import { compactFixture, projectionFixture } from '../longTermShortages/compactScreenFixture.test-support';
 import { exportLongTermShortages, fetchLongTermShortages } from '../api/longTermShortagesApi';
-import { saveLongTermShortagesWorkbook } from '../longTermShortages/saveLongTermShortagesWorkbook';
 import { LongTermShortagesPanel } from './LongTermShortagesPanel';
 import { fetchComponentDetail } from '../api/componentDetailApi';
 import { fetchApprovedVendors } from '../api/approvedVendorsApi';
@@ -19,7 +18,6 @@ import { fetchLongTermShortagePurchasing } from '../api/longTermShortagesApi';
 
 const fetchMock = vi.fn();
 const exportMock = vi.fn();
-const saveWorkbookMock = vi.fn();
 const purchasingMock = vi.fn();
 const projectionMock = vi.fn();
 const host = vi.hoisted(() => ({ invoke: vi.fn() }));
@@ -41,9 +39,6 @@ vi.mock('../api/longTermShortagesApi', async (importOriginal) => ({
   exportLongTermShortages: (...args: Parameters<typeof exportLongTermShortages>) => exportMock(...args),
   fetchLongTermShortagePurchasing: (...args: Parameters<typeof fetchLongTermShortagePurchasing>) => purchasingMock(...args),
   fetchLongTermShortageProjectionDetail: (...args: unknown[]) => projectionMock(...args),
-}));
-vi.mock('../longTermShortages/saveLongTermShortagesWorkbook', () => ({
-  saveLongTermShortagesWorkbook: (...args: Parameters<typeof saveLongTermShortagesWorkbook>) => saveWorkbookMock(...args),
 }));
 vi.mock('../api/componentDetailApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/componentDetailApi')>()),
@@ -84,7 +79,7 @@ beforeEach(async () => {
   host.invoke.mockReset().mockImplementation(async (command: string) => command === 'component_mrp_begin' ? 1 : command === 'component_mrp_generate' ? workbook
     : command === 'component_mrp_save' ? { outcome: 'cancelled', message: 'Save cancelled.', operationComplete: true } : false);
   await act(async () => rememberAnalyticalOpenPreference(false));
-  fetchMock.mockReset(); exportMock.mockReset(); saveWorkbookMock.mockReset(); purchasingMock.mockReset().mockResolvedValue(purchasing());
+  fetchMock.mockReset(); exportMock.mockReset(); purchasingMock.mockReset().mockResolvedValue(purchasing());
   projectionMock.mockReset().mockImplementation((_workspace, snapshotId, componentPart) => Promise.resolve({ ...projectionFixture(row()), snapshotId, componentPart }));
   vi.mocked(fetchComponentDetail).mockReset().mockResolvedValue({
     site: 'SW', componentPart: 'CRITICAL', description: 'Bolt', partStatusCode: 'P', partStatusDescription: 'PROTO',
@@ -479,7 +474,6 @@ describe('LongTermShortagesPanel', () => {
 
   it('opens selected-component purchasing detail without reloading the shortage matrix, then exports only filtered rows', async () => {
     exportMock.mockResolvedValue({ blob: new Blob(['workbook']), fileName: 'Workspace-Shortages-2026-10-05.xlsx' });
-    saveWorkbookMock.mockResolvedValue({ kind: 'saved', fileName: 'Workspace-Shortages-2026-10-05.xlsx' });
     fetchMock.mockResolvedValue(response([row(), row({ componentPart: 'OTHER', planner: 'Bob' })]));
     render(exportTree());
     await screen.findByRole('table', { name: 'Workspace Shortages weekly balances' });
@@ -508,7 +502,7 @@ describe('LongTermShortagesPanel', () => {
     expect(calls('component_mrp_generate')[0][1]).toMatchObject({ reportKind: 'WorkspaceShortages', analyticalRequest: {
       workspaceId: 'ws-1', mpsSnapshotId: 'snap-1', site: 'SW', acquiredAtUtc: '2026-10-05T12:00:00Z',
       selection: { snapshotId: 'snap-1', componentParts: ['CRITICAL'], includeManufacturedParts: false, includePhantoms: false, includeUnconfirmed: false, horizonWeeks: 26, showAll: false } } });
-    expect(exportMock).not.toHaveBeenCalled(); expect(saveWorkbookMock).not.toHaveBeenCalled();
+    expect(exportMock).not.toHaveBeenCalled();
   });
 
   it('keeps the selected shortage snapshot visible when the PO detail request fails', async () => {
