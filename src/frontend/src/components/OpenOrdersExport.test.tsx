@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { OpenOrdersPanel } from './OpenOrdersPanel';
@@ -42,35 +42,30 @@ afterEach(() => {
   act(() => { for (const operation of state.result.current.operations) { recordAnalyticalSave(operation.id, { outcome: 'failed', message: 'Test cleanup', operationComplete: true }); dismissAnalyticalSave(operation.id); } });
   state.unmount(); vi.useRealTimers(); Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
 });
-it('exports all 1205 matching rows and retains exact preparation through every page size and page change', async () => {
+it('exports all 1205 matching displayed rows and retains exact preparation through table scrolling', async () => {
   const data = response(1205);
   data.lines = data.lines.map((line, i) => ({ ...line, key: { ...line.key, salesOrder: `SO-${String(i).padStart(4, '0')}` } }));
   host.get.mockResolvedValue(data); render(tree()); await screen.findByRole('table');
-  const size = (value: string) => fireEvent.click(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: value }));
   fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'match_%' } });
   fireEvent.keyDown(screen.getByRole('columnheader', { name: 'PO' }), { key: 'ArrowLeft', altKey: true });
-  size('500'); fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-  expect(screen.getByText(/Rows 501–1000 of 1205/)).toBeInTheDocument();
+  expect(screen.getByText(/Rows 1205 ·/)).toBeInTheDocument();
+  const identities = [...screen.getByRole('table').querySelectorAll<HTMLElement>('tbody tr')].map(row => JSON.parse(row.dataset.orderRow!)[1]);
+  expect(identities).toEqual(Array.from({ length: 1205 }, (_, i) => `SO-${String(i).padStart(4, '0')}`));
   await activate(); await screen.findByRole('button', { name: 'Save again' });
   const request = calls('component_mrp_generate')[0][1].analyticalRequest as AnalyticalRequest;
   expect(request.openOrders?.lineKeys.map(k => k.salesOrder)).toEqual(Array.from({ length: 1205 }, (_, i) => `SO-${String(i).padStart(4, '0')}`));
   expect(request.openOrders?.columns).toEqual(['dueDate', 'po', 'order', 'line', 'itemNumber', 'site', 'open', 'stat', 'extPrice']);
-  size('1000');
-  expect(screen.getByText(/Rows 1–1000 of 1205/)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-  expect(screen.getByText(/Rows 1001–1205 of 1205/)).toBeInTheDocument();
+  fireEvent.scroll(screen.getByRole('region', { name: 'Scrollable Customer Open Orders report' }), { target: { scrollTop: 20000 } });
   fireEvent.click(screen.getByRole('button', { name: 'Save again' }));
   await waitFor(() => expect(calls('component_mrp_save')).toHaveLength(2));
-  size('100');
-  expect(screen.getByText(/Rows 1001–1100 of 1205/)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Previous page' }));
+  fireEvent.scroll(screen.getByRole('region', { name: 'Scrollable Customer Open Orders report' }), { target: { scrollTop: 0 } });
   fireEvent.click(screen.getByRole('button', { name: 'Save again' }));
   await waitFor(() => expect(calls('component_mrp_save')).toHaveLength(3));
   expect(calls('component_mrp_generate')).toHaveLength(1);
   expect(calls('component_mrp_save').every(([, args]) => args.preparationId === workbook.preparationId)).toBe(true);
   expect(host.get).toHaveBeenCalledTimes(1); expect(host.generateCsv).not.toHaveBeenCalled();
 }, 30_000);
-it('uses actual shared menu and exact-preparation retry for every matching page with displayed column order, never legacy save', async () => {
+it('uses actual shared menu and exact-preparation retry for every matching row with displayed column order', async () => {
   render(tree()); await screen.findByRole('table');
   fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'match_%' } });
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
@@ -79,14 +74,13 @@ it('uses actual shared menu and exact-preparation retry for every matching page 
   fireEvent.change(screen.getByLabelText('Customer # contains'), { target: { value: 'c1' } });
   fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
   fireEvent.keyDown(screen.getByRole('columnheader', { name: 'PO' }), { key: 'ArrowLeft', altKey: true });
-  fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-  expect(screen.getByText(/Rows 101–200 of 205/)).toBeInTheDocument(); expect(screen.getByText('Exports all 205 matching rows across every page')).toBeInTheDocument();
+  expect(screen.getByText(/Rows 205 ·/)).toBeInTheDocument(); expect(screen.getByText('Exports all 205 matching rows')).toBeInTheDocument();
   await activate(); await screen.findByRole('button', { name: 'Save again' });
   const request = calls('component_mrp_generate')[0][1].analyticalRequest as AnalyticalRequest;
   expect(request.kind).toBe('OpenOrders'); expect(request.openOrders?.lineKeys).toHaveLength(205);
   expect(request.openOrders?.lineKeys[0].salesOrder).toBe('SO-000'); expect(request.openOrders?.lineKeys[204].salesOrder).toBe('SO-204');
   expect(request.openOrders?.columns).toEqual(['dueDate', 'po', 'order', 'line', 'itemNumber', 'site', 'open', 'stat', 'extPrice']);
-  fireEvent.click(screen.getByRole('button', { name: 'Next page' })); // pagination does not invalidate prepared workbook
+  fireEvent.scroll(screen.getByRole('region', { name: 'Scrollable Customer Open Orders report' }), { target: { scrollTop: 4000 } });
   fireEvent.click(screen.getByRole('button', { name: 'Save again' }));
   await waitFor(() => expect(calls('component_mrp_save')).toHaveLength(2));
   expect(calls('component_mrp_generate')).toHaveLength(1); expect(host.get).toHaveBeenCalledTimes(1);
@@ -123,9 +117,9 @@ it('retains exact prepared bytes through popup drafts, facet searches, focus and
   fireEvent.click(trigger); await screen.findByLabelText('Value: SO-204');
   fireEvent.click(screen.getByLabelText('Value: SO-204')); fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
   expect(screen.queryByRole('button', { name: 'Save again' })).not.toBeInTheDocument();
-  expect(screen.getByText(/Rows 1–100 of 204/)).toBeInTheDocument();
+  expect(screen.getByText(/Rows 204 ·/)).toBeInTheDocument();
 });
-it('exports independently expected matches beyond page one using committed exact source predicates and selected columns', async () => {
+it('displays and exports independently expected matches beyond the former page one using exact source predicates and selected columns', async () => {
   const data = response(305);
   data.lines = data.lines.map((line, i) => ({ ...line, numericText: { ...line.numericText, open: i >= 100 && i % 2 === 0 ? '9007199254740993.0000000002' : '9007199254740993.0000000001' } }));
   host.get.mockResolvedValue(data); render(tree()); await screen.findByRole('table');
@@ -133,9 +127,9 @@ it('exports independently expected matches beyond page one using committed exact
   fireEvent.change(screen.getByLabelText('Condition'), { target: { value: 'gt' } });
   fireEvent.change(screen.getByLabelText('Value'), { target: { value: '9007199254740993.0000000001' } });
   fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
-  expect(screen.getByText(/Rows 1–100 of 103/)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-  expect(screen.getByText(/Rows 101–103 of 103/)).toBeInTheDocument();
+  expect(screen.getByText(/Rows 103 ·/)).toBeInTheDocument();
+  expect([...screen.getByRole('table').querySelectorAll<HTMLElement>('tbody tr')].map(row => JSON.parse(row.dataset.orderRow!)[1]))
+    .toEqual(Array.from({ length: 103 }, (_, i) => `SO-${100 + i * 2}`));
   await activate(); await screen.findByRole('button', { name: 'Save again' });
   const request = calls('component_mrp_generate')[0][1].analyticalRequest as AnalyticalRequest;
   expect(request.openOrders?.lineKeys.map(k => k.salesOrder)).toEqual(Array.from({ length: 103 }, (_, i) => `SO-${100 + i * 2}`));

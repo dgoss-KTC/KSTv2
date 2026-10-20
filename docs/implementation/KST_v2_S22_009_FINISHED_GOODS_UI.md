@@ -1,5 +1,18 @@
 # S22-009 — Finished Goods UI consistency and header filters
 
+## Pagination-removal amendment — 2026-10-20
+
+**PAGINATION-REMOVAL FOLLOW-UP COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20.**
+Owner: “Pagination has been removed from the targeted areas and all is working well. Accepted.”
+The sole Finished Goods entry now renders every matching acquired physical row in existing sort order
+through normal table scrolling. Page controls/state/size preference retired; old stored key is inert.
+Filters/cascading facets, acquisition, valuation, identities and no-export scope remain unchanged.
+Only pagination is superseded; historical acceptance/checklists below are preserved. Owner-reported
+behavior is distinct from independently inspected later artifact identity; guarded rebuild still
+blocked before Cargo, later binary build-command provenance unavailable. Evidence/limits/acceptance:
+`KST_v2_S22_005_009_UNPAGED_TABLES.md`. One complete bounded local commit authorized, normal hooks,
+no push; actual closeout-entry build-info preserved unstaged/excluded. Stage 22 remains open.
+
 2026-10-19 — **COMPLETE / OWNER-ACCEPTED / CLOSED.**
 Entry Windows HEAD: `f83c2b524d22df3fceee43489b6cb361608f3d57`.
 Stage 22 remains open; this closes S22-009 only.

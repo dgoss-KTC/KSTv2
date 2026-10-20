@@ -3,7 +3,6 @@ import { ApiClient, ApiError, type FinishedGoodsResponseDto } from '../api/clien
 import { resolveBackendBaseUrl } from '../api/tauri-bridge';
 import { FINISHED_GOODS_COLUMNS, finishedGoodsRows } from '../finishedGoods/report';
 import { FinishedGoodsFilter } from '../finishedGoods/FinishedGoodsFilter';
-import { FINISHED_GOODS_PAGE_SIZES, preferredFinishedGoodsPageSize, storeFinishedGoodsPageSize, type FinishedGoodsPageSize } from '../finishedGoods/pageSize';
 import type { ColumnFilter } from './shared/ColumnFilterEditor';
 import { formatDecimal } from '../shared/exactDecimal';
 import { formatReportTimestamp } from '../openOrders/report';
@@ -22,8 +21,6 @@ function FinishedGoodsSession({ assignmentId, snapshotId, site }: Props & { snap
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<ColumnFilter[]>([]);
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(preferredFinishedGoodsPageSize);
   const [openColumn, setOpenColumn] = useState<string | null>(null);
   const anchor = useRef<HTMLElement | null>(null);
   const request = useRef(0);
@@ -40,7 +37,7 @@ function FinishedGoodsSession({ assignmentId, snapshotId, site }: Props & { snap
       if (!active.current || token !== request.current) return;
       if (loaded.workspaceId !== assignmentId || loaded.mpsSnapshotId !== snapshotId || loaded.site !== site || loaded.currency !== 'USD')
         throw new ApiError(409, '', 'Scope mismatch');
-      setReport(loaded); setPage(0);
+      setReport(loaded);
     } catch (failure) {
       if (!active.current || token !== request.current) return;
       if (failure instanceof ApiError && (failure.status === 409 || failure.status === 404)) {
@@ -64,14 +61,8 @@ function FinishedGoodsSession({ assignmentId, snapshotId, site }: Props & { snap
   }, [acquire]);
 
   const rows = useMemo(() => finishedGoodsRows(report?.rows ?? [], filters), [report, filters]);
-  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
-  const currentPage = Math.min(page, pageCount - 1);
-  const first = currentPage * pageSize;
   const changeFilters = (next: ColumnFilter[]) => {
-    setFilters(next); setPage(0); setOpenColumn(null);
-  };
-  const resize = (size: FinishedGoodsPageSize) => {
-    setPage(Math.floor(first / size)); setPageSize(size); storeFinishedGoodsPageSize(size);
+    setFilters(next); setOpenColumn(null);
   };
 
   return <section className="finished-goods" aria-label="Finished Goods inventory" aria-busy={loading}>
@@ -94,7 +85,7 @@ function FinishedGoodsSession({ assignmentId, snapshotId, site }: Props & { snap
             </button>
           </th>;
         })}</tr></thead>
-          <tbody>{rows.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map(row => <tr key={row.rowId}>
+          <tbody>{rows.map(row => <tr key={row.rowId}>
             <td className="finished-goods__product" title={row.reference == null ? undefined : `Reference: ${row.reference}`}>{row.product}</td>
             <td>{row.location ?? ''}</td>
             <td>{row.lot ?? ''}{row.isRma && <span className="finished-goods__rma" title="Informational return-material lot; included in on-hand and value">RMA</span>}</td>
@@ -105,16 +96,8 @@ function FinishedGoodsSession({ assignmentId, snapshotId, site }: Props & { snap
         {rows.length === 0 && <p className="finished-goods__state" role="status">{report.rows.length === 0 ? 'No positive on-hand inventory in this workspace scope.' : 'No inventory matches these filters.'}</p>}
       </div>
       <div className="finished-goods__footer">
-        <span role="status">{rows.length ? `Rows ${(first + 1).toLocaleString()}–${Math.min(first + pageSize, rows.length).toLocaleString()} of ${rows.length.toLocaleString()}` : 'Rows 0 of 0'}{filters.length > 0 && ` · filtered from ${report.rows.length.toLocaleString()}`}</span>
+        <span role="status">Rows {rows.length.toLocaleString()}{filters.length > 0 && ` · filtered from ${report.rows.length.toLocaleString()}`}</span>
         {filters.length > 0 && <button type="button" disabled={loading} onClick={() => changeFilters([])}>Clear filters ({filters.length})</button>}
-        <div role="group" aria-label="Rows per page" className="finished-goods__sizes"><span>Rows per page</span>{FINISHED_GOODS_PAGE_SIZES.map(size => <button key={size} type="button" aria-pressed={pageSize === size} disabled={loading} onClick={() => resize(size)}>{size}</button>)}</div>
-        <nav className="finished-goods__pager" aria-label="Result pages">
-          <button type="button" disabled={loading || currentPage === 0} onClick={() => setPage(0)}>First</button>
-          <button type="button" disabled={loading || currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button>
-          <span>Page {currentPage + 1} of {pageCount}</span>
-          <button type="button" disabled={loading || currentPage + 1 === pageCount} onClick={() => setPage(currentPage + 1)}>Next</button>
-          <button type="button" disabled={loading || currentPage + 1 === pageCount} onClick={() => setPage(pageCount - 1)}>Last</button>
-        </nav>
       </div>
     </>}
     {openColumn && report && <FinishedGoodsFilter key={openColumn} field={openColumn} rows={report.rows} filters={filters} anchor={anchor}

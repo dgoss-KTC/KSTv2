@@ -4,7 +4,6 @@ import { resolveBackendBaseUrl } from '../api/tauri-bridge';
 import { COLUMNS, DATE_COLUMNS, NUMERIC_COLUMNS, formatReportDate, formatReportTimestamp, type ColumnId } from '../openOrders/report';
 import { OrderFilterEditor, OrderFiltersMenu } from '../openOrders/OrderHeaderFilters';
 import { filteredOrderRows, filterSummary } from '../openOrders/headerFilters';
-import { OPEN_ORDERS_PAGE_SIZES, loadOpenOrdersPageSize, saveOpenOrdersPageSize, type OpenOrdersPageSize } from '../openOrders/pageSize';
 import type { ColumnFilter } from './shared/ColumnFilterEditor';
 import { ConfirmDialog } from './ConfirmDialog';
 import { changed, equalDecimal, issues, keyOf, multiply, parsePlanningDate, planningNumberDisplay, subtract, valuesOf, REASONS, type Editable, type Proposal } from '../openOrders/planning';
@@ -48,8 +47,6 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
   const [feedback, setFeedback] = useState<{ identity: string; text: string; kind: 'saved' | 'cancelled' | 'error' } | null>(null);
   const [exportingState, setExporting] = useState<{ identity: string; active: boolean } | null>(null);
   const [prepared, setPrepared] = useState<{ identity: string; signature: string; files: OpenOrdersQxtendResponseDto['files']; statuses: Record<string, string> } | null>(null);
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(loadOpenOrdersPageSize);
   const [planMode, setPlanMode] = useState(false);
   const [saveDraft, setSaveDraft] = useState(false);
   const [proposals, setProposals] = useState<Record<string, Proposal>>({});
@@ -128,9 +125,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
   const draftBlocked = savedState === 'checking' || savedState === 'unavailable' || savedState === 'presence-error' || checkingDraftFor === identity || !!restoreCandidate;
   const invalidDateEntries = Object.values(dateInputs).filter(text => parsePlanningDate(text) === undefined).length;
   const displayedRows = planMode && onlyChanged ? rows.filter(r => scopedProposals[keyOf(r.key)] && changed(scopedProposals[keyOf(r.key)])) : rows;
-  const pageCount = Math.max(1, Math.ceil(displayedRows.length / pageSize));
-  const currentPage = Math.min(page, pageCount - 1);
-  const hiddenChanges = staged.filter(p => !displayedRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize).some(r => keyOf(r.key) === keyOf(p.key))).length;
+  const hiddenChanges = staged.filter(p => !displayedRows.some(r => keyOf(r.key) === keyOf(p.key))).length;
 
   useEffect(() => {
     const timer = feedbackTimer;
@@ -168,7 +163,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
     const current = ++requestId.current;
     queueMicrotask(() => { if (current === requestId.current) { setPending(identity); setFailure(null); } });
     void resolveBackendBaseUrl().then(url => new ApiClient(url).getOpenOrders(assignmentId, snapshotId))
-      .then(data => { if (current === requestId.current) { setLoaded({ identity, report: data }); setPage(0); } })
+      .then(data => { if (current === requestId.current) { setLoaded({ identity, report: data }); } })
       .catch((error: unknown) => { if (current === requestId.current) setFailure({ identity, kind: error instanceof ApiError && error.status === 409 ? 'snapshot-changed' : error instanceof ApiError && error.status === 503 ? 'unavailable' : 'error' }); })
       .finally(() => { if (current === requestId.current) setPending(null); });
     return () => { if (requestId.current === current) requestId.current = current + 1; };
@@ -258,7 +253,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
     setPending(identity); setFailure(null); setFeedback(null);
     try {
       const data = await new ApiClient(await resolveBackendBaseUrl()).refreshOpenOrders(assignmentId, snapshotId);
-      if (current === requestId.current) { setLoaded({ identity, report: data }); setPage(0); if (saveDraft && !data.isStale && !sourceChanged) persist(proposals, true, data, true); }
+      if (current === requestId.current) { setLoaded({ identity, report: data }); if (saveDraft && !data.isStale && !sourceChanged) persist(proposals, true, data, true); }
     } catch (error) {
       if (current === requestId.current) setFailure({ identity, kind: error instanceof ApiError && error.status === 409 ? 'snapshot-changed' : error instanceof ApiError && error.status === 503 ? 'unavailable' : 'error' });
     } finally { if (current === requestId.current) setPending(null); }
@@ -300,7 +295,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
     activeViews.change(next);
     announce(`${columnLabel(source)} moved to position ${next.order.filter(id => next.visible.includes(id)).indexOf(source) + 1}. View modified.`);
   };
-  const applyFilters = (next: ColumnFilter[]) => { setFilters({ identity: assignmentId, value: next }); setPage(0); };
+  const applyFilters = (next: ColumnFilter[]) => { setFilters({ identity: assignmentId, value: next }); };
   const visibleMove = (source: PlanColumnId, offset: -1 | 1) => {
     const index = visible.indexOf(source);
     if (index < 0 || index + offset < 0 || index + offset >= visible.length) return;
@@ -310,11 +305,6 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
   const dropColumn = columnDrag.feedback?.target;
   const dragColumn = columnDrag.feedback?.source;
   const clearFilters = () => { applyFilters([]); setSearch({ identity: assignmentId, value: '' }); };
-  const resizePage = (size: OpenOrdersPageSize) => {
-    setPage(Math.floor(currentPage * pageSize / size));
-    setPageSize(size);
-    saveOpenOrdersPageSize(size);
-  };
   const filterContext = `${identity}:${planMode}:${report?.openOrdersSnapshotId ?? ''}`;
   const editFilter = (field: string, anchor: HTMLElement) => {
     columnDrag.cancel(); filterAnchor.current = anchor; setFilterPopup({ identity: filterContext, field });
@@ -342,7 +332,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
       <span className="open-orders__acquired">{report && <>Acquired {formatReportTimestamp(report.acquiredAtUtc)} · {report.lines.length} scoped lines</>}</span>
       {planMode && <span className="open-orders__muted">Refresh is off while you plan</span>}
       <button type="button" className="open-orders__primary" disabled={planMode || pending} onClick={() => { if (!planMode) void refresh(); }}>{pending ? 'Refreshing…' : 'Refresh report'}</button>
-      {!planMode && <AnalyticalExcelExport label="Customer Open Orders" scopeLabel={`Exports all ${rows.length} matching rows across every page`}
+      {!planMode && <AnalyticalExcelExport label="Customer Open Orders" scopeLabel={`Exports all ${rows.length} matching rows`}
         request={reportExportRequest} disabledReason={exportReason}
         contextKey={JSON.stringify([identity, report?.openOrdersSnapshotId, report?.site, businessDate, filters, search, reportVisible])} />}
       {feedback?.identity === identity && <span role="status" className={`open-orders__feedback open-orders__feedback--${feedback.kind}`}>{feedback.text}</span>}
@@ -357,7 +347,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
     {report?.isStale && <p role="alert" className="open-orders__warning">STALE report acquired {formatReportTimestamp(report.acquiredAtUtc)}. {report.warning} Not ready for operational/QXtend validation.</p>}
     {report && <>
       <div className="open-orders__query">
-        <input type="search" aria-label="Search open orders" placeholder="Search SO, PO, item, customer, salesperson…" value={search} onChange={e => { setSearch({ identity: assignmentId, value: e.target.value }); setPage(0); }} />
+        <input type="search" aria-label="Search open orders" placeholder="Search SO, PO, item, customer, salesperson…" value={search} onChange={e => { setSearch({ identity: assignmentId, value: e.target.value }); }} />
         <OrderFiltersMenu key={`filters:${assignmentId}:${planMode}`} filters={filters} visible={visible} onEdit={editFilter} onClear={() => applyFilters([])} />
         {(search || filters.length > 0) && <button type="button" onClick={clearFilters}>Clear search and filters</button>}
         <OrderColumns key={`${assignmentId}:${planMode}`} views={activeViews} mode={planMode ? 'plan' : 'report'} move={move} announce={announce} />
@@ -387,7 +377,7 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
               onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); editFilter(id, event.currentTarget); }}>
               <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16"><path d="M2 3h12L9.5 8v4l-3 1V8Z" fill="none" stroke="currentColor" strokeWidth="1.4" /></svg>
             </button></th>)}{planMode && <><th scope="col" className="open-orders__reason">Reason Code</th><th scope="col" className="open-orders__actions-heading">Planning status</th></>}</tr></thead>
-            <tbody>{displayedRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map(r => { const key = keyOf(r.key); const p = proposals[key]; const original = p?.original ?? valuesOf(r); const proposed = p?.proposed ?? original;
+            <tbody>{displayedRows.map(r => { const key = keyOf(r.key); const p = proposals[key]; const original = p?.original ?? valuesOf(r); const proposed = p?.proposed ?? original;
               const rowIssues = p ? [...new Set([...issues(p, r, report.isStale || !!failure || pending), ...(restoreIssues[key] ?? [])])] : [];
               const editor = (field: Editable, label: string) => {
                 const value = proposed[field]; const isDate = field.endsWith('Date');
@@ -448,8 +438,8 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
                 <td className="open-orders__actions">{p && <><span className={rowIssues.length ? 'open-orders__review' : 'open-orders__changed'} title={rowIssues.join(' ')}>{rowIssues.length ? 'Review' : 'Changed'}</span><button type="button" onClick={() => undo(key)}>Undo {r.key.salesOrder}/{r.key.line}</button>{rowIssues.length > 0 && <small className="open-orders__review">{rowIssues.join(' ')}</small>}</>}</td></>}</tr>; })}</tbody></table>
         </div>
       {planMode && <div className="open-orders__planning-summary open-orders__dock" role="status">
-        {staged.length} changed across workspace · {incomplete.length} missing Reason Code · {conflicts.length} conflicts · {hiddenChanges} outside current filter/page view. {report.isStale || failure || pending || conflicts.length || incomplete.length || invalidDateEntries || draftBlocked || sourceChanged ? 'Not export-ready.' : 'Generate files validates changed lines against QAD before preparing CSVs.'}
-        <label><input type="checkbox" checked={onlyChanged} onChange={e => { setOnlyChanged(e.target.checked); setPage(0); }} /> Show changed rows</label>
+        {staged.length} changed across workspace · {incomplete.length} missing Reason Code · {conflicts.length} conflicts · {hiddenChanges} outside current filter view. {report.isStale || failure || pending || conflicts.length || incomplete.length || invalidDateEntries || draftBlocked || sourceChanged ? 'Not export-ready.' : 'Generate files validates changed lines against QAD before preparing CSVs.'}
+        <label><input type="checkbox" checked={onlyChanged} onChange={e => { setOnlyChanged(e.target.checked); }} /> Show changed rows</label>
         <button type="button" disabled={!staged.length} onClick={e => { confirmationReturn.current = e.currentTarget; setClearConfirmation(true); }}>Clear All</button>
         {hiddenChanges > 0 && <button type="button" aria-expanded={showHidden} onClick={() => setShowHidden(!showHidden)}>Show changes outside this view</button>}
         <button type="button" disabled={!staged.length || !!report.isStale || !!failure || pending || exporting || !!conflicts.length || !!incomplete.length || !!invalidDateEntries || draftBlocked || sourceChanged}
@@ -459,15 +449,13 @@ export function OpenOrdersPanel({ assignmentId, snapshotId, site = '', onDirtyCh
           <span key={file.kind}><button type="button" disabled={exporting} onClick={() => void savePrepared(file)}>Save As {file.fileName}</button>
             <span role="status">{prepared.statuses[file.kind] ?? 'Not saved'}</span></span>)} <span>External QXtend processing is required; export does not submit changes.</span></div>}
       </div>}
-      {planMode && showHidden && hiddenChanges > 0 && <div className="open-orders__hidden-changes">Changes outside current results: {staged.filter(p => !displayedRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize).some(r => keyOf(r.key) === keyOf(p.key))).map(p => <div key={keyOf(p.key)}>
-        {p.key.salesOrder} / {p.key.line} ({p.itemNumber}) · {rowByKey.has(keyOf(p.key)) ? 'filtered or on another page' : 'missing from report — conflict'} · {[...issues(p, rowByKey.get(keyOf(p.key)), report.isStale || !!failure || pending), ...(restoreIssues[keyOf(p.key)] ?? [])].join(' ')} · Original {JSON.stringify(p.original)} → Proposed {JSON.stringify(p.proposed)} · {p.reasonCode ?? 'Reason Code missing'}
-        {rowByKey.has(keyOf(p.key)) && <button type="button" onClick={() => { setOnlyChanged(false); clearFilters(); const index = filteredOrderRows(report.lines, []).findIndex(r => keyOf(r.key) === keyOf(p.key)); if (index >= 0) { findTarget.current = keyOf(p.key); setPage(Math.floor(index / pageSize)); } }}>Find row</button>}
+      {planMode && showHidden && hiddenChanges > 0 && <div className="open-orders__hidden-changes">Changes outside current results: {staged.filter(p => !displayedRows.some(r => keyOf(r.key) === keyOf(p.key))).map(p => <div key={keyOf(p.key)}>
+        {p.key.salesOrder} / {p.key.line} ({p.itemNumber}) · {rowByKey.has(keyOf(p.key)) ? 'filtered out' : 'missing from report — conflict'} · {[...issues(p, rowByKey.get(keyOf(p.key)), report.isStale || !!failure || pending), ...(restoreIssues[keyOf(p.key)] ?? [])].join(' ')} · Original {JSON.stringify(p.original)} → Proposed {JSON.stringify(p.proposed)} · {p.reasonCode ?? 'Reason Code missing'}
+        {rowByKey.has(keyOf(p.key)) && <button type="button" onClick={() => { findTarget.current = keyOf(p.key); setOnlyChanged(false); clearFilters(); }}>Find row</button>}
         <button type="button" onClick={() => undo(keyOf(p.key))}>Undo {p.key.salesOrder}/{p.key.line}</button>
       </div>)}</div>}
-      <footer className="open-orders__page"><span>Rows {displayedRows.length ? currentPage * pageSize + 1 : 0}–{Math.min((currentPage + 1) * pageSize, displayedRows.length)} of {displayedRows.length} · filtered from {report.lines.length} lines · {rows.length} matching filters</span>
+      <footer className="open-orders__footer"><span>Rows {displayedRows.length} · filtered from {report.lines.length} lines · {rows.length} matching filters</span>
         <span className="open-orders__footer-purpose">{planMode ? 'External QXtend processing required; KST submits nothing.' : report.isStale || failure || pending ? 'Not current; do not use for operational/QXtend validation.' : 'Report only; not operational/QXtend validation.'}</span>
-        <div role="group" aria-label="Rows per page" className="open-orders__sizes"><span>Rows per page</span>{OPEN_ORDERS_PAGE_SIZES.map(size => <button key={size} type="button" aria-pressed={pageSize === size} onClick={() => resizePage(size)}>{size}</button>)}</div>
-        <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous page</button><span>Page {currentPage + 1} of {pageCount}</span><button type="button" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}>Next page</button>
       </footer>
     </>}
     {pending && <p className="open-orders__load-status" role="status">{report ? 'Refreshing report; displaying previous acquisition until complete.' : 'Loading Customer Open Orders…'}</p>}

@@ -53,7 +53,7 @@ export function filteredOrderRows(lines: OrderLine[], filters: ColumnFilter[], s
   return reportRows(lines, emptyFilters, search).filter(row => filters.every(f => f.column === excludeField || matchesColumnFilter(row, f)));
 }
 
-/** Counts cover the complete loaded report, before pages/changed-only. Own-field predicate excluded. */
+/** Counts cover the complete loaded report, before changed-only. Own-field predicate excluded. */
 export function orderFacets(lines: OrderLine[], filters: ColumnFilter[], quickSearch: string, column: string,
   search: string, retained: string[]): ColumnFacets {
   const counts = new Map<string, number>(); let blankCount = 0;

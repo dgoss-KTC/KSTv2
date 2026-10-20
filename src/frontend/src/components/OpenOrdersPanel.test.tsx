@@ -3,13 +3,11 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { act } from 'react';
-import userEvent from '@testing-library/user-event';
 import { OpenOrdersPanel } from './OpenOrdersPanel';
 import type { OpenOrdersResponseDto } from '../api/client';
 import type { OrderLine } from '../openOrders/report';
 import { ApiError } from '../api/client';
 import { columnPointer } from '../openOrders/pointerTestSupport';
-import { OPEN_ORDERS_PAGE_SIZE_KEY } from '../openOrders/pageSize';
 
 const get = vi.fn(); const refresh = vi.fn(); const exportReport = vi.fn(); const exportQxtend = vi.fn(); const saveCsv = vi.fn(); const restoreDraft = vi.fn(); const draftPresence = vi.fn(); const saveDraft = vi.fn(); const deleteDraft = vi.fn();
 vi.mock('../api/tauri-bridge', () => ({ resolveBackendBaseUrl: () => Promise.resolve('http://localhost'), isRunningInTauri: () => false }));
@@ -37,13 +35,10 @@ function response(count: number, isStale = false): OpenOrdersResponseDto {
     lines: Array.from({ length: count }, (_, i) => ({ ...template, key: { ...template.key, salesOrder: `SO-${i + 1}` } })) };
 }
 
-function paginationResponse(count = 1205): OpenOrdersResponseDto {
+function orderedResponse(count = 1205): OpenOrdersResponseDto {
   const data = response(count);
   data.lines = data.lines.map((line, i) => ({ ...line, key: { ...line.key, salesOrder: `SO-${String(i + 1).padStart(4, '0')}` } }));
   return data;
-}
-function choosePageSize(size: number) {
-  fireEvent.click(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: String(size) }));
 }
 
 function openFilter(label: string) {
@@ -81,114 +76,96 @@ afterEach(() => {
 });
 
 describe('Customer Open Orders panel', () => {
-  it('pages the complete 1205-row report at all three sizes, retaining the previous first row and partial-page ranges', async () => {
-    const data = paginationResponse(); get.mockResolvedValue(data);
+  it('renders all 1205 ordered rows in Report and Plan despite legacy paging and saved-view fields', async () => {
+    localStorage.setItem('kst.openOrders.pageSize.v1', '100');
+    for (const mode of ['report', 'plan']) localStorage.setItem(`kst.openOrders.views.v1.A.${mode}`, JSON.stringify({
+      version: 1, active: 'Legacy', page: 11, pageSize: 100, views: [{ name: 'Legacy', layout: {
+        order: ['order', 'itemNumber', 'dueDate'], visible: ['order', 'itemNumber', 'dueDate'], page: 11, pageSize: 100,
+      } }],
+    }));
+    const data = orderedResponse(); data.lines.reverse(); get.mockResolvedValue(data);
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table');
-    const sizes = screen.getByRole('group', { name: 'Rows per page' });
-    expect(within(sizes).getAllByRole('button').map(b => b.textContent)).toEqual(['100', '500', '1000']);
-    expect(within(sizes).getByRole('button', { name: '100' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText(/Rows 1–100 of 1205/)).toBeInTheDocument();
-    for (let i = 0; i < 11; i++) fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(screen.getByText(/Rows 1101–1200 of 1205/)).toBeInTheDocument();
-    const fiveHundred = within(sizes).getByRole('button', { name: '500' }); fiveHundred.focus();
-    await userEvent.setup().keyboard('{Enter}');
-    expect(fiveHundred).toHaveFocus(); expect(fiveHundred).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText('Page 3 of 3')).toBeInTheDocument();
-    expect(screen.getByText(/Rows 1001–1205 of 1205/)).toBeInTheDocument();
-    expect(screen.getByText('SO-1101')).toBeInTheDocument();
-    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(206);
-    choosePageSize(1000);
-    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
-    expect(screen.getByText(/Rows 1001–1205 of 1205/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Previous page' }));
-    expect(screen.getByText(/Rows 1–1000 of 1205/)).toBeInTheDocument();
-    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(1001);
-    fireEvent.click(screen.getByRole('button', { name: 'Next page' })); choosePageSize(100);
-    expect(screen.getByText('Page 11 of 13')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Next page' })); fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(screen.getByText(/Rows 1201–1205 of 1205/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+    const identities = () => [...screen.getByRole('table').querySelectorAll<HTMLElement>('tbody tr')].map(row => JSON.parse(row.dataset.orderRow!)[1]);
+    const expected = Array.from({ length: 1205 }, (_, i) => `SO-${String(i + 1).padStart(4, '0')}`);
+    expect(identities()).toEqual(expected);
+    expect(screen.getByRole('button', { name: 'View: Legacy ▾' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Rows per page' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^(Previous|Next) page$/ })).not.toBeInTheDocument();
+    togglePlan();
+    expect(identities()).toEqual(expected);
+    expect(screen.getByRole('button', { name: 'View: Legacy ▾' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Rows per page' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^(Previous|Next) page$/ })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'SO-1' } });
+    expect(identities()).toEqual(Array.from({ length: 206 }, (_, i) => `SO-${1000 + i}`));
     expect(get).toHaveBeenCalledTimes(1); expect(refresh).not.toHaveBeenCalled(); expect(saveDraft).not.toHaveBeenCalled();
+    expect(localStorage.getItem('kst.openOrders.pageSize.v1')).toBe('100');
   }, 30_000);
-  it('clamps later pages for search/filter, empty results, refresh and mode/changed-only changes without losing the selected size', async () => {
-    get.mockResolvedValue(paginationResponse()); refresh.mockResolvedValue(paginationResponse(7));
+  it('keeps complete results after search/filter, empty results, refresh and mode/changed-only changes', async () => {
+    get.mockResolvedValue(orderedResponse(205)); refresh.mockResolvedValue(orderedResponse(7));
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table');
-    choosePageSize(1000); fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'SO-1205' } });
-    expect(screen.getByText(/Rows 1–1 of 1/)).toBeInTheDocument(); expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'SO-0205' } });
+    expect(screen.getByText(/Rows 1 ·/)).toBeInTheDocument();
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'absent' } });
     expect(screen.getByText('No open orders match the current filters.')).toBeInTheDocument();
-    expect(screen.getByText(/Rows 0–0 of 0/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled(); expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+    expect(screen.getByText(/Rows 0 ·/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Clear search and filters' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Next page' })); applyTextFilter('so', 'SO-120');
-    expect(screen.getByText(/Rows 1–6 of 6/)).toBeInTheDocument();
+    applyTextFilter('so', 'SO-020');
+    expect(screen.getByText(/Rows 6 ·/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Clear search and filters' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Next page' })); togglePlan();
-    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
+    togglePlan();
+    expect(screen.getByText(/Rows 205 ·/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Show changed rows' }));
-    expect(screen.getByText('Page 1 of 1')).toBeInTheDocument(); expect(screen.getByText(/Rows 0–0 of 0/)).toBeInTheDocument();
+    expect(screen.getByText(/Rows 0 ·/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Show changed rows' })); togglePlan();
-    choosePageSize(500); fireEvent.click(screen.getByRole('button', { name: 'Next page' })); fireEvent.click(screen.getByRole('button', { name: 'Refresh report' }));
-    await screen.findByText(/7 scoped lines/); expect(screen.getByText(/Rows 1–7 of 7/)).toBeInTheDocument();
-    expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
-    expect(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: '500' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh report' }));
+    await screen.findByText(/7 scoped lines/); expect(screen.getByText(/Rows 7 ·/)).toBeInTheDocument();
+    expect(screen.getAllByRole('row')).toHaveLength(8);
     expect(get).toHaveBeenCalledTimes(1); expect(refresh).toHaveBeenCalledTimes(1);
   }, 60_000);
-  it('preserves exact proposals, in-progress inputs and drafts, with correct hidden counts and Find row at 500 and 1000', async () => {
-    const data = paginationResponse(); data.lines[0].planningValues.price = '12.3456789012';
+  it('preserves exact proposals, in-progress inputs and drafts, counting only filtered changes and finding a row beyond 1000', async () => {
+    const data = orderedResponse(1005); data.lines[0].planningValues.price = '12.3456789012';
     get.mockResolvedValue(data); render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table'); togglePlan();
     fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-0001/1' }), { target: { value: '4' } });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Save Draft' }));
     await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
     expect(saveDraft.mock.calls[0][1].proposals[0].proposed.price).toBe('12.3456789012');
-    await act(async () => { choosePageSize(500); });
-    expect(saveDraft).toHaveBeenCalledTimes(1);
-    await act(async () => { choosePageSize(100); });
-    expect(saveDraft).toHaveBeenCalledTimes(1);
     fireEvent.change(screen.getByRole('textbox', { name: 'Due Date proposal SO-0001/1' }), { target: { value: '1/' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Price proposal SO-0001/1' }), { target: { value: '.' } });
-    choosePageSize(500); fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-0601/1' }), { target: { value: '5' } });
-    expect(screen.getByText(/1 outside current filter\/page view/)).toBeInTheDocument();
-    choosePageSize(1000);
-    expect(screen.getByText(/0 outside current filter\/page view/)).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1005/1' }), { target: { value: '5' } });
+    expect(screen.getByText(/0 outside current filter view/)).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Due Date proposal SO-0001/1' })).toHaveValue('1/');
     expect(screen.getByRole('textbox', { name: 'Price proposal SO-0001/1' })).toHaveValue('.');
-    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(screen.getByText(/2 outside current filter\/page view/)).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'absent' } });
+    expect(screen.getByText(/2 outside current filter view/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Show changes outside this view' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Find row' })[1]);
-    expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
-    expect(document.activeElement).toHaveAttribute('data-order-row', JSON.stringify(['D', 'SO-0601', 1]));
-    choosePageSize(500);
-    expect(screen.getByText(/1 outside current filter\/page view/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Find row' }));
-    expect(screen.getByText(/Rows 501–1000 of 1205/)).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-0601/1' })).toHaveValue('5');
-    choosePageSize(1000);
+    expect(document.activeElement).toHaveAttribute('data-order-row', JSON.stringify(['D', 'SO-1005', 1]));
+    expect(screen.getByText(/0 outside current filter view/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1005/1' })).toHaveValue('5');
     expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-0001/1' })).toHaveValue('4');
     expect(screen.getByRole('textbox', { name: 'Due Date proposal SO-0001/1' })).toHaveValue('1/');
     expect(saveDraft).toHaveBeenCalledTimes(1); expect(deleteDraft).not.toHaveBeenCalled();
     expect(get).toHaveBeenCalledTimes(1); expect(refresh).not.toHaveBeenCalled();
   }, 60_000);
-  it('shares its validated preference across Report/Plan and workspaces, and works when preference storage is unavailable', async () => {
-    localStorage.setItem(OPEN_ORDERS_PAGE_SIZE_KEY, '500'); get.mockResolvedValue(paginationResponse(2));
+  it('ignores retired paging preferences across modes/workspaces and tolerates unavailable preference storage', async () => {
+    localStorage.setItem('kst.openOrders.pageSize.v1', '500'); get.mockResolvedValue(orderedResponse(2));
     const ui = render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />); await screen.findByRole('table');
-    expect(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: '500' })).toHaveAttribute('aria-pressed', 'true');
-    togglePlan(); choosePageSize(1000);
-    expect(localStorage.getItem(OPEN_ORDERS_PAGE_SIZE_KEY)).toBe('1000');
+    expect(screen.queryByRole('group', { name: 'Rows per page' })).not.toBeInTheDocument();
+    togglePlan();
+    expect(localStorage.getItem('kst.openOrders.pageSize.v1')).toBe('500');
     ui.rerender(<OpenOrdersPanel key="B" assignmentId="B" snapshotId="snap-1" />); await screen.findByRole('table');
-    expect(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: '1000' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('group', { name: 'Rows per page' })).not.toBeInTheDocument();
     ui.unmount();
     const read = vi.spyOn(localStorage, 'getItem').mockImplementation(() => { throw new Error('Unavailable'); });
     const write = vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('Unavailable'); });
     try {
       render(<OpenOrdersPanel assignmentId="C" snapshotId="snap-1" />); await screen.findByRole('table');
-      expect(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: '100' })).toHaveAttribute('aria-pressed', 'true');
-      choosePageSize(500);
-      expect(within(screen.getByRole('group', { name: 'Rows per page' })).getByRole('button', { name: '500' })).toHaveAttribute('aria-pressed', 'true');
+      togglePlan();
+      expect(screen.queryByRole('group', { name: 'Rows per page' })).not.toBeInTheDocument();
+      expect(screen.getAllByRole('row')).toHaveLength(3);
+      expect(read.mock.calls.some(([key]) => key === 'kst.openOrders.pageSize.v1')).toBe(false);
+      expect(write).not.toHaveBeenCalled();
     } finally { read.mockRestore(); write.mockRestore(); }
   });
   it('keeps funnel and popup pointer/keyboard input out of column dragging, with focus containment and return', async () => {
@@ -313,14 +290,13 @@ describe('Customer Open Orders panel', () => {
     applyTextFilter('so', 'SO-10'); expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Clear search and filters' }));
     expect(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' })).toHaveValue('4');
-    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     fireEvent.click(screen.getByRole('button', { name: 'Undo SO-1/1' })); expect(screen.getByText(/0 changed across workspace/)).toBeInTheDocument();
   }, 15_000);
-  it('resets/clamps pages on search and returns focus from filter overlay without changing proposals', async () => {
+  it('searches beyond the former first page and returns focus from filter overlay without changing proposals', async () => {
     get.mockResolvedValue(response(205)); render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
-    await screen.findByRole('table'); fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    await screen.findByRole('table');
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search open orders' }), { target: { value: 'SO-205' } });
-    expect(screen.getByText(/Rows 1–1 of 1/)).toBeInTheDocument(); expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+    expect(screen.getByText(/Rows 1 ·/)).toBeInTheDocument();
     const trigger = screen.getByRole('button', { name: 'Filter SO' }); fireEvent.click(trigger);
     expect(screen.getByRole('dialog', { name: 'Filter SO' })).toBeInTheDocument();
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' }); expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); expect(trigger).toHaveFocus();
@@ -499,7 +475,7 @@ describe('Customer Open Orders panel', () => {
     expect(screen.getByText(/2 changed across workspace/)).toBeInTheDocument();
   });
 
-  it('stages changed rows across filters and pages, keeps Report Mode layout, previews exact raw-price extension and supports undo and confirmed clear', async () => {
+  it('stages changed rows across filters, keeps Report Mode layout, previews exact raw-price extension and supports undo and confirmed clear', async () => {
     get.mockResolvedValue(response(101));
     render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByText(/101 scoped lines/);
@@ -509,8 +485,8 @@ describe('Customer Open Orders panel', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Order Qty proposal SO-1/1' }), { target: { value: '4' } });
     expect(screen.getByText(/1 changed across workspace/)).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: /3.*Original: 2/ })).toBeInTheDocument(); // Open 4 - 1; extension is optional in Plan Mode
-    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(screen.getByText(/1 outside current filter\/page view/)).toBeInTheDocument();
+    applyTextFilter('so', 'SO-101');
+    expect(screen.getByText(/1 outside current filter view/)).toBeInTheDocument();
     togglePlan();
     expect(screen.getAllByRole('columnheader')).toHaveLength(9);
     togglePlan();
@@ -732,15 +708,12 @@ describe('Customer Open Orders panel', () => {
     expect(await screen.findByText(/No open orders in this workspace scope/)).toBeInTheDocument();
   });
 
-  it('pages large synthetic results without truncating export; filters hidden fields, reorders using keyboard and isolates workspaces', async () => {
+  it('renders large synthetic results without truncating export; filters hidden fields, reorders using keyboard and isolates workspaces', async () => {
     get.mockResolvedValue(response(235)); exportReport.mockResolvedValue({ blob: new Blob(), fileName: 'Open.xlsx' });
     const { rerender } = render(<OpenOrdersPanel assignmentId="A" snapshotId="snap-1" />);
     await screen.findByText(/235 scoped lines/);
-    expect(screen.getAllByRole('row')).toHaveLength(101);
-    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(screen.getByText(/Rows 101–200 of 235/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(screen.getByText(/Rows 201–235 of 235/)).toBeInTheDocument();
+    expect(screen.getAllByRole('row')).toHaveLength(236);
+    expect(screen.getByText(/Rows 235 ·/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Columns 9 of/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Move PO up' }));
     fireEvent.click(screen.getByRole('button', { name: 'Hide Due Date' }));
@@ -764,7 +737,7 @@ describe('Customer Open Orders panel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     expect(screen.getByRole('button', { name: 'Filter Customer Name (active)' })).toBeInTheDocument();
     expect(screen.getByText(/235 matching filters/)).toBeInTheDocument();
-    expect(screen.getByText(/Rows 1–100 of 235/)).toBeInTheDocument();
+    expect(screen.getByText(/Rows 235 ·/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     await waitFor(() => expect(exportReport).toHaveBeenCalledWith('A', expect.objectContaining({ lineKeys: expect.arrayContaining([{ domain: 'D', salesOrder: 'SO-235', line: 1 }]), columns: ['po', 'order', 'line', 'itemNumber', 'site', 'open', 'stat', 'extPrice', 'customerName'] })));
     expect(exportReport.mock.calls[0][1].lineKeys).toHaveLength(235);

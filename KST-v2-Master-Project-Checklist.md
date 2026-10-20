@@ -3,7 +3,29 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** **S22-018/030 workspace action-menu keyboard ownership/focus —
+**Current project position:** **S22-005/009 pagination-removal follow-ups — COMPLETE /
+OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner: “Pagination has been removed from the targeted areas
+and all is working well. Accepted.” Owner-reported behavior/acceptance, not an agent desktop pass or
+proof of the exact binary tested. Owner dispatch supersedes only
+accepted pagination: Finished Goods/Open Orders Report/Plan map every matching acquired row in
+retained order through normal scrolling. Controls/slices/screen-specific paging helpers/tests removed;
+old preference keys inert, named column views/filter/facets/search/drafts/selection preserved. Planning
+View-selected totals, export populations/protected saving and other screens' pagination unchanged.
+Offline 229 frontend passes/zero failures/two inherited screenshot skips in 19 files; lint/types/frontend
+build pass, post-edit scoped diagnostics fresh/zero errors/warnings. Existing Vite/React warnings,
+partial initial complexity/deprecated hint/broad lint-format exceptions retained. Entry build-info
+preserved unstaged/excluded at actual closeout-entry hash `F1064073…`, not overwritten by the earlier
+`2B79FB70…` backup. All nine source/test fingerprints match. Guard still stops before Cargo for
+running installed KST; no successful closeout build command claimed. Later existing host independently
+inspected: 15,306,752 bytes, SHA256 `EF2F4086…`, current hashed asset names embedded/newer than assets,
+four sidecars unchanged. PE version 0.1.0; repository package alpha.21. No retained Cargo log/command
+provenance or desktop pass for that binary. One bounded local commit authorized with normal hooks,
+exact staged paths/full diff/new-record/whitespace/post-commit checks; no push, repeat suites/frontend
+builds/review or sidecar publication. No backend/native/contracts/dependencies/capabilities/live access/
+submission/deployment. Historical acceptance remains; only existing S22-005/009 rows updated;
+**Stage 22 remains open**. Acceptance/identity/limits: `docs/implementation/KST_v2_S22_005_009_UNPAGED_TABLES.md`.
+
+**Preceding accepted checkpoint:** **S22-018/030 workspace action-menu keyboard ownership/focus —
 BOUNDED CORRECTION COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner: “The behavior has
 been corrected. Accepted.” One complete local closeout commit authorized, not a push. Owner-reported
 acceptance does not establish every suggested keyboard/Tab check or add agent desktop/live evidence.

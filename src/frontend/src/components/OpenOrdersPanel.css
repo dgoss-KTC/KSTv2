@@ -1,5 +1,5 @@
 .open-orders { display:flex; flex:1; flex-direction:column; min-height:0; margin:0 20px 14px; background:var(--grid); border:1px solid var(--bd); border-radius:10px; color:var(--tx); overflow:hidden; font-size:12px; }
-.open-orders__toolbar, .open-orders__query, .open-orders__page, .open-orders__planning-summary { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:var(--density-spacing) 12px; border-bottom:1px solid var(--bd); }
+.open-orders__toolbar, .open-orders__query, .open-orders__footer, .open-orders__planning-summary { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:var(--density-spacing) 12px; border-bottom:1px solid var(--bd); }
 .open-orders__toolbar h3 { margin:0; font-size:13px; font-weight:600; }
 .open-orders__toolbar label, .open-orders__dock label { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
 .open-orders__acquired { margin-left:auto; color:var(--tx2); font-size:11px; }
@@ -53,10 +53,7 @@
 .open-orders__dock { order:3; background:var(--panel); font-size:11px; border-top:1px solid var(--bd); margin:0; }
 .open-orders__hidden-changes { order:4; max-height:200px; overflow:auto; padding:8px 12px; background:var(--panel2); font-size:11px; }
 .open-orders__hidden-changes > div { padding:6px 0; border-bottom:1px solid var(--bd); overflow-wrap:anywhere; }
-.open-orders__page { order:5; font-size:11px; color:var(--tx2); border-bottom:0; border-top:1px solid var(--bd); }
-.open-orders__sizes { display:flex; align-items:center; flex-wrap:wrap; margin-left:auto; gap:3px; }
-.open-orders__sizes button { background:var(--chip); padding:3px 8px; }
-.open-orders__sizes [aria-pressed='true'] { background:var(--accent-soft); color:var(--tx); border-color:var(--accent-solid); }
+.open-orders__footer { order:5; font-size:11px; color:var(--tx2); border-bottom:0; border-top:1px solid var(--bd); }
 .open-orders__footer-purpose { margin:auto; }
 .open-orders__load-status { order:6; margin:0; padding:5px 12px; color:var(--tx2); font-size:11px; }
 .open-orders__state { order:2; flex:1; display:flex; align-items:center; justify-content:center; gap:12px; color:var(--tx2); padding:24px; }

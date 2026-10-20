@@ -63,6 +63,19 @@ described below; none of the 13.2 bounded samples validates full-workspace perfo
 
 ## Checkpoint 13.3 Report Mode
 
+### S22-005 pagination removal — 2026-10-20 (complete / owner-accepted / closed)
+
+Owner-authorized amendment supersedes only the pagination addition below. Report and Plan render
+all matching acquired rows in the existing sort order, inside normal table scrolling; no page slicing,
+page/size state or controls. Old `kst.openOrders.pageSize.v1` values are ignored, not migrated into
+named column views. Hidden-change accounting uses full filtered results; Find row clears filters and
+focuses/scrolls directly. Acquisition, contracts, facets, selection, drafts, full matching analytical
+export/selected columns, protected save/recovery and all-workspace operational generation are unchanged.
+Historical acceptance remains intact. Owner reports pagination removed and all working well; accepted
+2026-10-20. This closes only the removal follow-up, not Stage 22. Acceptance, independently inspected
+current artifact identity and guarded-build/provenance limits:
+`../implementation/KST_v2_S22_005_009_UNPAGED_TABLES.md`. No backend/contract/native change.
+
 ### S22-005 pagination addition — 2026-10-19 (complete / owner-accepted)
 
 The owner explicitly supersedes the fixed 100-row requirement in the header-filter amendment below.

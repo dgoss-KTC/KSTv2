@@ -48,10 +48,10 @@ describe('Finished Goods panel (mocked only)', () => {
     expect(get).toHaveBeenCalledTimes(1); expect(refresh).not.toHaveBeenCalled();
   });
 
-  it('filters the full snapshot beyond DOM pages and does not query sources', async () => {
+  it('renders and filters the full snapshot beyond the former first page without querying sources', async () => {
     get.mockResolvedValue(response('A', 'mps1', 150));
     render(<FinishedGoodsPanel assignmentId="A" snapshotId="mps1" site="SW" />);
-    const table = await screen.findByRole('table'); expect(within(table).getAllByRole('row')).toHaveLength(101);
+    const table = await screen.findByRole('table'); expect(within(table).getAllByRole('row')).toHaveLength(151);
     await applyContains('Product', 'P-149');
     expect(within(table).getAllByRole('row')).toHaveLength(2); expect(screen.getByText('P-149')).toBeInTheDocument();
     expect(get).toHaveBeenCalledTimes(1);
@@ -119,78 +119,63 @@ describe('Finished Goods panel (mocked only)', () => {
     await act(async () => finish(response())); expect(screen.queryByText('P-0')).not.toBeInTheDocument();
   });
 
-  it('offers all sizes, preserves the former first row within the new page and keeps counts accurate', async () => {
-    get.mockResolvedValue(response('A', 'mps1', 1205));
+  it('renders all 1205 physical rows in accepted order and ignores the old paging preference', async () => {
+    localStorage.setItem('kst.finishedGoods.pageSize.v1', '100');
+    const data = response('A', 'mps1', 1205);
+    data.rows.forEach((row, i) => { row.product = `P-${String(i).padStart(4, '0')}`; });
+    data.rows.reverse(); get.mockResolvedValue(data);
     render(<FinishedGoodsPanel assignmentId="A" snapshotId="mps1" site="SW" />);
     const table = await screen.findByRole('table');
-    const sizes = screen.getByRole('group', { name: 'Rows per page' });
-    expect(within(sizes).getAllByRole('button').map(b => b.textContent)).toEqual(['100', '500', '1000']);
-    expect(within(sizes).getByRole('button', { name: '100', pressed: true })).toBeInTheDocument();
-    for (let i = 0; i < 6; i++) fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(screen.getByText('Rows 601–700 of 1,205')).toBeInTheDocument();
-    const formerFirst = within(table).getAllByRole('row')[1].textContent;
-    fireEvent.click(within(sizes).getByRole('button', { name: '500' }));
-    expect(screen.getByText('Rows 501–1,000 of 1,205')).toBeInTheDocument();
-    expect(within(table).getAllByRole('row').some(r => r.textContent === formerFirst)).toBe(true);
-    fireEvent.click(within(sizes).getByRole('button', { name: '1000' }));
-    expect(screen.getByText('Rows 1–1,000 of 1,205')).toBeInTheDocument();
-    expect(within(table).getAllByRole('row')).toHaveLength(1001);
-    fireEvent.click(screen.getByRole('button', { name: 'Last' }));
-    expect(screen.getByText('Rows 1,001–1,205 of 1,205')).toBeInTheDocument();
-    fireEvent.click(within(sizes).getByRole('button', { name: '100' }));
-    expect(screen.getByText('Rows 1,001–1,100 of 1,205')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'First' }));
-    expect(screen.getByText('Page 1 of 13')).toBeInTheDocument();
+    const products = () => [...table.querySelectorAll('tbody tr')].map(row => row.querySelector('td')?.textContent);
+    expect(products()).toEqual(Array.from({ length: 1205 }, (_, i) => `P-${String(i).padStart(4, '0')}`));
+    expect(screen.getByText('Rows 1,205')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Rows per page' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Result pages' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Finished Goods table' })).toHaveAttribute('tabindex', '0');
+    await applyContains('Product', 'P-1');
+    expect(products()).toEqual(Array.from({ length: 205 }, (_, i) => `P-${1000 + i}`));
     expect(get).toHaveBeenCalledTimes(1); expect(refresh).not.toHaveBeenCalled();
     expect(localStorage.getItem('kst.finishedGoods.pageSize.v1')).toBe('100');
   });
 
-  it('resets later pages for filters, clear-all and acquisition, including empty and shrinking reports', async () => {
-    get.mockResolvedValue(response('A', 'mps1', 1205));
+  it('shows all remaining rows after filter, clear-all and refresh, including empty and shrinking reports', async () => {
+    get.mockResolvedValue(response('A', 'mps1', 205));
     refresh.mockResolvedValue(response('A', 'mps1', 1));
     render(<FinishedGoodsPanel assignmentId="A" snapshotId="mps1" site="SW" />);
     await screen.findByRole('table');
-    fireEvent.click(screen.getByRole('button', { name: 'Last' }));
-    await applyContains('Product', 'P-1204');
-    expect(screen.getByText('Rows 1–1 of 1 · filtered from 1,205')).toBeInTheDocument();
-    expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+    await applyContains('Product', 'P-204');
+    expect(screen.getByText('Rows 1 · filtered from 205')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters (1)' }));
-    expect(screen.getByText('Page 1 of 13')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Last' }));
+    expect(screen.getAllByRole('row')).toHaveLength(206);
     await applyContains('Product', 'absent');
-    expect(screen.getByText('Rows 0 of 0 · filtered from 1,205')).toBeInTheDocument();
-    for (const name of ['First', 'Previous', 'Next', 'Last']) expect(screen.getByRole('button', { name })).toBeDisabled();
+    expect(screen.getByText('Rows 0 · filtered from 205')).toBeInTheDocument();
+    expect(screen.getByText('No inventory matches these filters.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters (1)' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Last' }));
     fireEvent.click(screen.getByRole('button', { name: 'Refresh Finished Goods' }));
-    await screen.findByText('Rows 1–1 of 1');
-    expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+    await screen.findByText('Rows 1');
+    expect(screen.getAllByRole('row')).toHaveLength(2);
   });
 
-  it('keeps size separate from visit-local filters, survives throwing storage and supports keyboard size selection', async () => {
+  it('does not access retired paging storage even when storage throws', async () => {
     const read = vi.spyOn(localStorage, 'getItem').mockImplementation(() => { throw new Error('denied'); });
     const write = vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('denied'); });
     get.mockResolvedValue(response());
     render(<FinishedGoodsPanel assignmentId="A" snapshotId="mps1" site="SW" />);
-    await screen.findByRole('table'); const user = userEvent.setup();
-    const sizes = screen.getByRole('group', { name: 'Rows per page' });
-    expect(within(sizes).getByRole('button', { name: '100', pressed: true })).toBeInTheDocument();
+    await screen.findByRole('table');
     await applyContains('Lot', 'ra');
-    const larger = within(sizes).getByRole('button', { name: '500' }); larger.focus(); await user.keyboard('{Enter}');
-    expect(larger).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Filter Lot, filter active' })).toBeInTheDocument();
-    expect(write).toHaveBeenCalledWith('kst.finishedGoods.pageSize.v1', '500'); expect(read).toHaveBeenCalled();
+    expect(write).not.toHaveBeenCalled(); expect(read).not.toHaveBeenCalled();
     expect(get).toHaveBeenCalledTimes(1);
   });
 
-  it('persists size across workspace visits but never stores or restores filters', async () => {
+  it('keeps filters visit-local and leaves legacy paging preferences untouched across workspaces', async () => {
+    localStorage.setItem('kst.finishedGoods.pageSize.v1', '1000');
     get.mockResolvedValueOnce(response()).mockResolvedValueOnce(response('B'));
     const { rerender } = render(<FinishedGoodsPanel assignmentId="A" snapshotId="mps1" site="SW" />);
     await screen.findByRole('table'); await applyContains('Lot', 'ra');
-    fireEvent.click(screen.getByRole('button', { name: '1000' }));
     rerender(<FinishedGoodsPanel assignmentId="B" snapshotId="mps1" site="SW" />);
     await screen.findByRole('table');
-    expect(screen.getByRole('button', { name: '1000', pressed: true })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Rows per page' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /filter active/ })).not.toBeInTheDocument();
     expect(localStorage.length).toBe(1);
   });
@@ -209,16 +194,16 @@ describe('Finished Goods panel (mocked only)', () => {
     expect(blanks.closest('.shipment-filter__value-row')).toHaveTextContent('9');
     fireEvent.click(within(dialog).getByLabelText('(Select all)')); fireEvent.click(blanks);
     // Unapplied selections never change the loaded result.
-    expect(screen.getByText('Rows 1–10 of 10 · filtered from 150')).toBeInTheDocument();
+    expect(screen.getByText('Rows 10 · filtered from 150')).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('button', { name: 'Filter Lot, filter active' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Filter Lot' }));
     fireEvent.click(screen.getByLabelText('(Select all)')); fireEvent.click(screen.getByLabelText('(Blanks)'));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
-    expect(screen.getByText('Rows 1–9 of 9 · filtered from 150')).toBeInTheDocument();
+    expect(screen.getByText('Rows 9 · filtered from 150')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Filter Lot, filter active' }));
     fireEvent.click(screen.getByRole('button', { name: 'Clear filter' }));
-    expect(screen.getByText('Rows 1–10 of 10 · filtered from 150')).toBeInTheDocument();
+    expect(screen.getByText('Rows 10 · filtered from 150')).toBeInTheDocument();
     expect(get).toHaveBeenCalledTimes(1); expect(refresh).not.toHaveBeenCalled();
   });
 
@@ -277,7 +262,7 @@ describe('Finished Goods panel (mocked only)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh Finished Goods' }));
     await screen.findByText('Last good inventory');
     expect(screen.getByRole('button', { name: 'Filter Product, filter active' })).toBeInTheDocument();
-    expect(screen.getByText('Rows 1–1 of 1 · filtered from 2')).toBeInTheDocument();
+    expect(screen.getByText('Rows 1 · filtered from 2')).toBeInTheDocument();
   });
 
   it('does not acquire before MPS is loaded', () => {

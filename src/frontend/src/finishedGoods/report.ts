@@ -54,7 +54,7 @@ export function finishedGoodsRows(rows: readonly FinishedGoodsRow[], filters: re
       compare(a.reference, b.reference) || compare(a.sourceLocation, b.sourceLocation) || compare(a.rowId, b.rowId));
 }
 
-/** Own-column predicate excluded; counts represent physical rows before pagination. */
+/** Own-column predicate excluded; counts represent the complete loaded physical-row population. */
 export function finishedGoodsFacets(rows: readonly FinishedGoodsRow[], filters: readonly ColumnFilter[], column: string,
   search: string, retained: string[]): ColumnFacets {
   const counts = new Map<string, number>(); let blankCount = 0;

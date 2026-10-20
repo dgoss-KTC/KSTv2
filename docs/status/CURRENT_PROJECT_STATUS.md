@@ -3,6 +3,42 @@
 Date: 2026-10-20
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## S22-005 / S22-009 — Pagination removal — 2026-10-20
+
+**PAGINATION-REMOVAL FOLLOW-UPS COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner:
+“Pagination has been removed from the targeted areas and all is working well. Accepted.” This is
+owner-reported behavior, not agent desktop testing or proof that the owner tested the artifact below.
+Explicit owner dispatch from `c48ebef` supersedes only accepted pagination. Finished Goods and Open Orders
+Report/Plan render all matching acquired rows in retained sort order through existing scrolling;
+page controls/slicing/state and screen-only size helpers/tests removed. Legacy size keys ignored;
+named column views, filters/facets/search, drafts/selection, Planning View-selected totals and all
+analytical/operational export populations/protected saving remain. Other screens' pagination unchanged.
+
+Offline **229 frontend passed / zero failed / two inherited screenshot skips (19 files)**, including
+independent 1,205-row identities/order, old views/preferences, filtered matches beyond former page one,
+Find row beyond 1,000, full export keys/retries, Planning totals and unchanged Shipments paging.
+Changed-file lint/types/frontend build pass; post-edit scoped diagnostics fresh/zero errors/warnings.
+Initial partial complexity, deprecated returnValue hint, React fixture/Vite warnings and broader
+lint/format exceptions remain explicit. Actual entry build-info bytes preserved unstaged/excluded.
+
+The unchanged guard still stops before Cargo for running installed KST; no successful closeout build
+command is claimed. A later existing host is independently inspected: current frontend hashed asset
+names embedded/matching retained frontend-build evidence, newer than assets, four sidecars unchanged.
+`src/tauri/target/release/kst-tauri.exe`: **15,306,752 bytes**, SHA256
+`EF2F4086ADBE5648386DDF6477136D3FEF914399D70D25C50B6F698911888FD9`.
+PE FileVersion/ProductVersion **0.1.0**; repository package version remains **0.1.0-alpha.21**.
+No retained Cargo log/build-command provenance or agent desktop claim for this later binary; these
+limits are separate from owner acceptance. Actual closeout-entry build-info hash `F1064073…` differs
+from the earlier report's `2B79FB70…`; current bytes preserved, not overwritten by the older backup.
+All nine retained source/test fingerprints match. One complete bounded local commit authorized,
+normal hooks/no push; reuse verification with staged-path/full-diff/new-record/whitespace/post-commit
+checks, no repeat suites/frontend builds/review or sidecar publication. No backend/native/contracts/
+dependencies/capabilities/live access/install/submission/deployment. Only existing S22-005/009 backlog
+rows reconciled; historical acceptance and closed workspace-menu/workbook-save deliveries preserved;
+**Stage 22 remains open**. Record/evidence/acceptance and artifact limits:
+`docs/implementation/KST_v2_S22_005_009_UNPAGED_TABLES.md`,
+`C:\Users\dgoss\AppData\Local\Temp\opencode\s22-unpaged-tables\`.
+
 ## S22-018/030 — Workspace action-menu keyboard ownership/focus — 2026-10-20
 
 **BOUNDED CORRECTION COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner: “The behavior has

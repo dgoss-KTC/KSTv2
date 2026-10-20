@@ -1,5 +1,18 @@
 # S22-005 — Customer Open Orders UI
 
+## Pagination-removal amendment — 2026-10-20
+
+**PAGINATION-REMOVAL FOLLOW-UP COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20.**
+Owner: “Pagination has been removed from the targeted areas and all is working well. Accepted.”
+Report and Plan now render every matching row in existing sort order through normal table scrolling;
+page controls/state/size preference retired. Prior paging keys are inert; named column views, filters,
+drafts, full-population analytical/operational exports and protections remain unchanged. This supersedes
+only pagination; historical acceptance/checklists below are preserved. Owner-reported behavior is
+distinct from independently inspected later artifact identity; guarded rebuild still blocked before
+Cargo, later binary build-command provenance unavailable. Combined evidence/limits/acceptance:
+`KST_v2_S22_005_009_UNPAGED_TABLES.md`. One complete bounded local commit authorized, normal hooks,
+no push; actual closeout-entry build-info preserved unstaged/excluded. Stage 22 remains open.
+
 Implemented: 2026-10-16; corrections and owner acceptance: 2026-10-19.
 Original scope: **COMPLETE / OWNER-ACCEPTED — 2026-10-19**.
 Reopened header-filter + pagination follow-up: **COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-19**.

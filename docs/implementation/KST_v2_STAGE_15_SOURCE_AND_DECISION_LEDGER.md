@@ -1,5 +1,15 @@
 # Stage 15 — Finished Goods: accepted source and decision ledger
 
+## S22-009 pagination removal — owner-accepted / closed 2026-10-20
+
+Owner reports pagination removed and all working well; accepted 2026-10-20. Only the accepted
+pagination presentation is superseded: all matching acquired physical rows render in retained order through normal scrolling,
+without page controls/slicing/state or reading the old size preference. Filters/facets, exact values,
+source/acquisition/safety boundaries and no-export scope remain unchanged. Historical decisions and
+acceptance below are preserved. Owner-reported behavior, independently inspected current artifact
+identity and guarded-build/provenance limits remain distinct. Combined acceptance/evidence:
+`KST_v2_S22_005_009_UNPAGED_TABLES.md`. Stage 22 remains open.
+
 ## S22-009 presentation/filtering amendment — 2026-10-19
 
 Owner authorizes replacing separate Product/Location/Lot Contains inputs with shared-editor header
