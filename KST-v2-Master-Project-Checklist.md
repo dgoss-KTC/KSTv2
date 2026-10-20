@@ -3,7 +3,28 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** **S22-017 bounded workbook-save retirement / corresponding S22-036
+**Current project position:** **S22-018/030 workspace action-menu keyboard ownership/focus —
+BOUNDED CORRECTION COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner: “The behavior has
+been corrected. Accepted.” One complete local closeout commit authorized, not a push. Owner-reported
+acceptance does not establish every suggested keyboard/Tab check or add agent desktop/live evidence.
+Bounded frontend-only menu/MPS coordination from `0010d35`; original collision reproduced offline.
+Enabled-item entry/navigation, Escape/Tab/pointer/reorder focus and confirmation ownership verified
+offline alongside existing hierarchy/Material Detail/export/dialog/dirty-work tests. **187 pass / zero
+fail / three inherited skips (seven files)**; changed-file lint/types/frontend build pass. Initial AFT
+partial/final deadlines, Vite/React fixture warnings and broader lint/format exceptions stay explicit.
+Offline embedded release build/artifact verification pass after owner closure; exclusive guard first
+stopped before Cargo when installed KST reopened. Current alpha.21 host is 15,307,264 bytes, SHA256
+`EBBB26D4…`, final assets embedded/four sidecars unchanged. Entry build-info preserved unstaged/excluded;
+no backend/native/contracts/dependency/capability/sidecar publication/live access/install/deployment.
+Implementation/tests and retained fingerprints unchanged; reuse existing verification with exact staged
+paths/full diff/new-file/whitespace, normal hooks and post-commit checks. No repeated suites/builds,
+additional independent review or sidecar publication solely for committing.
+Only S22-018/030 backlog rows updated; other tablists, geometry, pagination follow-ups, accepted
+deliveries remain unchanged; broader S22-018/030 and Stage 22 remain open. Acceptance/limits/historical
+Windows guidance: `docs/implementation/KST_v2_S22_018_030_WORKSPACE_MENU.md`. Actual entry build-info
+stays unstaged/excluded; evidence/binaries stay outside Git. No push or further development authorized.
+
+**Preceding accepted checkpoint:** **S22-017 bounded workbook-save retirement / corresponding S22-036
 disposition — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20.** Acceptance and one local commit
 authorized based on the supplied implementation report and offline evidence, not independent desktop
 verification. Only the superseded helper, its obsolete unit tests and helper-specific panel-test

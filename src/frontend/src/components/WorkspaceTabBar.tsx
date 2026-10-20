@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { WorkspaceAssignmentDto } from '../api/client';
 import './WorkspaceTabBar.css';
 
@@ -36,27 +36,42 @@ export function WorkspaceTabBar({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const entryEdge = useRef<'first' | 'last'>('first');
   // Kebab (workspace-actions) trigger buttons are stable across a menu open/close cycle, so they
   // are the correct focus-restoration target for dialogs opened from a menu item (which unmounts
   // as soon as it's clicked).
   const kebabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!openMenuId) return;
-    const handlePointerDown = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    const trigger = kebabRefs.current.get(openMenuId);
+    const items = menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)');
+    (entryEdge.current === 'last' ? items?.[items.length - 1] : items?.[0])?.focus({ preventScroll: true });
+    const handlePointerDown = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node) && !trigger?.contains(e.target as Node)) {
         setOpenMenuId(null);
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpenMenuId(null);
+      // Blocking dialogs and the existing analytical menu retain their own keyboard ownership.
+      if (e.defaultPrevented || document.querySelector('[aria-modal="true"][role="dialog"], [aria-modal="true"][role="alertdialog"], [data-analytical-export-menu]')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpenMenuId(null);
+        trigger?.focus({ preventScroll: true });
+      } else if (e.key === 'Tab') {
+        // Anchor native forward/backward Tab progression at the stable trigger, not a removed item.
+        setOpenMenuId(null);
+        trigger?.focus({ preventScroll: true });
+      }
     };
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown, true);
     return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown, true);
     };
   }, [openMenuId]);
 
@@ -68,6 +83,7 @@ export function WorkspaceTabBar({
     const reordered = [...workspaces];
     const [moved] = reordered.splice(index, 1);
     reordered.splice(targetIndex, 0, moved);
+    kebabRefs.current.get(assignmentId)?.focus({ preventScroll: true });
     onReorder(reordered.map((w) => w.assignmentId));
   };
 
@@ -93,7 +109,7 @@ export function WorkspaceTabBar({
   };
 
   return (
-    <div className="tab-bar" role="tablist" aria-label="Workspaces" ref={containerRef}>
+    <div className="tab-bar" role="tablist" aria-label="Workspaces">
       {workspaces.map((w, index) => (
         <div
           key={w.assignmentId}
@@ -132,18 +148,34 @@ export function WorkspaceTabBar({
             aria-label={`Workspace actions for ${w.displayName ?? w.site}`}
             aria-haspopup="menu"
             aria-expanded={openMenuId === w.assignmentId}
+            aria-controls={openMenuId === w.assignmentId ? `workspace-actions-${w.assignmentId}` : undefined}
+            onKeyDown={(e) => {
+              if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+              e.preventDefault();
+              entryEdge.current = e.key === 'ArrowUp' ? 'last' : 'first';
+              setOpenMenuId(w.assignmentId);
+            }}
             onClick={(e) => {
               e.stopPropagation();
+              entryEdge.current = 'first';
               setOpenMenuId((prev) => (prev === w.assignmentId ? null : w.assignmentId));
             }}
           >
             &#8942;
           </button>
           {openMenuId === w.assignmentId && (
-            <div className="tab-bar__menu" role="menu">
+            <div ref={menuRef} id={`workspace-actions-${w.assignmentId}`} className="tab-bar__menu" role="menu" aria-label={`Actions for ${w.displayName ?? w.site}`} data-workspace-action-menu
+              onKeyDown={(e) => {
+                if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+                e.preventDefault();
+                const items = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'));
+                const index = items.indexOf(document.activeElement as HTMLButtonElement);
+                items[e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : (index + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus({ preventScroll: true });
+              }}>
               <button
                 type="button"
                 role="menuitem"
+                tabIndex={-1}
                 className="tab-bar__menu-item"
                 onClick={() => {
                   setOpenMenuId(null);
@@ -155,6 +187,7 @@ export function WorkspaceTabBar({
               <button
                 type="button"
                 role="menuitem"
+                tabIndex={-1}
                 className="tab-bar__menu-item"
                 disabled={index === 0}
                 onClick={() => {
@@ -167,6 +200,7 @@ export function WorkspaceTabBar({
               <button
                 type="button"
                 role="menuitem"
+                tabIndex={-1}
                 className="tab-bar__menu-item"
                 disabled={index === workspaces.length - 1}
                 onClick={() => {
@@ -179,6 +213,7 @@ export function WorkspaceTabBar({
               <button
                 type="button"
                 role="menuitem"
+                tabIndex={-1}
                 className="tab-bar__menu-item"
                 onClick={() => {
                   setOpenMenuId(null);
@@ -190,6 +225,7 @@ export function WorkspaceTabBar({
               <button
                 type="button"
                 role="menuitem"
+                tabIndex={-1}
                 className="tab-bar__menu-item tab-bar__menu-item--destructive"
                 onClick={() => {
                   setOpenMenuId(null);

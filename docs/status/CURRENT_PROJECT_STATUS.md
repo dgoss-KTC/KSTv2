@@ -3,6 +3,40 @@
 Date: 2026-10-20
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## S22-018/030 — Workspace action-menu keyboard ownership/focus — 2026-10-20
+
+**BOUNDED CORRECTION COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner: “The behavior has
+been corrected. Accepted.” Acceptance closeout and one complete local checkpoint commit explicitly
+authorized, **not a push**. Owner-reported correction/acceptance does not establish every suggested
+keyboard/Tab check or add agent desktop/live-query/native-save/risk-acceptance evidence.
+Bounded owner dispatch from
+`0010d35`: workspace action-menu entry, enabled-item navigation, Escape/Tab, pointer dismissal and
+reorder focus; narrowly coordinated MPS Escape ownership, including modal workspace confirmations.
+Original menu/MPS capture/bubble collision reproduced offline before production changes; both
+listener orders now preserve the investigation and pending entry. Next Escape retains MPS behavior.
+Existing dialogs, dirty protection, busy gates, Material Detail and analytical export authority remain.
+
+Focused offline **187 tests pass / zero failures / three inherited skips (seven files)**; changed-file
+lint, typecheck and frontend build pass. AFT initial partial coverage/final deadlines, existing Vite
+and React fixture warnings and broad lint/format exceptions remain explicit, not passing checks.
+Actual entry build-info bytes restored/preserved, unstaged/excluded. No backend/native/contracts,
+dependencies/capabilities, sidecar publication, live reads, install, submission/import or deployment.
+Implementation/tests and all retained fingerprints match; reuse verification with staged-path/full
+diff/new-file/whitespace, normal hooks and post-commit checks only. No repeat suites/builds or additional
+review solely for closeout. After the exclusive pre-build guard stopped for the reopened installed app,
+the owner closed KST; offline embedded release build and artifact verification pass. Accepted alpha.21
+`src/tauri/target/release/kst-tauri.exe`, 15,307,264 bytes, SHA256
+`EBBB26D4FA531C8A4A1EF214943176BDA6DBC583D48CAA486C16AA9852B1FA0C`.
+Final assets embedded; all four sidecars unchanged. No agent desktop test is claimed.
+
+Record/evidence/acceptance and historical Windows guidance:
+`docs/implementation/KST_v2_S22_018_030_WORKSPACE_MENU.md`,
+`C:\Users\dgoss\AppData\Local\Temp\opencode\s22-workspace-menu\`.
+Only existing S22-018/030 backlog rows updated; broader workstreams/Stage 22 remain open. Other
+tablists, S22-029 geometry, pagination-removal follow-ups and accepted deliveries are unchanged.
+Only this bounded correction is closed. Closeout evidence stays under `commit-closeout/`; no push
+or further development authorized. Pre-existing build-info remains unstaged/excluded.
+
 ## S22-017 — bounded workbook-save retirement / S22-036 disposition — 2026-10-20
 
 **BOUNDED RETIREMENT / S22-036 DISPOSITION — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20.**

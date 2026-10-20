@@ -276,8 +276,9 @@ export function MpsWorkspace({
   // and must never also navigate the background investigation.
   useEffect(() => {
     function handleDocumentEscape(e: KeyboardEvent) {
-      if (e.key !== 'Escape' || !active) return;
-      if (inspectedComponent || inspectedShortage || document.querySelector('[role="dialog"][aria-modal="true"], [data-analytical-export-menu]')) return;
+      if (e.key !== 'Escape' || !active || e.defaultPrevented) return;
+      // Yield before menu dismissal, or to its consumed event if its listener ran first.
+      if (inspectedComponent || inspectedShortage || document.querySelector('[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"], [data-analytical-export-menu], [data-workspace-action-menu]')) return;
       if (!selectedParent && bucketFeedback?.identity === identity && bucketFeedback.pending) {
         bucketOwner.current.attempt++;
         setBucketFeedback(null);

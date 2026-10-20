@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MpsDashboardResponseDto, WorkOrderImmediateMaterialAnalysisResponseDto, WorkOrderImmediateMaterialComponentDto, WorkOrderSummaryDto } from '../api/client';
 import { ApiError } from '../api/client';
 import { MpsWorkspace } from './MpsWorkspace';
+import { WorkspaceTabBar } from './WorkspaceTabBar';
 import { fetchPlanningWindow, fetchWorkOrderCandidates, fetchWorkOrderImmediateMaterial, fetchWorkOrderImmediateMaterialSummary } from '../api/workOrdersApi';
 
 vi.mock('../api/workOrdersApi', async (original) => ({ ...await original<typeof import('../api/workOrdersApi')>(), fetchPlanningWindow: vi.fn(), fetchWorkOrderCandidates: vi.fn(), fetchWorkOrderImmediateMaterial: vi.fn(), fetchWorkOrderImmediateMaterialSummary: vi.fn() }));
@@ -23,6 +24,10 @@ const trail = () => screen.queryByRole('navigation', { name: 'MPS drill-down tra
 const crumbs = () => trail() ? Array.from(trail()!.querySelectorAll('li')).map((li) => li.textContent?.replace(/^›/, '')) : [];
 const bucket = (index = 1) => document.querySelectorAll<HTMLTableCellElement>('.mps-grid tbody td.mps-cell')[index];
 const card = (woid = 'ROOT-WO') => screen.getByRole('button', { name: new RegExp(`${woid} .*Show material`) });
+function workspaceTabs() {
+  return <WorkspaceTabBar workspaces={[{ assignmentId: 'workspace-A', displayName: 'Test workspace', site: 'SW', productLineFrom: null, productLineTo: null, parentParts: ['PARENT'], isTemporary: false, coverageEndsOn: null, isEnabled: true, sortOrder: 0 }]}
+    activeId="workspace-A" isGeneralActive={false} onSelect={vi.fn()} onAdd={vi.fn()} onManage={vi.fn()} onEdit={vi.fn()} onArchive={vi.fn()} onDelete={vi.fn()} onReorder={vi.fn()} onSelectGeneral={vi.fn()} />;
+}
 async function openMaterial(user: ReturnType<typeof userEvent.setup>) { await user.click(bucket()); await user.click(await screen.findByRole('button', { name: /ROOT-WO .*Show material/ })); await screen.findByRole('button', { name: 'SUB' }); }
 
 beforeEach(() => {
@@ -35,6 +40,116 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe('Stage 22 MPS navigation (offline API fixtures)', () => {
+  it.each(['MPS first', 'menu first'])('workspace menu owns one Escape over a parent (%s listener registration)', async (registration) => {
+    const user = userEvent.setup();
+    const registrations = vi.spyOn(document, 'addEventListener');
+    const original = props();
+    const content = () => <>{workspaceTabs()}<MpsWorkspace {...original} /></>;
+    const view = render(content());
+    await user.click(screen.getByText('PARENT'));
+    const trigger = screen.getByRole('button', { name: 'Workspace actions for Test workspace' });
+    await user.click(trigger);
+    // MPS registers on each render; re-rendering after menu entry reverses capture-listener order.
+    if (registration === 'menu first') view.rerender(content());
+    const captures = registrations.mock.calls.filter(([type, , capture]) => type === 'keydown' && capture === true).map(([, listener]) => (listener as EventListener).name);
+    const menuIndex = captures.lastIndexOf('handleKeyDown');
+    const mpsIndex = captures.lastIndexOf('handleDocumentEscape');
+    expect(menuIndex).toBeGreaterThan(-1); expect(mpsIndex).toBeGreaterThan(-1);
+    expect(menuIndex < mpsIndex).toBe(registration === 'menu first');
+    registrations.mockRestore();
+    await user.keyboard('{Escape}');
+    expect(crumbs()).toEqual(['MPS grid', 'PARENT']);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(trail()).not.toBeInTheDocument();
+  });
+
+  it.each(['bucket', 'material', 'candidate material'] as const)('menu dismissal preserves %s trail, selection, filter and synthetic scroll; next Escape navigates', async (level) => {
+    const user = userEvent.setup(); render(<>{workspaceTabs()}<MpsWorkspace {...props()} /></>);
+    await user.click(bucket()); await screen.findByRole('button', { name: /ROOT-WO .*Show material/ });
+    if (level !== 'bucket') {
+      await user.click(card()); await screen.findByRole('button', { name: 'SUB' });
+      if (level === 'candidate material') {
+        await user.click(screen.getByRole('button', { name: 'View work orders for SUB' }));
+        await user.click(await screen.findByRole('button', { name: /SUB-WO .*Show material/ }));
+        await screen.findByRole('button', { name: 'SUB-SHORT' });
+      }
+      await user.click(screen.getByRole('button', { name: level === 'material' ? 'Needs attention 2' : 'Needs attention 1' }));
+    }
+    const expected = level === 'bucket' ? ['MPS grid', 'PARENT', 'Week of Oct 12'] : level === 'material' ? ['MPS grid', 'PARENT', 'Week of Oct 12', 'WO ROOT-WO'] : ['MPS grid', 'PARENT', 'Week of Oct 12', 'WO ROOT-WO', 'SUB work orders', 'WO SUB-WO'];
+    const viewport = Array.from(document.querySelectorAll<HTMLElement>('.mps-detail__scroll')).find(el => !el.hidden && !el.closest('[hidden]'))!;
+    const grid = document.querySelector<HTMLElement>('.mps-grid-scroll')!;
+    viewport.scrollTop = 173; grid.scrollLeft = 91;
+    const trigger = screen.getByRole('button', { name: 'Workspace actions for Test workspace' });
+    await user.click(trigger); await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument(); expect(trigger).toHaveFocus();
+    expect(crumbs()).toEqual(expected);
+    expect(viewport.scrollTop).toBe(173); expect(grid.scrollLeft).toBe(91);
+    if (level !== 'bucket') {
+      expect(screen.getByRole('button', { name: level === 'material' ? 'Needs attention 2' : 'Needs attention 1' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: new RegExp(`${level === 'material' ? 'ROOT-WO' : 'SUB-WO'} .*Material shown below`) })).toHaveAttribute('aria-expanded', 'true');
+    }
+    await user.keyboard('{Escape}');
+    expect(crumbs()).toEqual(expected.slice(0, -1));
+  });
+
+  it.each([false, true])('menu dismissal does not cancel pending bucket entry (selected parent=%s)', async (selected) => {
+    const user = userEvent.setup(); render(<>{workspaceTabs()}<MpsWorkspace {...props()} /></>);
+    if (selected) await user.click(screen.getByText('PARENT'));
+    const pending = deferred<Awaited<ReturnType<typeof fetchPlanningWindow>>>();
+    vi.mocked(fetchPlanningWindow).mockReturnValue(pending.promise);
+    await user.click(bucket());
+    const trigger = screen.getByRole('button', { name: 'Workspace actions for Test workspace' });
+    await user.click(trigger); await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument(); expect(trigger).toHaveFocus();
+    expect(screen.getByRole('status')).toHaveTextContent('Loading work orders');
+    expect(crumbs()).toEqual(selected ? ['MPS grid', 'PARENT'] : []);
+    await act(async () => pending.resolve({ snapshotId: 'snapshot-A', workOrders: [order()] }));
+    await screen.findByRole('button', { name: /ROOT-WO .*Show material/ });
+    expect(crumbs()).toEqual(['MPS grid', 'PARENT', 'Week of Oct 12']);
+    await user.keyboard('{Escape}'); expect(crumbs()).toEqual(['MPS grid', 'PARENT']);
+  });
+
+  it('a subsequent Escape still cancels a root pending entry and ignores its late reply', async () => {
+    const user = userEvent.setup(); const pending = deferred<Awaited<ReturnType<typeof fetchPlanningWindow>>>();
+    vi.mocked(fetchPlanningWindow).mockReturnValue(pending.promise);
+    render(<>{workspaceTabs()}<MpsWorkspace {...props()} /></>); await user.click(bucket());
+    await user.click(screen.getByRole('button', { name: 'Workspace actions for Test workspace' }));
+    await user.keyboard('{Escape}'); expect(screen.getByRole('status')).toHaveTextContent('Loading work orders');
+    await user.keyboard('{Escape}'); expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    await act(async () => pending.resolve({ snapshotId: 'snapshot-A', workOrders: [order()] }));
+    expect(trail()).not.toBeInTheDocument();
+  });
+
+  it.each([false, true])('menu Escape leaves MPS root and inactive Dashboard unchanged (inactive=%s)', async (inactive) => {
+    const user = userEvent.setup(); const original = props();
+    const content = (active: boolean) => <>{workspaceTabs()}<MpsWorkspace {...original} active={active} /></>;
+    const view = render(content(true));
+    if (inactive) { await user.click(screen.getByText('PARENT')); view.rerender(content(false)); }
+    await user.click(screen.getByRole('button', { name: 'Workspace actions for Test workspace' }));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(crumbs()).toEqual(inactive ? ['MPS grid', 'PARENT'] : []);
+    await user.keyboard('{Escape}'); expect(crumbs()).toEqual(inactive ? ['MPS grid', 'PARENT'] : []);
+  });
+
+  it.each(['blocking dialog', 'busy workspace confirmation', 'analytical export menu', 'consumed event'])('retains MPS Escape precedence for %s', async (kind) => {
+    const user = userEvent.setup(); render(<MpsWorkspace {...props()} />);
+    await user.click(screen.getByText('PARENT'));
+    const overlay = document.createElement('div');
+    if (kind === 'blocking dialog') { overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); }
+    // ConfirmDialog uses alertdialog, and deliberately leaves Escape unconsumed while busy.
+    if (kind === 'busy workspace confirmation') { overlay.setAttribute('role', 'alertdialog'); overlay.setAttribute('aria-modal', 'true'); }
+    if (kind === 'analytical export menu') overlay.setAttribute('data-analytical-export-menu', '');
+    const consume = (event: KeyboardEvent) => event.preventDefault();
+    document.body.append(overlay);
+    if (kind === 'consumed event') window.addEventListener('keydown', consume, true);
+    try { await user.keyboard('{Escape}'); expect(crumbs()).toEqual(['MPS grid', 'PARENT']); }
+    finally { overlay.remove(); window.removeEventListener('keydown', consume, true); }
+    await user.keyboard('{Escape}'); expect(trail()).not.toBeInTheDocument();
+  });
+
   it('uses the same hierarchy for Back, Escape, ancestor jumps and grid focus', async () => {
     const user = userEvent.setup(); render(<MpsWorkspace {...props()} />);
     const row = bucket().parentElement;
