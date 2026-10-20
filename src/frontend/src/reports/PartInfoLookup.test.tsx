@@ -14,7 +14,7 @@ function fixture(part = 'EXACT', site = 'SW'): PartInfo {
     locations: section([{ rowId: '1', location: 'A', lotSerial: 'LONG-LOT-EXACT', status: 'STOCK', quantityOnHand: '99999999999999999.123456789' }]),
     alternates: section([{ supplier: 'Alternate', vendorName: null, supplierItem: 'ALT-1', manufacturerPart: null }]),
     context: section({ manufacturerItem: 'MFG', effectivePmCode: 'M', manufacturingLeadWorkingDays: 3 }),
-    orders: section([]), comment: section('Buyer comment\nwith another line'),
+    orders: section([]), comment: section('Buyer comment\nwith another line'), commentRecordedAt: '2022-01-31T13:30:00', commentAuthor: 'jdoe',
     suppliers: section([{ identifier: 'Supplier A', display: 'A', isCreditHold: true, isCia: false },
       { identifier: 'Supplier B', display: 'B', isCreditHold: false, isCia: true },
       { identifier: 'supplier a', display: 'a', isCreditHold: null, isCia: null }]) };
@@ -123,13 +123,33 @@ describe('Part Info Lookup', () => {
     await userEvent.keyboard('{End}'); expect(screen.getByRole('tab', { name: /Approved alternates/ })).toHaveFocus();
     await userEvent.keyboard('{Home}'); expect(orders).toHaveFocus();
     const preview = screen.getByRole('button', { name: /Read full comment/ }); await userEvent.click(preview);
+    expect(preview).toHaveTextContent('Jan 31, 2022 · 1:30 PM · jdoe');
     const dialog = screen.getByRole('dialog', { name: 'Buyer comment · EXACT' });
+    expect(within(dialog).getByText('Jan 31, 2022 · 1:30 PM · jdoe')).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'Close buyer comment' })).toHaveFocus();
     await userEvent.tab(); expect(within(dialog).getByRole('region', { name: 'Full buyer comment' })).toHaveFocus();
     await userEvent.tab(); expect(within(dialog).getByRole('button')).toHaveFocus();
     await userEvent.keyboard('{Escape}'); expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); expect(preview).toHaveFocus();
     await userEvent.click(preview); fireEvent.click(screen.getByRole('dialog').parentElement!);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); expect(preview).toHaveFocus();
+  });
+
+  it.each([false, true])('shows empty latest or undated fallback with the same dialog metadata (empty=%s)', async (empty) => {
+    const value = fixture();
+    const text = '<img src=x onerror=alert(1)> synthetic';
+    value.comment = section(empty ? '' : text);
+    if (!empty) { value.commentRecordedAt = null; value.commentAuthor = null; }
+    render(<PartInfoLookup lookup={vi.fn(async () => value)} loadSpec={loadSpec} />);
+    await enter(); fireEvent.click(screen.getByText('Lookup'));
+    const preview = await screen.findByRole('button', { name: /Read full comment/ });
+    const metadata = empty ? 'Jan 31, 2022 · 1:30 PM · jdoe' : 'Date unknown';
+    expect(preview).toHaveTextContent(metadata);
+    fireEvent.click(preview);
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(metadata)).toBeInTheDocument();
+    expect(within(dialog).getByRole('region', { name: 'Full buyer comment' }).textContent).toBe(empty ? 'No comment text in latest entry.' : text);
+    expect(dialog.querySelector('img')).toBeNull();
+    expect(screen.getByRole('region', { name: 'Current buyer comment' })).toHaveTextContent('Acquired');
   });
 
   it('keeps unavailable and unknown supplier flags distinct from an explicit all-No summary', async () => {

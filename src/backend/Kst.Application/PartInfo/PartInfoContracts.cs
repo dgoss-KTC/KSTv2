@@ -21,5 +21,5 @@ public sealed record PartInfoReport(string Site, string Part, ComponentSourceFac
     PartInfoSection<IReadOnlyList<ApprovedVendor>> Alternates,
     PartInfoSection<PartInfoContext> Context,
     PartInfoSection<IReadOnlyList<ComponentOrderLine>> Orders,
-    PartInfoSection<string?> Comment,
+    PartInfoSection<BuyerComment> Comment,
     PartInfoSection<IReadOnlyList<PartInfoSupplier>> Suppliers);

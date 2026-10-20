@@ -171,11 +171,23 @@ describe('ComponentInfoModal', () => {
     expect(within(right).getByRole('heading', { name: 'Current Buyer Comment' })).toBeInTheDocument();
     expect(within(right).queryByText('Latest Buyer Comment')).not.toBeInTheDocument();
     expect(within(right).getByText('Buyer note')).toBeInTheDocument();
+    expect(within(right).getByText('Date unknown')).toBeInTheDocument();
     view.rerender(<ComponentInfoModal componentPart="COMP-1" detail={makeDetail()} isLoading={false} error={null}
       onRetry={vi.fn()} onClose={vi.fn()} approvedVendors={null} isApprovedVendorsLoading={false} approvedVendorsError={null}
       onExpandApprovedVendors={vi.fn()} onRetryApprovedVendors={vi.fn()} {...props}
       purchasing={{ commentAvailable: true, currentComment: '  ', openPurchaseOrders: [] }} />);
     expect(within(right).getByText('No buyer comment on file')).toBeInTheDocument();
+  });
+
+  it.each([false, true])('shows source metadata and plain text in shortage details (empty=%s)', (empty) => {
+    const text = '<img src=x> first\n  second';
+    renderModal({ context: 'shortages', shortage: shortage(), purchasing: { commentAvailable: true,
+      currentComment: empty ? '' : text, commentRecordedAt: '2022-01-31T13:30:00', commentAuthor: 'jdoe', openPurchaseOrders: [] } });
+    const right = screen.getByRole('complementary', { name: 'Workspace Shortages details' });
+    expect(within(right).getByText('Jan 31, 2022 · 1:30 PM · jdoe')).toBeInTheDocument();
+    expect(right.textContent).toContain(empty ? 'No comment text in latest entry.' : text);
+    expect(within(right).queryByText('No buyer comment on file')).not.toBeInTheDocument();
+    expect(right.querySelector('img')).toBeNull();
   });
 
   it('sorts selected-component open POs past-due first, then by due date, with explicit exception text', () => {

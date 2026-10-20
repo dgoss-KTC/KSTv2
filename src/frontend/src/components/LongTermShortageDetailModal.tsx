@@ -2,6 +2,7 @@ import type { ComponentOrderLine } from '../api/componentOrdersApi';
 import type { LongTermShortagePurchasing, LongTermShortageScreenRow, LongTermShortageProjectionDetail } from '../api/longTermShortagesApi';
 import { formatLineConfirmation } from '../componentOrders/componentOrdersPresentation';
 import { formatLongTermQuantity } from '../longTermShortages/longTermShortagesPresentation';
+import { formatBuyerCommentMetadata } from '../shared/buyerCommentPresentation';
 
 /** Selected-component presentation only: the full projection/evidence remains in the API and workbook. */
 export function ShortageInformationSections({ row, projection, isProjectionLoading, projectionError, onRetryProjection, asOfDate, purchasing, isLoading, error, onRetry }: {
@@ -47,7 +48,10 @@ export function ShortageInformationSections({ row, projection, isProjectionLoadi
     <section className="component-info-modal__section"><h3>Current Buyer Comment</h3>
       {isLoading ? <p className="component-info-modal__placeholder">Loading buyer comment…</p>
         : error || !purchasing?.commentAvailable ? <p role="status">Buyer comment unavailable.</p>
-          : <p className="long-term-shortage-detail__comment">{purchasing.currentComment?.trim() || 'No buyer comment on file'}</p>}
+          : <>
+            {(purchasing.currentComment?.trim() || purchasing.commentRecordedAt) && <p className="buyer-comment-metadata">{formatBuyerCommentMetadata(purchasing.commentRecordedAt, purchasing.commentAuthor)}</p>}
+            <p className="long-term-shortage-detail__comment">{purchasing.currentComment?.trim() ? purchasing.currentComment : purchasing.commentRecordedAt ? 'No comment text in latest entry.' : 'No buyer comment on file'}</p>
+          </>}
     </section>
     <section className="component-info-modal__section"><h3>Open Purchase Orders</h3>
       {isLoading ? <p className="component-info-modal__placeholder">Loading open purchase orders…</p>

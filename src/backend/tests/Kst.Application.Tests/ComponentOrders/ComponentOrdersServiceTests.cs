@@ -397,7 +397,7 @@ public sealed class ComponentOrdersServiceTests(ITestOutputHelper output)
             Line("COMP", poNumber: "2", supplierIdentifier: "V1"),
             Line("OTHER", poNumber: "3", supplierIdentifier: null)
         ]), enrichment: (request, _) => Task.FromResult(new ComponentOrderEnrichmentResult(
-            new Dictionary<string, string?> { ["COMP"] = "first\r\nsecond", ["OTHER"] = null },
+            new Dictionary<string, BuyerComment> { ["COMP"] = new("first\r\nsecond", new(2022, 1, 31, 13, 30, 0), "jdoe"), ["OTHER"] = new(null) },
             new Dictionary<string, ComponentOrderSupplierRisk> { [" V1 "] = new(true, false), ["V1"] = new(false, true) })));
         var snapshotId = SeedSnapshot(fixture.MpsStore, "P1");
 
@@ -409,12 +409,45 @@ public sealed class ComponentOrdersServiceTests(ITestOutputHelper output)
         Assert.Equal([" V1 ", "V1"], request.SupplierIdentifiers);
         var lines = result.Groups!.SelectMany(group => new[] { group.DisplayLine }.Concat(group.AdditionalLines)).ToList();
         Assert.Equal("first\r\nsecond", lines.Single(line => line.PoNumber == "2076185").CurrentComments);
+        Assert.All(lines.Where(line => line.ComponentPart == "COMP"), line =>
+        {
+            Assert.Equal(new DateTime(2022, 1, 31, 13, 30, 0), line.CommentRecordedAt);
+            Assert.Equal("jdoe", line.CommentAuthor);
+        });
         Assert.True(lines.Single(line => line.SupplierIdentifier == " V1 ").IsCreditHold);
         Assert.False(lines.Single(line => line.SupplierIdentifier == " V1 ").IsCia);
         Assert.False(lines.Single(line => line.SupplierIdentifier == "V1").IsCreditHold);
         Assert.True(lines.Single(line => line.SupplierIdentifier == "V1").IsCia);
         Assert.Null(lines.Single(line => line.SupplierIdentifier is null).IsCreditHold);
         Assert.Null(lines.Single(line => line.SupplierIdentifier is null).CurrentComments);
+    }
+
+    [Fact]
+    public async Task RepeatedPoLinesShareOneScopedEnrichmentAndCachedMetadata()
+    {
+        var effective = new BuyerComment("synthetic latest", new(2022, 1, 31, 13, 30, 0), "jdoe");
+        var fixture = Build(poReader: (_, _, _, _) => Task.FromResult<IReadOnlyList<ComponentOrderLine>>(
+            Enumerable.Range(0, 2000).Select(i => Line("COMP", poNumber: i.ToString())).ToArray()),
+            enrichment: (request, _) =>
+            {
+                Assert.Equal(["COMP"], request.ComponentIdentifiers);
+                return Task.FromResult(new ComponentOrderEnrichmentResult(
+                    new Dictionary<string, BuyerComment> { ["COMP"] = effective }, new Dictionary<string, ComponentOrderSupplierRisk>()));
+            });
+        var snapshotId = SeedSnapshot(fixture.MpsStore, "P1");
+        for (var i = 0; i < 2; i++)
+        {
+            var result = await fixture.Service.GetComponentOrdersAsync(WorkspaceId, snapshotId, Today);
+            var group = Assert.Single(result.Groups!);
+            Assert.Equal(1999, group.AdditionalLines.Count);
+            Assert.All(group.AdditionalLines.Append(group.DisplayLine), line =>
+            {
+                Assert.Equal(effective.Text, line.CurrentComments);
+                Assert.Equal(effective.RecordedAt, line.CommentRecordedAt);
+                Assert.Equal(effective.Author, line.CommentAuthor);
+            });
+        }
+        Assert.Single(fixture.EnrichmentRequests);
     }
 
     [Fact]
@@ -529,7 +562,7 @@ public sealed class ComponentOrdersServiceTests(ITestOutputHelper output)
                 IsKss = j % 2 == 0,
                 TrackingInfo = "synthetic tracking"
             })).Reverse().ToArray();
-        var comments = parts.ToDictionary(p => p, _ => (string?)"synthetic\r\ncomment", StringComparer.Ordinal);
+        var comments = parts.ToDictionary(p => p, _ => new BuyerComment("synthetic\r\ncomment"), StringComparer.Ordinal);
         var risks = new Dictionary<string, ComponentOrderSupplierRisk>(StringComparer.Ordinal)
         {
             ["Supplier"] = new(true, false),
@@ -539,7 +572,7 @@ public sealed class ComponentOrdersServiceTests(ITestOutputHelper output)
         {
             IsCreditHold = line.SupplierIdentifier is { } supplier && risks.TryGetValue(supplier, out var risk) ? risk.IsCreditHold : null,
             IsCia = line.SupplierIdentifier is { } key && risks.TryGetValue(key, out var cia) ? cia.IsCia : null,
-            CurrentComments = comments.GetValueOrDefault(line.ComponentPart)
+            CurrentComments = comments.GetValueOrDefault(line.ComponentPart)?.Text
         }).ToArray();
         var expected = JsonSerializer.Serialize(ComponentOrdersBuilder.BuildGroups(expectedLines));
         var elapsed = new List<double>();

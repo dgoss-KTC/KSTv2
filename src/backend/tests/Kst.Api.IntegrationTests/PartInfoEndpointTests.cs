@@ -67,12 +67,12 @@ public sealed class PartInfoEndpointTests
             {
                 Assert.Empty(request.SupplierIdentifiers);
                 Assert.Equal(new[] { "EXACT" }, request.ComponentIdentifiers);
-                return Task.FromResult(new ComponentOrderEnrichmentResult(new Dictionary<string, string?> { ["EXACT"] = "Buyer comment\nsecond line" }, new Dictionary<string, ComponentOrderSupplierRisk>()));
+                return Task.FromResult(new ComponentOrderEnrichmentResult(new Dictionary<string, BuyerComment> { ["EXACT"] = new("Buyer comment\nsecond line", new(2022, 1, 31, 13, 30, 0), "jdoe") }, new Dictionary<string, ComponentOrderSupplierRisk>()));
             }
             Assert.Equal(new[] { "Supplier A", "Supplier B", "supplier a" }, request.SupplierIdentifiers);
             if (enrichmentFailure) throw new Exception("private shortage details");
             // Deliberately insensitive dictionary: composition must still match exact keys.
-            return Task.FromResult(new ComponentOrderEnrichmentResult(new Dictionary<string, string?>(),
+            return Task.FromResult(new ComponentOrderEnrichmentResult(new Dictionary<string, BuyerComment>(),
                 new Dictionary<string, ComponentOrderSupplierRisk>(StringComparer.OrdinalIgnoreCase)
                 { ["Supplier A"] = new(true, false), ["Supplier B"] = new(false, true) }));
         })
@@ -88,6 +88,10 @@ public sealed class PartInfoEndpointTests
         response.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync()); var r = doc.RootElement;
         Assert.Equal(site, r.GetProperty("site").GetString());
+        Assert.Equal("2022-01-31T13:30:00", r.GetProperty("commentRecordedAt").GetString());
+        Assert.Equal("jdoe", r.GetProperty("commentAuthor").GetString());
+        Assert.NotEqual(r.GetProperty("commentRecordedAt").GetString(), r.GetProperty("comment").GetProperty("acquiredAtUtc").GetString());
+        Assert.DoesNotContain("commentHistory", r.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Equal("0", r.GetProperty("master").GetProperty("standardCost").GetString());
         Assert.Equal(JsonValueKind.Null, r.GetProperty("master").GetProperty("qctc").ValueKind);
         Assert.Equal(JsonValueKind.Null, r.GetProperty("master").GetProperty("safetyStock").ValueKind);

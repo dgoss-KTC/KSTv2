@@ -6059,6 +6059,19 @@
               "null",
               "string"
             ]
+          },
+          "commentRecordedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "commentAuthor": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -7330,6 +7343,19 @@
             "items": {
               "$ref": "#/components/schemas/ComponentOrderLineDto"
             }
+          },
+          "commentRecordedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "commentAuthor": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -9168,6 +9194,19 @@
           },
           "suppliers": {
             "$ref": "#/components/schemas/PartInfoSectionDtoOfIReadOnlyListOfPartInfoSupplierDto"
+          },
+          "commentRecordedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "commentAuthor": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

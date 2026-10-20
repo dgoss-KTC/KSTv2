@@ -13,6 +13,7 @@ import {
 } from '../componentOrders/componentOrdersPresentation';
 import { formatOptionalDate, formatQuantity } from '../mps/mpsPresentation';
 import './ComponentOrdersPanel.css';
+import { formatBuyerCommentMetadata } from '../shared/buyerCommentPresentation';
 
 interface ComponentOrdersPanelProps {
   assignmentId: string;
@@ -31,7 +32,7 @@ export function ComponentOrdersPanel({ assignmentId, snapshotId }: ComponentOrde
   const { data, isLoading, error, retry } = useComponentOrders(assignmentId, snapshotId);
   const [filters, setFilters] = useState(EMPTY_COMPONENT_ORDERS_FILTERS);
   const [expandedParts, setExpandedParts] = useState<ReadonlySet<string>>(new Set());
-  const [commentDetail, setCommentDetail] = useState<{ componentPart: string; text: string } | null>(null);
+  const [commentDetail, setCommentDetail] = useState<{ componentPart: string; text: string; recordedAt?: string | null; author?: string | null } | null>(null);
   // Unknown/stale API values are unavailable so risk facts are never presented as current.
   const enrichmentAvailable = data?.enrichmentAvailability === 'Available';
 
@@ -161,7 +162,7 @@ export function ComponentOrdersPanel({ assignmentId, snapshotId }: ComponentOrde
                   expanded={expandedParts.has(group.componentPart)}
                   onToggle={() => toggleExpanded(group.componentPart)}
                   enrichmentAvailable={enrichmentAvailable}
-                  onOpenComment={(text) => setCommentDetail({ componentPart: group.componentPart, text })}
+                  onOpenComment={(line) => setCommentDetail({ componentPart: group.componentPart, text: line.currentComments ?? '', recordedAt: line.commentRecordedAt, author: line.commentAuthor })}
                 />
               ))}
             </tbody>
@@ -179,7 +180,7 @@ interface GroupRowsProps {
   expanded: boolean;
   onToggle: () => void;
   enrichmentAvailable: boolean;
-  onOpenComment: (text: string) => void;
+  onOpenComment: (line: ComponentOrderLine) => void;
 }
 
 function GroupRows({ group, today, expanded, onToggle, enrichmentAvailable, onOpenComment }: GroupRowsProps) {
@@ -218,7 +219,7 @@ function LineCells({ line, today, enrichmentAvailable, onOpenComment }: {
   line: ComponentOrderLine;
   today: Date;
   enrichmentAvailable: boolean;
-  onOpenComment?: (text: string) => void;
+  onOpenComment?: (line: ComponentOrderLine) => void;
 }) {
   const dueState = classifyPoDueState(line.dueDate, today);
   const comment = line.currentComments;
@@ -239,9 +240,10 @@ function LineCells({ line, today, enrichmentAvailable, onOpenComment }: {
       <td className="component-orders__risk">{formatRiskFact(line.isCreditHold, enrichmentAvailable)}</td>
       <td className="component-orders__risk">{formatRiskFact(line.isCia, enrichmentAvailable)}</td>
       <td className="component-orders__comments">
-        {enrichmentAvailable && onOpenComment && comment && (
-          <button type="button" onClick={() => onOpenComment(comment)} aria-label={`View comments for ${line.componentPart}`}>
-            {comment}
+        {enrichmentAvailable && onOpenComment && (comment || line.commentRecordedAt) && (
+          <button type="button" onClick={() => onOpenComment(line)} aria-label={`View comments for ${line.componentPart}`}>
+            <span className="buyer-comment-metadata">{formatBuyerCommentMetadata(line.commentRecordedAt, line.commentAuthor)}</span>
+            <span>{comment || 'No comment text in latest entry.'}</span>
           </button>
         )}
         {!enrichmentAvailable ? '—' : ''}
@@ -256,7 +258,7 @@ function formatRiskFact(value: boolean | null | undefined, enrichmentAvailable: 
 }
 
 function ComponentCommentDialog({ detail, onClose }: {
-  detail: { componentPart: string; text: string };
+  detail: { componentPart: string; text: string; recordedAt?: string | null; author?: string | null };
   onClose: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -280,7 +282,8 @@ function ComponentCommentDialog({ detail, onClose }: {
           <h2 id="component-orders-comment-title">Current Comments - {detail.componentPart}</h2>
           <button ref={closeRef} type="button" onClick={onClose} aria-label="Close Current Comments">Close</button>
         </header>
-        <pre>{detail.text}</pre>
+        <p className="buyer-comment-metadata">{formatBuyerCommentMetadata(detail.recordedAt, detail.author)}</p>
+        <pre>{detail.text || 'No comment text in latest entry.'}</pre>
       </div>
     </div>
   );

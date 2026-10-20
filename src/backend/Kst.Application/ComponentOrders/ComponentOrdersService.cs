@@ -204,11 +204,14 @@ public sealed class ComponentOrdersService
                 isCreditHold = risk.IsCreditHold;
                 isCia = risk.IsCia;
             }
+            enrichment.CommentsByComponent.TryGetValue(line.ComponentPart, out var comment);
             return line with
             {
                 IsCreditHold = isCreditHold,
                 IsCia = isCia,
-                CurrentComments = enrichment.CommentsByComponent.TryGetValue(line.ComponentPart, out var comment) ? comment : null
+                CurrentComments = comment?.Text,
+                CommentRecordedAt = comment?.RecordedAt,
+                CommentAuthor = comment?.Author
             };
         }).ToList(), lines.Count, result => result.Count);
     }

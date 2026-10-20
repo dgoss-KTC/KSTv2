@@ -74,8 +74,9 @@ public sealed class LongTermShortagesService(
                 var facts = await enrichment.ReadAsync(new ComponentOrderEnrichmentRequest(workspace.Site, [row.ComponentPart], []), cancellationToken);
                 if (snapshots.GetState(workspaceId).Snapshot?.Id != snapshotId)
                     return new(LongTermShortagesOutcomeKind.SnapshotChanged);
+                facts.CommentsByComponent.TryGetValue(row.ComponentPart, out var comment);
                 return new(LongTermShortagesOutcomeKind.Loaded, lines, true,
-                    facts.CommentsByComponent.TryGetValue(row.ComponentPart, out var comment) ? comment : null);
+                    comment?.Text, comment?.RecordedAt, comment?.Author);
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex)
@@ -211,4 +212,5 @@ public sealed class LongTermShortagesWorkspaceNotFoundException(Guid workspaceId
 
 public sealed record LongTermShortagePurchasingResult(LongTermShortagesOutcomeKind Kind,
     IReadOnlyList<Kst.Domain.ComponentOrders.ComponentOrderLine>? Lines = null,
-    bool CommentAvailable = false, string? CurrentComment = null);
+    bool CommentAvailable = false, string? CurrentComment = null,
+    DateTime? CommentRecordedAt = null, string? CommentAuthor = null);

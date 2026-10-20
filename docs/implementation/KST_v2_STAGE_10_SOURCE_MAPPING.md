@@ -90,6 +90,22 @@ Representative durations: metadata probes <100 ms; sample discovery 77–3,548 m
 | CIA | `dbo.PreferredSuppliers.[CIA]`, exact `SupplierDisplay`/`vd_sort` = `[Supplier Name]` lookup | Duplicate precedence: `Date DESC`, then `ID DESC` | **Owner-directed 10.3F.5 V1-compatible runtime correction; live UAT pending.** `CIA` is non-null `bit`; `true` is truthy while `false` and missing enrichment render blank. The superseded `po_vend → [Supplier Nbr]` bounded evidence remains historical only | **OWNER-DIRECTED — LIVE UAT PENDING** |
 | Current Comments | Latest active `dbo.ShortageMaster` record for `Site` + `Component`, with `isRemoved = 0` | `Modification Date DESC`, then `Added Record Date DESC`, then `id DESC` | Stable identity `id` (`int`); comment text `[Current Comments]` (`varchar(max)`, nullable). A compliant active-history sample contained two active and eight removed rows; all ordering fields were present and the first ordered row was active. Multiline active comments were observed | **QUALIFIED** |
 
+### 3.1.1 Owner-approved latest-comment display amendment — 2026-10-20
+
+Owner confirmed `[Comment History]` as the history text column on `dbo.ShortageMaster` and approved
+the first newest-first history block for every Current Comments/buyer-comment display. Existing
+latest-active exact Site/Component selection and Modification Date / Added Record Date / id ordering
+remain unchanged. History is retrieved from that selected row, not a different record. These ordering
+dates are **not** displayed as comment timestamps.
+
+The shared Shortages adapter recognizes the leading date/time/AM-PM/username header, extracts only
+its body through the next complete valid header, and supplies effective text plus nullable source
+wall-clock recorded time/author. Recognized empty newest stays empty; absent/unrecognizable history
+retains `[Current Comments]` without invented metadata. No history sorting, full-history frontend
+transport, writes, export columns or per-PO queries. SQL type/size distribution and live transfer
+performance were not independently queried in this offline amendment. Implementation, tests,
+limitations and owner acceptance/closure on 2026-10-20: `KST_v2_SHORTAGEMASTER_LATEST_COMMENT.md`.
+
 ### 3.2 Status-value evidence (no `po_stat` predicate introduced)
 
 - SW `pod_status` census: `c` = 794,534; `x` = 136,304; blank = 24,892 — **only** lowercase c/x and

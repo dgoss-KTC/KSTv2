@@ -156,7 +156,7 @@ public sealed class LongTermShortagesEndpointTests
                     new DateOnly(2026, 9, 20), 3.75m, true, "Supplier", null, null, false, null)]);
             }),
             ComponentOrderEnrichmentReader = new DelegateComponentOrderEnrichmentReader((_, _) =>
-                Task.FromResult(new ComponentOrderEnrichmentResult(new Dictionary<string, string?> { ["COMP"] = "Current buyer note" },
+                Task.FromResult(new ComponentOrderEnrichmentResult(new Dictionary<string, BuyerComment> { ["COMP"] = new("Current buyer note", new(2022, 1, 31, 13, 30, 0), "jdoe") },
                     new Dictionary<string, ComponentOrderSupplierRisk>())))
         };
         using var client = factory.CreateClient();
@@ -171,6 +171,9 @@ public sealed class LongTermShortagesEndpointTests
         var root = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("Current buyer note", root.GetProperty("currentComment").GetString());
+        Assert.Equal("2022-01-31T13:30:00", root.GetProperty("commentRecordedAt").GetString());
+        Assert.Equal("jdoe", root.GetProperty("commentAuthor").GetString());
+        Assert.DoesNotContain("commentHistory", root.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Equal("PO-1", root.GetProperty("openPurchaseOrders")[0].GetProperty("poNumber").GetString());
         Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.GetAsync(path.Replace("componentPart=COMP", "componentPart=OTHER"))).StatusCode);
         Assert.Equal(1, mrpReads);

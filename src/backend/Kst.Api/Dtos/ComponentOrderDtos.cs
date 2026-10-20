@@ -16,7 +16,9 @@ public sealed record ComponentOrderLineDto(
     string? TrackingInfo,
     bool? IsCreditHold,
     bool? IsCia,
-    string? CurrentComments
+    string? CurrentComments,
+    DateTime? CommentRecordedAt = null,
+    string? CommentAuthor = null
 );
 
 public sealed record ComponentOrderGroupDto(

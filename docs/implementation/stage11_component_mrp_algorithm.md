@@ -189,10 +189,14 @@ explicit exceptions. PO open quantity is ordered minus received in PO units, wit
 conversion; the drawer applies the component UOM display-rounding rule only. The buyer comment
 uses the existing ShortageMaster site/component enrichment reader independently of whether any PO
 exists. Per the owner's clarification, the **latest active record** wins by Modification Date,
-Added Record Date, then id even if its comment is blank; blank yields “No buyer comment on file.”
-The current Component Orders response exposes no author or comment date, so the drawer labels it
-“Current Buyer Comment” and does not invent metadata. Optional comment-source failure is shown as
-unavailable while the QAD PO lines remain visible.
+Added Record Date, then id even if its comment is blank. The owner-approved 2026-10-20 display
+amendment uses only that row's first `[Comment History]` block when recognized, with its source
+wall-clock date/time and author. Empty newest remains empty with explicit latest-entry feedback;
+missing/unrecognized history falls back to Current Comments with “Date unknown” for a present
+comment. A missing fallback remains “No buyer comment on file.” Row ordering dates never become
+comment timestamps. Optional comment-source failure remains unavailable while QAD PO lines stay
+visible. No projection/purchasing algorithm or read scope/lifetime change. Implementation/review
+record: `KST_v2_SHORTAGEMASTER_LATEST_COMMENT.md`.
 
 ## Weekly presentation
 

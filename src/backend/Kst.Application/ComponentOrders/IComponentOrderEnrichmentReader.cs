@@ -1,3 +1,5 @@
+using Kst.Domain.ComponentOrders;
+
 namespace Kst.Application.ComponentOrders;
 
 /// <summary>
@@ -31,11 +33,11 @@ public sealed record ComponentOrderEnrichmentRequest(
 
 /// <summary>Optional enrichment keyed by the exact source identifiers supplied in the request.</summary>
 public sealed record ComponentOrderEnrichmentResult(
-    IReadOnlyDictionary<string, string?> CommentsByComponent,
+    IReadOnlyDictionary<string, BuyerComment> CommentsByComponent,
     IReadOnlyDictionary<string, ComponentOrderSupplierRisk> RisksBySupplier)
 {
     public static ComponentOrderEnrichmentResult Empty { get; } = new(
-        new Dictionary<string, string?>(StringComparer.Ordinal),
+        new Dictionary<string, BuyerComment>(StringComparer.Ordinal),
         new Dictionary<string, ComponentOrderSupplierRisk>(StringComparer.Ordinal));
 }
 

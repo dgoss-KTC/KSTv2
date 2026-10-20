@@ -1361,6 +1361,9 @@ export interface components {
             isCreditHold: null | boolean;
             isCia: null | boolean;
             currentComments: null | string;
+            /** Format: date-time */
+            commentRecordedAt?: null | string;
+            commentAuthor?: null | string;
         };
         ComponentOrdersResponseDto: {
             snapshotId: string;
@@ -1652,6 +1655,9 @@ export interface components {
             commentAvailable: boolean;
             currentComment: null | string;
             openPurchaseOrders: components["schemas"]["ComponentOrderLineDto"][];
+            /** Format: date-time */
+            commentRecordedAt?: null | string;
+            commentAuthor?: null | string;
         };
         LongTermShortageRowDto: {
             componentPart: string;
@@ -2032,6 +2038,9 @@ export interface components {
             orders: components["schemas"]["PartInfoSectionDtoOfIReadOnlyListOfPartInfoOrderDto"];
             comment: components["schemas"]["PartInfoSectionDtoOfstring"];
             suppliers: components["schemas"]["PartInfoSectionDtoOfIReadOnlyListOfPartInfoSupplierDto"];
+            /** Format: date-time */
+            commentRecordedAt?: null | string;
+            commentAuthor?: null | string;
         };
         PartInfoSectionDtoOfIReadOnlyListOfApprovedVendorDto: {
             value: null | components["schemas"]["ApprovedVendorDto"][];

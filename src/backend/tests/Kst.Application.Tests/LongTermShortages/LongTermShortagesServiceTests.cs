@@ -116,7 +116,7 @@ public sealed class LongTermShortagesServiceTests
             comments++;
             Assert.Equal(["COMP"], request.ComponentIdentifiers);
             Assert.Empty(request.SupplierIdentifiers);
-            return Task.FromResult(new ComponentOrderEnrichmentResult(new Dictionary<string, string?> { ["COMP"] = "Current comment" },
+            return Task.FromResult(new ComponentOrderEnrichmentResult(new Dictionary<string, BuyerComment> { ["COMP"] = new("Current comment", new(2022, 1, 31, 13, 30, 0), "jdoe") },
                 new Dictionary<string, ComponentOrderSupplierRisk>()));
         }));
         await service.GetAsync(fixture.WorkspaceId, fixture.SnapshotId, LongTermShortagePopulationOptions.Default);
@@ -125,6 +125,8 @@ public sealed class LongTermShortagesServiceTests
         Assert.Equal(LongTermShortagesOutcomeKind.Loaded, first.Kind);
         Assert.Empty(first.Lines!);
         Assert.Equal("Current comment", first.CurrentComment);
+        Assert.Equal(new DateTime(2022, 1, 31, 13, 30, 0), first.CommentRecordedAt);
+        Assert.Equal("jdoe", first.CommentAuthor);
         Assert.True(first.CommentAvailable);
         Assert.Equal(LongTermShortagesOutcomeKind.Unavailable, invalid.Kind);
         Assert.Equal(1, reads);

@@ -184,8 +184,7 @@
 }
 
 .component-orders__comments button {
-  display: -webkit-box;
-  overflow: hidden;
+  display: block;
   padding: 0;
   border: 0;
   background: transparent;
@@ -194,9 +193,16 @@
   font: inherit;
   text-align: left;
   white-space: pre-wrap;
+}
+
+.component-orders__comments button > span:last-child {
+  display: -webkit-box;
+  overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
+
+.component-orders__comment-dialog > .buyer-comment-metadata { margin: 12px 20px 0; }
 
 .component-orders__comment-backdrop {
   position: fixed;

@@ -49,4 +49,6 @@ public sealed record ComponentOrderLine(
     string? SupplierIdentifier = null,
     bool? IsCreditHold = null,
     bool? IsCia = null,
-    string? CurrentComments = null);
+    string? CurrentComments = null,
+    DateTime? CommentRecordedAt = null,
+    string? CommentAuthor = null);

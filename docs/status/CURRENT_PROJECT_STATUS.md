@@ -3,6 +3,37 @@
 Date: 2026-10-20
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## ShortageMaster latest-comment amendment — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20
+
+Owner: “It works! I accept this implementation. Closeout authorized.” One complete local feature
+commit is explicitly authorized, **not a push**. This is owner-run/reported application acceptance,
+not agent-run live QAD/Shortages verification, exhaustive checklist completion, measured refresh
+latency or risk acceptance. Closeout entry HEAD `214a45a204d1dfbc5a0b7e9d0fcf62a9f52de78f`;
+accepted implementation/tests/contracts unchanged. Existing verification is reused with exact staged
+paths/hunks/whitespace, normal hooks and post-commit tree/blob checks only. No repeated suites,
+builds, AFT, independent review or sidecar publication solely for documentation closeout.
+
+Owner confirmed `[Comment History]` after the initial metadata gate. Shared backend parsing now
+selects only the first recognized history block from the same latest-active exact Site/Component
+record, with nullable source wall-clock time/author; Current Comments remains the undated fallback.
+Empty newest never resurrects older/fallback text. Component Orders preview/dialog, Workspace
+Shortages Component Information and Part Info Lookup preview/dialog share metadata presentation.
+Existing batching/cache lifetimes, source selection, locked algorithms and exports remain unchanged.
+
+Offline **106 backend / 111 frontend tests pass**; generated contracts, backend/frontend builds,
+sidecar publication and offline embedded review release pass. During implementation, no agent live
+queries/app launch, new dependencies, subagent review, Git mutation or deployment. Known AFT deadlines, touched-file inherited
+lint/format findings and Vite warnings remain explicit. Owner build-info bytes preserved.
+Review `src/tauri/target/release/kst-tauri.exe`, alpha.21, **15,306,240 bytes**, SHA256
+`F109709118FD00F295B73F6440088A91C8F2570ED698FA1B9E39C63BCACB871A`; all four sidecar copies match.
+Parser-only long synthetic timings are recorded separately from **unmeasured** database-transfer
+cost. Compact trace/implementation/security confirmations/limits/owner checklist:
+`docs/implementation/KST_v2_SHORTAGEMASTER_LATEST_COMMENT.md`. Owner acceptance is recorded above;
+live transfer cost and numerical ordinary-refresh timing remain unmeasured, not acceptance blockers.
+The existing Windows backlog records the bounded comment amendment under S22-007 without closing
+broader UI work/S22-037 or Stage 22. Owner build-info stays unstaged/excluded; full evidence/binaries
+remain local outside Git. No push/deployment or new live query is authorized.
+
 ## S22-008 — Workspace Shortages touch-ups/export — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20
 
 The owner reports reviewing the updated UI, testing export and accepting the presentation and shared

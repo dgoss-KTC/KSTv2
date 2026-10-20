@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode, type KeyboardEvent } from 'react';
 import { getPartInfoSpec, lookupPartInfo, refreshPartInfoLocations, PartInfoError, type PartInfo, type PartInfoSpec } from '../api/partInfoApi';
+import { formatBuyerCommentMetadata } from '../shared/buyerCommentPresentation';
 import { decimal, exactText, formatDecimal } from '../shared/exactDecimal';
 import './PartInfoLookup.css';
 
@@ -26,7 +27,7 @@ function ScrollTable({ label, headings, rows, numeric = [] }: { label: string; h
   </table></div>;
 }
 
-function BuyerCommentDialog({ part, text, onClose }: { part: string; text: string; onClose: () => void }) {
+function BuyerCommentDialog({ part, text, recordedAt, author, onClose }: { part: string; text: string; recordedAt?: string | null; author?: string | null; onClose: () => void }) {
   const close = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -45,7 +46,8 @@ function BuyerCommentDialog({ part, text, onClose }: { part: string; text: strin
         }
       }}>
       <header><h2 id="part-info-comment-title">Buyer comment · {part}</h2><button ref={close} onClick={onClose} aria-label="Close buyer comment">Close</button></header>
-      <div className="part-info__comment" tabIndex={0} role="region" aria-label="Full buyer comment">{text}</div>
+      <p className="buyer-comment-metadata">{formatBuyerCommentMetadata(recordedAt, author)}</p>
+      <div className="part-info__comment" tabIndex={0} role="region" aria-label="Full buyer comment">{text || 'No comment text in latest entry.'}</div>
     </section>
   </div>;
 }
@@ -198,9 +200,9 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
       </div></details>
       <SupplierStrip section={report.suppliers} />
       <section className="part-info__comment-strip" aria-label="Current buyer comment">
-        {report.comment.error ? <p role="alert">{report.comment.error}</p> : report.comment.value ?
+        {report.comment.error ? <p role="alert">{report.comment.error}</p> : report.comment.value || report.commentRecordedAt ?
           <button className="part-info__comment-preview" onClick={() => setCommentOpen(true)} aria-haspopup="dialog">
-            <strong>Buyer comment</strong><span>{report.comment.value}</span><span>Read full comment</span>
+            <strong>Buyer comment</strong><span className="buyer-comment-metadata">{formatBuyerCommentMetadata(report.commentRecordedAt, report.commentAuthor)}</span><span className="part-info__comment-preview-text">{report.comment.value || 'No comment text in latest entry.'}</span><span>Read full comment</span>
           </button> : <p>No current buyer comment.</p>}
         {report.comment.acquiredAtUtc && <p className="part-info__time">Acquired <time dateTime={report.comment.acquiredAtUtc}>{new Date(report.comment.acquiredAtUtc).toLocaleString()}</time></p>}
       </section>
@@ -227,7 +229,7 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
             {report.orders.value && (report.orders.value.length === 0 ? <p>No qualifying open purchase orders found.</p> : <ScrollTable label="Open purchase orders" headings={['PO', 'Line', 'Due Date', 'Open Qty', 'Confirmed', 'Supplier', 'Buyer', 'Manufacturer Item', 'Tracking']}
                numeric={[1, 3]} rows={report.orders.value.map(o => [o.poNumber, o.poLine, o.dueDate, inventoryQuantity(o.openQuantity), flag(o.confirmed), o.supplierIdentifier ?? o.supplierDisplay, o.buyerDisplay, o.manufacturerItem, o.trackingInfo])} />)}</Card>
       </div>
-      {commentOpen && active && <BuyerCommentDialog part={report.part} text={report.comment.value ?? ''} onClose={() => setCommentOpen(false)} />}
+      {commentOpen && active && <BuyerCommentDialog part={report.part} text={report.comment.value ?? ''} recordedAt={report.commentRecordedAt} author={report.commentAuthor} onClose={() => setCommentOpen(false)} />}
     </>}
   </div>;
 }

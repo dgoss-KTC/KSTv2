@@ -123,7 +123,7 @@ public sealed class ComponentOrdersEndpointTests
     }
 
     [Fact]
-    public async Task GetComponentOrders_Exposes_AvailableEnrichmentFacts_WithoutSourceMetadata()
+    public async Task GetComponentOrders_Exposes_EffectiveCommentMetadata_WithoutFullHistoryOrSourceKeys()
     {
         await using var factory = CreateFactory(
             poLines: (_, _, _) => Task.FromResult<IReadOnlyList<ComponentOrderLine>>([
@@ -132,7 +132,7 @@ public sealed class ComponentOrdersEndpointTests
                 new("comp2", "Other", null, "2076187", 1, null, 1m, null, null, null, null, false, null, "V-3")
             ]),
             enrichment: (_, _) => Task.FromResult(new ComponentOrderEnrichmentResult(
-                new Dictionary<string, string?>(StringComparer.Ordinal) { ["COMP"] = "First line\nSecond line" },
+                new Dictionary<string, BuyerComment>(StringComparer.Ordinal) { ["COMP"] = new("First line\nSecond line", new(2022, 1, 31, 13, 30, 0), "jdoe") },
                 new Dictionary<string, ComponentOrderSupplierRisk>(StringComparer.Ordinal)
                 {
                     ["V-1"] = new(true, false),
@@ -155,6 +155,14 @@ public sealed class ComponentOrdersEndpointTests
         Assert.False(additional.GetProperty("isCreditHold").GetBoolean());
         Assert.True(additional.GetProperty("isCia").GetBoolean());
         Assert.Equal("First line\nSecond line", additional.GetProperty("currentComments").GetString());
+        foreach (var line in new[] { display, additional })
+        {
+            Assert.Equal("2022-01-31T13:30:00", line.GetProperty("commentRecordedAt").GetString());
+            Assert.Equal("jdoe", line.GetProperty("commentAuthor").GetString());
+        }
+        Assert.Equal(JsonValueKind.Null, noMatch.GetProperty("commentRecordedAt").ValueKind);
+        Assert.Equal(JsonValueKind.Null, noMatch.GetProperty("commentAuthor").ValueKind);
+        Assert.DoesNotContain("commentHistory", root.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Equal(JsonValueKind.Null, noMatch.GetProperty("isCreditHold").ValueKind);
         Assert.Equal(JsonValueKind.Null, noMatch.GetProperty("isCia").ValueKind);
         Assert.Equal(JsonValueKind.Null, noMatch.GetProperty("currentComments").ValueKind);

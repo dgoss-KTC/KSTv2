@@ -53,7 +53,8 @@ public static class PartInfoEndpoints
             Section(r.Context, v => new PartInfoContextDto(v.ManufacturerItem, v.EffectivePmCode, v.ManufacturingLeadWorkingDays)),
             Section(r.Orders, v => (IReadOnlyList<PartInfoOrderDto>)v.Select(l => new PartInfoOrderDto(l.PoNumber, l.PoLine, l.DueDate,
                 Decimal(l.OpenQuantity)!, l.Confirmed, l.SupplierIdentifier, l.SupplierDisplay, l.BuyerDisplay, l.ManufacturerItem, l.TrackingInfo)).ToArray()),
-            new(r.Comment.Value, r.Comment.AcquiredAtUtc, r.Comment.Error),
-            Section(r.Suppliers, v => (IReadOnlyList<PartInfoSupplierDto>)v.Select(s => new PartInfoSupplierDto(s.Identifier, s.Display, s.IsCreditHold, s.IsCia)).ToArray()));
+            new(r.Comment.Value?.Text, r.Comment.AcquiredAtUtc, r.Comment.Error),
+            Section(r.Suppliers, v => (IReadOnlyList<PartInfoSupplierDto>)v.Select(s => new PartInfoSupplierDto(s.Identifier, s.Display, s.IsCreditHold, s.IsCia)).ToArray()),
+            r.Comment.Value?.RecordedAt, r.Comment.Value?.Author);
     }
 }

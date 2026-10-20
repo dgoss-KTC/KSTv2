@@ -226,13 +226,15 @@ describe('ComponentOrdersPanel delivered filters', () => {
     const user = userEvent.setup();
     const comments = 'Line one\nLine two\nLine three';
     fetchMock.mockResolvedValue(response([
-      { componentPart: 'COMMENTS', displayLine: line({ componentPart: 'COMMENTS', currentComments: comments }), additionalLines: [line({ componentPart: 'COMMENTS', poNumber: '101', currentComments: comments })] },
+      { componentPart: 'COMMENTS', displayLine: line({ componentPart: 'COMMENTS', currentComments: comments, commentRecordedAt: '2022-01-31T13:30:00', commentAuthor: 'jdoe' }), additionalLines: [line({ componentPart: 'COMMENTS', poNumber: '101', currentComments: comments, commentRecordedAt: '2022-01-31T13:30:00', commentAuthor: 'jdoe' })] },
     ]));
     render(<ComponentOrdersPanel assignmentId="ws-1" snapshotId="snap-1" />);
     const preview = await screen.findByRole('button', { name: 'View comments for COMMENTS' });
-    expect(preview.textContent).toBe(comments);
+    expect(preview).toHaveTextContent('Jan 31, 2022 · 1:30 PM · jdoe');
+    expect(preview.textContent).toContain(comments);
     fireEvent.click(preview);
     const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Jan 31, 2022 · 1:30 PM · jdoe')).toBeInTheDocument();
     expect(within(dialog).getByText((_, element) => element?.tagName === 'PRE' && element.textContent === comments)).toBeTruthy();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -244,6 +246,21 @@ describe('ComponentOrdersPanel delivered filters', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Expand COMMENTS/ }));
     expect(within(screen.getByRole('table')).getAllByRole('button', { name: 'View comments for COMMENTS' })).toHaveLength(1);
+  });
+
+  it.each([false, true])('preserves undated fallback and explicit empty newest comments (empty=%s)', async (empty) => {
+    const text = '<img src=x onerror=alert(1)> synthetic';
+    fetchMock.mockResolvedValue(response([{ componentPart: 'COMMENTS', additionalLines: [], displayLine: line({ componentPart: 'COMMENTS',
+      currentComments: empty ? '' : text, commentRecordedAt: empty ? '2022-01-31T13:30:00' : null, commentAuthor: empty ? 'jdoe' : null }) }]));
+    render(<ComponentOrdersPanel assignmentId="ws-1" snapshotId="snap-1" />);
+    const preview = await screen.findByRole('button', { name: 'View comments for COMMENTS' });
+    const metadata = empty ? 'Jan 31, 2022 · 1:30 PM · jdoe' : 'Date unknown';
+    expect(preview).toHaveTextContent(metadata);
+    fireEvent.click(preview);
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(metadata)).toBeInTheDocument();
+    expect(within(dialog).getByText(empty ? 'No comment text in latest entry.' : text)).toBeInTheDocument();
+    expect(dialog.querySelector('img')).toBeNull();
   });
 
   it('keeps QAD rows visible while unavailable enrichment displays a notice, em dashes, and disabled filters', async () => {

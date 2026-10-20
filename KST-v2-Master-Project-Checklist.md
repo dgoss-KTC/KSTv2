@@ -3,7 +3,27 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** **S22-008 Workspace Shortages touch-ups/export — COMPLETE /
+**Current project position:** **ShortageMaster latest-comment amendment — COMPLETE /
+OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner: “It works! I accept this implementation. Closeout
+authorized.” Complete local feature commit explicitly authorized, not a push. Owner-run/reported
+application acceptance is distinct from agent-run live verification or exhaustive checklist/timing
+evidence. First recognized history block supplies text/source wall-clock date/time/author throughout
+Component Orders, Workspace Shortages Component Information and Part Info Lookup; unknown-history
+fallback, empty newest, multiline text and no assumed timezone are preserved. Row Modification Date
+is not comment time. Existing selection/batching/cache, locked algorithms and exports unchanged.
+Entry Windows HEAD `214a45a204d1dfbc5a0b7e9d0fcf62a9f52de78f`; no new numbered checkpoint invented.
+Reuse retained 106 backend/111 frontend passes, contracts/types/builds/sidecar/release evidence and
+scoped security confirmations; no repeated suites/builds/reviews/publication solely for closeout.
+Exact staged paths/hunks/whitespace, normal hooks and post-commit tree/blob comparison required.
+AFT deadlines, inherited touched-file lint/format and Vite warnings remain explicit exceptions;
+live history-transfer cost and numerical refresh latency remain unmeasured. Pre-existing build-info
+preserved unstaged/excluded; evidence/binaries remain local outside Git. Implementation, accepted
+artifact identities, retained verification and historical checklist:
+`docs/implementation/KST_v2_SHORTAGEMASTER_LATEST_COMMENT.md`. Existing Windows backlog S22-007
+records only this accepted comment amendment; broader S22-007/S22-037 and Stage 22 remain open.
+No live queries, deployment or push; further development requires separate owner dispatch.
+
+**Preceding accepted checkpoint:** **S22-008 Workspace Shortages touch-ups/export — COMPLETE /
 OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner reports reviewing the updated UI, testing export
 and accepting presentation/shared Export/protected Save As/recovery integration; explicitly authorizes
 one complete local commit, **not a push**. This is owner UI/export evidence, not new native fault-test,

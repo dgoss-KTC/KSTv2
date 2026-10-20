@@ -19,4 +19,5 @@ public sealed record PartInfoResponseDto(string Site, string Part, PartInfoMaste
     PartInfoSectionDto<PartInfoContextDto> Context,
     PartInfoSectionDto<IReadOnlyList<PartInfoOrderDto>> Orders,
     PartInfoSectionDto<string> Comment,
-    PartInfoSectionDto<IReadOnlyList<PartInfoSupplierDto>> Suppliers);
+    PartInfoSectionDto<IReadOnlyList<PartInfoSupplierDto>> Suppliers,
+    DateTime? CommentRecordedAt = null, string? CommentAuthor = null);

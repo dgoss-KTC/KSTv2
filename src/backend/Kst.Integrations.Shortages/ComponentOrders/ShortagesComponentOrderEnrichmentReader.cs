@@ -1,4 +1,5 @@
 using Kst.Application.ComponentOrders;
+using Kst.Domain.ComponentOrders;
 using System.Diagnostics;
 using Kst.Integrations.Shortages.Options;
 using Microsoft.Data.SqlClient;
@@ -46,7 +47,7 @@ public sealed class ShortagesComponentOrderEnrichmentReader : IComponentOrderEnr
             return true;
         });
 
-        var comments = new Dictionary<string, string?>(StringComparer.Ordinal);
+        var comments = new Dictionary<string, BuyerComment>(StringComparer.Ordinal);
         var commentBatchIndex = 0;
         foreach (var batch in Batch(components))
         {
@@ -58,7 +59,9 @@ public sealed class ShortagesComponentOrderEnrichmentReader : IComponentOrderEnr
                 var rowCount = 0;
                 while (await reader.ReadAsync(cancellationToken))
                 {
-                    comments[reader.GetString(0)] = NormalizeComment(reader.IsDBNull(1) ? null : reader.GetString(1));
+                    comments[reader.GetString(0)] = ShortageCommentParser.Parse(
+                        reader.IsDBNull(2) ? null : reader.GetString(2),
+                        reader.IsDBNull(1) ? null : reader.GetString(1));
                     rowCount++;
                 }
                 return rowCount;
@@ -126,15 +129,16 @@ public sealed class ShortagesComponentOrderEnrichmentReader : IComponentOrderEnr
             ),
             Ranked AS
             (
-                SELECT sm.Component AS ComponentIdentifier, sm.[Current Comments] AS CurrentComments,
+                SELECT sm.id, sm.Component AS ComponentIdentifier,
                        ROW_NUMBER() OVER (PARTITION BY sm.Component ORDER BY sm.[Modification Date] DESC, sm.[Added Record Date] DESC, sm.id DESC) AS RowNumber
                 FROM dbo.ShortageMaster AS sm
                 INNER JOIN Scope AS scope ON scope.ComponentIdentifier = sm.Component
                 WHERE sm.Site = @Site
                   AND sm.isRemoved = 0
             )
-            SELECT ComponentIdentifier, CurrentComments
-            FROM Ranked
+            SELECT ranked.ComponentIdentifier, sm.[Current Comments] AS CurrentComments, sm.[Comment History] AS CommentHistory
+            FROM Ranked AS ranked
+            INNER JOIN dbo.ShortageMaster AS sm ON sm.id = ranked.id
             WHERE RowNumber = 1;
             """;
         return command;

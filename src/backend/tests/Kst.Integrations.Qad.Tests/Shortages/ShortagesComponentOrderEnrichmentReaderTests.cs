@@ -34,6 +34,11 @@ public sealed class ShortagesComponentOrderEnrichmentReaderTests
         Assert.Contains("sm.isRemoved = 0", command.CommandText);
         Assert.Contains("ORDER BY sm.[Modification Date] DESC, sm.[Added Record Date] DESC, sm.id DESC", command.CommandText);
         Assert.Contains("sm.[Current Comments] AS CurrentComments", command.CommandText);
+        Assert.Contains("sm.[Comment History] AS CommentHistory", command.CommandText);
+        Assert.Contains("INNER JOIN dbo.ShortageMaster AS sm ON sm.id = ranked.id", command.CommandText);
+        var ranked = command.CommandText[..command.CommandText.IndexOf("SELECT ranked.ComponentIdentifier", StringComparison.Ordinal)];
+        Assert.DoesNotContain("[Comment History]", ranked);
+        Assert.Contains("WHERE RowNumber = 1", command.CommandText);
         Assert.Equal("SW", command.Parameters["@Site"].Value);
         Assert.Equal(" C1 ", command.Parameters["@Component0"].Value);
         Assert.Equal("C1", command.Parameters["@Component1"].Value);
@@ -91,5 +96,27 @@ public sealed class ShortagesComponentOrderEnrichmentReaderTests
         Assert.False(risk.IsCia);
         Assert.Null(ShortagesComponentOrderEnrichmentReader.NormalizeComment(null));
         Assert.Equal(multiline, ShortagesComponentOrderEnrichmentReader.NormalizeComment(multiline));
+    }
+
+    [Fact]
+    public void ExistingExactDedupAndBatchingProduceThreeLookupsFor2501DistinctRepeatedComponents()
+    {
+        // Invoke existing pure batching helpers without opening any source connection.
+        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
+        var identifiers = Enumerable.Range(0, 2501).Select(i => $"C{i}").ToArray();
+        var repeated = identifiers.Concat(identifiers).ToArray();
+        var exact = (IReadOnlyList<string>)typeof(ShortagesComponentOrderEnrichmentReader)
+            .GetMethod("DistinctExact", flags)!.Invoke(null, [repeated])!;
+        var batches = ((IEnumerable<IReadOnlyList<string>>)typeof(ShortagesComponentOrderEnrichmentReader)
+            .GetMethod("Batch", flags)!.Invoke(null, [exact])!).ToArray();
+        Assert.Equal([1000, 1000, 501], batches.Select(b => b.Count));
+        Assert.Equal(identifiers, batches.SelectMany(b => b));
+        using var connection = new SqlConnection();
+        foreach (var batch in batches)
+        {
+            using var command = ShortagesComponentOrderEnrichmentReader.BuildCommentCommand(connection, "SW", batch);
+            Assert.Equal(batch.Count + 1, command.Parameters.Count);
+            Assert.Contains("WHERE RowNumber = 1", command.CommandText);
+        }
     }
 }

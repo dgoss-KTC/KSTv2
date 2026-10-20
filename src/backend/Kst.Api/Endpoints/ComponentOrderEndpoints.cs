@@ -137,5 +137,5 @@ public static class ComponentOrderEndpoints
         line.TrackingInfo,
         line.IsCreditHold,
         line.IsCia,
-        line.CurrentComments);
+        line.CurrentComments, line.CommentRecordedAt, line.CommentAuthor);
 }

@@ -36,8 +36,8 @@
 .part-info__risk-summary > span { flex: 1 1 240px; }
 .part-info__supplier-strip p, .part-info__comment-strip p { margin: 0; }
 .part-info__supplier-strip .part-info__time, .part-info__comment-strip .part-info__time { margin-top: 6px; }
-.part-info__comment-preview { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; text-align: left; border: 0; background: transparent; color: var(--tx); padding: 0; cursor: pointer; }
-.part-info__comment-preview > span:first-of-type { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.part-info__comment-preview { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; width: 100%; min-width: 0; text-align: left; border: 0; background: transparent; color: var(--tx); padding: 0; cursor: pointer; }
+.part-info__comment-preview-text { flex: 1; min-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .part-info__comment-preview > span:last-child { color: var(--accent-text); font-size: 11px; }
 .part-info__tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 16px 0 10px; border-bottom: 1px solid var(--bd); }
 .part-info__tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 12px; background: transparent; color: var(--tx2); cursor: pointer; }
