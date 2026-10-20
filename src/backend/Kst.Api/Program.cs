@@ -593,6 +593,7 @@ app.MapComponentOrderEndpoints();
 app.MapLongTermShortagesEndpoints();
 app.MapLongTermShortagesPurchasingEndpoints();
 app.MapLongTermShortagesExportEndpoints();
+app.MapWorkspaceShortagesExportEndpoints();
 
 // -- Startup handshake ---------------------------------------------------------
 // Writes a JSON line to stdout once the server is bound so Tauri can read the port.

@@ -6,15 +6,16 @@ import type { SopRequest, SopPrepared } from '../api/sopApi';
 import type { OpenOrderReportRequest, OpenOrderReportPrepared } from '../api/openOrderReportApi';
 import type { HistoricalShipmentsClient, HistoricalShipmentsPrepared } from '../api/historicalShipmentsApi';
 import type { ExcelExportPort, PreparedExcel, EmptyExcel } from '../shared/excelExportPort';
+import type { components } from '../generated/api';
 
 export type WorkbookKind = 'ComponentMrp' | 'ShipmentsToGo' | 'Sop' | 'OpenOrderReport';
-export interface ReportRequests { ComponentMrp: ComponentMrpRequest; ShipmentsToGo: ShipmentsToGoRequest; Sop: SopRequest; OpenOrderReport: OpenOrderReportRequest }
+export interface ReportRequests { ComponentMrp: ComponentMrpRequest; ShipmentsToGo: ShipmentsToGoRequest; Sop: SopRequest; OpenOrderReport: OpenOrderReportRequest; WorkspaceShortages: components['schemas']['WorkspaceShortagesExportRequestDto'] }
 export type ReportPrepared = ComponentMrpPrepared | ShipmentsToGoPrepared | SopPrepared | OpenOrderReportPrepared;
 const emptyMessages = { ComponentMrp: 'No Component MRP data found.', ShipmentsToGo: 'No shipments to go found for the selected sites.',
-  Sop: 'No S&OP data found for the selected ranges.', OpenOrderReport: 'No open orders found for the specified filters.' };
+  Sop: 'No S&OP data found for the selected ranges.', OpenOrderReport: 'No open orders found for the specified filters.', WorkspaceShortages: 'No displayed Workspace Shortages components.' };
 
 /** Each visit owns a host generation; cleanup cannot invalidate a later generation. */
-export class WorkbookReportExport<K extends WorkbookKind> implements ExcelExportPort<ReportRequests[K]> {
+export class WorkbookReportExport<K extends keyof ReportRequests> implements ExcelExportPort<ReportRequests[K]> {
   private ended = false;
   private epoch: number | null = null;
   private abort = new AbortController();

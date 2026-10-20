@@ -1,7 +1,39 @@
 # Current Project Status
 
-Date: 2026-10-19
+Date: 2026-10-20
 Workstation: Windows (`C:\Dev\kst_v2`)
+
+## S22-008 — Workspace Shortages touch-ups/export — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20
+
+The owner reports reviewing the updated UI, testing export and accepting the presentation and shared
+Export/protected Save As/recovery integration. One complete local checkpoint commit explicitly
+authorized, **not a push**. Owner UI/export acceptance is not additional native fault-test, live-query,
+external-submission, exhaustive checklist or risk-acceptance evidence. Accepted implementation/tests
+and generated contracts match retained fingerprints and are unchanged; reuse existing verification
+and scoped security review with exact staged-file/diff/whitespace, normal hooks and post-commit
+checks only. No repeated suites/builds/review/publication solely for closeout.
+
+Entry HEAD `e655aa4`. LongTermShortagesPanel (not work-order ShortagesPanel) now has grouped
+view/projection controls, counts, accurate Week 1/negative-cell legend, severity pills, density/striping,
+framed states and seven opaque frozen columns (KSS 58px). Existing projection/hooks/cache/source,
+filter/sort/modal/workbook calculations unchanged. Typed cache-only protected export reuses the
+accepted shared menu/preference/feedback/recovery, exports complete displayed order with loaded
+projection identity, and uses a distinct fixed native kind with existing non-Analytical lifetimes.
+
+Offline **98 frontend / 85 backend passed; native 16 passed / 2 intentional interactive ignores**.
+Windows Edge matrix layout helper, types/scoped lint/format/builds, sidecar publication and embedded
+release pass. Independent scoped security review found no confirmed material blocker at reviewed
+depth. AFT deadlines, pre-existing broad native formatting and Vite warnings remain explicit.
+Review release `src/tauri/target/release/kst-tauri.exe`, alpha.21, **15,306,240 bytes**, SHA256
+`AC511C449AF8EA12BD399BA11C52594D0C864B185071287563486071B0EAE6DC`.
+Final assets embedded; all four sidecar copies match; pre-entry build-info bytes preserved.
+No agent live query/app launch, new dependencies/capabilities/commands, submission, push or deployment.
+Pre-existing build-info bytes remain unstaged/excluded; evidence/binaries remain outside Git. Compact record,
+decisions/limits/checklist: `docs/implementation/KST_v2_S22_008_WORKSPACE_SHORTAGES.md`;
+full local evidence `C:\dev\kst_v2_tmp\Stage22\WorkspaceShortages\evidence\`.
+Accepted API semantics: `docs/api/WORKSPACE_SHORTAGES.md`. Existing Windows backlog S22-008 closed;
+shared workstreams, overall Stage 22, broader performance and unrelated deferred items remain open.
+Closeout evidence is local under `evidence/commit-closeout/`. Further development requires separate dispatch.
 
 ## Reports redesign — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-19
 

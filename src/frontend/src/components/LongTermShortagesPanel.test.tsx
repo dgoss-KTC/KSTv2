@@ -1,10 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { mkdtempSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
+import { AnalyticalSaveStatus } from './AnalyticalSaveStatus';
+import { dismissAnalyticalSave, recordAnalyticalSave, useAnalyticalExportStatus } from '../shared/analyticalSaveRecovery';
+import { rememberAnalyticalOpenPreference } from '../shared/analyticalOpenPreference';
 import type { LongTermShortageRow, LongTermShortagesScreen as LongTermShortagesResponse } from '../api/longTermShortagesApi';
 import { compactFixture, projectionFixture } from '../longTermShortages/compactScreenFixture.test-support';
 import { exportLongTermShortages, fetchLongTermShortages } from '../api/longTermShortagesApi';
@@ -19,6 +22,18 @@ const exportMock = vi.fn();
 const saveWorkbookMock = vi.fn();
 const purchasingMock = vi.fn();
 const projectionMock = vi.fn();
+const host = vi.hoisted(() => ({ invoke: vi.fn() }));
+vi.mock('@tauri-apps/api/core', () => ({ invoke: host.invoke }));
+vi.mock('../api/tauri-bridge', () => ({ isRunningInTauri: () => true, resolveBackendBaseUrl: async () => 'http://localhost' }));
+const workbook = { preparationId: 'exact-shortages', fileName: 'Workspace-Shortages-2026-10-05.xlsx', expiresAtUtc: '2099-01-01T00:00:00Z' };
+const calls = (name: string) => host.invoke.mock.calls.filter(([command]) => command === name);
+async function activate() {
+  fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+  await act(async () => fireEvent.click(screen.getByRole('menuitem', { name: /Excel workbook/ })));
+}
+function exportTree(assignmentId = 'ws-1') {
+  return <div className="shell"><AnalyticalSaveStatus /><LongTermShortagesPanel assignmentId={assignmentId} snapshotId="snap-1" site="SW" /></div>;
+}
 const EDGE_PATH = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 vi.mock('../api/longTermShortagesApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/longTermShortagesApi')>()),
@@ -64,7 +79,11 @@ function purchasing(lines: Array<{ poNumber: string; poLine: number; dueDate: st
   return { commentAvailable: true, currentComment, openPurchaseOrders: lines.map((line) => ({ componentPart: 'CRITICAL', description: null, leadTimeDays: null, buyerDisplay: null, manufacturerItem: null, isKss: false, trackingInfo: null, isCreditHold: null, isCia: null, currentComments: null, ...line })) };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  localStorage.clear();
+  host.invoke.mockReset().mockImplementation(async (command: string) => command === 'component_mrp_begin' ? 1 : command === 'component_mrp_generate' ? workbook
+    : command === 'component_mrp_save' ? { outcome: 'cancelled', message: 'Save cancelled.', operationComplete: true } : false);
+  await act(async () => rememberAnalyticalOpenPreference(false));
   fetchMock.mockReset(); exportMock.mockReset(); saveWorkbookMock.mockReset(); purchasingMock.mockReset().mockResolvedValue(purchasing());
   projectionMock.mockReset().mockImplementation((_workspace, snapshotId, componentPart) => Promise.resolve({ ...projectionFixture(row()), snapshotId, componentPart }));
   vi.mocked(fetchComponentDetail).mockReset().mockResolvedValue({
@@ -76,8 +95,139 @@ beforeEach(() => {
   });
   vi.mocked(fetchApprovedVendors).mockReset().mockResolvedValue([]);
 });
+afterEach(() => {
+  cleanup(); const state = renderHook(useAnalyticalExportStatus);
+  act(() => { for (const operation of state.result.current.operations) { recordAnalyticalSave(operation.id, { outcome: 'failed', message: 'Test cleanup', operationComplete: true }); dismissAnalyticalSave(operation.id); } });
+  state.unmount(); vi.useRealTimers();
+});
 
 describe('LongTermShortagesPanel', () => {
+  it('counts the loaded population and groups receipt switching with view controls with an accurate Week 1 legend', async () => {
+    fetchMock.mockResolvedValue(response([row(), row({ componentPart: 'HEALTHY', severity: 'Healthy' })]));
+    render(exportTree()); await screen.findByRole('table');
+    expect(screen.getByText('Showing 1 of 2 components')).not.toHaveAttribute('role');
+    expect(screen.getByText('Negative weekly ending balance')).toBeInTheDocument();
+    expect(screen.getByText('Part tint: Week 1 critical short')).toBeInTheDocument();
+    expect(screen.getByText('Part tint: Week 1 below safety stock')).toBeInTheDocument();
+    const view = screen.getByRole('group', { name: 'Loaded-data and view controls' });
+    expect(within(view).getByLabelText('Include Unconfirmed Receipts')).toBeInTheDocument();
+    expect(within(view).getByLabelText('Sort')).toBeInTheDocument();
+    const scope = screen.getByRole('group', { name: 'Projection scope controls' });
+    expect(within(scope).getByLabelText('Horizon')).toBeInTheDocument();
+    expect(within(scope).getByLabelText('Include Manufactured Parts')).toBeInTheDocument();
+    expect(scope).toHaveTextContent('cached when compatible');
+    fireEvent.click(screen.getByLabelText('Show All'));
+    expect(screen.getByText('Showing 2 of 2 components')).toBeInTheDocument();
+  });
+
+  it('one format activation saves the complete sorted selection; cancel retains exact bytes through scroll and component detail', async () => {
+    fetchMock.mockResolvedValue(response([row({ componentPart: 'Z' }), row({ componentPart: 'A' })]));
+    const ui = render(exportTree()); await screen.findByRole('table');
+    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'component' } });
+    await activate(); await screen.findByRole('button', { name: 'Save again' });
+    expect(calls('component_mrp_save')).toHaveLength(1);
+    expect(calls('component_mrp_generate')[0][1].analyticalRequest.selection.componentParts).toEqual(['A', 'Z']);
+    fireEvent.scroll(screen.getByTestId('workspace-shortages-grid'));
+    fireEvent.click(screen.getByRole('button', { name: 'A' }));
+    await screen.findByRole('dialog'); fireEvent.keyDown(document, { key: 'Escape' });
+    ui.rerender(exportTree());
+    fireEvent.click(screen.getByRole('button', { name: 'Save again' }));
+    await waitFor(() => expect(calls('component_mrp_save')).toHaveLength(2));
+    expect(calls('component_mrp_generate')).toHaveLength(1);
+    expect(calls('component_mrp_save').every(([, args]) => args.preparationId === workbook.preparationId && args.reportKind === 'WorkspaceShortages')).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['filter', 'sort', 'receipts', 'horizon', 'population', 'workspace'])('invalidates retained preparation on meaningful %s change', async change => {
+    fetchMock.mockResolvedValue(response([row(), row({ componentPart: 'OTHER' })]));
+    const ui = render(exportTree()); await screen.findByRole('table');
+    await activate(); await screen.findByRole('button', { name: 'Save again' });
+    if (change === 'filter') fireEvent.change(screen.getByLabelText('Comp'), { target: { value: 'OTHER' } });
+    if (change === 'sort') fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'component' } });
+    if (change === 'receipts') fireEvent.click(screen.getByLabelText('Include Unconfirmed Receipts'));
+    if (change === 'horizon') fireEvent.change(screen.getByLabelText('Horizon'), { target: { value: '52' } });
+    if (change === 'population') fireEvent.click(screen.getByLabelText('Include Manufactured Parts'));
+    if (change === 'workspace') ui.rerender(exportTree('ws-2'));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save again' })).not.toBeInTheDocument());
+    expect(calls('sop_discard_generation').length).toBeGreaterThan(0);
+    expect(calls('component_mrp_save')).toHaveLength(1);
+  });
+
+  it('blocks retained rows during replacement and uses loaded population/horizon and current receipt mode after completion', async () => {
+    let finish!: (value: LongTermShortagesResponse) => void;
+    fetchMock.mockResolvedValueOnce(response([row()])).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    render(exportTree()); await screen.findByRole('table');
+    fireEvent.change(screen.getByLabelText('Horizon'), { target: { value: '52' } });
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+    expect(screen.getByText(/A replacement projection is pending/)).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Include Unconfirmed Receipts'));
+    await act(async () => finish(response([row({ weeks: Array.from({ length: 52 }, (_, i) => bucket(i + 1, -1)) })])));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled());
+    await activate(); await screen.findByRole('button', { name: 'Save again' });
+    expect(calls('component_mrp_generate')[0][1].analyticalRequest.selection).toMatchObject({ horizonWeeks: 52, includeUnconfirmed: true, includeManufacturedParts: false });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('guards duplicate activation and late preparation after context change', async () => {
+    let finish!: (value: typeof workbook) => void;
+    host.invoke.mockImplementation(async command => command === 'component_mrp_begin' ? 1 : command === 'component_mrp_generate' ? new Promise(resolve => { finish = resolve; }) : false);
+    fetchMock.mockResolvedValue(response([row()])); render(exportTree()); await screen.findByRole('table');
+    await activate(); expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    fireEvent.click(screen.getByLabelText('Include Unconfirmed Receipts'));
+    await act(async () => finish(workbook));
+    expect(calls('component_mrp_generate')).toHaveLength(1); expect(calls('component_mrp_save')).toHaveLength(0);
+  });
+
+  it('reconciles uncertain status observationally and recovers opening failure with the bound kind', async () => {
+    host.invoke.mockImplementation(async command => command === 'component_mrp_begin' ? 1 : command === 'component_mrp_generate' ? workbook
+      : command === 'component_mrp_save' ? Promise.reject(new Error('lost response'))
+      : command === 'component_mrp_status' ? { outcome: 'saved', message: 'Workbook saved, but opening failed.', operationComplete: true, savedArtifactId: 'artifact', openFailed: true } : false);
+    fetchMock.mockResolvedValue(response([row()])); render(exportTree()); await screen.findByRole('table');
+    await activate(); fireEvent.click(await screen.findByRole('button', { name: 'Check save status' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Open again' }));
+    await waitFor(() => expect(calls('component_mrp_open')).toHaveLength(1));
+    expect(calls('component_mrp_status')[0][1]).toMatchObject({ reportKind: 'WorkspaceShortages' });
+    expect(calls('component_mrp_open')[0][1]).toMatchObject({ reportKind: 'WorkspaceShortages', artifactId: 'artifact' });
+    expect(calls('component_mrp_save')).toHaveLength(1); expect(calls('component_mrp_generate')).toHaveLength(1);
+  });
+
+  it('uses the shared open preference, then expires only ordinary success after eight seconds', async () => {
+    host.invoke.mockImplementation(async command => command === 'component_mrp_begin' ? 1 : command === 'component_mrp_generate' ? workbook
+      : command === 'component_mrp_save' ? { outcome: 'saved', message: 'Workbook saved.', operationComplete: true } : false);
+    fetchMock.mockResolvedValue(response([row()])); render(exportTree()); await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: /Open Excel after saving/ }));
+    expect(screen.getByRole('menuitemcheckbox')).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(screen.getByRole('menuitem', { name: /Excel workbook/ }));
+    await screen.findByText('Workbook saved.');
+    expect(calls('component_mrp_save')[0][1].openAfterSave).toBe(true);
+    vi.useFakeTimers(); // Restart the ordinary-success effect with a new known outcome below.
+    const state = renderHook(useAnalyticalExportStatus);
+    const operation = state.result.current.operations[state.result.current.operations.length - 1];
+    // The existing real timer was scheduled before fake timers; instead verify the shared clock
+    // in a fresh second activation, without simulating a synchronous desktop confirm.
+    act(() => dismissAnalyticalSave(operation.id));
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Export' })); });
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: /Excel workbook/ })); });
+    expect(screen.getByText('Workbook saved.')).toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(7999));
+    expect(screen.getByText('Workbook saved.')).toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(1));
+    expect(screen.queryByText('Workbook saved.')).not.toBeInTheDocument();
+    state.unmount();
+  });
+
+  it('consolidates load failure and stale warning without losing either message', async () => {
+    fetchMock.mockResolvedValueOnce(response([row()], true)).mockRejectedValueOnce(new Error('Replacement unavailable.'));
+    render(exportTree()); await screen.findByRole('table');
+    fireEvent.change(screen.getByLabelText('Horizon'), { target: { value: '52' } });
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Replacement unavailable.'));
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getByRole('alert')).toHaveTextContent('QAD unavailable; retained result shown.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Refresh date: 2026-10-05');
+  });
+
   it('hydrates only the selected snapshot detail and keeps display actions local', async () => {
     fetchMock.mockResolvedValue(response([row()]));
     render(<LongTermShortagesPanel assignmentId="ws-1" snapshotId="snap-1" />);
@@ -220,7 +370,9 @@ describe('LongTermShortagesPanel', () => {
     severity.focus();
     expect(severity).toHaveFocus();
     expect(await screen.findByRole('tooltip')).toHaveTextContent(warning);
-    expect(within(metadata).getByRole('row', { name: 'FUTURE: FutureShort' })).toHaveTextContent('FutureShort');
+    expect(within(metadata).getByRole('row', { name: 'FUTURE: FutureShort' }).querySelector('[data-severity="FutureShort"]')).toHaveTextContent('Future Short');
+    expect(within(metadata).getByRole('row', { name: 'SAFETY: SafetyStockShort' }).querySelector('[data-severity="SafetyStockShort"]')).toHaveTextContent('Safety Short');
+    expect(within(metadata).getByRole('row', { name: 'CRITICAL: CriticalShort' }).querySelector('[data-severity="CriticalShort"]')).toHaveTextContent('Critical Short');
     expect(within(metadata).getByRole('row', { name: 'SAFETY: SafetyStockShort' }).querySelector('.long-term-shortages__comp')).toHaveClass('long-term-shortages__comp--safety');
     expect(within(metadata).getByRole('row', { name: 'CRITICAL: CriticalShort' }).querySelector('.long-term-shortages__comp')).toHaveClass('long-term-shortages__comp--critical');
     fireEvent.click(within(unknown).getByRole('button', { name: 'UNKNOWN' }));
@@ -253,6 +405,11 @@ describe('LongTermShortagesPanel', () => {
     expect(css).toMatch(/--qad-status-width:\s*44px/);
     expect(css).toMatch(/--on-hand-width:\s*88px/);
     expect(css).toMatch(/--severity-width:\s*130px/);
+    expect(css).toMatch(/--kss-width:\s*58px/);
+    expect(css).toMatch(/--planner-width:\s*118px/);
+    expect(css).toContain('background-color: var(--row-bg)');
+    expect(css).toContain('var(--density-row-height)');
+    expect(css).toContain('var(--control-on-accent)');
     expect(css).toMatch(/\.long-term-shortages__severity-tooltip\s*{[^}]*position:\s*fixed/);
   });
 
@@ -297,7 +454,14 @@ describe('LongTermShortagesPanel', () => {
           if (grid.scrollLeft < 100 || grid.scrollTop < 100) failures.push('bounded two-axis scrolling unavailable');
           if (getComputedStyle(grid).overflowX !== 'auto' || getComputedStyle(grid).overflowY !== 'auto') failures.push('scrollbar missing');
         }
-        for (const [width, scale] of [[1050, 1], [900, 1], [1050, 1.25], [900, 1.5]]) verify(width, scale);
+        for (const theme of ['light', 'dark']) for (const density of ['compact', 'comfortable']) {
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.density = density;
+          for (const [width, scale] of [[1050, 1], [900, 1], [1050, 1.25], [900, 1.5], [740, 1]]) verify(width, scale);
+          for (const row of [...table.tBodies[0].rows].slice(0, 2)) for (const cell of [...row.cells].slice(0, 7)) {
+            if (!getComputedStyle(cell).backgroundColor.startsWith('rgb(')) failures.push('nonopaque striped/tinted background');
+          }
+        }
         document.getElementById('layout-result').textContent = JSON.stringify(failures);
       </script>`;
       const file = resolve(temp, 'grid.html');
@@ -317,7 +481,7 @@ describe('LongTermShortagesPanel', () => {
     exportMock.mockResolvedValue({ blob: new Blob(['workbook']), fileName: 'Workspace-Shortages-2026-10-05.xlsx' });
     saveWorkbookMock.mockResolvedValue({ kind: 'saved', fileName: 'Workspace-Shortages-2026-10-05.xlsx' });
     fetchMock.mockResolvedValue(response([row(), row({ componentPart: 'OTHER', planner: 'Bob' })]));
-    render(<LongTermShortagesPanel assignmentId="ws-1" snapshotId="snap-1" />);
+    render(exportTree());
     await screen.findByRole('table', { name: 'Workspace Shortages weekly balances' });
     fireEvent.change(screen.getByLabelText('Comp'), { target: { value: 'critical' } });
     fireEvent.click(screen.getByRole('button', { name: 'CRITICAL' }));
@@ -338,8 +502,13 @@ describe('LongTermShortagesPanel', () => {
     expect(within(dialog).queryByText(/Lead times annotate urgency/)).not.toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Export displayed rows' }));
-    await waitFor(() => expect(exportMock).toHaveBeenCalledWith('ws-1', 'snap-1', ['CRITICAL'], { includeManufacturedParts: false, includePhantoms: false, includeUnconfirmed: false, horizonWeeks: 26, showAll: false }));
+    expect(screen.getByRole('button', { name: 'CRITICAL' })).toHaveFocus();
+    await activate();
+    await screen.findByRole('button', { name: 'Save again' });
+    expect(calls('component_mrp_generate')[0][1]).toMatchObject({ reportKind: 'WorkspaceShortages', analyticalRequest: {
+      workspaceId: 'ws-1', mpsSnapshotId: 'snap-1', site: 'SW', acquiredAtUtc: '2026-10-05T12:00:00Z',
+      selection: { snapshotId: 'snap-1', componentParts: ['CRITICAL'], includeManufacturedParts: false, includePhantoms: false, includeUnconfirmed: false, horizonWeeks: 26, showAll: false } } });
+    expect(exportMock).not.toHaveBeenCalled(); expect(saveWorkbookMock).not.toHaveBeenCalled();
   });
 
   it('keeps the selected shortage snapshot visible when the PO detail request fails', async () => {

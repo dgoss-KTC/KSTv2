@@ -3,7 +3,30 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** **Reports redesign — COMPLETE / OWNER-ACCEPTED / CLOSED —
+**Current project position:** **S22-008 Workspace Shortages touch-ups/export — COMPLETE /
+OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner reports reviewing the updated UI, testing export
+and accepting presentation/shared Export/protected Save As/recovery integration; explicitly authorizes
+one complete local commit, **not a push**. This is owner UI/export evidence, not new native fault-test,
+live-query/external-submission/exhaustive-checklist or risk acceptance. Accepted implementation/tests
+and generated contracts match retained fingerprints; reuse verification/scoped security review with
+staged-path/diff/whitespace, normal hooks and post-commit checks only. No repeated suites/builds/review
+or publication solely for closeout. Grouped view/projection controls,
+accurate Week 1/negative-cell legend, counts/severity/density/framed states and seven frozen columns
+(KSS 58px). Typed shared-menu/protected Save As/preferences/feedback/recovery over the unchanged
+cached workbook generator; full displayed order and loaded projection identity; distinct fixed native
+kind preserves existing non-Analytical lifetimes. Locked algorithms/hooks/cache/source/filter/sort/modal
+unchanged. 98 frontend / 85 backend passes; native 16 passes / 2 interactive ignores; Windows Edge
+matrix layout, types/scoped lint/format/builds/sidecar publication/final embedded release pass.
+Independent scoped security review found no confirmed material blocker at reviewed depth. AFT
+deadlines, inherited broad native formatting and Vite warnings explicit. Owner build-info preserved;
+no live agent query/app launch, new dependency/capability/command, submission, push or deployment.
+Owner build-info remains unstaged/excluded; evidence/binaries stay outside Git. Existing Windows
+backlog S22-008 closed without unrelated closure. Accepted build identity, local full evidence,
+decisions/checklist and bounded closeout: `docs/implementation/KST_v2_S22_008_WORKSPACE_SHORTAGES.md`;
+API semantics: `docs/api/WORKSPACE_SHORTAGES.md`. Stage 22, broader performance and unrelated
+deferred items remain open; further development requires separate dispatch.
+
+**Preceding accepted checkpoint:** **Reports redesign — COMPLETE / OWNER-ACCEPTED / CLOSED —
 2026-10-19.** Owner confirmed visual, functional and native-save testing and explicitly accepted
 the scoped implementation, authorizing one complete local checkpoint commit, **not a push**.
 Owner-reported evidence is separate from agent checks, not new automated/native-suite, agent live-query,

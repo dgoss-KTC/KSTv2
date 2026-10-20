@@ -30,6 +30,7 @@ pub enum ReportKind {
     OpenOrderReport,
     HistoricalShipments,
     Analytical,
+    WorkspaceShortages,
 }
 impl ReportKind {
     fn route(self) -> &'static str {
@@ -40,6 +41,7 @@ impl ReportKind {
             Self::OpenOrderReport => "open-orders",
             Self::HistoricalShipments => "historical-shipments",
             Self::Analytical => "analytical",
+            Self::WorkspaceShortages => "workspace-shortages",
         }
     }
 }
@@ -773,7 +775,10 @@ pub async fn component_mrp_generate(
         .build()
         .map_err(|_| "Transport unavailable.")?;
     let route = kind.route();
-    let request = if kind == ReportKind::Analytical {
+    let request = if matches!(
+        kind,
+        ReportKind::Analytical | ReportKind::WorkspaceShortages
+    ) {
         analytical_request.ok_or("Missing analytical export selections.")?
     } else if kind == ReportKind::OpenOrderReport {
         oor_request.ok_or("Missing Open Order Report inputs.")?
@@ -802,7 +807,14 @@ pub async fn component_mrp_generate(
     if serde_json::to_vec(&request)
         .map_err(|_| "Invalid report inputs.")?
         .len()
-        > if kind == ReportKind::Analytical { 16 * 1024 * 1024 } else { 65536 }
+        > if matches!(
+            kind,
+            ReportKind::Analytical | ReportKind::WorkspaceShortages
+        ) {
+            16 * 1024 * 1024
+        } else {
+            65536
+        }
     {
         return Err("Report inputs exceed capacity.".into());
     }
@@ -861,6 +873,9 @@ pub async fn component_mrp_generate(
             } else {
                 "S&OP acquisition/preparation failed: unsupported procedure output, source failure or report capacity. No workbook was prepared."
             }.into());
+        }
+        if kind == ReportKind::WorkspaceShortages {
+            return Err("Loaded Workspace Shortages projection is unavailable, changed or exceeds capacity. Reload the view and prepare again. No source refresh was performed.".into());
         }
         return Err(if response.status().as_u16() == 404 {
             "Part not found in selected domain."
@@ -1345,6 +1360,11 @@ mod tests {
         assert_eq!(ReportKind::ShipmentsToGo.route(), "shipments-to-go");
         assert_eq!(ReportKind::Sop.route(), "sop");
         assert_eq!(ReportKind::OpenOrderReport.route(), "open-orders");
+        assert_eq!(
+            ReportKind::WorkspaceShortages.route(),
+            "workspace-shortages"
+        );
+        assert_ne!(ReportKind::WorkspaceShortages, ReportKind::Analytical);
         assert_ne!(ReportKind::OpenOrderReport, ReportKind::ShipmentsToGo);
         assert_ne!(ReportKind::Sop, ReportKind::ShipmentsToGo);
         assert!(serde_json::from_str::<ReportKind>("\"https://other\"").is_err());
@@ -1425,6 +1445,7 @@ mod tests {
                 ("sop", ReportKind::Sop),
                 ("oor", ReportKind::OpenOrderReport),
                 ("historical", ReportKind::HistoricalShipments),
+                ("shortages", ReportKind::WorkspaceShortages),
             ] {
                 s.artifacts.insert(
                     id.into(),
@@ -1452,6 +1473,7 @@ mod tests {
                 ("sop", ReportKind::Sop),
                 ("oor", ReportKind::OpenOrderReport),
                 ("historical", ReportKind::HistoricalShipments),
+                ("shortages", ReportKind::WorkspaceShortages),
             ] {
                 assert!(!s.artifacts.contains_key(id));
                 assert!(!s.can_open_artifact("analytical", kind));
