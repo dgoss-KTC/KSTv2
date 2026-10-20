@@ -59,7 +59,7 @@ const input = (part: string, weekIso: string) => {
 };
 const block = (part: string) => screen.getByRole('rowgroup', { name: `Part ${part}` });
 const rowLabels = (part: string) => within(block(part)).getAllByRole('rowheader').filter(h => h.getAttribute('scope') === 'row').map(h => h.textContent);
-const totals = () => within(screen.getByRole('rowgroup', { name: 'Workspace totals' }));
+const totals = () => within(screen.getByRole('rowgroup', { name: 'Selected model totals' }));
 const totalCells = (name: RegExp) => within(totals().getByRole('row', { name })).getAllByRole('cell').map(c => c.querySelector('.pwb-v')?.textContent ?? c.textContent);
 const type = (el: HTMLInputElement, value: string) => fireEvent.change(el, { target: { value } });
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }));
@@ -154,8 +154,8 @@ describe('Master plan: report and planning modes', { timeout: 20_000 }, () => {
   });
 });
 
-describe('Master plan: whole-workspace totals, filters and collapse', { timeout: 20_000 }, () => {
-  it('totals cover the whole workspace regardless of hidden models and filter chips; a hidden no-list-price model still counts at $0 in MPS $ totals', async () => {
+describe('Master plan: selected model totals, filters and collapse', { timeout: 20_000 }, () => {
+  it('totals follow View selection, not filter chips; reselecting restores all-model totals', async () => {
     await renderPanel();
     const so = totalCells(/^Total SO \$/);
     const mpsTotals = totalCells(/^Total MPS \$/);
@@ -166,13 +166,17 @@ describe('Master plan: whole-workspace totals, filters and collapse', { timeout:
     fireEvent.click(within(view).getByRole('checkbox', { name: /P-1/ }));
     expect(blocks()).toEqual(['Part P-2']);
     expect(screen.getByRole('button', { name: 'View \u00b7 1 of 3 models' })).toBeInTheDocument();
-    expect(totalCells(/^Total SO \$/)).toEqual(so);
-    expect(totalCells(/^Total MPS \$/)).toEqual(mpsTotals); // whole-workspace totals, never a subtotal of the visible models
-    expect(totals().getByRole('row', { name: /^Total SO \$/ })).toHaveTextContent('all 3 models');
+    expect(totalCells(/^Total SO \$/).slice(0, 7)).toEqual(['$1,234.57', '', '', '$1,234.57', '$90.00', '', '']);
+    expect(totalCells(/^Total MPS \$/).every(v => v === '')).toBe(true); // P-2 has a genuine zero price
+    expect(totals().getByRole('row', { name: /^Total SO \$/ })).toHaveTextContent('1 of 3 models selected');
+    expect(screen.queryByTestId('mps-dollar-note')).not.toBeInTheDocument();
 
     fireEvent.click(within(view).getByRole('button', { name: 'Show all' }));
+    expect(totalCells(/^Total SO \$/)).toEqual(so);
+    expect(totalCells(/^Total MPS \$/)).toEqual(mpsTotals);
     fireEvent.click(screen.getByRole('button', { name: /^Short/ }));
     expect(totalCells(/^Total SO \$/)).toEqual(so);
+    expect(screen.getByTestId('mps-dollar-note')).toHaveTextContent('1 selected model has');
   });
 
   it('offers quantity and adjustment totals through View; inventory is never totalled', async () => {
@@ -185,7 +189,7 @@ describe('Master plan: whole-workspace totals, filters and collapse', { timeout:
     expect(totals().getByRole('row', { name: /^Total sales orders/ })).toBeInTheDocument();
     expect(totals().getByRole('row', { name: /^Total MPS (?!\$)/ })).toBeInTheDocument();
     expect(totals().queryByRole('row', { name: /^Total adjust/ })).not.toBeInTheDocument(); // planning mode only
-    const totalOptions = within(within(view).getByRole('region', { name: 'Workspace totals' })).getAllByRole('checkbox');
+    const totalOptions = within(within(view).getByRole('region', { name: 'Selected model totals' })).getAllByRole('checkbox');
     expect(totalOptions.map(o => o.parentElement?.textContent)).toEqual(['Total sales orders', 'Total SO $', 'Total MPS', 'Total MPS $', 'Total adjust (planning mode)']);
     click('Start planning');
     type(input('P-1', '2026-09-14'), '-50');
@@ -193,7 +197,7 @@ describe('Master plan: whole-workspace totals, filters and collapse', { timeout:
     expect(totals().queryByRole('row', { name: /on hand/i })).not.toBeInTheDocument();
   });
 
-  it('filters, hides and collapses models without changing proposals, the Changes list or totals', async () => {
+  it('filters and collapses preserve totals; hiding changes totals but not proposals or the Changes list', async () => {
     await renderPanel();
     click('Start planning');
     type(input('P-1', '2026-09-14'), '-50');
@@ -204,6 +208,7 @@ describe('Master plan: whole-workspace totals, filters and collapse', { timeout:
     fireEvent.click(screen.getByRole('button', { name: /^Changed/ }));
     expect(screen.getByRole('button', { name: /^Changed/ })).toHaveAttribute('aria-pressed', 'true');
     expect(blocks()).toEqual(['Part P-1', 'Part P-3']);
+    expect(totalCells(/^Total SO \$/)).toEqual(before);
 
     fireEvent.click(screen.getByRole('button', { name: 'Collapse P-1' }));
     expect(within(block('P-1')).queryByRole('textbox')).not.toBeInTheDocument();
@@ -213,6 +218,7 @@ describe('Master plan: whole-workspace totals, filters and collapse', { timeout:
 
     click('Collapse all');
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    expect(totalCells(/^Total SO \$/)).toEqual(before);
     click('Expand all');
     expect(input('P-3', '2026-09-21').value).toBe('5');
 
@@ -224,7 +230,7 @@ describe('Master plan: whole-workspace totals, filters and collapse', { timeout:
     const list = screen.getByRole('list', { name: 'Staged changes' });
     expect(within(list).getByRole('listitem', { name: /^P-1/ })).toHaveTextContent('Model hidden in View. The change is kept.');
     expect(screen.getByTestId('planning-change-count')).toHaveTextContent('2 changes');
-    expect(totalCells(/^Total SO \$/)).toEqual(before);
+    expect(totalCells(/^Total SO \$/).slice(0, 7)).toEqual(['$1,234.57', '', '', '$1,234.57', '$90.00', '', '']);
 
     // Back to report: the Changed chip is not offered and its filter falls back to all models.
     click('Back to report');
@@ -474,7 +480,7 @@ describe('Master plan amendment: hover crosshair', { timeout: 20_000 }, () => {
     const modelHeader = within(block('P-2')).getAllByRole('row')[0];
     fireEvent.pointerOver(cellsOf(modelHeader)[5]);
     expect(grid).toHaveAttribute('data-hover-col', '5');
-    const totalRow = within(screen.getByRole('rowgroup', { name: 'Workspace totals' })).getAllByRole('row')[0];
+    const totalRow = within(screen.getByRole('rowgroup', { name: 'Selected model totals' })).getAllByRole('row')[0];
     fireEvent.pointerOver(cellsOf(totalRow)[2]);
     expect(grid).toHaveAttribute('data-hover-col', '2');
     // A row label highlights its row only (CSS :hover); leaving the grid clears the column.

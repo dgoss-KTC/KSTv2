@@ -51,7 +51,7 @@ export const ROW_DEFS: Record<GridRowId, { label: string; key: RowKey }> = {
 export const SELECTABLE_ROWS: readonly RowId[] = ['so', 'soDollars', 'mps', 'mpsDollars', 'forecast', 'onHand'];
 export const DEFAULT_ROWS: readonly RowId[] = ['so', 'mps', 'onHand'];
 
-/** Workspace total rows. The two dollar totals are pinned by default (owner decision 2026-10-06). */
+/** Selected model total rows. The two dollar totals are pinned by default (owner decision 2026-10-06). */
 export type TotalId = 'soDollars' | 'mpsDollars' | 'so' | 'mps' | 'adjust';
 export const TOTAL_ORDER: readonly TotalId[] = ['so', 'soDollars', 'mps', 'mpsDollars', 'adjust'];
 export const TOTAL_DEFS: Record<TotalId, { label: string; key: RowKey; planningOnly?: boolean }> = {
@@ -68,7 +68,7 @@ export const DEFAULT_TOTALS: readonly TotalId[] = ['soDollars', 'mpsDollars'];
 /* ---------------------------------------------------------------------------------------------- */
 
 export interface PlanningViewPreferences {
-  /** Upper-cased part numbers hidden from the grid (never removes staged changes). */
+  /** Upper-cased part numbers excluded from the grid and bottom totals (never removes staged changes). */
   hiddenModels: string[];
   rows: RowId[];
   totals: TotalId[];
@@ -237,11 +237,11 @@ export function metricCell(row: Exclude<GridRowId, 'adjust' | 'customerForecast'
 /* Workspace totals                                                                                */
 /* ---------------------------------------------------------------------------------------------- */
 
-/** Explains parts counted at $0 (owner-approved amendment 2026-10-07): they stay in the totals; nothing is blank. */
+/** Successful no-list-price $0 policy, scoped to View-selected models including chip-filtered models. */
 export const NO_LIST_PRICE_TOTAL_NOTE = (count: number) =>
-  `${count === 1 ? '1 part in this workspace has' : `${count} parts in this workspace have`} no eligible QAD list price and count as $0 in workspace MPS $ totals. Maintain list prices in QAD to include them; SO $ totals come from sales-order lines.`;
+  `${count === 1 ? '1 selected model has' : `${count} selected models have`} no eligible QAD list price and ${count === 1 ? 'counts' : 'count'} as $0 in selected model MPS $ totals, including models hidden by Short/Changed filters. Maintain list prices in QAD; SO $ totals come from sales-order lines.`;
 
-/** Total cell for the complete workspace (independent of hidden models and filters). Inventory is never summed. */
+/** Formats the supplied selected-model flow total. Inventory is never summed. */
 export function totalCell(total: TotalId, flows: AdjustedWorkspaceFlowTotals, mode: PlanningMode): CellView {
   switch (total) {
     case 'so': return plain(flows.salesOrderQuantity, qty);

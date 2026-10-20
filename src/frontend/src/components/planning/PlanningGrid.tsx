@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { formatPlanningDate, type PlanningColumn, type PlanningWorkbook } from '../../planningWorkbook/planningWorkbookSummary';
-import { quarterDetail } from './planningLabels';
+import { quarterDetail, SELECTED_TOTALS_LABEL, SELECTED_TOTALS_NOTE, selectedModelScope } from './planningLabels';
 import { hoverColumnCss, sizePlanningColumns } from './planningColumnSizing';
 import { ISSUE_MESSAGES, type AdjustedBucket, type AdjustedPart, type AdjustedQuarterSummary, type adjustedWorkspaceTotals } from '../../planningWorkbook/planningAdjustments';
 import {
@@ -32,7 +32,9 @@ export interface PlanningGridProps {
   workbook: PlanningWorkbook;
   /** Models to draw (after View tailoring and the active filter). */
   shown: readonly AdjustedPart[];
-  /** Number of models in the complete workspace (totals always cover all of them). */
+  /** View-selected models before Short/Changed filtering; same population used for totals. */
+  selected: readonly AdjustedPart[];
+  /** Number of models in the complete workspace, for the selection scope label. */
   modelCount: number;
   columns: readonly PlanningColumn[];
   summaries: ReadonlyMap<string, AdjustedQuarterSummary[]>;
@@ -173,13 +175,14 @@ const clearHoverColumn = (event: ReactPointerEvent<HTMLDivElement>) => event.cur
 
 /**
  * Compact Master plan grid: one sticky column header, model blocks with sticky headers and a pinned
- * model column, and workspace totals pinned to the bottom. Quarter grouping comes from
+ * model column, and selected model totals pinned to the bottom. Quarter grouping comes from
  * planningQuarters/planningColumns; every value comes from the exact-decimal evaluation.
  */
 export function PlanningGrid(props: PlanningGridProps) {
   const { workbook, shown, columns, totals, mode, totalRows, collapsed, tint = true } = props;
   const anyOpen = shown.some(p => !collapsed.has(p.part.toUpperCase()));
-  const noListPrice = workbook.parts.filter(p => !p.isPriced).length;
+  const noListPrice = props.selected.filter(p => !p.isPriced).length;
+  const scope = selectedModelScope(props.selected.length, props.modelCount);
   const visibleTotals = totalRows.filter(t => !TOTAL_DEFS[t].planningOnly || mode === 'planning');
   const columnCount = 2 + columns.length;
   const hoverCss = useMemo(() => hoverColumnCss(columnCount), [columnCount]);
@@ -260,7 +263,7 @@ export function PlanningGrid(props: PlanningGridProps) {
           </tbody>
         )}
         {visibleTotals.length > 0 && (
-          <tfoot aria-label="Workspace totals">
+          <tfoot aria-label={SELECTED_TOTALS_LABEL}>
             {visibleTotals.map((id, i) => {
               const def = TOTAL_DEFS[id];
               const note = NO_LIST_PRICE_TOTAL_NOTE(noListPrice);
@@ -269,8 +272,8 @@ export function PlanningGrid(props: PlanningGridProps) {
                   <th scope="row" className="pwb-label pwb-total__label">
                     <span className={`pwb-key pwb-key--${def.key}`} aria-hidden="true" />
                     {def.label}
-                    <span className="pwb-total__scope" title="Totals always cover every model in the workspace, including hidden or filtered models.">
-                      all {props.modelCount} {props.modelCount === 1 ? 'model' : 'models'}
+                    <span className="pwb-total__scope" title={`${scope}. ${SELECTED_TOTALS_NOTE}`}>
+                      {scope}
                     </span>
                     {(id === 'mpsDollars') && noListPrice > 0 && (
                       <span className="pwb-total__warn" data-testid="mps-dollar-note" title={note}>

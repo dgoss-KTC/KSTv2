@@ -3,7 +3,26 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** **ShortageMaster latest-comment amendment — COMPLETE /
+**Current project position:** **S22-004 Planning View-selected bottom totals — COMPLETE /
+OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner reviewed the rebuilt desktop, confirmed correct behavior
+and explicitly accepted S22-004; acceptance closeout and one complete local commit authorized, **not a
+push**. Owner desktop acceptance is distinct from agent offline verification, not exhaustive checklist,
+live-query, native-save, installer, deployment or risk-acceptance evidence. Owner authorized a
+population-only amendment to Stage 14 Q-R1: bottom totals use View-selected models, not Short/Changed
+chips, collapse or viewport. Exact calculations, full-workspace proposals/drafts/validation and
+operational exports remain unchanged. Historical decision/acceptance retained; no Stage 14 reopening
+or Stage 22 completion implied. Entry HEAD `d6e0c52`; all nine source/test fingerprints and accepted
+artifacts match retained evidence. Reuse verification; no repeated suites/builds/AFT/review/publication.
+Exact staged-path/full-diff/whitespace, normal hooks and post-commit tree/blob checks required.
+Pre-existing build-info stays byte-identical, unstaged/excluded; no live reads, installs or deployment.
+Verification/accepted release identity/limits/historical checklist/closeout:
+`docs/implementation/KST_v2_S22_004_PLANNING_SELECTED_TOTALS.md`; Stage 14 ledger §22 records amendment.
+Scoped 219 frontend tests, typecheck/lint/frontend build and offline release build pass; final assets
+embedded in alpha.21 review host SHA256 `0DE43599…`; owner build-info and accepted sidecars preserved.
+Later AFT filesystem deadlines and existing Vite/broad-format/lint exceptions remain explicit.
+Existing Windows backlog S22-004 closed; Stage 22 remains open. Further work requires separate dispatch.
+
+**Preceding accepted checkpoint:** **ShortageMaster latest-comment amendment — COMPLETE /
 OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner: “It works! I accept this implementation. Closeout
 authorized.” Complete local feature commit explicitly authorized, not a push. Owner-run/reported
 application acceptance is distinct from agent-run live verification or exhaustive checklist/timing
@@ -1938,6 +1957,19 @@ A substantial new standalone capability requires its own explicit roadmap dispos
       notes design is authorized.
 
 ### 22.3 Interactive refinement cycles
+
+- [x] **S22-004 — Planning View-selected bottom totals — COMPLETE / OWNER-ACCEPTED / CLOSED —
+      2026-10-20.** Owner reviewed the rebuilt desktop, confirmed correct behavior and explicitly accepted
+      this checkpoint, separately from retained offline verification. Explicit owner amendment of Q-R1 population
+      only; both modes/grid paths use View selection before Short/Changed filtering, with selected
+      scope/no-list-price wording and empty-selection zeros. Proposals/drafts/Changes/validation and
+      operational exports retain complete-workspace authority. See Stage 14 ledger §22 and
+      `docs/implementation/KST_v2_S22_004_PLANNING_SELECTED_TOTALS.md` for verification/review identity.
+      Scoped 219 frontend passes / zero skips, typecheck/changed-file lint/frontend/offline release
+      builds pass. Accepted sidecars and entry build-info bytes preserved; final assets embedded.
+      Complete local checkpoint commit authorized; no push or subsequent feature. Accepted sources/tests
+      unchanged; reuse verification with exact staged diff/paths/whitespace, normal hooks and post-commit
+      checks. Build-info remains byte-identical, unstaged/excluded; Stage 22 remains open.
 
 First bounded batch (2026-10-15): MPS drill-down hierarchy/material presentation is implemented and
 offline-verified, with owner desktop acceptance pending. See

@@ -17,6 +17,7 @@ import {
   adjustedWorkspaceTotals,
   evaluatePlanning,
   type AdjustmentEntries,
+  type AdjustedPart,
   type PlanningEvaluation,
 } from '../planningWorkbook/planningAdjustments';
 import {
@@ -40,18 +41,17 @@ import './PlanningWorkbookPanel.css';
 
 const NO_ENTRIES: AdjustmentEntries = {};
 
-/** Quarter grouping, per-part quarter summaries and whole-workspace totals for one evaluation. */
-function useGridModel(workbook: PlanningWorkbook, settings: FiscalCalendarSettings, evaluation: PlanningEvaluation) {
+/** Keep full-workbook part summaries, but total only View-selected models (before filter chips). */
+function useGridModel(workbook: PlanningWorkbook, settings: FiscalCalendarSettings, evaluation: PlanningEvaluation, selected: readonly AdjustedPart[]) {
   return useMemo(() => {
     const quarters = planningQuarters(workbook.weekLabels, settings);
     return {
       quarters,
       columns: planningColumns(quarters),
       summaries: new Map(evaluation.parts.map(part => [part.part.toUpperCase(), adjustedQuarterSummaries(part, quarters)])),
-      // Totals are computed from the complete workbook before any View tailoring or filter is applied.
-      totals: adjustedWorkspaceTotals(evaluation.parts, workbook.weekLabels.length, quarters),
+      totals: adjustedWorkspaceTotals(selected, workbook.weekLabels.length, quarters),
     };
-  }, [workbook, settings, evaluation]);
+  }, [workbook, settings, evaluation, selected]);
 }
 
 /**
@@ -66,12 +66,12 @@ export function PlanningWorkbookGrid({ workbook, settings, entries = NO_ENTRIES,
   prefs?: PlanningViewPreferences;
 }) {
   const evaluation = useMemo(() => evaluatePlanning(workbook, entries), [workbook, entries]);
-  const model = useGridModel(workbook, settings, evaluation);
   const changes = useMemo(() => changeCountsByPart(evaluation.entries), [evaluation]);
   const hidden = new Set(prefs.hiddenModels);
-  const { shown } = filterModels(evaluation.parts, hidden, 'all', mode, changes);
+  const { shown, tailored } = filterModels(evaluation.parts, hidden, 'all', mode, changes);
+  const model = useGridModel(workbook, settings, evaluation, tailored);
   return (
-    <PlanningGrid workbook={workbook} shown={shown} modelCount={workbook.parts.length} columns={model.columns}
+    <PlanningGrid workbook={workbook} shown={shown} selected={tailored} modelCount={workbook.parts.length} columns={model.columns}
       summaries={model.summaries} totals={model.totals} mode={mode} rows={prefs.rows} totalRows={prefs.totals} tint={prefs.tintRows}
       collapsed={new Set(prefs.collapsed)} changeCounts={changes} onToggleCollapse={() => {}} onSetAllCollapsed={() => {}} />
   );
@@ -272,7 +272,7 @@ function PlanningWorkbookView({ assignmentId, site, snapshotId, mpsLoading = fal
             <div className="pwb-state">No parts resolved for this workspace&apos;s current scope.</div>
           )}
           {showGrid && workbook && evaluation && filtered && (
-            <GridForView workbook={workbook} settings={settings} evaluation={evaluation} shown={filtered.shown} mode={ui.mode}
+            <GridForView workbook={workbook} settings={settings} evaluation={evaluation} shown={filtered.shown} selected={filtered.tailored} mode={ui.mode}
               prefs={prefs} changes={changes} proposals={proposals} updatePrefs={updatePrefs}
               emptyMessage={filtered.shown.length > 0 ? null : {
                 text: filtered.tailored.length === 0 ? 'All models are hidden in View.' : 'No models match this filter.',
@@ -309,11 +309,12 @@ function PlanningWorkbookView({ assignmentId, site, snapshotId, mpsLoading = fal
   );
 }
 
-function GridForView({ workbook, settings, evaluation, shown, mode, prefs, changes, proposals, updatePrefs, emptyMessage }: {
+function GridForView({ workbook, settings, evaluation, shown, selected, mode, prefs, changes, proposals, updatePrefs, emptyMessage }: {
   workbook: PlanningWorkbook;
   settings: FiscalCalendarSettings;
   evaluation: PlanningEvaluation;
   shown: ReturnType<typeof filterModels>['shown'];
+  selected: readonly AdjustedPart[];
   mode: PlanningMode;
   prefs: PlanningViewPreferences;
   changes: ReadonlyMap<string, number>;
@@ -321,12 +322,13 @@ function GridForView({ workbook, settings, evaluation, shown, mode, prefs, chang
   updatePrefs: (fn: (p: PlanningViewPreferences) => PlanningViewPreferences) => void;
   emptyMessage: { text: string; actionLabel: string; onAction: () => void } | null;
 }) {
-  const model = useGridModel(workbook, settings, evaluation);
+  const model = useGridModel(workbook, settings, evaluation, selected);
   const collapsed = useMemo(() => new Set(prefs.collapsed), [prefs.collapsed]);
   return (
     <PlanningGrid
       workbook={workbook}
       shown={shown}
+      selected={selected}
       modelCount={workbook.parts.length}
       columns={model.columns}
       summaries={model.summaries}

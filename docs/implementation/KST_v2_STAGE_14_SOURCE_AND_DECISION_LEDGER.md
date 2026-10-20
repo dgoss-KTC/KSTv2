@@ -33,6 +33,13 @@ Synthetic fixtures: `docs/reference/STAGE_14_PLANNING_WORKBOOK_DETERMINISTIC_FIX
 
 > **Pricing amendment 2026-10-07 (OWNER-APPROVED; OWNER-ACCEPTED 2026-10-07; sections 20-21).** A successful QAD price lookup with no eligible list price now uses $0 for Planning calculations and totals. This supersedes every statement below that a part without a list price is "unpriced", shows a dash/Unpriced indicator, has null dollars, or makes workspace MPS $ / Adjusted MPS $ totals blank (sections 2, 4, 10 Q-N2, 14-17 and their review notes). Those passages are retained as historical acceptance records.
 
+> **Q-R1 population amendment — OWNER-AUTHORIZED / OWNER-ACCEPTED — 2026-10-20 (S22-004; §22).** Bottom Planning
+> totals cover models selected in View. Short/Changed filters, collapse state and viewport position
+> do not change totals. All other calculation and operational-export rules remain unchanged.
+> Only the earlier whole-workspace-regardless-of-View **bottom-total population rule** is superseded;
+> historical Stage 14 decisions, acceptance and verification records below remain intact. Approval of
+> this amendment is distinct from the owner's subsequent desktop acceptance of S22-004 on 2026-10-20.
+
 ## 0. Labels
 
 | Label | Meaning |
@@ -272,7 +279,7 @@ here. See §17 for the other export requirements recorded for 14.6.
 | Q4 | Planning horizon (14.4) | Default and minimum selectable 12 weeks. Maximum = `max(12, lastMpsWeekIndex + 2)`: through one week after the last Due-Date business week (current week = 0) with a nonzero existing MPS quantity across the resolved parts of the complete loaded MPS snapshot. Sales orders, forecast and adjustments never extend it; no fixed 72-week cap; recalculated on MPS-snapshot or business-week change, clamping a larger selection. Dashboard horizon unchanged. | OC |
 | Q-N2 | Unpriced workspace totals (14.4) — **SUPERSEDED 2026-10-07 by the missing-list-price $0 amendment (§20).** Historical decision: if any retained part is unpriced, workspace MPS $ totals are blank for every weekly and quarterly summary; no priced-part subtotal. Priced parts (including valid zero price) still show their own MPS $; quantity and SO $ totals remain. | OC |
 | Q-N6 | Undated display (14.4) | Due Date is required when entering a sales order, so the Planning view shows no per-part or workspace Undated display. Owner reconfirmed due dates are required (2026-10-07). Backend defensive Undated handling and fixtures stay unchanged; undated values are never given a date or folded into dated totals. | OC / owner-confirmed |
-| Q-R1 | Workspace totals in the redesigned view (2026-10-06) | Totals cover the whole workspace, computed from the complete workbook independently of View model visibility and filter chips. The two dollar totals (SO $, MPS $) are pinned by default; quantity (sales orders, MPS) and adjustment totals are available through View. **Historical Q-N2 behavior is superseded by §20:** no-list-price parts contribute $0. Inventory is never summed. | OC |
+| Q-R1 | Workspace totals in the redesigned view (2026-10-06) | **Population rule only SUPERSEDED 2026-10-20 by §22 (S22-004).** Historical population decision: totals cover the whole workspace, computed from the complete workbook independently of View model visibility and filter chips. Still applicable: the two dollar totals (SO $, MPS $) are pinned by default; quantity (sales orders, MPS) and adjustment totals are available through View. **Historical Q-N2 behavior is superseded by §20:** no-list-price parts contribute $0. Inventory is never summed. | OC |
 | Q-R2 | Planning density (2026-10-06) | Planning follows the application's global row-density preference; no separate Planning density preference. | OC |
 | Q-R3 | Entries outside the visible horizon (2026-10-06) | Remain listed in Changes. Being hidden does not by itself prevent export; validation against the full loaded MPS snapshot (14.6) determines eligibility. Supersedes the 14.5 `outside-horizon`/`beyond-maximum` blocking issues (§16). | OC |
 | Q-E1 | CSV column order (14.6, 2026-10-06) | **Part, Qty, Date**; resolves the redesign's conflicting order. No header row; the golden fixture is unchanged. | OC |
@@ -1238,3 +1245,44 @@ Inventory of remaining `window.confirm` uses in production code: only the fallba
 all three repaired desktop confirmations on 2026-10-07. Together with §19.1 and the accepted pricing amendment,
 this completes owner acceptance of Checkpoint 14.7 and Stage 14 overall. This is owner-run desktop evidence,
 separate from the automated tests. No live QAD query was run.
+
+## 22. Q-R1 bottom-total population amendment — OWNER-AUTHORIZED / OWNER-ACCEPTED — 2026-10-20 — S22-004
+
+The owner explicitly chose **View selection only**, with this amendment:
+
+> “Bottom Planning totals cover models selected in View. Short/Changed filters, collapse state and
+> viewport position do not change totals. All other calculation and operational-export rules remain unchanged.”
+
+**Population.** Start with the complete evaluated workbook; exclude only models unchecked in View.
+The existing View-selected `filterModels(...).tailored` collection, before Short/Changed filtering,
+feeds unchanged `adjustedWorkspaceTotals`. Never total `filtered.shown`, rendered rows or viewport
+content. This applies to both the main panel and standalone `PlanningWorkbookGrid`, in Report and
+Planning modes. SO quantity/$, MPS quantity/$, adjustment and loaded/proposed values all use the same
+selected population across Falldown, weeks and fiscal quarters. All selected reproduces prior totals;
+none selected supplies an empty collection and exact zero totals (ordinary blank-zero presentation),
+with explicit **0 of Y models selected**, never old totals or an all-model fallback.
+
+**Wording.** Selected model totals / X of Y models selected; Short/Changed filtering, collapsed blocks
+and scrolling do not alter totals. View-list search alone does not change selections. Missing-list-price
+counts and the successful-lookup $0 explanation cover selected models, including selected models whose
+blocks the chips hide. Unchecked models retain staged changes, draft contents and export eligibility,
+but contribute nothing to bottom totals. Inventory balances are still never summed.
+
+**Preserved authority.** No calculation rewrite: exact decimals, zero formatting, loaded/proposed
+presentation, pricing and acquisition-error semantics, RA exclusion, calendar/horizon/bucketing,
+Falldown once, Undated handling and per-part projections are unchanged. Complete-workspace evaluation,
+validation, Changes summaries, drafts and Mass Updater scope/contents/preparation/save/clearing remain
+unchanged. View selection is not operational-export authority and does not invalidate a prepared file.
+No scope switch, new preference, endpoint, contract, backend/native source, dependency or locked
+Stage 9–11 change. Existing per-assignment View choices retain their storage schema.
+
+Only Q-R1's former bottom-total population rule and UI assertions enforcing it are superseded.
+The original 2026-10-06 decision and Stage 14 acceptance/verification remain historical evidence;
+all-parts helper/golden tests still validly verify calculations over all supplied parts. S22-004
+implementation/offline evidence, accepted release identity, historical owner checklist and closeout are recorded in
+`docs/implementation/KST_v2_S22_004_PLANNING_SELECTED_TOTALS.md`. Stage 14's historical acceptance
+and approval of this amendment did not themselves constitute acceptance of the new implementation.
+The owner subsequently reviewed the rebuilt desktop, confirmed correct behavior and explicitly
+accepted S22-004 on 2026-10-20, authorizing closeout and a complete local checkpoint commit, not a push.
+Owner desktop acceptance is distinct from retained agent offline verification; no new live-query,
+exhaustive-checklist or risk-acceptance evidence is implied. Stage 22 remains open.

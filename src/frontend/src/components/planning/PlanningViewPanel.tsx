@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SELECTED_TOTALS_LABEL, SELECTED_TOTALS_NOTE, selectedModelScope } from './planningLabels';
 import type { AdjustedPart } from '../../planningWorkbook/planningAdjustments';
 import {
   ROW_DEFS, SELECTABLE_ROWS, shortWeekCount, TOTAL_DEFS, TOTAL_ORDER,
@@ -9,7 +10,7 @@ const toggle = <T,>(list: readonly T[], item: T): T[] => (list.includes(item) ? 
 
 /**
  * View tailoring: which models, rows and workspace totals are drawn. Hiding a model never removes its
- * staged changes, draft contents or eventual export scope. Totals always cover the whole workspace.
+ * staged changes, draft contents or eventual export scope. Bottom totals cover selected models only.
  * Density follows the application's global preference and is not set here.
  */
 export function PlanningViewPanel({ parts, mode, prefs, onChange, onClose }: {
@@ -33,7 +34,7 @@ export function PlanningViewPanel({ parts, mode, prefs, onChange, onClose }: {
       </header>
       <div className="pwb-side__body">
         <section className="pwb-view__section" aria-labelledby="pwb-view-models">
-          <h4 id="pwb-view-models">Models <span className="pwb-view__count" data-testid="planning-view-model-count">{shownCount} of {parts.length} shown</span></h4>
+          <h4 id="pwb-view-models">Models <span className="pwb-view__count" data-testid="planning-view-model-count">{selectedModelScope(shownCount, parts.length)}</span></h4>
           <input type="search" className="pwb-view__search" placeholder="Search part or description" aria-label="Search models"
             value={query} onChange={e => setQuery(e.target.value)} />
           <div className="pwb-view__buttons">
@@ -60,7 +61,7 @@ export function PlanningViewPanel({ parts, mode, prefs, onChange, onClose }: {
             })}
             {matches.length === 0 && <li className="pwb-view__none">No models match.</li>}
           </ul>
-          <p className="pwb-side__note">Hidden models keep their staged changes; they stay in the Changes list and in totals.</p>
+          <p className="pwb-side__note">Hidden models keep their staged changes, draft contents and export eligibility; they stay in the Changes list but are excluded from bottom totals.</p>
         </section>
         <section className="pwb-view__section" aria-labelledby="pwb-view-rows">
           <h4 id="pwb-view-rows">Rows</h4>
@@ -74,7 +75,7 @@ export function PlanningViewPanel({ parts, mode, prefs, onChange, onClose }: {
           {mode === 'planning' && <p className="pwb-side__note">Adjust is always shown in planning mode.</p>}
         </section>
         <section className="pwb-view__section" aria-labelledby="pwb-view-totals">
-          <h4 id="pwb-view-totals">Workspace totals</h4>
+          <h4 id="pwb-view-totals">{SELECTED_TOTALS_LABEL}</h4>
           {TOTAL_ORDER.map(id => (
             <label key={id} className="pwb-view__check">
               <input type="checkbox" checked={prefs.totals.includes(id)} onChange={() => onChange(p => ({ ...p, totals: toggle<TotalId>(p.totals, id) }))} />
@@ -82,7 +83,7 @@ export function PlanningViewPanel({ parts, mode, prefs, onChange, onClose }: {
               {TOTAL_DEFS[id].label}{TOTAL_DEFS[id].planningOnly ? ' (planning mode)' : ''}
             </label>
           ))}
-          <p className="pwb-side__note">Totals cover every model in the workspace. Inventory is never summed across models.</p>
+          <p className="pwb-side__note">{SELECTED_TOTALS_NOTE}</p>
         </section>
         <section className="pwb-view__section" aria-labelledby="pwb-view-row-color">
           <h4 id="pwb-view-row-color">Row color</h4>

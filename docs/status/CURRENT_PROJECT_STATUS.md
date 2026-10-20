@@ -3,6 +3,42 @@
 Date: 2026-10-20
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## S22-004 — Planning View-selected bottom totals — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20
+
+The owner reports reviewing the rebuilt desktop, confirming correct behavior and explicitly accepting
+S22-004 on 2026-10-20; acceptance closeout and one complete local checkpoint commit are authorized,
+**not a push**. Owner desktop acceptance is separate from agent offline checks, not additional live-query,
+exhaustive checklist, native-save, installer, deployment or risk-acceptance evidence. Owner explicitly
+authorized the Q-R1 population amendment: bottom Planning totals cover models selected in View;
+Short/Changed filters, collapse state and viewport position do not alter totals. All other calculation
+and operational-export rules remain unchanged. Historical Stage 14 decisions/acceptance are retained
+in ledger §22; only the former bottom-total population rule is superseded.
+
+Actual entry Windows HEAD `d6e0c52edba243bee1004dfa7322028e72f2ed44` (one commit beyond supplied
+`214a45a`). Both grid paths feed pre-chip View selection to the existing exact-decimal helper and use
+that same population for scope/no-list-price counts. Full-workspace proposals, evaluation, Changes,
+drafts, export validation/preparation/save/clear are unchanged. No backend/native source/contracts,
+dependencies, capabilities or new preferences. All nine source/test fingerprints, release/assets,
+sidecars and owner build-info match retained evidence; implementation/tests are unchanged. Reuse existing
+verification with exact staged-path/full-diff/whitespace, normal hooks and post-commit tree/blob checks;
+no repeated suites/builds/AFT/review or sidecar publication solely for closeout. Owner build-info stays
+byte-identical, unstaged and excluded. No push, install, live query, submission or deployment authorized.
+
+Offline **219 frontend tests pass / zero skips (10 files)**; typecheck, changed-file lint, frontend
+build and offline release desktop build pass. Initial fresh/clean AFT, later filesystem deadlines
+and existing Vite warnings remain explicit; no broad backend/native/security suite or sidecar republish.
+Review `src/tauri/target/release/kst-tauri.exe`, alpha.21, **15,306,752 bytes**, SHA256
+`0DE435998789D1297655B884B5D7B04C3C6B9FEC9BF8FE65845955237FDE5EB6`; final assets verified embedded,
+all four sidecars match the preceding accepted baseline. Initial release build was lock-blocked;
+after the owner closed the app, the retry passed. No process was terminated by the agent.
+
+Verification, limitations, accepted release identity, historical checklist and owner closeout:
+`docs/implementation/KST_v2_S22_004_PLANNING_SELECTED_TOTALS.md`.
+Full evidence remains local: `C:\dev\kst_v2_tmp\Stage22\PlanningTotals\evidence\`.
+Existing Windows backlog S22-004 is closed; Stage 22 remains open. Local closeout evidence stays under
+`evidence/commit-closeout/`. Further development requires separate dispatch. Earlier accepted checkpoint
+records below are unchanged.
+
 ## ShortageMaster latest-comment amendment — COMPLETE / OWNER-ACCEPTED / CLOSED — 2026-10-20
 
 Owner: “It works! I accept this implementation. Closeout authorized.” One complete local feature

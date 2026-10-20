@@ -134,7 +134,7 @@ describe('Planning adjustments: editing and derived rows', { timeout: 20_000 }, 
     expect(p2AdjOnHand).not.toHaveClass('pwb-cell--invalid'); // negative inventory never blocks
     // P-3 has no list price: dollars are exact $0 (blank like any zero), never a dash; workspace MPS $ totals still sum.
     expect(cells(partRow('P-3', /^MPS \$/)).every(c => c.textContent === '')).toBe(true);
-    const totals = within(screen.getByRole('rowgroup', { name: 'Workspace totals' }));
+    const totals = within(screen.getByRole('rowgroup', { name: 'Selected model totals' }));
     expect(cells(totals.getByRole('row', { name: /^Total MPS \$/ })).some(c => val(c) !== '')).toBe(true);
     expect(cells(totals.getByRole('row', { name: /^Total MPS \$/ })).every(c => val(c) !== '\u2014')).toBe(true);
     expect(cells(totals.getByRole('row', { name: /^Total adjust/ }))[WEEK_CELL[2]]).toHaveTextContent('-100');

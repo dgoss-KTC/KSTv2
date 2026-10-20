@@ -22,6 +22,9 @@ export function errorCopy(error: PlanningWorkbookError): { text: string; retry: 
 }
 
 export const REFRESH_NOTE = "Refresh Planning also refreshes this workspace's Customer Open Orders report, so a prepared Open Orders export may need to be prepared again. MPS is not refreshed. Staged adjustments are kept.";
+export const SELECTED_TOTALS_LABEL = 'Selected model totals';
+export const SELECTED_TOTALS_NOTE = 'Totals cover models selected in View. Short/Changed filters, collapsed blocks and viewport position do not change totals. Inventory is never summed across models.';
+export const selectedModelScope = (selected: number, total: number) => `${selected} of ${total} models selected`;
 export const EXPORT_NO_CHANGES = 'Stage at least one adjustment to review and export the MPS change file.';
 export const EXPORT_BUTTON_NOTE = 'Validates the staged adjustments against the loaded MPS data, then lets you review and save the QAD Mass Updater file. Nothing is applied to QAD.';
 export const EXPORT_QTY_NOTE = 'Qty is the signed adjustment to the existing MPS quantity, not the resulting quantity. Date is the Monday of the week. The file has no header row.';

@@ -163,7 +163,7 @@ describe('Planning Workbook panel: grid presentation', () => {
     expect(p2.queryByText('No list price')).not.toBeInTheDocument(); // a genuine zero price is a priced part
     const p2MpsDollars = within(p2.getByRole('row', { name: /^MPS \$/ })).getAllByRole('cell');
     expect(p2MpsDollars.every(c => c.textContent === '')).toBe(true);
-    const totals = within(screen.getByRole('rowgroup', { name: 'Workspace totals' }));
+    const totals = within(screen.getByRole('rowgroup', { name: 'Selected model totals' }));
     // Mixed workspace: P-1 prices normally, P-2 (zero price) and P-3 (no list price) contribute $0.
     const mpsDollarTotals = within(totals.getByRole('row', { name: /^Total MPS \$/ })).getAllByRole('cell');
     expect(mpsDollarTotals[3]).toHaveTextContent('$513.75');
@@ -172,13 +172,13 @@ describe('Planning Workbook panel: grid presentation', () => {
     expect(within(totals.getByRole('row', { name: /^Total MPS (?!\$)/ })).getAllByRole('cell')[6]).toHaveTextContent('210');
     expect(totals.queryByRole('row', { name: /on hand/i })).not.toBeInTheDocument();
     expect(screen.getByTestId('mps-dollar-note')).toHaveTextContent('1 at $0');
-    expect(screen.getByTestId('mps-dollar-note')).toHaveTextContent('1 part in this workspace has no eligible QAD list price and count as $0 in workspace MPS $ totals');
+    expect(screen.getByTestId('mps-dollar-note')).toHaveTextContent('1 selected model has no eligible QAD list price and counts as $0 in selected model MPS $ totals');
   });
 
   it('totals workspace MPS $ when every part is priced (zero price included) and highlights negative inventory', () => {
     const data = fixtureToWorkbook(fixture);
     render(<PlanningWorkbookGrid workbook={{ ...data, parts: data.parts.filter(p => p.isPriced) }} settings={DEFAULT_FISCAL_CALENDAR_SETTINGS} />);
-    const totals = within(screen.getByRole('rowgroup', { name: 'Workspace totals' }));
+    const totals = within(screen.getByRole('rowgroup', { name: 'Selected model totals' }));
     // Default totals: the two dollar totals are pinned.
     expect(totals.getAllByRole('row').map(r => r.querySelector('th')?.firstChild?.nextSibling?.textContent)).toEqual(['Total SO $', 'Total MPS $']);
     expect(within(totals.getByRole('row', { name: /^Total MPS \$/ })).getAllByRole('cell')[3]).toHaveTextContent('$513.75');
@@ -395,7 +395,7 @@ describe('Planning Workbook panel: neutral rows with colour keys (redesign; supe
     expect(key(p3.getByRole('row', { name: /^MPS \$/ }))).toBe('pwb-key--supply');
     expect(key(p3.getByRole('row', { name: /^Forecast/ }))).toBe('pwb-key--forecast');
     expect(key(p3.getByRole('row', { name: /^Projected on hand/ }))).toBe('pwb-key--onHand');
-    const totals = within(screen.getByRole('rowgroup', { name: 'Workspace totals' }));
+    const totals = within(screen.getByRole('rowgroup', { name: 'Selected model totals' }));
     expect(key(totals.getByRole('row', { name: /^Total SO \$/ }))).toBe('pwb-key--demand');
     expect(key(totals.getByRole('row', { name: /^Total MPS \$/ }))).toBe('pwb-key--supply');
     for (const row of screen.getAllByRole('row')) expect(row.className).not.toMatch(/pwb-row--(demand|supply|neutral)/);
@@ -442,8 +442,8 @@ describe('Planning Workbook panel: zero-value display (14.4 owner amendment)', (
     expect(inventory[3]).toHaveClass('pwb-cell--negative');
 
     // Workspace totals (all parts priced): zeros blank, nonzero sums shown.
-    expect(row('Workspace totals', /^Total sales orders/).getAllByRole('cell').map(c => c.textContent)).toEqual(['', '', '-2', '-2']);
-    expect(row('Workspace totals', /^Total MPS \$/).getAllByRole('cell').map(c => c.textContent)).toEqual(['', '', '$0.00', '$0.00']);
+    expect(row('Selected model totals', /^Total sales orders/).getAllByRole('cell').map(c => c.textContent)).toEqual(['', '', '-2', '-2']);
+    expect(row('Selected model totals', /^Total MPS \$/).getAllByRole('cell').map(c => c.textContent)).toEqual(['', '', '$0.00', '$0.00']);
 
     // Underlying exact values are untouched (kept as the cell title).
     expect(row('Part Z-1', /^SO \$/).getAllByRole('cell')[1]).toHaveAttribute('title', '0.00');
@@ -462,8 +462,8 @@ describe('Planning Workbook panel: zero-value display (14.4 owner amendment)', (
     const upMpsDollars = row('Part UP', /^MPS \$/).getAllByRole('cell');
     expect(upMpsDollars.every(c => c.textContent === '' && !c.classList.contains('pwb-cell--unpriced'))).toBe(true);
 
-    // Workspace MPS $ always totals every part: the no-list-price part contributes $0, nothing is a dash.
-    const totalsMpsDollars = row('Workspace totals', /^Total MPS \$/).getAllByRole('cell');
+    // All models selected: the no-list-price part contributes $0, nothing is a dash.
+    const totalsMpsDollars = row('Selected model totals', /^Total MPS \$/).getAllByRole('cell');
     expect(totalsMpsDollars.map(c => c.textContent)).toEqual(['', '', '$0.00', '$0.00']);
     expect(totalsMpsDollars.every(c => !c.classList.contains('pwb-cell--unpriced'))).toBe(true);
     // Blank zero cells keep their row key, Falldown boundary and quarter styling.
