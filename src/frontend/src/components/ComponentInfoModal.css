@@ -177,7 +177,6 @@
 }
 
 .component-info-modal__columns { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .85fr); gap: 24px; align-items: start; min-width: 0; }
-.component-info-modal--shortages .component-info-modal__columns { grid-template-columns: minmax(0, 1.1fr) minmax(0, .72fr) minmax(0, 1.45fr); }
 
 .component-info-modal__left {
   min-width: 0;
@@ -310,25 +309,28 @@
   border-bottom: 1px solid var(--bd-soft);
 }
 
-.component-info-modal--shortages { width: min(1500px, 100%); }
-.component-info-modal__base, .component-info-modal__shortage { min-width: 0; }
-.component-info-modal__shortage { border-left: 1px solid var(--bd-soft); padding-left: 22px; }
-.long-term-shortage-detail { display: grid; gap: 16px; min-width: 0; max-width: 100%; }
-.long-term-shortage-detail__snapshot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.long-term-shortage-detail__parents { grid-column: 1 / -1; }
+.component-info-modal--shortages { width: min(1100px, 100%); }
+.component-info-modal__base { min-width: 0; }
+.component-info-modal--shortages .component-info-modal__title { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--tx2); }
+.component-info-modal--shortages .part-info__identity { margin: 8px 0 0; }
+.component-info-modal--shortages .component-info-modal__body { min-height: 0; }
+.part-info--embedded > .part-info__facts { margin-top: 14px; }
+.shortage-info__snapshot h3 { margin: 0 0 8px; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--tx2); }
+.long-term-shortage-detail__parents { display: flex; gap: 12px; margin: 10px 0; font-size: 12px; }
+.long-term-shortage-detail__parents dt { color: var(--tx2); flex-shrink: 0; }
+.long-term-shortage-detail__parents dd { margin: 0; }
 .long-term-shortage-detail__parents dd { white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
 .long-term-shortage-detail__warning, .long-term-shortage-detail__comment { white-space: pre-wrap; overflow-wrap: anywhere; }
-.long-term-shortage-detail__po-scroll { max-width: 100%; overflow-x: auto; }
-.long-term-shortage-detail__table { width: 100%; min-width: 540px; border-collapse: collapse; font-size: 12px; }
-.long-term-shortage-detail__table th, .long-term-shortage-detail__table td { padding: 4px; border-bottom: 1px solid var(--bd-soft); text-align: left; }
-.long-term-shortage-detail__table .long-term-shortage-detail__quantity { text-align: right; font-variant-numeric: tabular-nums; }
+.long-term-shortage-detail__warning { padding: 8px 12px; background: var(--a-bg); color: var(--a-tx); border-radius: 6px; font-size: 12px; }
+.part-info--embedded .part-info__comment-strip h3 { margin: 0 0 6px; font-size: 13px; }
+.shortage-info__comment--clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shortage-info__comment-toggle { border: 0; background: transparent; color: var(--accent-text); padding: 4px 0 0; font: inherit; cursor: pointer; }
+.part-info--embedded .component-info-modal__inventory-scroll { max-height: 38vh; }
 .long-term-shortage-detail__past-due { color: var(--danger-tx); font-weight: 600; }
 @media (max-width: 1100px) {
-  .component-info-modal__columns, .component-info-modal--shortages .component-info-modal__columns { grid-template-columns: minmax(0, 1fr); }
-  .component-info-modal__shortage { border-left: 0; border-top: 1px solid var(--bd-soft); padding: 16px 0 0; }
+  .component-info-modal__columns { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 600px) {
   .component-info-modal-backdrop { padding: 8px; }
   .component-info-modal__body { padding: 12px; }
-  .long-term-shortage-detail__snapshot { grid-template-columns: minmax(0, 1fr); }
 }

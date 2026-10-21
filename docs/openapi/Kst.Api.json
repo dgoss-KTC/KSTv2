@@ -7356,6 +7356,20 @@
               "null",
               "string"
             ]
+          },
+          "suppliers": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PartInfoSectionDtoOfIReadOnlyListOfPartInfoSupplierDto"
+              }
+            ]
+          },
+          "supplierIdentityUnavailable": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

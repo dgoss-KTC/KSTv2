@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ComponentInfoModal } from './ComponentInfoModal';
 import type { ComponentDetailResponseDto } from '../api/client';
-import type { LongTermShortageRow } from '../api/longTermShortagesApi';
+import type { LongTermShortageRow, LongTermShortagePurchasing } from '../api/longTermShortagesApi';
 import { compactFixture, projectionFixture } from '../longTermShortages/compactScreenFixture.test-support';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -39,7 +39,11 @@ function makeDetail(overrides: Partial<ComponentDetailResponseDto> = {}): Compon
 }
 
 function renderModal(props: Partial<React.ComponentProps<typeof ComponentInfoModal>> = {}) {
-  return render(
+  return render(modalElement(props));
+}
+
+function modalElement(props: Partial<React.ComponentProps<typeof ComponentInfoModal>> = {}) {
+  return (
     <ComponentInfoModal
       componentPart="COMP-1"
       detail={makeDetail()}
@@ -53,7 +57,7 @@ function renderModal(props: Partial<React.ComponentProps<typeof ComponentInfoMod
       onExpandApprovedVendors={vi.fn()}
       onRetryApprovedVendors={vi.fn()}
       {...props}
-    />,
+    />
   );
 }
 
@@ -74,12 +78,242 @@ function fullShortage(overrides: Partial<LongTermShortageRow> = {}): LongTermSho
 
 function shortage(overrides: Partial<LongTermShortageRow> = {}) { return compactFixture(fullShortage(overrides)); }
 
+const supplierTime = '2026-10-20T20:00:00Z';
+function purchasingWithSuppliers(suppliers: NonNullable<LongTermShortagePurchasing['suppliers']>): LongTermShortagePurchasing {
+  return { supplierIdentityUnavailable: false, commentAvailable: true, currentComment: 'Independent buyer note', commentRecordedAt: '2022-01-31T13:30:00', commentAuthor: 'buyer',
+    openPurchaseOrders: [{ componentPart: 'COMP-1', description: 'Component One', leadTimeDays: 7, poNumber: 'PO-1', poLine: 1,
+      dueDate: '2026-09-20', openQuantity: '3.75', confirmed: true, supplierDisplay: 'ACME', buyerDisplay: 'Buyer',
+      manufacturerItem: null, isKss: false, trackingInfo: null, isCreditHold: null, isCia: null, currentComments: null }],
+    suppliers };
+}
+
 describe('ComponentInfoModal', () => {
+  it('places current supplier status directly above the comment and preserves individual mixed and case-distinct suppliers', async () => {
+    const purchasing = purchasingWithSuppliers({ value: [
+      { identifier: 'ACME', display: 'Acme display', isCreditHold: true, isCia: false },
+      { identifier: 'BETA', display: 'Beta display', isCreditHold: false, isCia: true },
+      { identifier: 'acme', display: 'Case distinct', isCreditHold: null, isCia: null },
+      { identifier: 'UNMATCHED', display: null, isCreditHold: null, isCia: null },
+    ], acquiredAtUtc: supplierTime, error: null });
+    renderModal({ context: 'shortages', shortage: shortage(), purchasing });
+    const strip = screen.getByRole('region', { name: 'Supplier Credit Hold / CIA' });
+    expect(strip.nextElementSibling).toHaveTextContent('Current Buyer Comment');
+    expect(strip).toHaveTextContent('Credit hold: ACME · Unknown: acme, UNMATCHED');
+    expect(strip).toHaveTextContent('CIA: BETA · Unknown: acme, UNMATCHED');
+    expect(strip).toHaveTextContent('Current supplier statuses for this selected component’s qualifying open POs.');
+    expect(strip.querySelector('time')).toHaveAttribute('datetime', supplierTime);
+    await userEvent.click(within(strip).getByText('Supplier status details · 4 suppliers'));
+    const rows = within(screen.getByRole('table', { name: 'Supplier status' })).getAllByRole('row').slice(1);
+    expect(rows.map(row => within(row).getAllByRole('cell').map(cell => cell.textContent))).toEqual([
+      ['ACME', 'Acme display', 'Yes', 'No'], ['BETA', 'Beta display', 'No', 'Yes'],
+      ['acme', 'Case distinct', 'Unknown', 'Unknown'], ['UNMATCHED', '—', 'Unknown', 'Unknown'],
+    ]);
+    expect(screen.getByText('Independent buyer note')).toBeVisible();
+    expect(screen.getByText('PO-1')).toBeVisible();
+    expect(screen.getByText('Std / QCTC')).toBeInTheDocument();
+  });
+
+  it.each([false, true])('uses None only for complete explicit-No coverage (missing identity: %s)', missingIdentity => {
+    const purchasing = purchasingWithSuppliers({ value: [{ identifier: 'CLEAR', display: 'Clear supplier', isCreditHold: false, isCia: false }], acquiredAtUtc: supplierTime, error: null });
+    purchasing.supplierIdentityUnavailable = missingIdentity;
+    renderModal({ context: 'shortages', purchasing });
+    const strip = screen.getByRole('region', { name: 'Supplier Credit Hold / CIA' });
+    if (missingIdentity) {
+      expect(strip).not.toHaveTextContent('None');
+      expect(strip).toHaveTextContent('No confirmed Yes · Unavailable: supplier identity missing');
+      expect(strip).toHaveTextContent('Supplier identity is unavailable for one or more qualifying open POs.');
+    } else {
+      expect(strip).toHaveTextContent('Credit hold: None'); expect(strip).toHaveTextContent('CIA: None');
+    }
+  });
+
+  it('distinguishes acquired empty supplier population from No and keeps a successful comment without POs', () => {
+    const purchasing = purchasingWithSuppliers({ value: [], acquiredAtUtc: supplierTime, error: null });
+    purchasing.openPurchaseOrders = [];
+    renderModal({ context: 'shortages', shortage: shortage(), purchasing });
+    const strip = screen.getByRole('region', { name: 'Supplier Credit Hold / CIA' });
+    expect(strip).toHaveTextContent('No supplier status is available from open POs.');
+    expect(strip).not.toHaveTextContent('None');
+    expect(screen.getByText('Independent buyer note')).toBeVisible();
+    expect(screen.getByText('No open purchase orders for this component.')).toBeVisible();
+  });
+
+  it('keeps supplier failure localized, marks its individual flags Unavailable, and wires the existing purchasing retry', async () => {
+    const retry = vi.fn();
+    const purchasing = purchasingWithSuppliers({ value: [{ identifier: 'ACME', display: 'Acme', isCreditHold: null, isCia: null }], acquiredAtUtc: null, error: 'Supplier acquisition failed.' });
+    renderModal({ context: 'shortages', shortage: shortage(), purchasing, onRetryPurchasing: retry });
+    const strip = screen.getByRole('region', { name: 'Supplier Credit Hold / CIA' });
+    expect(within(strip).getByRole('alert')).toHaveTextContent('Supplier acquisition failed.');
+    expect(strip).toHaveTextContent('Credit hold: No confirmed Yes · Unavailable: ACME');
+    expect(strip.querySelector('.part-info__risk-summary')).not.toHaveTextContent('Unknown');
+    await userEvent.click(within(strip).getByText('Supplier status details · 1 suppliers'));
+    const cells = within(screen.getByRole('table', { name: 'Supplier status' })).getAllByRole('cell');
+    expect(cells.map(cell => cell.textContent)).toEqual(['ACME', 'Acme', 'Unavailable', 'Unavailable']);
+    expect(screen.getByText('Independent buyer note')).toBeVisible();
+    expect(screen.getByText('PO-1')).toBeVisible();
+    expect(screen.getByText('Net QOH').nextElementSibling).toHaveTextContent('10');
+    await userEvent.click(screen.getByRole('button', { name: 'Retry supplier status' }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
+
+  it('shows supplier loading independently and never adds the strip in BOM context', () => {
+    const view = renderModal({ context: 'shortages', isPurchasingLoading: true });
+    const strip = screen.getByRole('region', { name: 'Supplier Credit Hold / CIA' });
+    expect(strip).toHaveTextContent('Loading supplier status…'); expect(strip).not.toHaveTextContent('None');
+    expect(screen.getByText('Std / QCTC')).toBeInTheDocument();
+    view.rerender(modalElement({ context: 'bom' }));
+    expect(screen.queryByRole('region', { name: 'Supplier Credit Hold / CIA' })).not.toBeInTheDocument();
+  });
+
+  it('preserves shortages alternate row order, duplicates and null cells in the tabbed table', async () => {
+    renderModal({ context: 'shortages', shortage: shortage(), approvedVendors: [
+      { supplier: 'V002', vendorName: 'B Supply', supplierItem: null, manufacturerPart: null },
+      { supplier: 'V001', vendorName: 'A Supply', supplierItem: 'ITEM', manufacturerPart: 'MFG' },
+      { supplier: 'V001', vendorName: 'A Supply', supplierItem: 'ITEM', manufacturerPart: 'MFG' },
+    ] });
+    await userEvent.click(screen.getByRole('tab', { name: /Approved alternates/ }));
+    const table = screen.getByRole('table', { name: 'Approved Alternates' });
+    expect(within(table).getAllByRole('row').slice(1).map(row => within(row).getAllByRole('cell').map(cell => cell.textContent))).toEqual([
+      ['V002', 'B Supply', '—', '—'], ['V001', 'A Supply', 'ITEM', 'MFG'], ['V001', 'A Supply', 'ITEM', 'MFG'],
+    ]);
+    expect(screen.getByRole('tab', { name: /Approved alternates/ })).toHaveTextContent('3');
+  });
+
+  it('keeps shortages alternate loading localized and preserves exact null and zero price formatting', async () => {
+    renderModal({ context: 'shortages', shortage: shortage(), isApprovedVendorsLoading: true,
+      detail: makeDetail({ standardCost: '0.286832', qctc: null }) });
+    await userEvent.click(screen.getByRole('tab', { name: /Approved alternates/ }));
+    expect(screen.getByText('Loading approved alternates…')).toBeVisible();
+    expect(screen.getByText('Std / QCTC').nextElementSibling?.textContent).toBe('$0.2868 / —');
+    expect(screen.queryByText('$0.0000')).not.toBeInTheDocument();
+    expect(screen.getByText('Net QOH').nextElementSibling?.textContent).toBe('10');
+  });
+
+  it('keeps hidden inventory mounted at open and excludes hidden controls and collapsed details from the focus loop', async () => {
+    const fetch = vi.mocked(fetchInventoryLocations);
+    const entryCalls = fetch.mock.calls.length;
+    renderModal({ context: 'shortages', shortage: shortage(), assignmentId: 'ws', mpsSnapshotId: 'snap', workspaceSite: 'SW' });
+    await waitFor(() => expect(fetch.mock.calls.length).toBe(entryCalls + 1));
+    expect(screen.getByText('Inventory / Lot Locations')).not.toBeVisible();
+    const close = screen.getByRole('button', { name: 'Close Component Information' });
+    const orders = screen.getByRole('tab', { name: /Open POs/ });
+    close.focus(); await userEvent.tab({ shift: true });
+    expect(orders).toHaveFocus();
+    await userEvent.tab(); expect(close).toHaveFocus();
+    await userEvent.click(screen.getByRole('tab', { name: 'Inventory lots' }));
+    await userEvent.click(orders);
+    expect(fetch.mock.calls.length).toBe(entryCalls + 1);
+  });
+
+  it('uses roving keyboard tabs, activates alternates once per selected identity, and keeps Escape ownership', async () => {
+    const activate = vi.fn(); const close = vi.fn();
+    const props = { context: 'shortages' as const, shortage: shortage(), onExpandApprovedVendors: activate, onClose: close, approvedVendors: [] };
+    const view = renderModal(props);
+    expect(activate).not.toHaveBeenCalled();
+    const orders = screen.getByRole('tab', { name: /Open POs/ });
+    orders.focus(); await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByRole('tab', { name: 'Inventory lots' })).toHaveFocus();
+    await userEvent.keyboard('{End}');
+    expect(screen.getByRole('tab', { name: /Approved alternates/ })).toHaveFocus();
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'shortage-info-panel-alternates');
+    expect(activate).toHaveBeenCalledTimes(1);
+    await userEvent.keyboard('{Home}{ArrowLeft}{ArrowRight}{End}');
+    expect(activate).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('No approved alternates found.')).toBeVisible();
+    view.rerender(modalElement({ ...props, componentPart: 'COMP-2', shortage: shortage({ componentPart: 'COMP-2' }) }));
+    expect(screen.getByRole('tab', { name: /Open POs/ })).toHaveAttribute('aria-selected', 'true');
+    await userEvent.click(screen.getByRole('tab', { name: /Approved alternates/ }));
+    expect(activate).toHaveBeenCalledTimes(2);
+    await userEvent.keyboard('{Escape}'); expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('expands buyer comments inline as text, collapses them, and closes only the owning modal on Escape', async () => {
+    const close = vi.fn();
+    const text = '<img src=x> first\n  second';
+    renderModal({ context: 'shortages', shortage: shortage(), onClose: close,
+      purchasing: { supplierIdentityUnavailable: false, commentAvailable: true, currentComment: text, openPurchaseOrders: [] } });
+    const toggle = screen.getByRole('button', { name: 'Show full comment' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    const comment = document.getElementById(toggle.getAttribute('aria-controls')!)!;
+    expect(comment.textContent).toBe(text); expect(comment.querySelector('img')).toBeNull();
+    expect(comment).toHaveClass('shortage-info__comment--clamped');
+    await userEvent.click(toggle);
+    expect(screen.getByRole('button', { name: 'Show less' })).toHaveAttribute('aria-expanded', 'true');
+    expect(comment).not.toHaveClass('shortage-info__comment--clamped');
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    await userEvent.click(toggle); expect(toggle).toHaveTextContent('Show full comment');
+    await userEvent.click(toggle); await userEvent.keyboard('{Escape}'); expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('offers expansion for a measured two-line overflow even without newlines', () => {
+    const height = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(80);
+    const client = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(30);
+    try {
+      renderModal({ context: 'shortages', shortage: shortage(), purchasing: { supplierIdentityUnavailable: false, commentAvailable: true, currentComment: 'Long single line '.repeat(80), openPurchaseOrders: [] } });
+      expect(screen.getByRole('button', { name: 'Show full comment' })).toBeInTheDocument();
+    } finally { height.mockRestore(); client.mockRestore(); }
+  });
+
+  it('retains independently expected snapshot values and explicit loading/unavailable states and retries', async () => {
+    const retry = vi.fn();
+    const row = fullShortage({ openingQoh: '123.45', unitOfMeasure: 'LB', dataQualityWarning: 'Synthetic safety warning' });
+    const projection = { ...projectionFixture(row), adjustedOpeningQoh: '-17.25', pastGrossRequirements: '140.70', overdueReceipts: '6.125', demandParentParts: ['PARENT-Z'] };
+    const props = { context: 'shortages' as const, shortage: compactFixture(row), projectionDetail: projection, onRetryProjection: retry };
+    const view = renderModal(props);
+    const expected = { 'First Short Date': '2026-09-27', 'Opening QOH': '123.45', 'Adjusted Opening QOH': '-17.25', 'Past Gross Requirements': '140.7', 'Overdue Receipts (excluded)': '6.13', UOM: 'LB', 'Demand Parents': 'PARENT-Z' };
+    for (const [label, value] of Object.entries(expected)) expect(screen.getByText(label).nextElementSibling?.textContent).toBe(value);
+    expect(screen.getByText('Synthetic safety warning')).toHaveAttribute('role', 'status');
+    view.rerender(modalElement({ ...props, projectionDetail: null, isProjectionLoading: true, detail: null, isLoading: true }));
+    expect(screen.getByText('Loading snapshot projection detail…')).toHaveAttribute('role', 'status');
+    for (const label of ['Adjusted Opening QOH', 'Past Gross Requirements', 'Overdue Receipts (excluded)']) expect(screen.getByText(label).nextElementSibling?.textContent).toBe('…');
+    expect(screen.getByText('Opening QOH').nextElementSibling?.textContent).toBe('123.45');
+    expect(screen.getByText('Loading component master information…')).toBeInTheDocument();
+    view.rerender(modalElement({ ...props, projectionDetail: null, projectionError: true }));
+    for (const label of ['Adjusted Opening QOH', 'Past Gross Requirements', 'Overdue Receipts (excluded)']) expect(screen.getByText(label).nextElementSibling?.textContent).toBe('Unavailable');
+    await userEvent.click(screen.getByRole('button', { name: 'Retry projection detail' })); expect(retry).toHaveBeenCalledOnce();
+    expect(screen.getByText('Net QOH').nextElementSibling).toHaveTextContent('10');
+  });
+
+  it('keeps failures localized with independent inventory, section retry wiring, stale and status distinctions', async () => {
+    const masterRetry = vi.fn(); const purchasingRetry = vi.fn(); const alternatesRetry = vi.fn();
+    vi.mocked(fetchInventoryLocations).mockResolvedValueOnce({ workspaceId: 'ws', site: 'SW', componentPart: 'COMP-1', mpsSnapshotId: 'snap', acquiredAtUtc: '2026-10-08T12:00:00Z', isStale: false, warning: null, rows: [] });
+    const props = { context: 'shortages' as const, shortage: shortage(), assignmentId: 'ws', mpsSnapshotId: 'snap', workspaceSite: 'SW', detail: null,
+      error: { type: 'error' as const, detail: 'Master failure' }, purchasingError: true, projectionError: true,
+      approvedVendorsError: { type: 'error' as const, detail: 'Alternates failure' }, onRetry: masterRetry, onRetryPurchasing: purchasingRetry, onRetryApprovedVendors: alternatesRetry };
+    const view = renderModal(props);
+    expect(screen.getByText('Buyer comment unavailable.')).toBeInTheDocument();
+    expect(screen.queryByText('No open purchase orders for this component.')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Open POs/ })).toHaveTextContent('Unavailable');
+    expect(within(screen.getByRole('tab', { name: /Open POs/ })).getByLabelText('Acquisition failed')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry component information' })); expect(masterRetry).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry purchase orders' })); expect(purchasingRetry).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole('tab', { name: /Approved alternates/ }));
+    expect(screen.getByText('Approved alternates could not be loaded.')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' })); expect(alternatesRetry).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole('tab', { name: 'Inventory lots' }));
+    expect(await screen.findByText('No inventory locations found.')).toBeVisible();
+    view.rerender(modalElement({ ...props, detail: makeDetail({ isStale: true, warning: 'Synthetic stale master' }), error: null }));
+    expect(screen.getByText('Synthetic stale master')).toHaveAttribute('role', 'alert');
+  });
+
+  it('uses the source-equivalent grid status only while loading and never invents KSS or healthy severity chips', () => {
+    const props = { context: 'shortages' as const, shortage: shortage({ severity: 'Healthy', presentation: null }), detail: null, isLoading: true };
+    const view = renderModal(props);
+    expect(screen.getByText('P', { selector: '.report-chip' })).toBeInTheDocument();
+    expect(screen.queryByText('KSS')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-severity]')).toBeNull();
+    view.rerender(modalElement({ ...props, isLoading: false, detail: makeDetail() }));
+    expect(screen.getByText('A — Active')).toBeInTheDocument();
+    view.rerender(modalElement({ ...props, isLoading: false }));
+    expect(screen.queryByText('P', { selector: '.report-chip' })).not.toBeInTheDocument();
+  });
+
   it.each(['bom', 'shortages'] as const)('shows acquired inventory while preserving master fields and focus trap in %s context', async context => {
     vi.mocked(fetchInventoryLocations).mockResolvedValueOnce({ workspaceId: 'ws', site: 'SW', componentPart: 'COMP-1',
       mpsSnapshotId: 'snap', acquiredAtUtc: '2026-10-08T12:00:00Z', isStale: false, warning: null,
       rows: [{ rowId: '0', location: 'BIN', lotSerial: 'RA', status: 'HOLD', quantityOnHand: '-1.2345678901' }] });
     renderModal({ context, assignmentId: 'ws', mpsSnapshotId: 'snap', workspaceSite: 'SW' });
+    if (context === 'shortages') await userEvent.click(screen.getByRole('tab', { name: 'Inventory lots' }));
     expect(await screen.findByRole('table', { name: 'Inventory / Lot Locations' })).toHaveTextContent('-1.235');
     expect(screen.getByTitle('-1.2345678901')).toBeInTheDocument();
     expect(screen.getByText('Net QOH')).toBeInTheDocument();
@@ -94,6 +328,7 @@ describe('ComponentInfoModal', () => {
     const close = vi.fn();
     renderModal({ context, assignmentId: 'ws', mpsSnapshotId: 'snap', workspaceSite: 'SW', detail: null,
       error: { type: 'error', detail: 'Master unavailable' }, onClose: close });
+    if (context === 'shortages') await userEvent.click(screen.getByRole('tab', { name: 'Inventory lots' }));
     expect(screen.getByRole('heading', { name: 'Inventory / Lot Locations' })).toBeInTheDocument();
     expect(await screen.findByText('Inventory locations could not be loaded. Please retry.')).toBeInTheDocument();
     const inventoryRetry = screen.getByRole('button', { name: 'Retry inventory' });
@@ -101,54 +336,51 @@ describe('ComponentInfoModal', () => {
     await userEvent.keyboard('{Escape}');
     expect(close).toHaveBeenCalledOnce();
   });
-  it('keeps master fields, manufacturer item and alternates in the first column, independent of location length', () => {
-    renderModal({ context: 'shortages', shortage: shortage(), purchasing: { commentAvailable: true, currentComment: null, openPurchaseOrders: [] } });
+  it('puts snapshot, standard facts, disclosure, supplier status, comment and full-width tabs in the specified order', () => {
+    renderModal({ context: 'shortages', workspaceSite: 'SW', shortage: shortage(), purchasing: { supplierIdentityUnavailable: false, commentAvailable: true, currentComment: null, openPurchaseOrders: [] } });
     const dialog = screen.getByRole('dialog');
-    const left = dialog.querySelector('.component-info-modal__left')!;
-    const middle = dialog.querySelector('.component-info-modal__right')!;
-    const right = within(dialog).getByRole('complementary', { name: 'Workspace Shortages details' });
-    expect(left.parentElement).toHaveClass('component-info-modal__columns');
-    expect(left.nextElementSibling).toBe(middle);
-    expect(middle.nextElementSibling).toBe(right);
-    expect(within(left as HTMLElement).getByRole('heading', { name: 'Reference' })).toBeInTheDocument();
-    expect(within(left as HTMLElement).getByRole('heading', { name: 'Manufacturer Item' })).toBeInTheDocument();
-    expect(within(left as HTMLElement).getByRole('button', { name: 'Approved Alternates' })).toBeInTheDocument();
-    expect(within(middle as HTMLElement).getByRole('heading', { name: 'Inventory / Lot Locations' })).toBeInTheDocument();
-    const locationList = document.createElement('div');
-    locationList.textContent = 'LOCATION LOT '.repeat(100);
-    middle.append(locationList);
-    expect(left.contains(locationList)).toBe(false);
-    expect(within(left as HTMLElement).getByRole('heading', { name: 'Reference' })).toBeInTheDocument();
+    expect(dialog).toHaveAccessibleName('Component Information');
+    expect(screen.getByText('Site SW')).toBeInTheDocument();
+    expect(screen.getByText('A — Active')).toBeInTheDocument();
+    expect(screen.getByText('KSS')).toBeInTheDocument();
+    expect(screen.getByText('Future Short')).toHaveAttribute('data-severity', 'FutureShort');
+    const body = dialog.querySelector('.part-info--embedded')!;
+    expect([...body.children].map(element => element.tagName)).toEqual(['SECTION', 'DL', 'DETAILS', 'SECTION', 'SECTION', 'DIV', 'DIV', 'DIV', 'DIV']);
+    expect(body.children[0]).toHaveTextContent('Shortage Snapshot');
+    expect(body.children[1]).toHaveTextContent('Net QOH10Std / QCTC$12.5000 / $13.7500Purchase LT7 daysMin / multiple100 / 25Safety time2 daysBuyer / IOSJDOE / I');
+    expect(body.children[2]).not.toHaveAttribute('open');
+    expect(body.children[3]).toHaveAttribute('aria-label', 'Supplier Credit Hold / CIA');
+    expect(body.children[4]).toHaveTextContent('Current Buyer Comment');
+    expect(screen.getAllByRole('tab').map(tab => tab.textContent?.trim())).toEqual(['Open POs 0', 'Inventory lots', 'Approved alternates']);
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'shortage-info-panel-orders');
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
     const css = readFileSync(resolve(process.cwd(), 'src/components/ComponentInfoModal.css'), 'utf8');
-    expect(css).toMatch(/\.component-info-modal__columns\s*{[^}]*display:\s*grid;[^}]*align-items:\s*start/);
-    expect(css).toMatch(/\.component-info-modal--shortages \.component-info-modal__columns[^}]*grid-template-columns:\s*minmax\(0,/);
-    expect(css).toMatch(/@media \(max-width: 1100px\)[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/);
+    expect(css).toContain('width: min(1100px, 100%)');
+    expect(css).not.toContain('.component-info-modal--shortages .component-info-modal__columns');
   });
 
-  it('keeps master planning values out of the shortage column and wraps every demand parent', () => {
+  it('keeps snapshot and master values separate and wraps every demand parent', () => {
     const parents = Array.from({ length: 40 }, (_, index) => `LONG-MODEL-${index}`);
     renderModal({ context: 'shortages', shortage: shortage(), projectionDetail: projectionFixture(fullShortage({ demandParentParts: parents })),
-      purchasing: { commentAvailable: true, currentComment: null, openPurchaseOrders: [] } });
-    const left = screen.getByLabelText('Component information');
-    const right = screen.getByRole('complementary', { name: 'Workspace Shortages details' });
-    for (const field of ['Buyer / Planner', 'Safety Stock', 'Safety Time', 'Purchase LT']) {
-      expect(within(left).getByText(field)).toBeInTheDocument();
+      purchasing: { supplierIdentityUnavailable: false, commentAvailable: true, currentComment: null, openPurchaseOrders: [] } });
+    const right = screen.getByRole('region', { name: 'Shortage Snapshot' });
+    for (const field of ['Buyer / IOS', 'Safety Stock', 'Safety time', 'Purchase LT']) {
+      expect(screen.getByText(field)).toBeInTheDocument();
       expect(within(right).queryByText(field)).not.toBeInTheDocument();
     }
-    expect(within(right).getAllByText('KSS')).toHaveLength(2);
+    expect(screen.getAllByText('KSS')).toHaveLength(1);
     const parentField = within(right).getByText('Demand Parents').parentElement!;
     expect(parentField).toHaveClass('long-term-shortage-detail__parents');
     expect(parentField.querySelector('dd')).toHaveTextContent(parents[parents.length - 1]);
     expect(within(right).queryByText('Manufacturing Lead (site working days)')).not.toBeInTheDocument();
     const css = readFileSync(resolve(process.cwd(), 'src/components/ComponentInfoModal.css'), 'utf8');
-    expect(css).toMatch(/\.long-term-shortage-detail__parents\s*{[^}]*grid-column:\s*1 \/ -1/);
     expect(css).toMatch(/\.long-term-shortage-detail__parents dd\s*{[^}]*white-space:\s*normal;[^}]*overflow-wrap:\s*anywhere/);
   });
 
   it('rounds Past and PO quantities by component UOM without changing raw values, and hides normal-screen evidence', () => {
     const view = renderModal({ context: 'shortages', shortage: shortage(), projectionDetail: projectionFixture(fullShortage()),
-      purchasing: { commentAvailable: true, currentComment: 'On order', openPurchaseOrders: [] } });
-    const right = screen.getByRole('complementary', { name: 'Workspace Shortages details' });
+      purchasing: { supplierIdentityUnavailable: false, commentAvailable: true, currentComment: 'On order', openPurchaseOrders: [] } });
+    const right = screen.getByRole('dialog');
     expect(within(right).getByText('Past Gross Requirements').nextElementSibling).toHaveTextContent('3');
     expect(within(right).getByText('Overdue Receipts (excluded)').nextElementSibling).toHaveTextContent('2');
     expect(within(right).getByText('Adjusted Opening QOH').nextElementSibling).toHaveTextContent('8');
@@ -158,7 +390,7 @@ describe('ComponentInfoModal', () => {
       projectionDetail={projectionFixture(fullShortage())}
       detail={makeDetail()} isLoading={false} error={null} onRetry={vi.fn()} onClose={vi.fn()} approvedVendors={null}
       isApprovedVendorsLoading={false} approvedVendorsError={null} onExpandApprovedVendors={vi.fn()} onRetryApprovedVendors={vi.fn()}
-      purchasing={{ commentAvailable: true, currentComment: null, openPurchaseOrders: [] }} />);
+      purchasing={{ supplierIdentityUnavailable: false, commentAvailable: true, currentComment: null, openPurchaseOrders: [] }} />);
     expect(within(right).getByText('Past Gross Requirements').nextElementSibling).toHaveTextContent('2.75');
     expect(within(right).getByText('Overdue Receipts (excluded)').nextElementSibling).toHaveTextContent('1.75');
     expect(within(right).getByText('Adjusted Opening QOH').nextElementSibling).toHaveTextContent('8.25');
@@ -166,8 +398,8 @@ describe('ComponentInfoModal', () => {
 
   it('uses Current Buyer Comment without invented metadata and distinguishes no comment from unavailable', () => {
     const props = { context: 'shortages' as const, shortage: shortage() };
-    const view = renderModal({ ...props, purchasing: { commentAvailable: true, currentComment: 'Buyer note', openPurchaseOrders: [] } });
-    const right = screen.getByRole('complementary', { name: 'Workspace Shortages details' });
+    const view = renderModal({ ...props, purchasing: { supplierIdentityUnavailable: false, commentAvailable: true, currentComment: 'Buyer note', openPurchaseOrders: [] } });
+    const right = screen.getByRole('dialog');
     expect(within(right).getByRole('heading', { name: 'Current Buyer Comment' })).toBeInTheDocument();
     expect(within(right).queryByText('Latest Buyer Comment')).not.toBeInTheDocument();
     expect(within(right).getByText('Buyer note')).toBeInTheDocument();
@@ -175,15 +407,14 @@ describe('ComponentInfoModal', () => {
     view.rerender(<ComponentInfoModal componentPart="COMP-1" detail={makeDetail()} isLoading={false} error={null}
       onRetry={vi.fn()} onClose={vi.fn()} approvedVendors={null} isApprovedVendorsLoading={false} approvedVendorsError={null}
       onExpandApprovedVendors={vi.fn()} onRetryApprovedVendors={vi.fn()} {...props}
-      purchasing={{ commentAvailable: true, currentComment: '  ', openPurchaseOrders: [] }} />);
+      purchasing={{ supplierIdentityUnavailable: false, commentAvailable: true, currentComment: '  ', openPurchaseOrders: [] }} />);
     expect(within(right).getByText('No buyer comment on file')).toBeInTheDocument();
   });
 
   it.each([false, true])('shows source metadata and plain text in shortage details (empty=%s)', (empty) => {
     const text = '<img src=x> first\n  second';
-    renderModal({ context: 'shortages', shortage: shortage(), purchasing: { commentAvailable: true,
-      currentComment: empty ? '' : text, commentRecordedAt: '2022-01-31T13:30:00', commentAuthor: 'jdoe', openPurchaseOrders: [] } });
-    const right = screen.getByRole('complementary', { name: 'Workspace Shortages details' });
+    renderModal({ context: 'shortages', shortage: shortage(), purchasing: { supplierIdentityUnavailable: false, commentAvailable: true, currentComment: empty ? '' : text, commentRecordedAt: '2022-01-31T13:30:00', commentAuthor: 'jdoe', openPurchaseOrders: [] } });
+    const right = screen.getByRole('dialog');
     expect(within(right).getByText('Jan 31, 2022 · 1:30 PM · jdoe')).toBeInTheDocument();
     expect(right.textContent).toContain(empty ? 'No comment text in latest entry.' : text);
     expect(within(right).queryByText('No buyer comment on file')).not.toBeInTheDocument();
@@ -196,10 +427,10 @@ describe('ComponentInfoModal', () => {
       confirmed: true, supplierDisplay: 'Acme', buyerDisplay: null, manufacturerItem: null, isKss: false,
       trackingInfo: null, isCreditHold: null, isCia: null, currentComments: null,
     });
-    renderModal({ context: 'shortages', shortage: shortage(), purchasing: { commentAvailable: true, currentComment: null,
+    renderModal({ context: 'shortages', shortage: shortage(), purchasing: { supplierIdentityUnavailable: false, commentAvailable: true, currentComment: null,
       openPurchaseOrders: [po('FUTURE', '2999-01-01', 12.75), po('NO-DATE', null, 4.25),
         po('PAST-LATER', '2001-02-01', 1.5), po('PAST-EARLIER', '2000-01-01', 2.5)] } });
-    const table = within(screen.getByRole('complementary', { name: 'Workspace Shortages details' })).getByRole('table');
+    const table = within(screen.getByRole('dialog')).getByRole('table');
     const rows = within(table).getAllByRole('row').slice(1);
     expect(rows.map((element) => element.querySelector('td')?.textContent)).toEqual(['PAST-EARLIER', 'PAST-LATER', 'FUTURE', 'NO-DATE']);
     expect(rows[0]).toHaveTextContent('Past due: 2000-01-01');
@@ -209,7 +440,7 @@ describe('ComponentInfoModal', () => {
 
   it('uses the shortage report as-of date to identify past-due open PO lines', () => {
     renderModal({ context: 'shortages', asOfDate: '2026-09-25', shortage: shortage(),
-      purchasing: { commentAvailable: true, currentComment: null, openPurchaseOrders: [{
+      purchasing: { supplierIdentityUnavailable: false, commentAvailable: true, currentComment: null, openPurchaseOrders: [{
         componentPart: 'COMP-1', description: null, leadTimeDays: null, poNumber: 'PO-A', poLine: 1,
         dueDate: '2026-09-24', openQuantity: 1, confirmed: null, supplierDisplay: null, buyerDisplay: null,
         manufacturerItem: null, isKss: false, trackingInfo: null, isCreditHold: null, isCia: null, currentComments: null,
@@ -243,7 +474,7 @@ describe('ComponentInfoModal', () => {
         safetyTimeWorkingDays: null, manufacturingLeadWorkingDays: null, purchasingLeadCalendarDays: null,
         cumulativeLeadCalendarDays: null, sitePlanningPresent: true })} />);
     expect(screen.getByText('Net QOH')).toBeInTheDocument();
-    expect(screen.getByRole('complementary', { name: 'Workspace Shortages details' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Shortage Snapshot' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Show MRP' })).not.toBeInTheDocument();
   });

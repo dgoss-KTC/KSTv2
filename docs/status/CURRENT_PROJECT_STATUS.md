@@ -1,7 +1,98 @@
 # Current Project Status
 
-Date: 2026-10-20
+Date: 2026-10-21
 Workstation: Windows (`C:\Dev\kst_v2`)
+
+## Workspace Shortages Include KSS / popup acceptance — 2026-10-21
+
+**Popup alignment, Credit Hold/CIA and Include KSS — COMPLETE / OWNER-ACCEPTED /
+BOUNDED FOLLOW-UPS CLOSED — 2026-10-21.** Owner confirms Include KSS: “Works great! Accepted.”
+Earlier popup/supplier acceptance stands. Owner-reported behavior is separate from artifact inspection
+and offline tests; it does not establish every suggested desktop check, agent desktop/source testing
+or that the owner tested the exact hash below. Owner explicitly supersedes KSS-only/default visibility:
+unchecked excludes existing KSS parts; checked includes both kinds, intersecting unchanged filters/sort.
+Show All cannot override exclusion. Counts/empty states/export selection use resulting rows; filter
+context still invalidates protected preparations. No persistence, acquisition, classification, algorithm,
+backend/contract/native/dependency change; supplier backend preserved without republication.
+
+New focused execution: **67 frontend passes / zero failures/skips in five files**; changed frontend/
+diagnostic-caller lint, types and frontend build pass. Popup/supplier/backend evidence reused without
+overlapping totals. React/Vite warnings, initial partial complexity/post-edit AFT deadlines, inherited
+broad lint/format exceptions and other suites' skips retained. Actual entry build-info `F1064073…`
+restored byte-for-byte, unstaged/excluded. One complete 32-path local commit authorized with normal
+hooks; complete diff/new-file/contracts/staged-path/whitespace/committed-tree checks, no repeated suites,
+builds/publication/review solely for closeout. All 28 retained source/test fingerprints and release hash
+match at closeout entry. No live reads/install/submission/push; Stage 22 open.
+Record/evidence/review identity: `docs/implementation/KST_v2_S22_SHORTAGE_POPUP_ALIGNMENT.md`
+(Include KSS amendment); external `shortage-popup-alignment\include-kss\`. Existing S22-008/018/037 only;
+Only delivered follow-ups close; broader workstreams and Part Info/MRP remain separately scoped/open.
+Next: separate Part Info/MRP session, not another acceptance gate or MRP work in this closeout.
+Guarded offline embedded release passes with KST closed, no termination/guard bypass/republication.
+Current alpha.21 host `src/tauri/target/release/kst-tauri.exe`: **15,307,264 bytes**, SHA256
+`ABF27981C0B23A34ECD5C557FB5EA69E1D969EC3A35432C8F19E2CD140B37338`; current frontend asset names
+embedded/newer than assets, all four supplier-status sidecars/configs unchanged. Twenty-two unaffected
+entry files byte-identical at the release checkpoint. No agent app launch/desktop test or installed
+deployment claim. Final acceptance/closeout and actual shared exports are in the implementation record;
+historical acceptance and S22-029's documented resolution are preserved.
+
+## Preceding shortage popup / shared Part Info evidence — 2026-10-20
+
+The pending-acceptance statements below are historical; popup/supplier visual acceptance is recorded
+above. Earlier executable identities are retained as checkpoint history, not the new Include KSS host.
+
+**Supplier-status owner amendment — IMPLEMENTED / OFFLINE-VERIFIED / EMBEDDED REVIEW RELEASE
+PREPARED; POPUP ACCEPTANCE PENDING.** Owner supersedes the original supplier-status
+exclusion only for Workspace Shortages. Current Credit Hold/CIA strip immediately precedes Current
+Buyer Comment, with individual supplier details; None only for complete explicit No, separate
+Unknown/Unavailable/missing-identity/no-supplier states. Existing selected qualifying POs supply the
+exact ordinal-deduplicated identities for one supplier-only request through existing batching;
+comment-only acquisition stays independent, including no POs. Optional failure preserves successful
+sections; cancellation/snapshot/selection guards retained. Reuses Part Info section/supplier shapes
+and shared display strip; contract-first OpenAPI/TypeScript generated. BOM/lookup/exports/Stage 9–11
+algorithms/Part Info-MRP remain unchanged. New executed checks: 116 frontend (six files), 46 application,
+33 API, 24 reader, 10 architecture passes, zero failures/skips; six changed-file lint, types/build pass.
+The preceding alignment run's 96 unaffected cases are reused, not rerun/added to these counts.
+React/Vite warnings, AFT C# nonresponse/post-edit deadlines/partial complexity and inherited broad
+lint/format exceptions remain explicit. Actual entry build-info `F1064073…` byte-preserved and excluded;
+no live reads/install/submission/dependencies/capabilities/native source/commit/push. Changed sidecar
+publication and guarded offline embedded build pass with KST closed, no termination/guard bypass.
+Current alpha.21 host `src/tauri/target/release/kst-tauri.exe`: **15,307,264 bytes**, SHA256
+`6FE7117250E9C0EF6123D71467D9E983047BA815E7C2B4309AF9FF5E75F1C392`; current asset names embedded,
+four republished sidecars/configs agree, no app launch/desktop acceptance. Cumulative 27-path diff and
+19-path amendment-only diff exclude build-info, index empty. Evidence:
+`C:\Users\dgoss\AppData\Local\Temp\opencode\shortage-popup-alignment\supplier-status\`;
+record/API meaning: `docs/implementation/KST_v2_S22_SHORTAGE_POPUP_ALIGNMENT.md`,
+`docs/api/WORKSPACE_SHORTAGES.md`. Owner likes the alignment but final acceptance remains pending.
+
+**Preceding alignment implementation/evidence (preserved, before supplier amendment):**
+
+**IMPLEMENTED / OFFLINE-VERIFIED — POPUP VISUAL ACCEPTANCE PENDING.** Owner-dispatched follow-up
+from `b5e5617`: shared display-only Part Info identity/facts/cards/fields/table/tabs extracted once;
+standalone lookup behavior/markup/IDs retained. Workspace Shortages popup now leads with identity and
+snapshot, then standard facts/details/comment and full-width tabs. Hidden panels remain mounted,
+inventory stays independent, alternates activate once per selected lifecycle, focus excludes hidden
+controls, comments expand inline. BOM labels/rendering/Show MRP and acquisition/business/export rules
+are unchanged. Grid/detail status source equivalence confirmed from domain/part-scoped `pt_status`;
+grid code is loading-only fallback, not a guarantee of temporal equality.
+
+Offline **202 passes / zero failures/skips (11 files)**; changed-file lint, TypeScript and frontend
+build pass. React fixture/Vite warnings, partial complexity/post-edit AFT deadlines and broad inherited
+lint/format exceptions remain explicit; final narrow diagnostics authoritative/zero for three production
+files only. Actual entry build-info bytes preserved unstaged/excluded (`F1064073…`). Guard first stopped
+before Cargo for running KST; after owner normal closure and PowerShell progress-logging correction,
+guarded offline embedded release passed. Current alpha.21 review host: **15,307,776 bytes**, SHA256
+`9249BD7CAA8F3D8A1228450E91B9855B9CA28F7765BF64674D617DBB399F27E7`,
+`src/tauri/target/release/kst-tauri.exe`; final asset names embedded/newer than assets, four sidecars
+unchanged. No process termination/guard bypass/sidecar publication. No backend/native source/contracts/
+dependencies/capabilities/live access/install/submission/
+commit/push. Existing S22-008/018/037 carry this bounded follow-up, without duplicate IDs or reopening
+historical acceptance; Part Info/MRP remains subsequent work, Stage 22 open. Record/evidence/checklist:
+`docs/implementation/KST_v2_S22_SHORTAGE_POPUP_ALIGNMENT.md`;
+`C:\Users\dgoss\AppData\Local\Temp\opencode\shortage-popup-alignment\`.
+
+**S22-029 — OWNER-CONFIRMED RESOLVED — 2026-10-20.** This dispatch supplies owner confirmation
+that main MPS horizontal scrolling is resolved. Documentation-only reconciliation, not new geometry
+testing or exhaustive window validation, and not acceptance of the popup or separate detail-scroll work.
 
 ## S22-005 / S22-009 — Pagination removal — 2026-10-20
 
@@ -1065,8 +1156,8 @@ The owner approved the revised Release 1 roadmap on 2026-09-29:
   outside Stage 22. The accepted Stage 11 export and Planning Mass Updater CSV remain delivered.
 - Stage 22 is an interactive, product-wide Refinement & Optimization stage. It receives measured
   performance work, usability defects, refinements, and deferred Release 1 work that does not fit a
-  feature stage. The known nonfunctional horizontal scrollbar in the main MPS matrix is a required
-  Stage 22 item.
+  feature stage. Main MPS horizontal-scroll intake S22-029 is owner-confirmed resolved (2026-10-20);
+  this is documentation reconciliation, not new geometry testing or broader Stage 22 acceptance.
 - Quality and Hardening moves to Stage 23; Release 1 Readiness to Stage 24; Pilot to Stage 25;
   Incremental Multi-Site Rollout to Stage 26; and Post-Release Roadmap to Stage 27.
 

@@ -1,0 +1,5 @@
+.part-info__supplier-strip { border: 1px solid var(--bd); border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; background: var(--panel2); overflow-wrap: anywhere; }
+.part-info__risk-summary { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 12px; }
+.part-info__risk-summary > span { flex: 1 1 240px; }
+.part-info__supplier-strip p { margin: 0; }
+.part-info__supplier-strip .part-info__time { margin-top: 6px; }

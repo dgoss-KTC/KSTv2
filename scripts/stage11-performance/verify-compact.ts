@@ -21,10 +21,10 @@ for (const file of readdirSync(directory).filter(f => f.endsWith('-compact-api.j
     }
     for (const sort of ['mostUrgent', 'firstShortage', 'deepestShortage', 'recoveryDate', 'buyerPlanner', 'component'] as const)
     for (const showAll of [true, false])
-    for (const kssOnly of [true, false])
+    for (const includeKss of [true, false])
     for (const statusOnly of [true, false])
     for (const search of ['', original[0].componentPart.slice(0, 3)]) {
-      const filters = { ...EMPTY_LONG_TERM_SHORTAGES_FILTERS, sort, showAll, kssOnly, statusOnly, component: search, planner: search ? (original[0].planner ?? '').slice(0, 3) : '' };
+      const filters = { ...EMPTY_LONG_TERM_SHORTAGES_FILTERS, sort, showAll, includeKss, statusOnly, component: search, planner: search ? (original[0].planner ?? '').slice(0, 3) : '' };
       assert.deepEqual(filterLongTermShortages(candidate, filters).map(r => r.componentPart), filterLongTermShortages(original, filters).map(r => r.componentPart));
       comparisons++;
     }

@@ -13,6 +13,7 @@ import {
   formatLongTermDate,
 } from '../longTermShortages/longTermShortagesPresentation';
 import { workspaceShortagesExport, type WorkspaceShortagesExportRequest } from '../longTermShortages/workspaceShortagesExport';
+import '../shared/shortageSeverity.css';
 import { AnalyticalExcelExport } from './AnalyticalExcelExport';
 import { useLocalBusinessDate } from '../hooks/useLocalBusinessDate';
 import { localIsoDate } from '../shared/localDate';
@@ -85,7 +86,7 @@ export function LongTermShortagesPanel({ assignmentId, snapshotId, site = null }
         <label>Comp <input type="search" value={filters.component} onChange={(event) => setFilters({ ...filters, component: event.target.value })} /></label>
         <label>Buyer / Planner <input type="search" value={filters.planner} onChange={(event) => setFilters({ ...filters, planner: event.target.value })} /></label>
         <label>Sort <select value={filters.sort} onChange={(event) => setFilters({ ...filters, sort: event.target.value as typeof filters.sort })}><option value="mostUrgent">Most urgent</option><option value="firstShortage">First shortage</option><option value="deepestShortage">Deepest shortage</option><option value="recoveryDate">Recovery date</option><option value="buyerPlanner">Buyer/planner</option><option value="component">Component number</option></select></label>
-        <label><input type="checkbox" checked={filters.kssOnly} onChange={(event) => setFilters({ ...filters, kssOnly: event.target.checked })} /> KSS</label>
+        <label><input type="checkbox" checked={filters.includeKss} onChange={(event) => setFilters({ ...filters, includeKss: event.target.checked })} /> Include KSS</label>
         <label><input type="checkbox" checked={filters.statusOnly} onChange={(event) => setFilters({ ...filters, statusOnly: event.target.checked })} /> Status</label>
         <label><input type="checkbox" checked={filters.showAll} onChange={(event) => setFilters({ ...filters, showAll: event.target.checked })} /> Show All</label>
         <label><input type="checkbox" checked={populationOptions.includeUnconfirmed} onChange={(event) => setPopulationOptions({ ...populationOptions, includeUnconfirmed: event.target.checked })} /> Include Unconfirmed Receipts</label>
@@ -139,7 +140,7 @@ function SeverityLabel({ label, severity, explanation }: { label: string; severi
     setPosition({ top: Math.min(bounds.bottom + 4, window.innerHeight - 80), left: Math.max(8, Math.min(bounds.left, window.innerWidth - 328)) });
   };
   return <>
-    <span className="long-term-shortages__severity-label" data-severity={severity} tabIndex={explanation ? 0 : undefined}
+    <span className="long-term-shortages__severity-label shortage-severity" data-severity={severity} tabIndex={explanation ? 0 : undefined}
       aria-label={explanation ? `${label}: ${explanation}` : undefined}
       aria-describedby={explanation ? tooltipId : undefined}
       onMouseEnter={(event) => { if (explanation) show(event.currentTarget); }} onMouseLeave={() => setPosition(null)}

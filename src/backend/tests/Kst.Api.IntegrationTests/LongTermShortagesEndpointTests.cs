@@ -134,11 +134,15 @@ public sealed class LongTermShortagesEndpointTests
         Assert.Equal(1, reads);
     }
 
-    [Fact]
-    public async Task Purchasing_UsesCachedProjectionScopeAndSelectedComponentPoPath_WithoutAnotherMrpRead()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task Purchasing_UsesCachedProjectionScopeAndSelectedComponentPoPath_WithoutAnotherMrpRead(bool supplierFails, bool noPos)
     {
         var mrpReads = 0;
         var poReads = 0;
+        var supplierReads = 0;
         await using var factory = new KstApiFactory
         {
             BomSourceReader = new DelegateBomSourceReader((_, _, _, _) => Task.FromResult<IReadOnlyList<BomOccurrence>>([new("1", 1, "COMP", "P", false, null, 1m, null)])),
@@ -152,12 +156,25 @@ public sealed class LongTermShortagesEndpointTests
             {
                 poReads++;
                 Assert.Equal(["COMP"], parts);
-                return Task.FromResult<IReadOnlyList<ComponentOrderLine>>([new("COMP", "Part", null, "PO-1", 2,
-                    new DateOnly(2026, 9, 20), 3.75m, true, "Supplier", null, null, false, null)]);
+                return Task.FromResult<IReadOnlyList<ComponentOrderLine>>(noPos ? [] : [
+                    new("COMP", "Part", null, "PO-1", 2, new DateOnly(2026, 9, 20), 3.75m, true, "Supplier", null, null, false, null, "ACME"),
+                    new("COMP", "Part", null, "PO-2", 1, null, 1m, false, "Supplier", null, null, false, null, "ACME"),
+                    new("COMP", "Part", null, "PO-3", 1, null, 1m, false, "Case distinct", null, null, false, null, "acme"),
+                    new("COMP", "Part", null, "PO-4", 1, null, 1m, false, null, null, null, false, null)]);
             }),
-            ComponentOrderEnrichmentReader = new DelegateComponentOrderEnrichmentReader((_, _) =>
-                Task.FromResult(new ComponentOrderEnrichmentResult(new Dictionary<string, BuyerComment> { ["COMP"] = new("Current buyer note", new(2022, 1, 31, 13, 30, 0), "jdoe") },
-                    new Dictionary<string, ComponentOrderSupplierRisk>())))
+            ComponentOrderEnrichmentReader = new DelegateComponentOrderEnrichmentReader((request, _) =>
+            {
+                if (request.SupplierIdentifiers.Count > 0)
+                {
+                    supplierReads++;
+                    Assert.Empty(request.ComponentIdentifiers);
+                    Assert.Equal(["ACME", "acme"], request.SupplierIdentifiers);
+                    if (supplierFails) throw new InvalidOperationException("private supplier failure");
+                }
+                else Assert.Equal(["COMP"], request.ComponentIdentifiers);
+                return Task.FromResult(new ComponentOrderEnrichmentResult(new Dictionary<string, BuyerComment> { ["COMP"] = new("Current buyer note", new(2022, 1, 31, 13, 30, 0), "jdoe") },
+                    new Dictionary<string, ComponentOrderSupplierRisk>(StringComparer.OrdinalIgnoreCase) { ["ACME"] = new(true, false) }));
+            })
         };
         using var client = factory.CreateClient();
         var workspace = JsonDocument.Parse(await (await client.PostAsJsonAsync("/api/v1/workspaces", new { site = "SW", parentParts = new[] { "PARENT" }, isTemporary = false })).Content.ReadAsStringAsync()).RootElement.GetProperty("assignmentId").GetGuid();
@@ -174,7 +191,25 @@ public sealed class LongTermShortagesEndpointTests
         Assert.Equal("2022-01-31T13:30:00", root.GetProperty("commentRecordedAt").GetString());
         Assert.Equal("jdoe", root.GetProperty("commentAuthor").GetString());
         Assert.DoesNotContain("commentHistory", root.ToString(), StringComparison.OrdinalIgnoreCase);
-        Assert.Equal("PO-1", root.GetProperty("openPurchaseOrders")[0].GetProperty("poNumber").GetString());
+        var suppliers = root.GetProperty("suppliers");
+        Assert.Equal(!noPos, root.GetProperty("supplierIdentityUnavailable").GetBoolean());
+        Assert.Equal(supplierFails ? JsonValueKind.String : JsonValueKind.Null, suppliers.GetProperty("error").ValueKind);
+        Assert.Equal(supplierFails ? JsonValueKind.Null : JsonValueKind.String, suppliers.GetProperty("acquiredAtUtc").ValueKind);
+        var values = suppliers.GetProperty("value");
+        Assert.Equal(noPos ? 0 : 2, values.GetArrayLength());
+        if (noPos) Assert.Empty(root.GetProperty("openPurchaseOrders").EnumerateArray());
+        else
+        {
+            Assert.Equal("PO-1", root.GetProperty("openPurchaseOrders")[0].GetProperty("poNumber").GetString());
+            Assert.Equal("ACME", values[0].GetProperty("identifier").GetString());
+            Assert.Equal("Supplier", values[0].GetProperty("display").GetString());
+            if (supplierFails) Assert.Equal(JsonValueKind.Null, values[0].GetProperty("isCreditHold").ValueKind);
+            else { Assert.True(values[0].GetProperty("isCreditHold").GetBoolean()); Assert.False(values[0].GetProperty("isCia").GetBoolean()); }
+            Assert.Equal("acme", values[1].GetProperty("identifier").GetString());
+            Assert.Equal(JsonValueKind.Null, values[1].GetProperty("isCreditHold").ValueKind);
+            Assert.Equal(JsonValueKind.Null, values[1].GetProperty("isCia").ValueKind);
+        }
+        Assert.Equal(noPos ? 0 : 1, supplierReads);
         Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.GetAsync(path.Replace("componentPart=COMP", "componentPart=OTHER"))).StatusCode);
         Assert.Equal(1, mrpReads);
         Assert.Equal(1, poReads);

@@ -4,7 +4,10 @@ import type { ApprovedVendorsApiError } from '../api/approvedVendorsApi';
 import type { ComponentDetailResponseDto, ApprovedVendorDto } from '../api/client';
 import type { LongTermShortagePurchasing, LongTermShortageScreenRow, LongTermShortageProjectionDetail } from '../api/longTermShortagesApi';
 import { formatQuantity } from '../mps/mpsPresentation';
-import { ShortageInformationSections } from './LongTermShortageDetailModal';
+import { ShortageSnapshot, ShortageBuyerComment, ShortageOpenOrders } from './LongTermShortageDetailModal';
+import { PartIdentity, FactsStrip, InfoCard, Fields, InfoTabs, ScrollTable } from '../shared/partInfoParts';
+import { SupplierStrip } from '../shared/SupplierStrip';
+import '../shared/shortageSeverity.css';
 import './ComponentInfoModal.css';
 import { InventoryLocationsPanel } from './InventoryLocationsPanel';
 
@@ -64,7 +67,7 @@ function formatStatus(code: string | null | undefined, description: string | nul
 }
 
 const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'button:not([disabled]):not([tabindex="-1"]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 
 /**
  * Stage 8D.6 blocking Component Information modal. Opens immediately with the component identity
@@ -74,21 +77,13 @@ const FOCUSABLE_SELECTOR =
  * only; occurrence/level/qty-per/scrap remain BOM-only concepts and are intentionally not shown
  * here.
  */
-export function ComponentInfoModal({
+export function ComponentInfoModal(props: ComponentInfoModalProps) {
+  const {
   assignmentId,
   mpsSnapshotId = null,
   workspaceSite = null,
   context = 'bom',
   shortage,
-  projectionDetail = null,
-  isProjectionLoading = false,
-  projectionError = false,
-  onRetryProjection = () => {},
-  asOfDate,
-  purchasing = null,
-  isPurchasingLoading = false,
-  purchasingError = false,
-  onRetryPurchasing = () => {},
   componentPart,
   detail,
   isLoading,
@@ -100,7 +95,7 @@ export function ComponentInfoModal({
   approvedVendorsError,
   onExpandApprovedVendors,
   onRetryApprovedVendors,
-}: ComponentInfoModalProps) {
+  } = props;
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   // Disclosure starts collapsed for each newly mounted component modal.
@@ -135,7 +130,9 @@ export function ComponentInfoModal({
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key !== 'Tab') return;
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])].filter(element =>
+        !element.closest('[hidden], [inert]') && ![...dialogRef.current!.querySelectorAll('details:not([open])')].some(details =>
+          details.contains(element) && element !== details.querySelector('summary')));
       if (!focusable || focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -183,7 +180,12 @@ export function ComponentInfoModal({
               &#10005;
             </button>
           </div>
-          <div className="component-info-modal__identity-row">
+          {context === 'shortages' ? <PartIdentity part={componentPart} description={detail?.description ?? NO_VALUE} chips={[
+            workspaceSite && <span key="site" className="report-chip">Site {workspaceSite}</span>,
+            <span key="status" className="report-chip">{detail ? formatStatus(detail.partStatusCode, detail.partStatusDescription) : isLoading ? shortage?.qadStatus ?? NO_VALUE : NO_VALUE}</span>,
+            shortage?.isKss && <span key="kss" className="report-chip">KSS</span>,
+            shortage && shortage.severity !== 'Healthy' && <span key="severity" className="shortage-severity" data-severity={shortage.severity}>{({ CriticalShort: 'Critical Short', FutureShort: 'Future Short', SafetyStockShort: 'Safety Short', SafetyStockUnavailable: 'SS Unknown' } as Record<string, string>)[shortage.severity] ?? shortage.severity}</span>,
+          ]} /> : <div className="component-info-modal__identity-row">
             <div className="component-info-modal__identity">
               <span className="component-info-modal__part">{componentPart}</span>
               <span className="component-info-modal__description">{detail?.description ?? NO_VALUE}</span>
@@ -196,11 +198,11 @@ export function ComponentInfoModal({
             >
               Show MRP
             </button>}
-          </div>
+          </div>}
         </div>
 
         <div className={`component-info-modal__body${context === 'shortages' ? ' component-info-modal__body--shortages' : ''}`}>
-          <div className="component-info-modal__base">
+          {context === 'shortages' ? <ShortageComponentInformation key={JSON.stringify([assignmentId, workspaceSite, componentPart])} {...props} /> : <div className="component-info-modal__base">
           {isLoading && context === 'bom' && (
             <div className="component-info-modal__state">Loading component information&hellip;</div>
           )}
@@ -321,12 +323,6 @@ export function ComponentInfoModal({
                     </dl>
                    </section>
                   </> : null}
-                  {context === 'shortages' && isLoading && <p className="component-info-modal__placeholder">Loading component master information…</p>}
-                  {context === 'shortages' && error && <p role="status">Component master information unavailable. <button type="button" onClick={onRetry}>Retry component information</button></p>}
-                  {context === 'shortages' && !detail && !isLoading && !error && <p className="component-info-modal__placeholder">Component master information is unavailable.</p>}
-                  {context === 'shortages' && projectionDetail?.effectivePmCode === 'M' && projectionDetail.manufacturingLeadWorkingDays !== null &&
-                    <section className="component-info-modal__section"><h3>Manufacturing Planning</h3><dl className="component-info-modal__grid"><div className="component-info-modal__field"><dt>Manufacturing Lead (site working days)</dt><dd>{projectionDetail.manufacturingLeadWorkingDays ?? '—'}</dd></div></dl></section>}
-                  {context === 'shortages' && <section className="component-info-modal__section"><h3>Manufacturer Item</h3><p>{projectionDetail?.manufacturerItem ?? (isProjectionLoading ? 'Loading…' : projectionError ? 'Unavailable' : '—')}</p></section>}
                   <section className="component-info-modal__section component-info-modal__alternates">
                     <button type="button" className="component-info-modal__avl-toggle" aria-expanded={isAvlExpanded}
                       aria-controls="component-info-modal-avl-content" onClick={handleToggleApprovedVendors}>
@@ -349,13 +345,86 @@ export function ComponentInfoModal({
                   <InventoryLocationsPanel assignmentId={assignmentId ?? null} componentPart={componentPart}
                     snapshotId={mpsSnapshotId} site={workspaceSite} />
                 </div>
-                {context === 'shortages' && shortage && <aside className="component-info-modal__shortage" aria-label="Workspace Shortages details"><ShortageInformationSections row={shortage} projection={projectionDetail} isProjectionLoading={isProjectionLoading} projectionError={projectionError} onRetryProjection={onRetryProjection} asOfDate={asOfDate} purchasing={purchasing} isLoading={isPurchasingLoading} error={purchasingError} onRetry={onRetryPurchasing} /></aside>}
               </div>
             </>
           )}
-          </div>
+          </div>}
         </div>
       </div>
     </div>
   );
+}
+
+/** Shortages presentation only. Keyed by the selected identity, never by the active table. */
+function ShortageComponentInformation({ assignmentId, mpsSnapshotId = null, workspaceSite = null, componentPart,
+  detail, isLoading, error, onRetry, shortage, projectionDetail = null, isProjectionLoading = false,
+  projectionError = false, onRetryProjection = () => {}, asOfDate, purchasing = null, isPurchasingLoading = false,
+  purchasingError = false, onRetryPurchasing = () => {}, approvedVendors, isApprovedVendorsLoading,
+  approvedVendorsError, onExpandApprovedVendors, onRetryApprovedVendors,
+}: ComponentInfoModalProps) {
+  const [tab, setTab] = useState<'orders' | 'locations' | 'alternates'>('orders');
+  const activated = useRef(false);
+  function changeTab(next: typeof tab) {
+    setTab(next);
+    if (next === 'alternates' && !activated.current) {
+      activated.current = true;
+      onExpandApprovedVendors();
+    }
+  }
+  return <div className="part-info part-info--embedded">
+    {detail?.isStale && <div className="component-info-modal__banner" role="alert">{detail.warning ?? 'Showing the last known component information.'}</div>}
+    {shortage && <ShortageSnapshot row={shortage} projection={projectionDetail} isProjectionLoading={isProjectionLoading} projectionError={projectionError} onRetryProjection={onRetryProjection} />}
+    {isLoading ? <p className="component-info-modal__placeholder">Loading component master information…</p>
+      : error ? <p role="status">Component master information unavailable. <button type="button" onClick={onRetry}>Retry component information</button></p>
+        : !detail ? <p className="component-info-modal__placeholder">Component master information is unavailable.</p> : null}
+    {detail && !isLoading && !error && <FactsStrip label="Component master facts" items={[
+      ['Net QOH', formatQuantity(detail.netQuantityOnHand)],
+      ['Std / QCTC', <><span>{formatOptionalPrice(detail.standardCost)}</span> / <span>{formatOptionalPrice(detail.qctc)}</span></>],
+      ['Purchase LT', formatOptionalDays(detail.purchaseLeadTimeDays)],
+      ['Min / multiple', `${formatOptionalQuantity(detail.minimumOrderQuantity)} / ${formatOptionalQuantity(detail.orderMultiple)}`],
+      ['Safety time', formatOptionalDays(detail.safetyTime)],
+      ['Buyer / IOS', `${detail.buyerPlanner ?? NO_VALUE} / ${detail.iosCode ?? NO_VALUE}`],
+    ]} />}
+    <details className="part-info__more"><summary>More part details</summary><div className="part-info__details-grid">
+      {detail && <>
+        <InfoCard title="Inventory / Planning"><Fields values={[
+          ['Non-Net QOH', formatQuantity(detail.nonNetQuantityOnHand)], ['Time Fence', formatOptionalQuantity(detail.timeFence)], ['Safety Stock', formatOptionalQuantity(detail.safetyStock)],
+        ]} /></InfoCard>
+        <InfoCard title="Additional lead times"><Fields values={[
+          ['Inspect LT', formatOptionalDays(detail.inspectionLeadTimeDays)], ['Cumulative LT', formatOptionalDays(detail.cumulativeLeadTimeDays)],
+        ]} /></InfoCard>
+      </>}
+      <InfoCard title="Manufacturer item"><Fields values={[
+        ['Manufacturer Item', projectionDetail?.manufacturerItem ?? (isProjectionLoading ? 'Loading…' : projectionError ? 'Unavailable' : NO_VALUE)],
+        ...(projectionDetail?.effectivePmCode === 'M' && projectionDetail.manufacturingLeadWorkingDays !== null
+          ? [['Manufacturing Lead (site working days)', projectionDetail.manufacturingLeadWorkingDays] as [string, React.ReactNode]] : []),
+      ]} /></InfoCard>
+     </div></details>
+     <SupplierStrip section={purchasing?.suppliers ?? { value: null, acquiredAtUtc: null,
+       error: isPurchasingLoading ? null : purchasingError ? 'Supplier status unavailable because open purchase orders could not be acquired.' : 'Supplier status is unavailable.' }}
+       isLoading={isPurchasingLoading} missingIdentity={purchasing?.supplierIdentityUnavailable} unavailableDetails
+       note="Current supplier statuses for this selected component’s qualifying open POs."
+       actions={!isPurchasingLoading && (purchasingError || !!purchasing?.suppliers?.error) ? <button type="button" onClick={onRetryPurchasing}>Retry supplier status</button> : undefined} />
+     <ShortageBuyerComment purchasing={purchasing} isLoading={isPurchasingLoading} error={purchasingError} />
+    <InfoTabs idPrefix="shortage-info" label="Component information tables" active={tab} onChange={changeTab} tabs={[
+      { id: 'orders', label: 'Open POs', count: isPurchasingLoading ? undefined : purchasingError ? 'Unavailable' : purchasing?.openPurchaseOrders.length, failed: purchasingError },
+      { id: 'locations', label: 'Inventory lots' },
+      { id: 'alternates', label: 'Approved alternates', count: isApprovedVendorsLoading ? undefined : approvedVendorsError ? 'Unavailable' : approvedVendors?.length, failed: !!approvedVendorsError },
+    ]} />
+    <div id="shortage-info-panel-orders" role="tabpanel" aria-labelledby="shortage-info-tab-orders" hidden={tab !== 'orders'}>
+      {shortage && <ShortageOpenOrders row={shortage} asOfDate={asOfDate} purchasing={purchasing} isLoading={isPurchasingLoading} error={purchasingError} onRetry={onRetryPurchasing} />}
+    </div>
+    <div id="shortage-info-panel-locations" role="tabpanel" aria-labelledby="shortage-info-tab-locations" hidden={tab !== 'locations'}>
+      <InventoryLocationsPanel assignmentId={assignmentId ?? null} componentPart={componentPart} snapshotId={mpsSnapshotId} site={workspaceSite} />
+    </div>
+    <div id="shortage-info-panel-alternates" role="tabpanel" aria-labelledby="shortage-info-tab-alternates" hidden={tab !== 'alternates'}>
+      <InfoCard title="Approved Alternates">
+        {isApprovedVendorsLoading && <p className="component-info-modal__placeholder">Loading approved alternates…</p>}
+        {!isApprovedVendorsLoading && approvedVendorsError && <div className="component-info-modal__avl-error"><p>Approved alternates could not be loaded.</p><button type="button" className="component-info-modal__retry-btn" onClick={onRetryApprovedVendors}>Retry</button></div>}
+        {!isApprovedVendorsLoading && !approvedVendorsError && approvedVendors && (approvedVendors.length === 0
+          ? <p className="component-info-modal__placeholder">No approved alternates found.</p>
+          : <ScrollTable label="Approved Alternates" headings={['Supplier', 'Vendor Name', 'Supplier Item', 'MFG Part']} rows={approvedVendors.map(vendor => [vendor.supplier, vendor.vendorName, vendor.supplierItem, vendor.manufacturerPart])} />)}
+      </InfoCard>
+    </div>
+  </div>;
 }

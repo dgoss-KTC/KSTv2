@@ -3,7 +3,70 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position:** **S22-005/009 pagination-removal follow-ups — COMPLETE /
+**Current project position — 2026-10-21:** **Popup alignment, Credit Hold/CIA and Include KSS — COMPLETE /
+OWNER-ACCEPTED / BOUNDED FOLLOW-UPS CLOSED.** Owner confirms Include KSS: “Works great! Accepted.”
+Owner-reported behavior is separate from offline/artifact evidence, not itemized desktop checklist
+completion, agent desktop testing or proof of the exact hash tested. One complete 32-path local commit
+authorized with normal hooks; build-info bytes preserved unstaged/excluded. No push. Only delivered
+S22-008/018/037 portions close; broader workstreams, Part Info/MRP and Stage 22 remain open. Historical
+acceptance and S22-029 resolution are preserved. Final closeout/shared-export handoff is in the record
+below; next is the separate Part Info/MRP session, not MRP implementation here or another acceptance gate.
+
+**Preceding Include KSS implementation/evidence (pending/no-commit statements are historical):**
+Owner explicitly supersedes Workspace
+Shortages KSS-only/default visibility: unchecked excludes existing KSS rows, checked includes both
+kinds; other filters/sort and Show All intersection retained. Same rows drive counts/empty/export;
+protected context invalidation/focus preserved. No persistence/acquisition/classification/locked-algorithm/
+backend/contract/native/dependency change. Cumulative popup/supplier work remains uncommitted/preserved.
+New execution 67 frontend passes/zero failures/skips in five files; frontend/diagnostic-caller lint,
+types/build pass. Prior popup/backend evidence reused without adding overlapping counts; AFT deadlines,
+React/Vite warnings, inherited lint/format exceptions and other skips retained. Actual entry build-info
+`F1064073…` byte-preserved/unstaged/excluded. No live access/install/submission/commit/push; no supplier
+backend republication. Existing S22-008/018/037 only; Part Info/MRP and Stage 22 remain open.
+Record/evidence/artifact: `docs/implementation/KST_v2_S22_SHORTAGE_POPUP_ALIGNMENT.md`,
+`shortage-popup-alignment\include-kss\` under the existing external evidence root.
+Guarded offline embedded release passes after shutdown checks; current alpha.21 host15,307,264 bytes,
+SHA256 `ABF27981…`, current asset names embedded; all four supplier-status sidecars/configs and22
+unaffected entry files unchanged. No termination/guard bypass/republication/app launch; index empty.
+
+**Preceding supplier-status evidence (pending statements superseded by acceptance above):**
+**Shortage popup supplier-status amendment — IMPLEMENTED / FOCUSED
+OFFLINE-VERIFIED / GUARDED EMBEDDED REVIEW RELEASE PREPARED; FINAL POPUP ACCEPTANCE PENDING
+— 2026-10-20.** Owner supersedes supplier exclusion for shortages only. Current Credit Hold/CIA strip
+above Current Buyer Comment, supplier-level details and truthful No/Unknown/Unavailable/missing-identity/
+no-supplier states. Exact ordinal-deduplicated supplier-only enrichment from selected qualifying POs,
+separate comment request including no-PO cases, existing batching/guards preserved. Reuses Part Info
+section/supplier contracts/display strip; C# → OpenAPI → generated TS. No new joins/source rules,
+MRP/BOM acquisition, Part Info/MRP integration, dependencies, capabilities, native source or live reads.
+116 frontend/46 application/33 API/24 reader/10 architecture passes, zero failure/skip; six-file lint,
+types/frontend build pass. Reuse previous 96 unaffected cases without overlapping totals. React/Vite
+warnings, partial/deadline AFT and inherited lint/format exceptions retained. Entry `F1064073…` build-info
+byte-preserved/excluded/unstaged; no commit/push/install/submission. Guarded offline publication/build
+passed with KST closed, no process termination/guard bypass/app launch. Current alpha.21 host:
+15,307,264 bytes, SHA256 `6FE71172…`; current assets embedded, four republished sidecars/configs agree.
+Cumulative 27-path and amendment-only 19-path diffs exclude build-info; index empty. Existing S22-008/018/037
+only, accepted history/S22-029 preserved; Stage 22 remains open.
+Record: `docs/implementation/KST_v2_S22_SHORTAGE_POPUP_ALIGNMENT.md` (supplier-status amendment);
+evidence: `shortage-popup-alignment\supplier-status\` under the existing external evidence root.
+
+**Preceding alignment implementation/evidence:** **Shortage popup / shared Part Info presentation — IMPLEMENTED /
+OFFLINE-VERIFIED; POPUP VISUAL ACCEPTANCE PENDING — 2026-10-20.** Owner-dispatched from `b5e5617`;
+shared display pieces extracted once, standalone lookup retained, shortages-only hierarchy/tab/comment
+alignment with unchanged hooks/timing/quantities/retries/BOM/export behavior. 202 offline passes / zero
+failures/skips (11 files), changed-file lint/types/frontend build pass. React/Vite warnings, initial
+partial complexity/post-edit AFT deadlines and inherited broad lint/format exceptions retained; final
+narrow diagnostics zero/authoritative for three production files. Actual entry build-info `F1064073…`
+byte-preserved unstaged/excluded. Guard first stopped for running KST; after normal owner closure and
+PowerShell progress-logging correction, offline embedded release passed. Review alpha.21 host:
+15,307,776 bytes, SHA256 `9249BD7C…`; current assets embedded, four sidecars unchanged, no app launch,
+guard bypass or process termination.
+No backend/native/contracts/dependency/capability/live access/install/submission/sidecar publication/
+commit/push. Existing S22-008/018/037 follow-up only; accepted history preserved, Part Info/MRP and Stage
+22 remain open. **S22-029 main MPS horizontal scrolling is OWNER-CONFIRMED RESOLVED — 2026-10-20**
+from this dispatch, documentation-only, not new geometry tests or popup/detail-scroll acceptance.
+Record/checklist/evidence: `docs/implementation/KST_v2_S22_SHORTAGE_POPUP_ALIGNMENT.md`.
+
+**Preceding accepted checkpoint:** **S22-005/009 pagination-removal follow-ups — COMPLETE /
 OWNER-ACCEPTED / CLOSED — 2026-10-20.** Owner: “Pagination has been removed from the targeted areas
 and all is working well. Accepted.” Owner-reported behavior/acceptance, not an agent desktop pass or
 proof of the exact binary tested. Owner dispatch supersedes only
@@ -1993,9 +2056,10 @@ A substantial new standalone capability requires its own explicit roadmap dispos
 
 ### 22.2 Required known intake
 
-- [ ] Repair the main MPS matrix horizontal scrolling: when the matrix exceeds the viewport, its
-      horizontal scrollbar must allow access to every column at supported window sizes without
-      breaking headers, selection, or layout.
+- [x] Main MPS matrix horizontal scrolling (S22-029): **OWNER-CONFIRMED RESOLVED — 2026-10-20**.
+      Owner supplied confirmation in the shortage-popup dispatch; documentation-only reconciliation,
+      not new geometry testing/exhaustive supported-window checks or popup/detail-scroll acceptance.
+      Historical requirement: access every column without breaking headers, selection or layout.
 - [ ] Revisit Stage 9 presentation, workflow, explanation, and measured performance without silently
       changing its accepted shortage algorithm.
 - [~] Reassess Stage 10 `PERF-001` using current measurements. S22-006 instrumentation/offline

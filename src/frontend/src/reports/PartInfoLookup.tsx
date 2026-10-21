@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getPartInfoSpec, lookupPartInfo, refreshPartInfoLocations, PartInfoError, type PartInfo, type PartInfoSpec } from '../api/partInfoApi';
 import { formatBuyerCommentMetadata } from '../shared/buyerCommentPresentation';
 import { decimal, exactText, formatDecimal } from '../shared/exactDecimal';
+import { PartIdentity, FactsStrip, Fields, InfoCard as Card, ScrollTable, InfoTabs } from '../shared/partInfoParts';
+import { SupplierStrip } from '../shared/SupplierStrip';
 import './PartInfoLookup.css';
 
 const absent = '—';
@@ -13,18 +15,6 @@ function inventoryQuantity(value: string | null): string {
   if (value === null) return absent;
   const parsed = decimal(value);
   return parsed ? exactText(parsed) : value;
-}
-function Fields({ values }: { values: [string, ReactNode][] }) {
-  return <dl className="part-info__fields">{values.map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value ?? absent}</dd></div>)}</dl>;
-}
-function Card({ title, children, error, acquired }: { title: string; children: ReactNode; error?: string | null; acquired?: string | null }) {
-  return <section className="part-info__card"><h3>{title}</h3>{error && <p role="alert">{error}</p>}{children}
-    {acquired && <p className="part-info__time">Acquired <time dateTime={acquired}>{new Date(acquired).toLocaleString()}</time></p>}</section>;
-}
-function ScrollTable({ label, headings, rows, numeric = [] }: { label: string; headings: string[]; rows: ReactNode[][]; numeric?: number[] }) {
-  return <div className="part-info__scroll" tabIndex={0} role="region" aria-label={`Scrollable ${label}`}><table aria-label={label}>
-    <thead><tr>{headings.map((h, j) => <th className={numeric.includes(j) ? 'part-info__number' : undefined} key={h} scope="col">{h}</th>)}</tr></thead><tbody>{rows.map((row, i) => <tr key={i}>{row.map((cell, j) => <td className={numeric.includes(j) ? 'part-info__number' : undefined} key={j}>{cell ?? absent}</td>)}</tr>)}</tbody>
-  </table></div>;
 }
 
 function BuyerCommentDialog({ part, text, recordedAt, author, onClose }: { part: string; text: string; recordedAt?: string | null; author?: string | null; onClose: () => void }) {
@@ -50,24 +40,6 @@ function BuyerCommentDialog({ part, text, recordedAt, author, onClose }: { part:
       <div className="part-info__comment" tabIndex={0} role="region" aria-label="Full buyer comment">{text || 'No comment text in latest entry.'}</div>
     </section>
   </div>;
-}
-
-function SupplierStrip({ section }: { section: PartInfo['suppliers'] }) {
-  const suppliers = section.value;
-  const summary = (key: 'isCreditHold' | 'isCia') => {
-    if (!suppliers?.length) return 'Unavailable';
-    const yes = suppliers.filter(s => s[key] === true).map(s => s.identifier);
-    const unknown = suppliers.filter(s => s[key] === null).map(s => s.identifier);
-    return `${yes.length ? yes.join(', ') : unknown.length || section.error ? 'No confirmed Yes' : 'None'}${unknown.length ? ` · ${section.error ? 'Unavailable' : 'Unknown'}: ${unknown.join(', ')}` : ''}`;
-  };
-  return <section className="part-info__supplier-strip" aria-label="Supplier Credit Hold / CIA">
-    {section.error && <p role="alert">{section.error}</p>}
-    {suppliers?.length === 0 ? <p>No supplier status is available from open POs.</p> : <div className="part-info__risk-summary"><span><strong>Credit hold:</strong> {summary('isCreditHold')}</span><span><strong>CIA:</strong> {summary('isCia')}</span></div>}
-    {!!suppliers?.length && <details><summary>Supplier status details · {suppliers.length} suppliers</summary>
-      <ScrollTable label="Supplier status" headings={['Supplier identifier', 'Supplier', 'Credit Hold', 'CIA']} rows={suppliers.map(s => [s.identifier, s.display, flag(s.isCreditHold), flag(s.isCia)])} />
-      <p className="part-info__hint">Only suppliers evidenced by qualifying open POs. Unknown is not No.</p></details>}
-    {section.acquiredAtUtc && <p className="part-info__time">Acquired <time dateTime={section.acquiredAtUtc}>{new Date(section.acquiredAtUtc).toLocaleString()}</time></p>}
-  </section>;
 }
 
 const tabs = [{ id: 'orders', label: 'Open POs' }, { id: 'locations', label: 'Inventory lots' }, { id: 'alternates', label: 'Approved alternates' }] as const;
@@ -152,16 +124,6 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
     } finally { if (current()) setInventoryLoading(false); }
   }
   const m = report?.master;
-  function tabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-    let next: number;
-    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
-    else if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
-    else if (event.key === 'Home') next = 0;
-    else if (event.key === 'End') next = tabs.length - 1;
-    else return;
-    event.preventDefault(); setTab(tabs[next].id);
-    document.getElementById(`part-info-tab-${tabs[next].id}`)?.focus();
-  }
   return <div className="part-info">
     {specError && <p role="alert">Lookup settings unavailable. <button onClick={() => setSpecAttempt(v => v + 1)}>Retry settings</button></p>}
     <form className="part-info__inputs" onSubmit={event => { event.preventDefault(); void submit(); }}>
@@ -176,19 +138,18 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
     {error && <div role={missing ? 'status' : 'alert'} className="part-info__state"><h2>{missing ? 'Part not found' : 'Lookup unavailable'}</h2><p>{error}</p><button onClick={() => void submit()}>Retry lookup</button></div>}
     {!loading && !error && !report && <p className="part-info__state">Enter a part number and select Lookup, or press Enter.</p>}
     {report && m && <>
-      <header className="part-info__identity"><div><h2>{report.part}</h2><p>{m.description ?? 'Description not available'}</p><strong className="report-chip">Site {report.site}</strong>
-        <span className="report-chip">{m.partStatusCode ? `${m.partStatusCode}${m.partStatusDescription ? ` — ${m.partStatusDescription}` : ''}` : 'Part status unavailable'}</span></div>
-        <button className="report-button" aria-label="Refresh / Retry sections" title="Refresh all sections; retries any that failed" onClick={() => void submit()}>Refresh</button></header>
-      <dl className="part-info__facts">
-        {([
+      <PartIdentity part={report.part} description={m.description ?? 'Description not available'} chips={[
+        <strong key="site" className="report-chip">Site {report.site}</strong>,
+        <span key="status" className="report-chip">{m.partStatusCode ? `${m.partStatusCode}${m.partStatusDescription ? ` — ${m.partStatusDescription}` : ''}` : 'Part status unavailable'}</span>,
+      ]} actions={<button className="report-button" aria-label="Refresh / Retry sections" title="Refresh all sections; retries any that failed" onClick={() => void submit()}>Refresh</button>} />
+      <FactsStrip items={[
           ['Net QOH', report.inventory.value ? inventoryQuantity(report.inventory.value.netQuantityOnHand) : 'Unavailable'],
           ['Std / QCTC', <><span>{price(m.standardCost)}</span> / <span>{price(m.qctc)}</span></>],
           ['Purchase LT', days(m.purchaseLeadTimeDays)],
           ['Min / multiple', `${quantity(m.minimumOrderQuantity)} / ${quantity(m.orderMultiple)}`],
           ['Safety time', days(m.safetyTime)],
           ['Buyer / IOS', `${m.buyerPlanner ?? absent} / ${m.iosCode ?? absent}`],
-        ] satisfies [string, ReactNode][]).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-      </dl>
+        ]} />
       {report.inventory.error && <p role="alert">{report.inventory.error}</p>}
       <details className="part-info__more"><summary>More part details</summary><div className="part-info__details-grid">
           <Card title="Inventory / Planning" acquired={report.inventory.acquiredAtUtc}>
@@ -206,12 +167,7 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
           </button> : <p>No current buyer comment.</p>}
         {report.comment.acquiredAtUtc && <p className="part-info__time">Acquired <time dateTime={report.comment.acquiredAtUtc}>{new Date(report.comment.acquiredAtUtc).toLocaleString()}</time></p>}
       </section>
-      <div className="part-info__tabs" role="tablist" aria-label="Part information tables">
-        {tabs.map((item, index) => <button key={item.id} id={`part-info-tab-${item.id}`} role="tab" aria-selected={tab === item.id}
-          aria-controls={`part-info-panel-${item.id}`} tabIndex={tab === item.id ? 0 : -1} onClick={() => setTab(item.id)} onKeyDown={event => tabKey(event, index)}>
-          {item.label} <span className="part-info__count">{report[item.id].value?.length ?? 'Unavailable'}</span>{report[item.id].error && <span aria-label="Acquisition failed"> !</span>}
-        </button>)}
-      </div>
+      <InfoTabs idPrefix="part-info" tabs={tabs.map(item => ({ ...item, count: report[item.id].value?.length ?? 'Unavailable', failed: !!report[item.id].error }))} active={tab} onChange={setTab} />
       <div id="part-info-panel-alternates" role="tabpanel" aria-labelledby="part-info-tab-alternates" hidden={tab !== 'alternates'}>
           <Card title="Approved Alternates" error={report.alternates.error} acquired={report.alternates.acquiredAtUtc}>
               {report.alternates.value && (report.alternates.value.length === 0 ? <p>No approved alternates found.</p> : <ScrollTable label="Approved Alternates" headings={['Supplier', 'Vendor Name', 'Supplier Item', 'MFG Part']}

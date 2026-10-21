@@ -3,7 +3,8 @@ import { strict as assert } from 'node:assert';
 import type { LongTermShortageRow, LongTermShortagesScreen } from '../../src/frontend/src/api/longTermShortagesApi';
 import { filterLongTermShortages, EMPTY_LONG_TERM_SHORTAGES_FILTERS, formatLongTermQuantity, type LongTermShortagesFilters } from '../../src/frontend/src/longTermShortages/longTermShortagesPresentation';
 
-// Frozen indexed-screen comparator, retained independently of the new production path.
+// Indexed-screen comparator, retained independently of the production path.
+// KSS view semantics amended 2026-10-21; historical capture/verification results are unchanged.
 function originalFilter(rows: LongTermShortageRow[], filters: LongTermShortagesFilters) {
   const component = filters.component.trim().toLocaleLowerCase();
   const planner = filters.planner.trim().toLocaleLowerCase();
@@ -17,7 +18,7 @@ function originalFilter(rows: LongTermShortageRow[], filters: LongTermShortagesF
   return rows.filter(r => filters.showAll || ['CriticalShort', 'FutureShort', 'SafetyStockShort'].includes(r.severity))
     .filter(r => !component || r.componentPart.toLocaleLowerCase().includes(component))
     .filter(r => !planner || (r.planner ?? '').toLocaleLowerCase().includes(planner))
-    .filter(r => !filters.kssOnly || r.presentation?.isKss === true)
+    .filter(r => filters.includeKss || r.presentation?.isKss !== true)
     .filter(r => !filters.statusOnly || Boolean(r.qadStatus))
     .sort((a, b) => (filters.sort === 'mostUrgent' ? priority(a.severity) - priority(b.severity) || first(a).localeCompare(first(b))
       : filters.sort === 'firstShortage' ? first(a).localeCompare(first(b))
@@ -48,9 +49,9 @@ for (const file of readdirSync(directory).filter(f => f.endsWith('-production-ap
       assert.deepEqual(screen.weeks.map(w => w.weekNumber), row.weeks.map(w => w.weekNumber));
     }
     for (const sort of ['mostUrgent', 'firstShortage', 'deepestShortage', 'recoveryDate', 'buyerPlanner', 'component'] as const)
-    for (const showAll of [true, false]) for (const kssOnly of [true, false]) for (const statusOnly of [true, false])
+    for (const showAll of [true, false]) for (const includeKss of [true, false]) for (const statusOnly of [true, false])
     for (const search of ['', original[0].componentPart.slice(0, 3)]) {
-      const filters = { ...EMPTY_LONG_TERM_SHORTAGES_FILTERS, sort, showAll, kssOnly, statusOnly, component: search, planner: search ? (original[0].planner ?? '').slice(0, 3) : '' };
+      const filters = { ...EMPTY_LONG_TERM_SHORTAGES_FILTERS, sort, showAll, includeKss, statusOnly, component: search, planner: search ? (original[0].planner ?? '').slice(0, 3) : '' };
       assert.deepEqual(filterLongTermShortages(candidate, filters).map(r => r.componentPart), originalFilter(original, filters).map(r => r.componentPart));
       comparisons++;
     }

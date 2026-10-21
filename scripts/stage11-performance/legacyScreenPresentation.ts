@@ -1,14 +1,14 @@
 import type { LongTermShortageRow } from '../../src/frontend/src/api/longTermShortagesApi';
 import type { LongTermShortagesFilters } from '../../src/frontend/src/longTermShortages/longTermShortagesPresentation';
 
-/** Retained pre-compact filter oracle. Diagnostic only; never imported by the application. */
+/** Pre-compact filter oracle with 2026-10-21 KSS view semantics. Diagnostic only; never imported by the application. */
 export function filterLongTermShortages(rows: readonly LongTermShortageRow[], filters: LongTermShortagesFilters): LongTermShortageRow[] {
   const component = filters.component.trim().toLocaleLowerCase();
   const planner = filters.planner.trim().toLocaleLowerCase();
   return rows.filter(row => filters.showAll || ['CriticalShort', 'FutureShort', 'SafetyStockShort'].includes(row.severity))
     .filter(row => !component || row.componentPart.toLocaleLowerCase().includes(component))
     .filter(row => !planner || (row.planner ?? '').toLocaleLowerCase().includes(planner))
-    .filter(row => !filters.kssOnly || row.presentation?.isKss === true)
+    .filter(row => filters.includeKss || row.presentation?.isKss !== true)
     .filter(row => !filters.statusOnly || Boolean(row.qadStatus))
     .sort((left, right) => {
       const priority = (severity: string) => severity === 'CriticalShort' ? 0 : severity === 'FutureShort' ? 1 : severity === 'SafetyStockShort' ? 2 : severity === 'SafetyStockUnavailable' ? 3 : 4;

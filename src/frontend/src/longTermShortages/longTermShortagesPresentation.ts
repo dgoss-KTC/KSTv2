@@ -3,14 +3,14 @@ import type { LongTermShortageScreenRow as LongTermShortageRow } from '../api/lo
 export interface LongTermShortagesFilters {
   component: string;
   planner: string;
-  kssOnly: boolean;
+  includeKss: boolean;
   statusOnly: boolean;
   showAll: boolean;
   sort: 'mostUrgent' | 'firstShortage' | 'deepestShortage' | 'recoveryDate' | 'buyerPlanner' | 'component';
 }
 
 export const EMPTY_LONG_TERM_SHORTAGES_FILTERS: LongTermShortagesFilters = {
-  component: '', planner: '', kssOnly: false, statusOnly: false, showAll: false, sort: 'mostUrgent',
+  component: '', planner: '', includeKss: false, statusOnly: false, showAll: false, sort: 'mostUrgent',
 };
 
 export function isShortage(row: LongTermShortageRow): boolean {
@@ -28,7 +28,7 @@ export function filterLongTermShortages(
     .filter((row) => filters.showAll || isShortage(row))
     .filter((row) => !component || row.componentPart.toLocaleLowerCase().includes(component))
     .filter((row) => !planner || (row.planner ?? '').toLocaleLowerCase().includes(planner))
-    .filter((row) => !filters.kssOnly || row.isKss)
+    .filter((row) => filters.includeKss || !row.isKss)
     .filter((row) => !filters.statusOnly || Boolean(row.qadStatus))
     .sort((left, right) => {
       const priority = (severity: string) => severity === 'CriticalShort' ? 0 : severity === 'FutureShort' ? 1 : severity === 'SafetyStockShort' ? 2 : severity === 'SafetyStockUnavailable' ? 3 : 4;

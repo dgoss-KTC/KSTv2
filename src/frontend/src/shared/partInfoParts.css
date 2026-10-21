@@ -1,0 +1,41 @@
+.part-info { min-width: 0; padding: 0 12px 24px; font-size: 13px; }
+.part-info__identity { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 6px; }
+.part-info__identity > div { flex: 1; min-width: 180px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 14px; overflow-wrap: anywhere; }
+.part-info h2 { font-size: 1.35em; }
+.part-info__identity h2, .part-info__identity p { margin: 0; }
+.part-info__identity h2 { font: 600 15px 'IBM Plex Mono', monospace; }
+.part-info__identity p { color: var(--tx2); }
+.part-info__facts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 0; border: 1px solid var(--bd); border-radius: 8px; overflow: hidden; background: var(--bd); gap: 1px; }
+.part-info__facts > div { background: var(--panel2); padding: 10px 12px; min-width: 0; }
+.part-info__facts dt { font-size: 13px; color: var(--tx2); margin-bottom: 4px; }
+.part-info__facts dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.part-info__more { margin: 6px 0 12px; }
+.part-info summary { cursor: pointer; padding: 7px 0; }
+.part-info__details-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 6px; }
+.part-info__card { border: 1px solid var(--bd); border-radius: 8px; padding: 14px; min-width: 0; background: var(--panel); overflow-wrap: anywhere; }
+.part-info__card h3 { font-size: 1em; margin: 0 0 12px; }
+.part-info__card p { line-height: 1.5; }
+.part-info__fields { display: grid; gap: 10px; margin: 0; }
+.part-info__fields > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.part-info__fields dt { color: var(--tx2); }
+.part-info__fields dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.part-info__time, .part-info__hint { font-size: 11px; margin: 8px 0 0; color: var(--tx2); }
+.part-info__comment-strip { border: 1px solid var(--bd); border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; background: var(--panel2); overflow-wrap: anywhere; }
+.part-info__comment-strip p { margin: 0; }
+.part-info__comment-strip .part-info__time { margin-top: 6px; }
+.part-info__tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 16px 0 10px; border-bottom: 1px solid var(--bd); }
+.part-info__tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 12px; background: transparent; color: var(--tx2); cursor: pointer; }
+.part-info__tabs button[aria-selected='true'] { border-bottom-color: var(--accent-solid); color: var(--tx); }
+.part-info__count { display: inline-block; border-radius: 10px; padding: 0 6px; background: var(--chip); font-size: 11px; margin-left: 4px; }
+.part-info__scroll { overflow: auto; max-height: 60vh; margin-top: 10px; }
+.part-info__scroll table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 12px; }
+.part-info__scroll th, .part-info__scroll td { text-align: left; padding: calc(var(--density-cell-padding-y) + 2px) 10px; border-bottom: 1px solid var(--bd); max-width: 320px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.part-info__scroll th { position: sticky; top: 0; background: var(--panel2); color: var(--tx2); font-size: 11px; }
+.part-info__scroll .part-info__number { text-align: right; white-space: nowrap; }
+.part-info :is(input, select, button, summary, [tabindex]):focus-visible { outline: 2px solid var(--accent-solid); outline-offset: 3px; }
+.report-chip { display: inline-block; border: 1px solid var(--bd); border-radius: 5px; background: var(--chip); color: var(--tx2); padding: 3px 8px; font-size: 11px; font-weight: 400; }
+
+.part-info--embedded { padding: 0 0 8px; }
+.part-info--embedded .part-info__scroll { max-height: 38vh; }
+@media (max-width: 1300px) { .part-info__facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .part-info__details-grid { grid-template-columns: minmax(0, 1fr); } .part-info__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

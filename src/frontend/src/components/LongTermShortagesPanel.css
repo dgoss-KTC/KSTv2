@@ -77,11 +77,6 @@
 .long-term-shortages__matrix thead th:nth-child(-n+7) { z-index: 3; background: var(--sticky); }
 .long-term-shortages__refreshing { color: var(--tx2); font-size: 12px; }
 @media (max-width: 760px) { .long-term-shortages { margin: 0 10px 10px; }.long-term-shortages__toolbar, .long-term-shortages__controls { align-items: flex-start; flex-direction: column; }.long-term-shortages__legend { margin-left: 0; }.long-term-shortages__filters input[type='search'] { width: 96px; }.long-term-shortages__matrix :is(th, td):nth-child(-n+7) { padding-inline: 4px; } }
-.long-term-shortages__severity-label { display: inline-block; max-width: 100%; color: var(--tx2); }
-.long-term-shortages__severity-label:is([data-severity='CriticalShort'], [data-severity='FutureShort'], [data-severity='SafetyStockShort'], [data-severity='SafetyStockUnavailable']) { display: inline-flex; align-items: center; box-sizing: border-box; height: 20px; padding: 0 8px; border: 1px solid var(--bd); border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--chip); }
-.long-term-shortages__severity-label[data-severity='CriticalShort'] { background: var(--danger-bg); color: var(--danger-tx); border-color: var(--danger-bd); }
-.long-term-shortages__severity-label[data-severity='FutureShort'] { background: var(--f-bg); color: var(--f-tx); border-color: var(--f-bd); }
-.long-term-shortages__severity-label[data-severity='SafetyStockShort'] { background: var(--a-bg); color: var(--a-tx); border-color: var(--a-bd); }
 .long-term-shortages__severity-label[data-severity='SafetyStockUnavailable'][tabindex] { text-decoration: underline dotted; text-underline-offset: 3px; }
 .long-term-shortages__severity-label:focus-visible { outline: 2px solid var(--accent-solid); outline-offset: 2px; }
 .long-term-shortages__severity-tooltip { position: fixed; z-index: 100; width: max-content; max-width: min(320px, 70vw); padding: 6px 8px; border: 1px solid var(--bd); border-radius: 4px; background: var(--panel2); color: var(--tx); white-space: normal; box-shadow: var(--shadow); font-size: 12px; }

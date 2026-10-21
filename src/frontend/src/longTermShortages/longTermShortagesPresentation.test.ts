@@ -24,7 +24,28 @@ describe('filterLongTermShortages', () => {
     expect(filterLongTermShortages(rows, EMPTY_LONG_TERM_SHORTAGES_FILTERS).map((item) => item.componentPart)).toEqual(['CRITICAL-EARLY', 'FUTURE', 'SAFETY-LATE']);
     expect(filterLongTermShortages(rows, { ...EMPTY_LONG_TERM_SHORTAGES_FILTERS, showAll: true }).map((item) => item.componentPart)).toEqual(['CRITICAL-EARLY', 'FUTURE', 'SAFETY-LATE', 'CLEAR']);
     expect(filterLongTermShortages(rows, { ...EMPTY_LONG_TERM_SHORTAGES_FILTERS, statusOnly: true, planner: 'bob' }).map((item) => item.componentPart)).toEqual(['SAFETY-LATE']);
-    expect(filterLongTermShortages([row({ componentPart: 'KSS', severity: 'CriticalShort', presentation: { manufacturerItem: null, poNumber: null, poLine: null, poDueDate: null, poOpenQuantity: null, poConfirmed: null, isKss: true } }), row({ componentPart: 'NOT-KSS', severity: 'CriticalShort' })], { ...EMPTY_LONG_TERM_SHORTAGES_FILTERS, kssOnly: true }).map((item) => item.componentPart)).toEqual(['KSS']);
+  });
+  it('excludes KSS by default, includes both kinds when checked, and intersects all other filters before sorting', () => {
+    const kss = { manufacturerItem: null, poNumber: null, poLine: null, poDueDate: null, poOpenQuantity: null, poConfirmed: null, isKss: true };
+    const rows = [
+      row({ componentPart: 'MATCH-Z', planner: 'Ann', qadStatus: 'P', severity: 'CriticalShort' }),
+      row({ componentPart: 'MATCH-B', planner: 'Ann', qadStatus: 'P', severity: 'CriticalShort', presentation: kss }),
+      row({ componentPart: 'MATCH-A', planner: 'Ann', qadStatus: 'P', severity: 'CriticalShort' }),
+      row({ componentPart: 'MATCH-C', planner: 'Bob', qadStatus: 'P', severity: 'CriticalShort', presentation: kss }),
+      row({ componentPart: 'MATCH-D', planner: 'Ann', severity: 'CriticalShort', presentation: kss }),
+      row({ componentPart: 'OTHER', planner: 'Ann', qadStatus: 'P', severity: 'CriticalShort', presentation: kss }),
+      row({ componentPart: 'MATCH-HEALTHY', planner: 'Ann', qadStatus: 'P', presentation: kss }),
+    ];
+    const filters = { ...EMPTY_LONG_TERM_SHORTAGES_FILTERS, component: 'match', planner: 'ann', statusOnly: true, sort: 'component' as const };
+    const parts = (includeKss: boolean, showAll = false) => filterLongTermShortages(rows, { ...filters, includeKss, showAll }).map(item => item.componentPart);
+    expect(EMPTY_LONG_TERM_SHORTAGES_FILTERS.includeKss).toBe(false);
+    expect(parts(false)).toEqual(['MATCH-A', 'MATCH-Z']);
+    expect(parts(true)).toEqual(['MATCH-A', 'MATCH-B', 'MATCH-Z']);
+    expect(parts(false)).toEqual(['MATCH-A', 'MATCH-Z']);
+    expect(parts(false, true)).toEqual(['MATCH-A', 'MATCH-Z']);
+    expect(parts(true, true)).toEqual(['MATCH-A', 'MATCH-B', 'MATCH-HEALTHY', 'MATCH-Z']);
+    expect(filterLongTermShortages([rows[1]], EMPTY_LONG_TERM_SHORTAGES_FILTERS)).toEqual([]);
+    expect(rows.map(item => item.componentPart)).toEqual(['MATCH-Z', 'MATCH-B', 'MATCH-A', 'MATCH-C', 'MATCH-D', 'OTHER', 'MATCH-HEALTHY']);
   });
   it('orders deepest shortages using precise decimal quantities', () => {
     const shallow = row({ componentPart: 'SMALL', severity: 'CriticalShort', episodes: [{ startDate: '2026-10-05', deepestDate: '2026-10-05', maximumShortage: '9007199254740992.01', firstRecoveryDate: null, stableClearDate: null }] });

@@ -15,6 +15,10 @@ includePhantoms, includeUnconfirmed, horizonWeeks and showAll). C# DTOs/endpoint
 
 This prepares the complete displayed filtered/sorted component selection from an **already loaded
 cached projection**, not a new source acquisition or a request to export a pending replacement.
+From the owner-authorized 2026-10-21 view amendment, Include KSS is unchecked by default (existing KSS
+rows excluded); checked admits both KSS and non-KSS otherwise-matching rows. Show All does not override
+this choice. Ordered `componentParts` already carries the resulting selection; no API field, acquisition,
+classification or workbook change is needed. KSS context changes retain existing preparation protection.
 Snapshot IDs must agree; workspace/site/current snapshot, business date, unique nonempty components,
 supported horizon (13/26/52/72), compatible loaded population/options and acquisition timestamp are
 validated. Existing cached export validation supplies the rows; only validated rows are reordered to
@@ -32,6 +36,28 @@ GET `/api/v1/reports/workspace-shortages/preparations/{id}/bytes` returns exact 
 the session and `WorkspaceShortages` kind. Invalid session is 400; absent/expired/wrong-session or
 wrong-kind preparation is 410. Reuses the existing bounded preparation store (8 MiB per workbook,
 eight entries, 30-minute lifetime and two generation slots), not a persistent report archive.
+
+## Selected-component current supplier status (2026-10-20 addition)
+
+GET `/api/v1/workspaces/{assignmentId}/long-term-shortages/purchasing` extends
+`LongTermShortagePurchasingDto` with `suppliers` (the existing Part Info section/supplier-row shapes)
+and `supplierIdentityUnavailable`. This is current enrichment associated only with the selected
+component's qualifying conventional open POs, not historical shortage-snapshot facts or calculation
+inputs. Existing snapshot/options/selected-component validation remains mandatory; no MRP/BOM read.
+
+Supplier identifiers are taken unchanged from the existing PO reader and deduplicated ordinally.
+Existing Shortages batching and exact returned-name matching apply; no new vendor-code join,
+normalization or fallback is authorized. Identifiable supplier rows retain nullable risk flags:
+true = Yes, false = No, null after successful acquisition = Unknown. An acquisition error marks the
+section Unavailable, retaining known identities with null flags. An empty acquired value uses the
+established no-supplier-status wording. `supplierIdentityUnavailable` discloses uncovered PO identities;
+even explicit No for all identified suppliers cannot mean None across incomplete coverage.
+
+The existing component-only comment request stays separate from the supplier-only request (one
+deduplicated request, not a request per supplier/PO); no suppliers means no supplier request, never
+suppression of the comment request. Supplier failure does not erase successful POs/comments or other
+independently acquired popup sections. Cancellation and snapshot replacement cannot yield a loaded
+obsolete result. These fields do not change standalone Part Info, BOM or export contracts/behavior.
 
 ## Native save/recovery boundary
 

@@ -29,4 +29,5 @@ public sealed record LongTermMrpFactDto(int EvidenceOrdinal, string? Type, DateO
 public sealed record LongTermShortagePresentationContextDto(string? ManufacturerItem, string? PoNumber, int? PoLine, DateOnly? PoDueDate, decimal? PoOpenQuantity, bool? PoConfirmed, bool IsKss);
 public sealed record ExportLongTermShortagesRequestDto(string SnapshotId, IReadOnlyList<string> ComponentParts, bool IncludeManufacturedParts = false, bool IncludePhantoms = false, bool IncludeUnconfirmed = false, int HorizonWeeks = 26, bool ShowAll = false);
 public sealed record LongTermShortagePurchasingDto(bool CommentAvailable, string? CurrentComment, IReadOnlyList<ComponentOrderLineDto> OpenPurchaseOrders,
-    DateTime? CommentRecordedAt = null, string? CommentAuthor = null);
+    DateTime? CommentRecordedAt = null, string? CommentAuthor = null,
+    PartInfoSectionDto<IReadOnlyList<PartInfoSupplierDto>>? Suppliers = null, bool SupplierIdentityUnavailable = false);

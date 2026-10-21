@@ -1,9 +1,11 @@
 using Kst.Application.Bom;
 using Kst.Application.ComponentOrders;
 using Kst.Application.Mps;
+using Kst.Application.PartInfo;
 using Kst.Application.Workspaces;
 using Kst.Domain.Bom;
 using Kst.Domain.Common;
+using Kst.Domain.ComponentOrders;
 using Kst.Domain.LongTermShortages;
 using Kst.Domain.Mps;
 using Microsoft.Extensions.Logging;
@@ -43,7 +45,7 @@ public sealed class LongTermShortagesService(
         return snapshots.GetState(workspaceId).Snapshot?.Id == snapshotId
             ? selected : new(LongTermShortagesOutcomeKind.SnapshotChanged);
     }
-    /// <summary>Reads one selected component's conventional open PO lines and current comment.
+    /// <summary>Reads one selected component's conventional open PO lines, current comment and supplier statuses.
     /// The selected component must already belong to the current cached shortage projection;
     /// this path never reacquires MRP or expands the workspace BOM.</summary>
     public async Task<LongTermShortagePurchasingResult> GetPurchasingAsync(Guid workspaceId, SnapshotId snapshotId,
@@ -68,24 +70,56 @@ public sealed class LongTermShortagesService(
                 throw new InvalidOperationException("Selected-component purchase order result was outside scope.");
             if (snapshots.GetState(workspaceId).Snapshot?.Id != snapshotId)
                 return new(LongTermShortagesOutcomeKind.SnapshotChanged);
+            BuyerComment? comment = null;
+            var commentAvailable = true;
             try
             {
                 // The comment is site/component-scoped, independent of whether a conventional PO exists.
                 var facts = await enrichment.ReadAsync(new ComponentOrderEnrichmentRequest(workspace.Site, [row.ComponentPart], []), cancellationToken);
-                if (snapshots.GetState(workspaceId).Snapshot?.Id != snapshotId)
-                    return new(LongTermShortagesOutcomeKind.SnapshotChanged);
-                facts.CommentsByComponent.TryGetValue(row.ComponentPart, out var comment);
-                return new(LongTermShortagesOutcomeKind.Loaded, lines, true,
-                    comment?.Text, comment?.RecordedAt, comment?.Author);
+                comment = facts.CommentsByComponent.FirstOrDefault(p => string.Equals(p.Key, row.ComponentPart, StringComparison.Ordinal)).Value;
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
-                if (snapshots.GetState(workspaceId).Snapshot?.Id != snapshotId)
-                    return new(LongTermShortagesOutcomeKind.SnapshotChanged);
                 logger.LogWarning("Buyer comment unavailable for selected workspace component. FailureType={FailureType}", ex.GetType().Name);
-                return new(LongTermShortagesOutcomeKind.Loaded, lines, false);
+                commentAvailable = false;
             }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (snapshots.GetState(workspaceId).Snapshot?.Id != snapshotId)
+                return new(LongTermShortagesOutcomeKind.SnapshotChanged);
+
+            // Keep this independent: the existing reader is all-or-nothing across its requested sections.
+            // Supplier failure must not discard a successfully acquired component comment (or PO lines).
+            var supplierRows = lines.Where(line => line.SupplierIdentifier is not null)
+                .GroupBy(line => line.SupplierIdentifier!, StringComparer.Ordinal)
+                .Select(group => new PartInfoSupplier(group.Key, group.First().SupplierDisplay, null, null)).ToArray();
+            PartInfoSection<IReadOnlyList<PartInfoSupplier>> suppliers;
+            try
+            {
+                if (supplierRows.Length > 0)
+                {
+                    var facts = await enrichment.ReadAsync(new ComponentOrderEnrichmentRequest(workspace.Site, [],
+                        supplierRows.Select(supplier => supplier.Identifier).ToArray()), cancellationToken);
+                    supplierRows = supplierRows.Select(supplier =>
+                    {
+                        // As in Part Info, never inherit an external dictionary's insensitive comparer.
+                        var risk = facts.RisksBySupplier.FirstOrDefault(p => string.Equals(p.Key, supplier.Identifier, StringComparison.Ordinal)).Value;
+                        return supplier with { IsCreditHold = risk?.IsCreditHold, IsCia = risk?.IsCia };
+                    }).ToArray();
+                }
+                suppliers = new(supplierRows, clock.UtcNow, null);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Supplier status unavailable for selected workspace component. FailureType={FailureType}", ex.GetType().Name);
+                suppliers = new(supplierRows, null, "Supplier status could not be acquired. Retry purchase orders.");
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (snapshots.GetState(workspaceId).Snapshot?.Id != snapshotId)
+                return new(LongTermShortagesOutcomeKind.SnapshotChanged);
+            return new(LongTermShortagesOutcomeKind.Loaded, lines, commentAvailable, comment?.Text, comment?.RecordedAt,
+                comment?.Author, suppliers, lines.Any(line => line.SupplierIdentifier is null));
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
@@ -213,4 +247,5 @@ public sealed class LongTermShortagesWorkspaceNotFoundException(Guid workspaceId
 public sealed record LongTermShortagePurchasingResult(LongTermShortagesOutcomeKind Kind,
     IReadOnlyList<Kst.Domain.ComponentOrders.ComponentOrderLine>? Lines = null,
     bool CommentAvailable = false, string? CurrentComment = null,
-    DateTime? CommentRecordedAt = null, string? CommentAuthor = null);
+    DateTime? CommentRecordedAt = null, string? CommentAuthor = null,
+    PartInfoSection<IReadOnlyList<PartInfoSupplier>>? Suppliers = null, bool SupplierIdentityUnavailable = false);

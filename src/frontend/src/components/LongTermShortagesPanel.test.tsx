@@ -59,7 +59,7 @@ function row(overrides: Partial<LongTermShortageRow> = {}): LongTermShortageRow 
     severity: 'CriticalShort', firstShortDate: '2026-10-05', demandParentParts: ['PARENT-1'], past: bucket(null, '12.125'),
     weeks: Array.from({ length: 26 }, (_, index) => bucket(index + 1, index === 0 ? '-2.4' : '12.125', index === 0 ? 'CriticalShort' : 'Clear')),
     evidence: [{ evidenceOrdinal: 1, type: 'SUPPLYP', dueDate: '2026-10-05', releaseDate: '2026-09-28', quantity: '49.125', category: 'PlannedOrdersRelease', sourceNumber: null, sourceLine: null, sourceLine2: null, sourceRowId: '0001', isPoReceipt: false, poConfirmed: null }], episodes: [], dataQualityWarning: null,
-    presentation: { manufacturerItem: 'MFG-1', poNumber: 'PO-1', poLine: 2, poDueDate: '2026-10-06', poOpenQuantity: '49.125', poConfirmed: true, isKss: true }, firstAtRiskDate: null, effectivePmCode: 'P', partStatusDescription: 'PROTO', orderPeriodDays: 7, safetyTimeWorkingDays: 0, manufacturingLeadWorkingDays: null, purchasingLeadCalendarDays: 14, cumulativeLeadCalendarDays: 21, sitePlanningPresent: true, ...overrides,
+    presentation: { manufacturerItem: 'MFG-1', poNumber: 'PO-1', poLine: 2, poDueDate: '2026-10-06', poOpenQuantity: '49.125', poConfirmed: true, isKss: false }, firstAtRiskDate: null, effectivePmCode: 'P', partStatusDescription: 'PROTO', orderPeriodDays: 7, safetyTimeWorkingDays: 0, manufacturingLeadWorkingDays: null, purchasingLeadCalendarDays: 14, cumulativeLeadCalendarDays: 21, sitePlanningPresent: true, ...overrides,
   };
 }
 
@@ -97,6 +97,91 @@ afterEach(() => {
 });
 
 describe('LongTermShortagesPanel', () => {
+  it('adds and removes only matching KSS rows, keeping counts, sorted exports, focus and acquisition local', async () => {
+    const kss = { ...row().presentation!, isKss: true };
+    fetchMock.mockResolvedValue(response([
+      row({ componentPart: 'MATCH-Z' }),
+      row({ componentPart: 'MATCH-B', presentation: kss }),
+      row({ componentPart: 'MATCH-A' }),
+      row({ componentPart: 'MATCH-C', planner: 'Bob', presentation: kss }),
+      row({ componentPart: 'MATCH-D', qadStatus: null, presentation: kss }),
+      row({ componentPart: 'OTHER', presentation: kss }),
+      row({ componentPart: 'MATCH-HEALTHY', severity: 'Healthy', presentation: kss }),
+    ]));
+    const ui = render(exportTree());
+    await screen.findByRole('table');
+    const storage = { ...localStorage };
+    const include = screen.getByRole('checkbox', { name: 'Include KSS' });
+    const displayed = () => within(screen.getByRole('table', { name: 'Workspace Shortages weekly balances' })).getAllByRole('button').map(button => button.textContent);
+    expect(include).not.toBeChecked();
+    expect(displayed()).toEqual(['MATCH-A', 'MATCH-Z']);
+    expect(screen.getByText('Showing 2 of 7 components')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Comp'), { target: { value: 'match' } });
+    fireEvent.change(screen.getByLabelText('Buyer / Planner'), { target: { value: 'ann' } });
+    fireEvent.click(screen.getByLabelText('Status'));
+    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'component' } });
+    await activate(); await screen.findByRole('button', { name: 'Save again' });
+    expect(calls('component_mrp_generate')[0][1].analyticalRequest.selection.componentParts).toEqual(['MATCH-A', 'MATCH-Z']);
+
+    include.focus(); fireEvent.click(include);
+    expect(include).toHaveFocus();
+    expect(displayed()).toEqual(['MATCH-A', 'MATCH-B', 'MATCH-Z']);
+    expect(screen.getByText('Showing 3 of 7 components')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save again' })).not.toBeInTheDocument());
+    await activate(); await screen.findByRole('button', { name: 'Save again' });
+    expect(calls('component_mrp_generate')[1][1].analyticalRequest.selection.componentParts).toEqual(['MATCH-A', 'MATCH-B', 'MATCH-Z']);
+    fireEvent.click(include);
+    expect(displayed()).toEqual(['MATCH-A', 'MATCH-Z']);
+    expect(screen.getByText('Showing 2 of 7 components')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save again' })).not.toBeInTheDocument());
+    await activate(); await screen.findByRole('button', { name: 'Save again' });
+    expect(calls('component_mrp_generate')[2][1].analyticalRequest.selection.componentParts).toEqual(['MATCH-A', 'MATCH-Z']);
+
+    // Existing selected-component ownership and Escape focus return survive view toggles.
+    fireEvent.click(screen.getByRole('button', { name: 'MATCH-A' }));
+    await screen.findByRole('dialog', { name: 'Component Information' });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('button', { name: 'MATCH-A' })).toHaveFocus();
+    const detailCalls = [projectionMock.mock.calls.length, purchasingMock.mock.calls.length, vi.mocked(fetchComponentDetail).mock.calls.length];
+    fireEvent.click(screen.getByLabelText('Show All'));
+    expect(displayed()).toEqual(['MATCH-A', 'MATCH-Z']);
+    fireEvent.click(include);
+    expect(displayed()).toEqual(['MATCH-A', 'MATCH-B', 'MATCH-HEALTHY', 'MATCH-Z']);
+    fireEvent.click(include);
+    expect(displayed()).toEqual(['MATCH-A', 'MATCH-Z']);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect([projectionMock.mock.calls.length, purchasingMock.mock.calls.length, vi.mocked(fetchComponentDetail).mock.calls.length]).toEqual(detailCalls);
+    expect(fetchApprovedVendors).not.toHaveBeenCalled();
+    expect({ ...localStorage }).toEqual(storage);
+    ui.unmount();
+    render(exportTree()); await screen.findByRole('table');
+    expect(screen.getByLabelText('Include KSS')).not.toBeChecked();
+  });
+
+  it('uses the normal empty state and blocks export for an all-KSS population unless included', async () => {
+    fetchMock.mockResolvedValue(response([row({ componentPart: 'KSS-ONLY', presentation: { ...row().presentation!, isKss: true } })]));
+    render(exportTree());
+    await screen.findByText('Showing 0 of 1 components');
+    expect(screen.getByText('No components reach a shortage. Select Show All to view healthy components.')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+    fireEvent.click(screen.getByLabelText('Show All'));
+    expect(screen.getByText('No components match the current filters.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+    fireEvent.click(screen.getByLabelText('Include KSS'));
+    expect(screen.getByRole('button', { name: 'KSS-ONLY' })).toBeInTheDocument();
+    expect(screen.getByText('Showing 1 of 1 components')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled();
+    fireEvent.click(screen.getByLabelText('Include KSS'));
+    expect(screen.getByText('Showing 0 of 1 components')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(projectionMock).not.toHaveBeenCalled();
+    expect(purchasingMock).not.toHaveBeenCalled();
+    expect(fetchComponentDetail).not.toHaveBeenCalled();
+    expect(calls('component_mrp_generate')).toHaveLength(0);
+  });
+
   it('counts the loaded population and groups receipt switching with view controls with an accurate Week 1 legend', async () => {
     fetchMock.mockResolvedValue(response([row(), row({ componentPart: 'HEALTHY', severity: 'Healthy' })]));
     render(exportTree()); await screen.findByRole('table');
@@ -133,11 +218,12 @@ describe('LongTermShortagesPanel', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['filter', 'sort', 'receipts', 'horizon', 'population', 'workspace'])('invalidates retained preparation on meaningful %s change', async change => {
+  it.each(['filter', 'includeKss', 'sort', 'receipts', 'horizon', 'population', 'workspace'])('invalidates retained preparation on meaningful %s change', async change => {
     fetchMock.mockResolvedValue(response([row(), row({ componentPart: 'OTHER' })]));
     const ui = render(exportTree()); await screen.findByRole('table');
     await activate(); await screen.findByRole('button', { name: 'Save again' });
     if (change === 'filter') fireEvent.change(screen.getByLabelText('Comp'), { target: { value: 'OTHER' } });
+    if (change === 'includeKss') fireEvent.click(screen.getByLabelText('Include KSS'));
     if (change === 'sort') fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'component' } });
     if (change === 'receipts') fireEvent.click(screen.getByLabelText('Include Unconfirmed Receipts'));
     if (change === 'horizon') fireEvent.change(screen.getByLabelText('Horizon'), { target: { value: '52' } });
@@ -163,13 +249,13 @@ describe('LongTermShortagesPanel', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('guards duplicate activation and late preparation after context change', async () => {
+  it.each(['Include Unconfirmed Receipts', 'Include KSS'])('guards duplicate activation and late preparation after %s changes', async control => {
     let finish!: (value: typeof workbook) => void;
     host.invoke.mockImplementation(async command => command === 'component_mrp_begin' ? 1 : command === 'component_mrp_generate' ? new Promise(resolve => { finish = resolve; }) : false);
     fetchMock.mockResolvedValue(response([row()])); render(exportTree()); await screen.findByRole('table');
     await activate(); expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
-    fireEvent.click(screen.getByLabelText('Include Unconfirmed Receipts'));
+    fireEvent.click(screen.getByLabelText(control));
     await act(async () => finish(workbook));
     expect(calls('component_mrp_generate')).toHaveLength(1); expect(calls('component_mrp_save')).toHaveLength(0);
   });
@@ -273,7 +359,7 @@ describe('LongTermShortagesPanel', () => {
     await screen.findByText('CLEAR');
     fireEvent.change(screen.getByLabelText('Buyer / Planner'), { target: { value: 'Bob' } });
     await waitFor(() => expect(screen.getByRole('table', { name: 'Workspace Shortages weekly balances' })).toHaveTextContent('CLEAR'));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'KSS' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Include KSS' }));
     expect(screen.getByRole('table', { name: 'Workspace Shortages weekly balances' })).toHaveTextContent('CLEAR');
     fireEvent.click(screen.getByRole('checkbox', { name: 'Status' }));
     fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'component' } });
@@ -480,12 +566,12 @@ describe('LongTermShortagesPanel', () => {
     fireEvent.change(screen.getByLabelText('Comp'), { target: { value: 'critical' } });
     fireEvent.click(screen.getByRole('button', { name: 'CRITICAL' }));
     const dialog = screen.getByRole('dialog', { name: 'Component Information' });
-    expect(within(dialog).getByRole('heading', { name: 'Past' })).toBeInTheDocument();
+    expect(within(dialog).getByText('Past Gross Requirements')).toBeInTheDocument();
     expect(within(dialog).getByRole('heading', { name: 'Shortage Snapshot' })).toBeInTheDocument();
     expect(within(dialog).getByRole('heading', { name: 'Open Purchase Orders' })).toBeInTheDocument();
     expect(within(dialog).queryByText('PlannedOrdersRelease')).not.toBeInTheDocument();
     expect(within(dialog).queryByRole('heading', { name: 'Raw MRP Evidence' })).not.toBeInTheDocument();
-    expect(within(dialog).getByRole('complementary', { name: 'Workspace Shortages details' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('tabpanel', { name: /Open POs/ })).toBeInTheDocument();
     await waitFor(() => expect(vi.mocked(fetchComponentDetail)).toHaveBeenCalledWith('ws-1', 'CRITICAL'));
     await waitFor(() => expect(purchasingMock).toHaveBeenCalledWith('ws-1', 'snap-1', 'CRITICAL', expect.objectContaining({ horizonWeeks: 26 })));
     expect(purchasingMock).toHaveBeenCalledTimes(1);
@@ -494,6 +580,14 @@ describe('LongTermShortagesPanel', () => {
     expect(within(dialog).getByText('Inventory / Lot Locations')).toBeInTheDocument();
     expect(within(dialog).queryByText(/KSS is visibility only/)).not.toBeInTheDocument();
     expect(within(dialog).queryByText(/Lead times annotate urgency/)).not.toBeInTheDocument();
+    expect(fetchApprovedVendors).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('tab', { name: /Approved alternates/ }));
+    expect(await within(dialog).findByText('No approved alternates found.')).toBeVisible();
+    fireEvent.click(within(dialog).getByRole('tab', { name: /Open POs/ }));
+    fireEvent.click(within(dialog).getByRole('tab', { name: /Approved alternates/ }));
+    expect(fetchApprovedVendors).toHaveBeenCalledExactlyOnceWith('ws-1', 'CRITICAL');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(purchasingMock).toHaveBeenCalledTimes(1);
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'CRITICAL' })).toHaveFocus();

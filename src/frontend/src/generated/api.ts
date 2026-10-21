@@ -1658,6 +1658,9 @@ export interface components {
             /** Format: date-time */
             commentRecordedAt?: null | string;
             commentAuthor?: null | string;
+            suppliers?: null | components["schemas"]["PartInfoSectionDtoOfIReadOnlyListOfPartInfoSupplierDto"];
+            /** @default false */
+            supplierIdentityUnavailable: boolean;
         };
         LongTermShortageRowDto: {
             componentPart: string;

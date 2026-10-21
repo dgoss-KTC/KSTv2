@@ -2,59 +2,21 @@
 .reports-panel--part-info :is(input, select, button) { font: inherit; }
 .reports-panel--part-info .reports-panel__body { flex: 1; min-width: 0; max-width: none; }
 .reports-panel--part-info .reports-panel__selector { flex-shrink: 0; }
-.part-info { min-width: 0; padding: 0 12px 24px; font-size: 13px; }
 .part-info__intro, .part-info__hint, .part-info__time { color: var(--tx2); }
 .part-info__inputs { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin: 0 -12px 10px; padding: var(--density-spacing) 12px; border-bottom: 1px solid var(--bd-soft); font-size: 12px; }
 .part-info__inputs label { flex-direction: column; align-items: stretch; gap: 4px; }
 .part-info__inputs label:first-child { flex: 1 1 180px; max-width: 280px; }
 .part-info__inputs input { min-width: 0; }
 .part-info__inputs input, .part-info__inputs select { background: var(--chip); color: var(--tx); border: 1px solid var(--bd); border-radius: 6px; min-height: var(--density-control-height); padding: 0 8px; }
-.part-info__identity { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 6px; }
-.part-info__identity > div { flex: 1; min-width: 180px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 14px; overflow-wrap: anywhere; }
-.part-info h2 { font-size: 1.35em; }
-.part-info__identity h2, .part-info__identity p { margin: 0; }
-.part-info__identity h2 { font: 600 15px 'IBM Plex Mono', monospace; }
-.part-info__identity p { color: var(--tx2); }
 .part-info__status { display: block; margin-bottom: 12px; color: var(--tx2); font-size: 12px; }
-.part-info__facts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 0; border: 1px solid var(--bd); border-radius: 8px; overflow: hidden; background: var(--bd); gap: 1px; }
-.part-info__facts > div { background: var(--panel2); padding: 10px 12px; min-width: 0; }
-.part-info__facts dt { font-size: 13px; color: var(--tx2); margin-bottom: 4px; }
-.part-info__facts dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.part-info__more { margin: 6px 0 12px; }
-.part-info summary { cursor: pointer; padding: 7px 0; }
-.part-info__details-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 6px; }
-.part-info__card { border: 1px solid var(--bd); border-radius: 8px; padding: 14px; min-width: 0; background: var(--panel); overflow-wrap: anywhere; }
-.part-info__card h3 { font-size: 1em; margin: 0 0 12px; }
-.part-info__card p { line-height: 1.5; }
-.part-info__fields { display: grid; gap: 10px; margin: 0; }
-.part-info__fields > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
-.part-info__fields dt { color: var(--tx2); }
-.part-info__fields dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.part-info__time, .part-info__hint { font-size: 11px; margin: 8px 0 0; }
-.part-info__supplier-strip, .part-info__comment-strip { border: 1px solid var(--bd); border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; background: var(--panel2); overflow-wrap: anywhere; }
-.part-info__risk-summary { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 12px; }
-.part-info__risk-summary > span { flex: 1 1 240px; }
-.part-info__supplier-strip p, .part-info__comment-strip p { margin: 0; }
-.part-info__supplier-strip .part-info__time, .part-info__comment-strip .part-info__time { margin-top: 6px; }
 .part-info__comment-preview { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; width: 100%; min-width: 0; text-align: left; border: 0; background: transparent; color: var(--tx); padding: 0; cursor: pointer; }
 .part-info__comment-preview-text { flex: 1; min-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .part-info__comment-preview > span:last-child { color: var(--accent-text); font-size: 11px; }
-.part-info__tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 16px 0 10px; border-bottom: 1px solid var(--bd); }
-.part-info__tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 12px; background: transparent; color: var(--tx2); cursor: pointer; }
-.part-info__tabs button[aria-selected='true'] { border-bottom-color: var(--accent-solid); color: var(--tx); }
-.part-info__count { display: inline-block; border-radius: 10px; padding: 0 6px; background: var(--chip); font-size: 11px; margin-left: 4px; }
-.part-info__scroll { overflow: auto; max-height: 60vh; margin-top: 10px; }
-.part-info__scroll table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 12px; }
-.part-info__scroll th, .part-info__scroll td { text-align: left; padding: calc(var(--density-cell-padding-y) + 2px) 10px; border-bottom: 1px solid var(--bd); max-width: 320px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.part-info__scroll th { position: sticky; top: 0; background: var(--panel2); color: var(--tx2); font-size: 11px; }
-.part-info__scroll .part-info__number { text-align: right; white-space: nowrap; }
-.part-info :is(input, select, button, summary, [tabindex]):focus-visible { outline: 2px solid var(--accent-solid); outline-offset: 3px; }
 .part-info__state { padding: 20px 0; }
 .part-info__backdrop { position: fixed; inset: 0; z-index: 1000; background: rgb(0 0 0 / 50%); display: flex; justify-content: center; align-items: center; padding: 24px; }
 .part-info__dialog { background: var(--panel); color: var(--tx); border: 1px solid var(--bd-strong); border-radius: 10px; padding: 20px; width: min(760px, 100%); max-height: 85vh; display: flex; flex-direction: column; box-shadow: var(--shadow); min-width: 0; }
 .part-info__dialog header { display: flex; gap: 16px; justify-content: space-between; align-items: start; margin-bottom: 16px; }
 .part-info__dialog h2 { margin: 0; overflow-wrap: anywhere; }
 .part-info__comment { white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; padding: 12px; background: var(--panel2); line-height: 1.6; }
-@media (max-width: 1300px) { .part-info__facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 1100px) { .reports-panel--part-info { flex-direction: column; } .reports-panel--part-info .reports-panel__selector { min-width: 0; flex-direction: row; flex-wrap: wrap; } }
-@media (max-width: 760px) { .part-info__details-grid { grid-template-columns: minmax(0, 1fr); } .reports-panel--part-info { padding: 16px; } .part-info__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .part-info__comment-preview { flex-wrap: wrap; gap: 6px; } .part-info__comment-preview > span:first-of-type { flex-basis: 100%; order: 1; } }
+@media (max-width: 760px) { .reports-panel--part-info { padding: 16px; } .part-info__comment-preview { flex-wrap: wrap; gap: 6px; } .part-info__comment-preview > span:first-of-type { flex-basis: 100%; order: 1; } }

@@ -128,6 +128,9 @@ public sealed class LongTermShortagesServiceTests
         Assert.Equal(new DateTime(2022, 1, 31, 13, 30, 0), first.CommentRecordedAt);
         Assert.Equal("jdoe", first.CommentAuthor);
         Assert.True(first.CommentAvailable);
+        Assert.Empty(first.Suppliers!.Value!);
+        Assert.Null(first.Suppliers.Error);
+        Assert.False(first.SupplierIdentityUnavailable);
         Assert.Equal(LongTermShortagesOutcomeKind.Unavailable, invalid.Kind);
         Assert.Equal(1, reads);
         Assert.Equal(1, poReads);
@@ -148,7 +151,148 @@ public sealed class LongTermShortagesServiceTests
         Assert.Equal("PO-1", Assert.Single(result.Lines!).PoNumber);
         Assert.False(result.CommentAvailable);
         Assert.Null(result.CurrentComment);
+        Assert.True(result.SupplierIdentityUnavailable);
+        Assert.Empty(result.Suppliers!.Value!);
     }
+    [Fact]
+    public async Task GetPurchasingAsync_DeduplicatesOnlySelectedPoSuppliers_AndMatchesReturnedKeysOrdinally()
+    {
+        var reads = 0;
+        var fixture = Build((_, _, _, _, _) => { reads++; return Task.FromResult(new LongTermShortageAcquisition(DateTimeOffset.UtcNow, [Input()])); });
+        var requests = new List<ComponentOrderEnrichmentRequest>();
+        var lines = new[] { "ACME", "ACME", "acme", "BETA", "CLEAR", "UNMATCHED", null }
+            .Select((supplier, index) => Po(index, supplier)).ToArray();
+        var service = fixture.CreateService(new DelegateComponentOrderSourceReader((site, parts, _, _) =>
+        {
+            Assert.Equal("SW", site);
+            Assert.Equal(["COMP"], parts);
+            return Task.FromResult<IReadOnlyList<ComponentOrderLine>>(lines);
+        }), new DelegateComponentOrderEnrichmentReader((request, _) =>
+        {
+            requests.Add(request);
+            // An insensitive external dictionary must not confer risk facts on the case-distinct PO supplier.
+            return Task.FromResult(new ComponentOrderEnrichmentResult(
+                new Dictionary<string, BuyerComment> { ["COMP"] = new("Keep comment", new(2022, 1, 31), "buyer") },
+                new Dictionary<string, ComponentOrderSupplierRisk>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["ACME"] = new(true, false), ["BETA"] = new(false, true), ["CLEAR"] = new(false, false), ["OUTSIDE"] = new(true, true)
+                }));
+        }));
+        await service.GetAsync(fixture.WorkspaceId, fixture.SnapshotId, LongTermShortagePopulationOptions.Default);
+        var result = await service.GetPurchasingAsync(fixture.WorkspaceId, fixture.SnapshotId, "COMP", LongTermShortagePopulationOptions.Default);
+
+        Assert.Equal(LongTermShortagesOutcomeKind.Loaded, result.Kind);
+        Assert.Equal(1, reads);
+        Assert.Equal(2, requests.Count);
+        Assert.Equal(["COMP"], requests[0].ComponentIdentifiers);
+        Assert.Empty(requests[0].SupplierIdentifiers);
+        Assert.Empty(requests[1].ComponentIdentifiers);
+        Assert.Equal(["ACME", "acme", "BETA", "CLEAR", "UNMATCHED"], requests[1].SupplierIdentifiers);
+        Assert.Equal("SW", requests[1].Site);
+        Assert.Equal(lines, result.Lines!);
+        Assert.True(result.CommentAvailable);
+        Assert.Equal("Keep comment", result.CurrentComment);
+        Assert.True(result.SupplierIdentityUnavailable);
+        Assert.Null(result.Suppliers!.Error);
+        Assert.Equal(fixture.Clock.UtcNow, result.Suppliers.AcquiredAtUtc);
+        Assert.Equal(new (string, string?, bool?, bool?)[]
+        {
+            ("ACME", "Display 0", true, false), ("acme", "Display 2", null, null), ("BETA", "Display 3", false, true),
+            ("CLEAR", "Display 4", false, false), ("UNMATCHED", "Display 5", null, null)
+        }, result.Suppliers.Value!.Select(s => (s.Identifier, s.Display, s.IsCreditHold, s.IsCia)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GetPurchasingAsync_CommentAndSupplierFailuresAreIndependent(bool failComment)
+    {
+        var fixture = Build((_, _, _, _, _) => Task.FromResult(new LongTermShortageAcquisition(DateTimeOffset.UtcNow, [Input()])));
+        var service = fixture.CreateService(new DelegateComponentOrderSourceReader((_, _, _, _) =>
+            Task.FromResult<IReadOnlyList<ComponentOrderLine>>([Po(0, "ACME")])),
+            new DelegateComponentOrderEnrichmentReader((request, _) =>
+            {
+                var isComment = request.ComponentIdentifiers.Count > 0;
+                if (isComment == failComment) throw new InvalidOperationException("private source failure");
+                return Task.FromResult(new ComponentOrderEnrichmentResult(
+                    new Dictionary<string, BuyerComment> { ["COMP"] = new("Preserved note", new(2022, 1, 31), "buyer") },
+                    new Dictionary<string, ComponentOrderSupplierRisk> { ["ACME"] = new(false, true) }));
+            }));
+        await service.GetAsync(fixture.WorkspaceId, fixture.SnapshotId, LongTermShortagePopulationOptions.Default);
+        var result = await service.GetPurchasingAsync(fixture.WorkspaceId, fixture.SnapshotId, "COMP", LongTermShortagePopulationOptions.Default);
+
+        Assert.Equal(LongTermShortagesOutcomeKind.Loaded, result.Kind);
+        Assert.Equal("PO-0", Assert.Single(result.Lines!).PoNumber);
+        Assert.Equal(!failComment, result.CommentAvailable);
+        Assert.Equal(failComment ? null : "Preserved note", result.CurrentComment);
+        Assert.Equal(failComment ? null : "buyer", result.CommentAuthor);
+        Assert.Equal(!failComment, result.Suppliers!.Error is not null);
+        Assert.Equal(failComment, result.Suppliers.AcquiredAtUtc is not null);
+        var supplier = Assert.Single(result.Suppliers.Value!);
+        Assert.Equal("ACME", supplier.Identifier);
+        Assert.Equal(failComment ? false : (bool?)null, supplier.IsCreditHold);
+        Assert.Equal(failComment ? true : (bool?)null, supplier.IsCia);
+        Assert.False(result.SupplierIdentityUnavailable);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GetPurchasingAsync_RejectsSnapshotReplacementOrCancellationDuringSupplierAcquisition(bool cancel)
+    {
+        var fixture = Build((_, _, _, _, _) => Task.FromResult(new LongTermShortageAcquisition(DateTimeOffset.UtcNow, [Input()])));
+        using var cancellation = new CancellationTokenSource();
+        var service = fixture.CreateService(new DelegateComponentOrderSourceReader((_, _, _, _) =>
+            Task.FromResult<IReadOnlyList<ComponentOrderLine>>([Po(0, "ACME")])),
+            new DelegateComponentOrderEnrichmentReader((request, token) =>
+            {
+                Assert.Equal(cancellation.Token, token);
+                if (request.SupplierIdentifiers.Count > 0)
+                {
+                    if (cancel) cancellation.Cancel();
+                    else fixture.Snapshots.SetLoaded(fixture.WorkspaceId,
+                        new MpsSnapshot(SnapshotId.New(), fixture.Clock.UtcNow, "SW", [new MpsResolvedPart("PARENT", "")], []));
+                }
+                return Task.FromResult(ComponentOrderEnrichmentResult.Empty);
+            }));
+        await service.GetAsync(fixture.WorkspaceId, fixture.SnapshotId, LongTermShortagePopulationOptions.Default);
+        var task = service.GetPurchasingAsync(fixture.WorkspaceId, fixture.SnapshotId, "COMP", LongTermShortagePopulationOptions.Default, cancellation.Token);
+        if (cancel) await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
+        else
+        {
+            var result = await task;
+            Assert.Equal(LongTermShortagesOutcomeKind.SnapshotChanged, result.Kind);
+            Assert.Null(result.Lines);
+            Assert.Null(result.Suppliers);
+        }
+    }
+
+    [Fact]
+    public async Task GetPurchasingAsync_SubmitsOneSupplierBatchRequestRatherThanPerPoOrSupplier()
+    {
+        var fixture = Build((_, _, _, _, _) => Task.FromResult(new LongTermShortageAcquisition(DateTimeOffset.UtcNow, [Input()])));
+        var supplierRequests = 0;
+        var lines = Enumerable.Range(0, 1001).Select(index => Po(index, $"Supplier {index}")).ToArray();
+        var service = fixture.CreateService(new DelegateComponentOrderSourceReader((_, _, _, _) => Task.FromResult<IReadOnlyList<ComponentOrderLine>>(lines)),
+            new DelegateComponentOrderEnrichmentReader((request, _) =>
+            {
+                if (request.SupplierIdentifiers.Count > 0)
+                {
+                    supplierRequests++;
+                    Assert.Empty(request.ComponentIdentifiers);
+                    Assert.Equal(1001, request.SupplierIdentifiers.Count);
+                }
+                return Task.FromResult(ComponentOrderEnrichmentResult.Empty);
+            }));
+        await service.GetAsync(fixture.WorkspaceId, fixture.SnapshotId, LongTermShortagePopulationOptions.Default);
+        var result = await service.GetPurchasingAsync(fixture.WorkspaceId, fixture.SnapshotId, "COMP", LongTermShortagePopulationOptions.Default);
+        Assert.Equal(1, supplierRequests);
+        Assert.Equal(1001, result.Suppliers!.Value!.Count);
+        Assert.All(result.Suppliers.Value, supplier => { Assert.Null(supplier.IsCreditHold); Assert.Null(supplier.IsCia); });
+    }
+
+    private static ComponentOrderLine Po(int index, string? supplier) =>
+        new("COMP", null, null, $"PO-{index}", 1, null, 4m, false, $"Display {index}", null, null, false, null, supplier);
     private static LongTermShortageInput Input() => new("COMP", "EA", null, null, null, null, 10m, SafetyStockState.Resolved, 0m, ["PARENT"], []);
     private static Fixture Build(Func<string, IReadOnlyDictionary<string, IReadOnlyList<string>>, DateOnly, DateOnly, CancellationToken, Task<LongTermShortageAcquisition>> source, IReadOnlyList<string>? components = null)
     {

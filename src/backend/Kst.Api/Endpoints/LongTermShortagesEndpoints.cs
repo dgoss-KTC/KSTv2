@@ -22,7 +22,10 @@ public static class LongTermShortagesEndpoints
                         line.LeadTimeDays, line.PoNumber, line.PoLine, line.DueDate, line.OpenQuantity, line.Confirmed,
                         line.SupplierDisplay, line.BuyerDisplay, line.ManufacturerItem, line.IsKss, line.TrackingInfo,
                         line.IsCreditHold, line.IsCia, line.CurrentComments, line.CommentRecordedAt, line.CommentAuthor)).ToList(),
-                    result.CommentRecordedAt, result.CommentAuthor)),
+                    result.CommentRecordedAt, result.CommentAuthor,
+                    result.Suppliers is { } suppliers ? new(suppliers.Value?.Select(supplier => new PartInfoSupplierDto(
+                        supplier.Identifier, supplier.Display, supplier.IsCreditHold, supplier.IsCia)).ToArray(),
+                        suppliers.AcquiredAtUtc, suppliers.Error) : null, result.SupplierIdentityUnavailable)),
                 LongTermShortagesOutcomeKind.MpsNotLoaded => Results.Problem("MPS data has not been loaded.", statusCode: 409),
                 LongTermShortagesOutcomeKind.SnapshotChanged => Results.Problem("Snapshot changed.", statusCode: 409),
                 _ => Results.Problem("Selected component purchasing information is unavailable. Retry the drawer.", statusCode: 503)
