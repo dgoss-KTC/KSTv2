@@ -31,6 +31,40 @@ async function part() {
   await waitFor(() => expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled());
 }
 describe('Reports combined Part Info and shared protected export — offline mocked host', () => {
+  it('retains exact prepared-byte recovery independently of departure and a new BOM lookup, without export/save on arrival', async () => {
+    const { generate, rerender } = setup(); await part(); await exportWorkbook(); await screen.findByRole('button', { name: 'Save again' });
+    rerender(<><AnalyticalSaveStatus /><ReportsPanel active={false} generate={generate} /></>);
+    expect(screen.getByText(/retained independently of the current lookup/)).toBeInTheDocument();
+    let consumed = false;
+    const shortcut = { token: 1, site: 'KV', part: 'NEW-COMP', claim: () => { if (consumed) return false; consumed = true; return true; } };
+    rerender(<><AnalyticalSaveStatus /><ReportsPanel generate={generate} shortcut={shortcut} /></>);
+    await screen.findByRole('heading', { name: 'NEW-COMP' }); await screen.findByRole('table', { name: 'Component MRP periods' });
+    expect(api.lookup).toHaveBeenLastCalledWith('KV', 'NEW-COMP', expect.any(AbortSignal));
+    expect(generate).toHaveBeenCalledTimes(1); expect(host.invoke.mock.calls.filter(([n]) => n === 'component_mrp_save')).toHaveLength(1);
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Save again' })));
+    expect(host.invoke).toHaveBeenLastCalledWith('component_mrp_save', expect.objectContaining({ preparationId: 'exact-one', reportKind: 'ComponentMrp' }));
+    expect(generate).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Discard workbook' }));
+    expect(screen.queryByRole('button', { name: 'Save again' })).toBeNull();
+  });
+  it('preserves uncertain save and original report-kind recovery across BOM entry; terminal saved reply cannot be revived by late failure', async () => {
+    const pending = deferred<AnalyticalSaveResult>();
+    host.invoke.mockImplementation(async (n: string) => n === 'component_mrp_begin' ? 7 : n === 'component_mrp_save' ? pending.promise
+      : n === 'component_mrp_status' ? { outcome: 'saved', message: 'Workbook saved.', operationComplete: true, savedArtifactId: 'old-artifact', openFailed: true } : false);
+    const { generate, rerender } = setup(); await part(); await exportWorkbook(); await screen.findByRole('button', { name: 'Check save status' });
+    let consumed = false;
+    const shortcut = { token: 2, site: 'KV', part: 'NEW-COMP', claim: () => { if (consumed) return false; consumed = true; return true; } };
+    rerender(<><AnalyticalSaveStatus /><ReportsPanel generate={generate} shortcut={shortcut} /></>);
+    await screen.findByRole('heading', { name: 'NEW-COMP' });
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Check save status' })));
+    expect(host.invoke).toHaveBeenCalledWith('component_mrp_status', expect.objectContaining({ reportKind: 'ComponentMrp' }));
+    await screen.findByRole('button', { name: 'Open again' });
+    await act(async () => pending.resolve({ outcome: 'failed', message: 'obsolete result', operationComplete: true }));
+    expect(screen.queryByText(/obsolete result/)).toBeNull(); expect(screen.queryByRole('button', { name: 'Save again' })).toBeNull();
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Open again' })));
+    expect(host.invoke).toHaveBeenCalledWith('component_mrp_open', expect.objectContaining({ reportKind: 'ComponentMrp', artifactId: 'old-artifact' }));
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
   it('uses combined default, five grouped entries, scope-slot reason and accepted MRP defaults', async () => {
     setup(); expect(screen.getByRole('navigation', { name: 'Report selector' })).toHaveTextContent('Workbooks');
     expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled(); expect(screen.getByText('Look up a part first.')).toHaveClass('analytical-export__scope');

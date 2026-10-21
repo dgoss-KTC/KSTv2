@@ -6,5 +6,8 @@ export function deferred<T>() { let resolve!: (value: T) => void; let reject!: (
 export async function exportWorkbook() { fireEvent.click(screen.getByRole('button', { name: 'Export' })); await act(async () => fireEvent.click(screen.getByRole('menuitem', { name: /Excel workbook/ }))); }
 export function clearExportTests() {
   cleanup(); const hook = renderHook(useAnalyticalExportStatus);
-  act(() => { hook.result.current.operations.forEach(o => { recordAnalyticalSave(o.id, { outcome: 'failed', message: 'Test cleanup', operationComplete: true }); dismissAnalyticalSave(o.id); }); }); hook.unmount();
+  act(() => {
+    hook.result.current.operations.forEach(o => { recordAnalyticalSave(o.id, { outcome: 'failed', message: 'Test cleanup', operationComplete: true }); dismissAnalyticalSave(o.id); });
+    hook.result.current.preparation?.actions.find(action => action.label === 'Discard workbook')?.run();
+  }); hook.unmount();
 }

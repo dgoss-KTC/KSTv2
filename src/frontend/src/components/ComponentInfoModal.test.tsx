@@ -575,12 +575,43 @@ describe('ComponentInfoModal', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Showing the last known component information.');
   });
 
-  it('renders Show MRP as visibly disabled and non-functional', async () => {
+  it('keeps Show MRP disabled without a navigation callback', async () => {
     const user = userEvent.setup();
     renderModal();
     const mrpButton = screen.getByRole('button', { name: /show mrp/i });
     expect(mrpButton).toBeDisabled();
     await user.click(mrpButton);
+  });
+
+  it('enables Show MRP for a selected component/site and invokes the navigation callback once', async () => {
+    const onShowMrp = vi.fn();
+    renderModal({ workspaceSite: 'SW', onShowMrp });
+    const button = screen.getByRole('button', { name: 'Show MRP' });
+    expect(button).toBeEnabled();
+    await userEvent.click(button);
+    expect(onShowMrp).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([{ componentPart: '' }, { workspaceSite: '' }])('does not enable Show MRP for incomplete identity %j', async identity => {
+    const onShowMrp = vi.fn();
+    renderModal({ workspaceSite: 'SW', onShowMrp, ...identity });
+    const button = screen.getByRole('button', { name: 'Show MRP' });
+    expect(button).toBeDisabled();
+    await userEvent.click(button);
+    expect(onShowMrp).not.toHaveBeenCalled();
+  });
+
+  it('reserves faded text and stop cursor for :disabled; enabled Show MRP has pointer, hover and focus styles', () => {
+    // jsdom does not execute the imported CSS cascade; assert selector wiring, not visual proof.
+    const css = readFileSync(resolve(process.cwd(), 'src/components/ComponentInfoModal.css'), 'utf8');
+    const base = /\.component-info-modal__mrp-btn\s*{([^}]*)}/.exec(css)?.[1];
+    expect(base).toMatch(/color:\s*var\(--tx2\)/);
+    expect(base).toMatch(/opacity:\s*1\s*;/);
+    expect(base).toMatch(/cursor:\s*pointer\s*;/);
+    expect(base).not.toMatch(/not-allowed|opacity:\s*0\./);
+    expect(css).toMatch(/\.component-info-modal__mrp-btn:disabled\s*{[^}]*color:\s*var\(--tx3\);[^}]*opacity:\s*0\.6;[^}]*cursor:\s*not-allowed;/);
+    expect(css).toMatch(/\.component-info-modal__mrp-btn:hover:not\(:disabled\)\s*{[^}]*background:\s*var\(--row-hover\)/);
+    expect(css).toMatch(/\.component-info-modal__mrp-btn:focus-visible:not\(:disabled\)\s*{[^}]*outline:\s*2px solid var\(--accent-solid\)/);
   });
 
   it('requires loaded workspace context before acquiring inventory', () => {

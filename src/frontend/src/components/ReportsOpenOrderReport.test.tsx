@@ -36,7 +36,7 @@ describe('Standalone Open Order Report shared export', () => {
   it('reconciles original OpenOrderReport kind after departure without replay', async () => {
     host.invoke.mockImplementation(async (n: string) => n === 'component_mrp_begin' ? 9 : n === 'component_mrp_save' ? Promise.reject(new Error('lost')) : n === 'component_mrp_status' ? { outcome: 'saved', message: 'Workbook saved.', operationComplete: true } : false);
     render(<><AnalyticalSaveStatus /><ReportsPanel generateOor={vi.fn().mockResolvedValue(prepared)} /></>); select(); site(); await exportWorkbook();
-    await screen.findByRole('button', { name: 'Check save status' }); fireEvent.click(screen.getByRole('button', { name: 'Component MRP' })); await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Check save status' })));
+    await screen.findByRole('button', { name: 'Check save status' }); fireEvent.click(screen.getByRole('button', { name: 'Part Info & MRP' })); await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Check save status' })));
     await waitFor(() => expect(host.invoke).toHaveBeenCalledWith('component_mrp_status', expect.objectContaining({ reportKind: 'OpenOrderReport' }))); expect(host.invoke.mock.calls.filter(([n]) => n === 'component_mrp_save')).toHaveLength(1);
   });
 });

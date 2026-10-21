@@ -104,6 +104,22 @@
   padding: 0 14px;
   background: var(--chip);
   border: 1px solid var(--bd);
+  color: var(--tx2);
+  opacity: 1;
+  cursor: pointer;
+}
+
+.component-info-modal__mrp-btn:hover:not(:disabled) {
+  background: var(--row-hover);
+  color: var(--tx);
+}
+
+.component-info-modal__mrp-btn:focus-visible:not(:disabled) {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 2px;
+}
+
+.component-info-modal__mrp-btn:disabled {
   color: var(--tx3);
   opacity: 0.6;
   cursor: not-allowed;

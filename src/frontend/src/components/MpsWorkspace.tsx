@@ -38,9 +38,11 @@ import './MpsWorkspace.css';
 import { AnalyticalExcelExport } from './AnalyticalExcelExport';
 import { mpsExportRequest } from '../mps/mpsExport';
 import { useLocalBusinessDate } from '../hooks/useLocalBusinessDate';
+import type { MpsReportOrigin } from '../reports/partInfoShortcut';
 
 interface MpsWorkspaceProps {
   active?: boolean;
+  onShowMrp?: (origin: MpsReportOrigin) => Promise<void>;
   assignmentId: string;
   dashboard: MpsDashboardResponseDto | null;
   dateBasis: MpsDateBasis;
@@ -55,7 +57,7 @@ interface MpsWorkspaceProps {
 }
 
 export function MpsWorkspace({
-  assignmentId, dashboard, dateBasis, horizonWeeks, isLoading, isRefreshing, error, setDateBasis, setHorizonWeeks, reload, refresh, active = true,
+  assignmentId, dashboard, dateBasis, horizonWeeks, isLoading, isRefreshing, error, setDateBasis, setHorizonWeeks, reload, refresh, active = true, onShowMrp,
 }: MpsWorkspaceProps) {
   const businessDate = useLocalBusinessDate();
   const { settings: fiscalSettings } = useFiscalCalendarSettings();
@@ -119,6 +121,29 @@ export function MpsWorkspace({
   // even though the row stays mounted (never removed) while its detail view is open.
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const currentIdentity = useRef(identity);
+  useLayoutEffect(() => { currentIdentity.current = identity; }, [identity]);
+
+  function showComponentMrp() {
+    const snapshot = dashboard?.snapshot;
+    if (!active || !inspectedComponent || !snapshot?.snapshotId || !snapshot.site || !onShowMrp) return;
+    const inspection = inspectedComponent;
+    const root = workspaceRef.current;
+    // Capture all mounted grid/detail scrollers, including hidden candidate panes, plus shell ancestors.
+    const scroll = [...captureNavigationScroll(root), ...[...(root?.querySelectorAll<HTMLElement>('*') ?? [])]
+      .filter(element => element.scrollLeft !== 0 || element.scrollTop !== 0)
+      .map(element => ({ element, left: element.scrollLeft, top: element.scrollTop }))];
+    void onShowMrp({ assignmentId, snapshotId: snapshot.snapshotId, site: snapshot.site, part: inspection.componentPart,
+      isCurrent: () => currentIdentity.current === identity && !!root?.isConnected,
+      depart: () => setInspectedComponent(null),
+      restore: () => {
+        if (currentIdentity.current !== identity || root?.closest('[hidden], [inert]')) return;
+        const target = inspection.returnFocusEl?.isConnected ? inspection.returnFocusEl : root?.querySelector<HTMLElement>('.mps-trail [aria-current]');
+        target?.focus({ preventScroll: true });
+        restoreNavigationScroll(scroll);
+      },
+    });
+  }
 
   const { detail: partDetail, isLoading: isPartDetailLoading, error: partDetailError, retry: retryPartDetail } =
     usePartDetail(assignmentId, selectedParent);
@@ -729,6 +754,7 @@ export function MpsWorkspace({
           error={componentDetailError}
           onRetry={() => void retryComponentDetail()}
           onClose={handleCloseComponentInfo}
+          onShowMrp={onShowMrp && active && dashboard?.snapshot.site && dashboard.snapshot.snapshotId ? showComponentMrp : undefined}
           approvedVendors={approvedVendors}
           isApprovedVendorsLoading={isApprovedVendorsLoading}
           approvedVendorsError={approvedVendorsError}

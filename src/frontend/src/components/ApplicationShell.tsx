@@ -1,4 +1,5 @@
-import { useState, useEffect, useEffectEvent, useRef, useCallback } from 'react';
+import { useState, useEffect, useEffectEvent, useRef, useCallback, useLayoutEffect } from 'react';
+import type { MpsReportOrigin, PartInfoShortcut } from '../reports/partInfoShortcut';
 import { useBackendStatus } from '../hooks/useBackendStatus';
 import { useWorkspaces } from '../hooks/useWorkspaces';
 import { usePreferences } from '../hooks/usePreferences';
@@ -47,6 +48,11 @@ type TopmostDialog = 'add' | 'manage' | 'confirm' | null;
 export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   const [isGeneralActive, setIsGeneralActive] = useState(false);
   const [isReportsActive, setIsReportsActive] = useState(false);
+  const [mrpOrigin, setMrpOrigin] = useState<(MpsReportOrigin & { workspaceIdentity: string }) | null>(null);
+  const [shortcut, setShortcut] = useState<PartInfoShortcut | null>(null);
+  const [workspaceVisit, setWorkspaceVisit] = useState(0);
+  const shortcutSequence = useRef(0);
+  const shortcutPending = useRef(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<WorkspaceAssignmentDto | null>(null);
   const [showManageDialog, setShowManageDialog] = useState(false);
@@ -154,6 +160,44 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
     selectWorkspace,
   } = useWorkspaces();
   const { toasts, showToast, dismissToast } = useToasts();
+  const currentWorkspaces = useRef(activeWorkspaces);
+  useLayoutEffect(() => { currentWorkspaces.current = activeWorkspaces; }, [activeWorkspaces]);
+
+  const handleShowMrp = async (origin: MpsReportOrigin) => {
+    if (shortcutPending.current || isReportsActive || !origin.isCurrent()) return;
+    shortcutPending.current = true;
+    const workspaceIdentity = JSON.stringify(activeWorkspaces.find(w => w.assignmentId === origin.assignmentId));
+    try {
+      if (!(await confirmDiscardPlanning())) return;
+      if (!origin.isCurrent() || workspaceIdentity !== JSON.stringify(currentWorkspaces.current.find(w => w.assignmentId === origin.assignmentId))) {
+        showToast('error', 'The originating MPS context changed. Reselect the component.'); return;
+      }
+      // Only now may the source close and the Reports context change. Session work unmounts below;
+      // only MPS and its loaded investigation remain, never hidden Planning/Open Orders drafts.
+      markPlanningDiscarded();
+      origin.depart();
+      let consumed = false;
+      setShortcut({ token: ++shortcutSequence.current, part: origin.part, site: origin.site,
+        claim: () => { if (consumed) return false; consumed = true; return true; } });
+      setMrpOrigin({ ...origin, workspaceIdentity });
+      setIsGeneralActive(false); setIsReportsActive(true);
+    } finally { shortcutPending.current = false; }
+  };
+
+  const returnToOrigin = (origin: NonNullable<typeof mrpOrigin>) => {
+    const workspace = activeWorkspaces.find(w => w.assignmentId === origin.assignmentId);
+    const valid = workspace && JSON.stringify(workspace) === origin.workspaceIdentity && origin.isCurrent();
+    if (!valid) {
+      setWorkspaceVisit(n => n + 1);
+      showToast('error', 'The originating MPS investigation is no longer available. Showing the current workspace instead.');
+    }
+    setShortcut(null); setMrpOrigin(null); setIsReportsActive(false); setIsGeneralActive(false);
+    if (workspace) selectWorkspace(workspace.assignmentId);
+    setTimeout(() => {
+      if (valid && origin.isCurrent()) origin.restore();
+      else document.querySelector<HTMLElement>('.tab-bar [role="tab"][aria-selected="true"]')?.focus();
+    }, 0);
+  };
 
   useEffect(() => {
     if (connectionState === 'connected') {
@@ -162,12 +206,14 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
   }, [connectionState, load]);
 
   const handleSelectWorkspace = async (id: string) => {
+    if (isReportsActive && mrpOrigin?.assignmentId === id) { returnToOrigin(mrpOrigin); return; }
     if (id !== workspacesState.activeId) {
       if (!(await confirmDiscardPlanning())) return;
       markPlanningDiscarded();
     }
     setIsGeneralActive(false);
     setIsReportsActive(false);
+    setMrpOrigin(null); setShortcut(null);
     selectWorkspace(id);
   };
 
@@ -180,7 +226,7 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
       .then(unlisten => { if (alive) dispose = unlisten; else unlisten(); }).catch(() => {});
     return () => { alive = false; dispose?.(); };
   }, []);
-  const handleSelectGeneral = async () => { if (await confirmDiscardPlanning()) { markPlanningDiscarded(); setIsReportsActive(false); setIsGeneralActive(true); } };
+  const handleSelectGeneral = async () => { if (await confirmDiscardPlanning()) { markPlanningDiscarded(); setMrpOrigin(null); setShortcut(null); setIsReportsActive(false); setIsGeneralActive(true); } };
   const handleSelectReports = async () => { if (await confirmDiscardPlanning()) { markPlanningDiscarded(); setIsGeneralActive(false); setIsReportsActive(true); } };
 
   const handleOpenAddDialog = (triggerEl: HTMLElement) => {
@@ -432,7 +478,8 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
         {reportCloseWaiting && <div role="status">Waiting for the report save/open operation to finish before closing.
           <button onClick={() => { void import('@tauri-apps/api/core').then(({ invoke }) => invoke('component_mrp_cancel_close'))
             .then(() => setReportCloseWaiting(false)).catch(() => {}); }}>Cancel closing</button></div>}
-        <div hidden={!isReportsActive}><ReportsPanel active={isReportsActive} onBusyChange={handleReportBusy} /></div>
+        <div hidden={!isReportsActive}><ReportsPanel active={isReportsActive} onBusyChange={handleReportBusy} shortcut={shortcut}
+          onBackToMps={mrpOrigin ? () => returnToOrigin(mrpOrigin) : undefined} /></div>
         {!isReportsActive && (isGeneralActive ? (
           <GeneralWorkspace
             preferences={preferences}
@@ -447,9 +494,12 @@ export function ApplicationShell({ appVersion }: { appVersion?: string }) {
           />
         ) : activeWorkspaces.length === 0 ? (
           <EmptyWorkspace />
-        ) : activeWorkspace ? (
-          <CustomerWorkspace workspace={activeWorkspace} onPlanningDirtyChange={planningDirtyChanged} confirmDiscard={askDiscard} />
         ) : null)}
+        {activeWorkspace && !isGeneralActive && (!isReportsActive || mrpOrigin?.assignmentId === activeWorkspace.assignmentId) &&
+          <div className="shell__workspace" hidden={isReportsActive} inert={isReportsActive}>
+            <CustomerWorkspace key={workspaceVisit} workspace={activeWorkspace} active={!isReportsActive}
+              onShowMrp={handleShowMrp} onPlanningDirtyChange={planningDirtyChanged} confirmDiscard={askDiscard} />
+          </div>}
       </main>
 
       <BottomStatusBar

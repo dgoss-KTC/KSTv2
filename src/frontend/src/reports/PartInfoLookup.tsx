@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import type { PartInfoShortcut } from './partInfoShortcut';
 import { getPartInfoSpec, lookupPartInfo, refreshPartInfoLocations, PartInfoError, type PartInfo, type PartInfoSpec } from '../api/partInfoApi';
 import { formatBuyerCommentMetadata } from '../shared/buyerCommentPresentation';
 import { decimal, exactText, formatDecimal } from '../shared/exactDecimal';
@@ -48,8 +49,9 @@ function BuyerCommentDialog({ part, text, recordedAt, author, onClose }: { part:
 const tabs = [{ id: 'orders', label: 'Open POs' }, { id: 'locations', label: 'Inventory lots' }, { id: 'alternates', label: 'Approved alternates' }] as const;
 type Tab = typeof tabs[number]['id'];
 
-export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpec = getPartInfoSpec, refreshLocations = refreshPartInfoLocations, loadMrp = readComponentMrp, onExportContext }: {
+export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpec = getPartInfoSpec, refreshLocations = refreshPartInfoLocations, loadMrp = readComponentMrp, onExportContext, shortcut }: {
   active?: boolean;
+  shortcut?: PartInfoShortcut | null;
   lookup?: typeof lookupPartInfo;
   loadSpec?: typeof getPartInfoSpec;
   refreshLocations?: typeof refreshPartInfoLocations;
@@ -96,9 +98,12 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
     inventoryEpoch.current++; inventoryAbort.current?.abort(); setInventoryLoading(false);
     epoch.current++; abort.current?.abort(); setReport(null); setLoading(false); setError(null); setMissing(false);
   }
-  async function submit(preserveMrp = false) {
-    if (!active || !spec || !part.trim()) return;
-    const requestedPart = part.trim(); const requestedSite = site;
+  async function submit(preserveMrp = false, incoming?: { part: string; site: string }) {
+    const requestedPart = (incoming?.part ?? part).trim(); const requestedSite = incoming?.site ?? site;
+    if (!active || !spec || !requestedPart) return;
+    if (!spec.sites.includes(requestedSite) || requestedPart.length > Number(spec.maximumPartLength)) {
+      invalidate(); setError('Select a supported site and a valid part number.'); return;
+    }
     if (!preserveMrp) setMrpSettings(defaultMrpSettings);
     setCommentOpen(false); setTab('orders');
     inventoryEpoch.current++; inventoryAbort.current?.abort(); setInventoryLoading(false);
@@ -117,6 +122,17 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
       }
     } finally { if (epoch.current === token) setLoading(false); }
   }
+  const applyShortcut = useEffectEvent(() => {
+    if (!active || !spec || !shortcut?.claim()) return;
+    setPart(shortcut.part); setSite(shortcut.site);
+    void submit(false, shortcut);
+    document.getElementById('part-info-part')?.focus();
+  });
+  useEffect(() => {
+    let current = true;
+    queueMicrotask(() => { if (current) applyShortcut(); });
+    return () => { current = false; };
+  }, [active, spec, shortcut]);
   async function refreshInventory() {
     if (!report || !active) return;
     const identity = report;

@@ -3,6 +3,35 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
+**Current bounded follow-up — 2026-10-21:** BOM Show MRP / retained MPS investigation return is
+**COMPLETE / OWNER-ACCEPTED / BOUNDED FOLLOW-UP CLOSED**, not Stage 22 closure or reacceptance of the
+accepted Part Info page. Shell-guarded selected component/snapshot-site one-use lookup waits for spec;
+26 / Week / Include on; bounded origin trail/filter/scroll/focus retention and both return paths;
+real approved session discard, Reports keyboard ownership, safe invalid-origin fallback and separate
+Component MRP prepared-byte/uncertain-save recovery. No new analytical formula or backend/native/
+contract/dependency/capability/live access/sidecar publication. Existing S22-033/S22-037 dispositions,
+explicit later calculation triggers, focused verification/release evidence and desktop sequence:
+`docs/implementation/KST_v2_S22_BOM_SHOW_MRP.md`. Actual entry build-info `46E25644…` preserved unstaged/
+excluded; one local commit with normal hooks authorized, no push/deployment. Accepted deliveries
+below remain accepted historical evidence.
+Focused offline **415 frontend passes / zero failures / three inherited skips (21 files)**; 15-file
+lint/types/frontend build and, after normal owner shutdown, guarded offline embedded build pass.
+No sidecar republication; 522 unchanged-layer files/four sidecars/configs match. New alpha.21 review
+host15,352,320 bytes, SHA256 `43816C58C2F2A1E474F4E71D47F45984AE16C510EB3920DD3FED005292CEC7BC`.
+Final assets verified embedded; guard's earlier stop, inherited warnings/AFT limits and desktop-only
+navigation checklist remain explicit in the record, not additional accepted-page gates.
+Subsequent owner-reported greyed/stop-cursor appearance corrected in CSS only: enabled pointer/text/
+hover/focus, disabled-only faded/stop styling. Amendment79 tests/lint/types/frontend/guarded embedded
+build pass; prior broader evidence retained, not summed. New host hash above supersedes `C5220A29…`;
+no sidecar republication/installation/push. Owner: “It looks good and it works. Accepted.” — 2026-10-21.
+This owner-reported navigation/style acceptance is separate from offline/artifact evidence, not every
+suggested desktop scenario or exact-hash confirmation. Complete intended scope is now23 paths/four
+new files (original21 plus two-file styling amendment); all retained entry fingerprints match.
+Reuse verification; full/staged diff/new-file/whitespace and post-commit checks, no repeat suites/builds.
+Only delivered S22-033/S22-037 follow-up closes; analytical later destinations/triggers retained.
+No concrete unresolved Part Info concern or unspecified reacceptance gate. Stage 22 remains open;
+entry build-info bytes remain preserved unstaged/excluded, runtime evidence stays outside Git.
+
 **Current project position — 2026-10-21:** **ShortageMaster simulation exclusion COMPLETE /
 OWNER-ACCEPTED / BOUNDED FOLLOW-UP CLOSED.** Owner: “Completed. Looks good. Accepted.” Physical
 nullable-bit `[Simulation?]`; `AND sm.[Simulation?] = 0` before ranking, NULL ineligible. Earlier

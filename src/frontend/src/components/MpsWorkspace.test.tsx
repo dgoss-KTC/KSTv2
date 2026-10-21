@@ -2537,9 +2537,7 @@ describe('MpsWorkspace', () => {
 
       await user.click(screen.getByText('COMP-A'));
       const dialog = await screen.findByRole('dialog');
-      // Show MRP is the only other focusable-by-tab-order control besides Close; disabled
-      // buttons are excluded from the Tab order, so focus the dialog container directly.
-      dialog.focus();
+      within(dialog).getByRole('button', { name: 'Show MRP' }).focus();
       await user.keyboard('{Escape}');
 
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());

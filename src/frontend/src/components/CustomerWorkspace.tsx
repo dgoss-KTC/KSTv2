@@ -10,6 +10,7 @@ import { PlanningWorkbookPanel } from './PlanningWorkbookPanel';
 import { FinishedGoodsPanel } from './FinishedGoodsPanel';
 import { WorkspaceShipmentsPanel } from './WorkspaceShipmentsPanel';
 import './CustomerWorkspace.css';
+import type { MpsReportOrigin } from '../reports/partInfoShortcut';
 
 type CustomerModule = 'dashboard' | 'planning' | 'openOrders' | 'componentOrders' | 'longTermShortages' | 'finishedGoods' | 'workspaceShipments';
 
@@ -38,25 +39,27 @@ function unsavedMessage(openOrders: boolean, planning: boolean): string | undefi
   return openOrders ? OPEN_ORDERS_UNSAVED_MESSAGE : undefined;
 }
 
-export function CustomerWorkspace({ workspace, onPlanningDirtyChange, confirmDiscard }: {
+export function CustomerWorkspace({ workspace, onPlanningDirtyChange, confirmDiscard, active = true, onShowMrp }: {
   workspace: WorkspaceAssignmentDto;
+  active?: boolean;
+  onShowMrp?: (origin: MpsReportOrigin) => Promise<void>;
   onPlanningDirtyChange?: (dirty: boolean, message?: string) => void;
   /** In-app discard confirmation supplied by the shell. Without it (isolated rendering) the browser confirm is used. */
   confirmDiscard?: (message: string) => Promise<boolean>;
 }) {
   const [activeModule, setActiveModule] = useState<CustomerModule>('dashboard');
   const [planningDirty, setPlanningDirty] = useState(false);
+  const [proposalsDirty, setProposalsDirty] = useState(false);
   const mps = useMpsDashboard(workspace.assignmentId);
   const snapshotId = mps.dashboard?.snapshot.snapshotId ?? null;
-  // Stage 14.5: Planning proposals live here so they survive module switches (for example reloading
-  // MPS on the Dashboard tab) and are reapplied to a replaced MPS snapshot.
-  const proposals = usePlanningProposals(workspace.assignmentId, snapshotId);
+  // PlanningSession below owns proposals across module switches and snapshot changes, but unmounts
+  // after approved shell departure even when the MPS investigation itself is retained.
   const planningDirtyChanged = useCallback((dirty: boolean) => setPlanningDirty(dirty), []);
   const title = workspace.displayName ?? workspace.site;
 
   // Unsaved-change protection reported to the shell (workspace switch, General, archive/delete/reset).
-  const anyDirty = planningDirty || proposals.dirty;
-  const dirtyMessage = unsavedMessage(planningDirty, proposals.dirty);
+  const anyDirty = active && (planningDirty || proposalsDirty);
+  const dirtyMessage = unsavedMessage(planningDirty, proposalsDirty);
   useEffect(() => { onPlanningDirtyChange?.(anyDirty, dirtyMessage); }, [anyDirty, dirtyMessage, onPlanningDirtyChange]);
   useEffect(() => () => { onPlanningDirtyChange?.(false); }, [onPlanningDirtyChange]);
 
@@ -100,7 +103,8 @@ export function CustomerWorkspace({ workspace, onPlanningDirtyChange, confirmDis
       <div className="customer-workspace__content">
         <div hidden={activeModule !== 'dashboard'}>
           <MpsWorkspace
-            active={activeModule === 'dashboard'}
+            active={active && activeModule === 'dashboard'}
+            onShowMrp={onShowMrp}
             assignmentId={workspace.assignmentId}
             dashboard={mps.dashboard}
             dateBasis={mps.dateBasis}
@@ -114,25 +118,35 @@ export function CustomerWorkspace({ workspace, onPlanningDirtyChange, confirmDis
             refresh={mps.refresh}
           />
         </div>
-        {activeModule === 'finishedGoods' && (
+        {active && <PlanningSession assignmentId={workspace.assignmentId} snapshotId={snapshotId} site={workspace.site}
+          visible={activeModule === 'planning'} mpsLoading={mps.isLoading} onDirty={setProposalsDirty} />}
+        {active && activeModule === 'finishedGoods' && (
           <FinishedGoodsPanel assignmentId={workspace.assignmentId} snapshotId={snapshotId} site={workspace.site} />
         )}
-        {activeModule === 'workspaceShipments' && <WorkspaceShipmentsPanel assignmentId={workspace.assignmentId} />}
-        {activeModule === 'planning' && (
-          <PlanningWorkbookPanel assignmentId={workspace.assignmentId} site={workspace.site}
-            snapshotId={snapshotId} mpsLoading={mps.isLoading} proposals={proposals} />
-        )}
-        {activeModule === 'componentOrders' && (
+        {active && activeModule === 'workspaceShipments' && <WorkspaceShipmentsPanel assignmentId={workspace.assignmentId} />}
+        {active && activeModule === 'componentOrders' && (
           <ComponentOrdersPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null} />
         )}
-        {activeModule === 'openOrders' && (
+        {active && activeModule === 'openOrders' && (
           <OpenOrdersPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null}
             workspaceName={workspace.displayName} site={workspace.site} onDirtyChange={planningDirtyChanged} />
         )}
-        {activeModule === 'longTermShortages' && (
+        {active && activeModule === 'longTermShortages' && (
           <LongTermShortagesPanel assignmentId={workspace.assignmentId} snapshotId={mps.dashboard?.snapshot.snapshotId ?? null} site={workspace.site} />
         )}
       </div>
     </div>
   );
+}
+
+/** Session work is deliberately NOT retained with the investigation after approved shell discard. */
+function PlanningSession({ assignmentId, snapshotId, site, visible, mpsLoading, onDirty }: {
+  assignmentId: string; snapshotId: string | null; site: string; visible: boolean; mpsLoading: boolean;
+  onDirty: (dirty: boolean) => void;
+}) {
+  const proposals = usePlanningProposals(assignmentId, snapshotId);
+  useEffect(() => { onDirty(proposals.dirty); }, [onDirty, proposals.dirty]);
+  useEffect(() => () => onDirty(false), [onDirty]);
+  return visible ? <PlanningWorkbookPanel assignmentId={assignmentId} site={site} snapshotId={snapshotId}
+    mpsLoading={mpsLoading} proposals={proposals} /> : null;
 }

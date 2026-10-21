@@ -3,6 +3,49 @@
 Date: 2026-10-21
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## BOM Show MRP / bounded investigation return — 2026-10-21
+
+**COMPLETE / OWNER-ACCEPTED / BOUNDED NAVIGATION FOLLOW-UP CLOSED — 2026-10-21.**
+Owner: “It looks good and it works. Accepted.” Owner-reported acceptance is separate from offline/
+artifact evidence, not proof of every suggested desktop scenario or the exact binary tested.
+Owner-dispatched frontend follow-up from
+`657a727`: BOM Component Information → shell discard guard → Part Info & MRP, one-use selected
+component/snapshot-site lookup after specification loading; 26 weeks / Week / Include on. Only the
+originating MPS investigation is retained, hidden/inert/inactive, with contextual and workspace-tab
+return, identity validation, scroll/focus restoration and safe fallback. Approved discard unmounts
+Planning/non-MPS session work; it does not hide drafts under a cleared guard. Component MRP prepared
+byte retry is retained separately in the existing single recovery slot; uncertain-save/original-kind
+recovery and host expiry/close authority remain. No automatic export/save/open or new analytical rule.
+Existing accepted Part Info/MRP/popup/source work stands; S22-033 analytical dispositions and explicit
+later triggers are recorded without a generic S22-037 acceptance gate. Frontend verification/release
+evidence and new-navigation desktop checklist: `docs/implementation/KST_v2_S22_BOM_SHOW_MRP.md`,
+`Temp\opencode\bom-show-mrp\`. Entry build-info `46E25644…` is preserved unstaged/excluded. No backend/
+API/native source/contracts/dependencies/capabilities/live reads/submissions/push/deployment;
+unchanged backend/native evidence reused, no sidecar republication. Stage 22 stays open.
+Affected frontend gates: **415 passed / zero failed / three inherited skips in 21 files**; 15-file
+lint/types/frontend build pass. React/Vite warnings and AFT partial/deadline limits retained. Guarded
+embedded build first stopped before Cargo for running installed KST; after owner-confirmed normal
+shutdown, the unchanged guard/offline embedded build passed. No termination/bypass/publication.
+New review `src/tauri/target/release/kst-tauri.exe`, alpha.21 / PE 0.1.0, **15,352,320 bytes**, SHA256
+`43816C58C2F2A1E474F4E71D47F45984AE16C510EB3920DD3FED005292CEC7BC`.
+Final assets embedded/newer host; 522 unchanged-layer file fingerprints and all four sidecars/configs
+match. Actual entry build-info bytes restored/verified. No agent desktop/live-source/deployment claim.
+Owner review found enabled Show MRP still looked disabled/used a stop cursor although it worked.
+Corrected unconditional placeholder CSS: normal pointer/text/hover/focus when enabled, faded/stop
+cursor only for `:disabled`. No navigation/lookup changes. Amendment **79 tests pass** (two files),
+test lint/types/frontend build and same guarded embedded rebuild pass; prior broader evidence reused,
+not summed. Current hash above supersedes initial `C5220A29…`; exact identities/evidence and preserved
+earlier artifacts are in the implementation record. Navigation/style acceptance is now recorded above.
+One complete **23-path local commit, including four new files**, is authorized with normal hooks;
+the supplied 21-path count/initial hash preceded the two-file styling amendment. All 23 retained entry
+fingerprints, final release and actual entry build-info match. Reuse existing verification without
+repeat suites/builds/publication; inspect full/staged contents, whitespace and post-commit state.
+Only delivered S22-033/S22-037 navigation closes; analytical dispositions retain explicit later
+proposal/rule triggers. No concrete unresolved Part Info concern or generic page reacceptance gate;
+any later reproducible fault needs its own bounded follow-up. Stage 22 remains open. Evidence/logs/
+manifests/binaries stay outside Git; build-info remains byte-preserved, unstaged/excluded. Further
+development requires separate dispatch; no new implementation starts in closeout.
+
 ## ShortageMaster simulation eligibility correction — 2026-10-21
 
 **COMPLETE / OWNER-ACCEPTED / BOUNDED FOLLOW-UP CLOSED — 2026-10-21.**

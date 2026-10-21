@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { AnalyticalExportClient, type AnalyticalRequest } from '../api/analyticalExportApi';
 import type { ExcelExportPort, PreparedExcel } from '../shared/excelExportPort';
 import { isRunningInTauri } from '../api/tauri-bridge';
-import { beginAnalyticalSave, claimAnalyticalPreparation, clearAnalyticalPreparation, recordAnalyticalSave, updateAnalyticalPreparation, useAnalyticalExportStatus } from '../shared/analyticalSaveRecovery';
+import { beginAnalyticalSave, claimAnalyticalPreparation, clearAnalyticalPreparation, recordAnalyticalSave, retainPreparedReportWorkbook, updateAnalyticalPreparation, useAnalyticalExportStatus } from '../shared/analyticalSaveRecovery';
 import './AnalyticalExcelExport.css';
 import { rememberAnalyticalOpenPreference, useAnalyticalOpenPreference } from '../shared/analyticalOpenPreference';
 
@@ -21,6 +21,7 @@ interface Props<Request> {
   preparingMessage?: string;
   actionRef?: Ref<ExcelExportAction>;
   onMessage?: (message: string) => void;
+  retainPreparedOnDeparture?: boolean;
 }
 const defaultFactory = () => new AnalyticalExportClient();
 
@@ -31,7 +32,7 @@ export function AnalyticalExcelExport<Request = AnalyticalRequest>(props: Props<
   return <ExportVisit key={JSON.stringify([props.contextKey, reason, attempt])} {...props} disabledReason={reason} restart={() => setAttempt(n => n + 1)} />;
 }
 
-function ExportVisit<Request>({ request, scopeLabel, label, disabledReason: contextReason, prepareDisabledReason, busyReason, clientFactory, preparingMessage = 'Preparing Excel workbook from loaded data…', actionRef, onMessage, restart }: Props<Request> & { restart: () => void }) {
+function ExportVisit<Request>({ request, scopeLabel, label, disabledReason: contextReason, prepareDisabledReason, busyReason, clientFactory, preparingMessage = 'Preparing Excel workbook from loaded data…', actionRef, onMessage, restart, retainPreparedOnDeparture = false }: Props<Request> & { restart: () => void }) {
   const disabledReason = contextReason || busyReason;
   // The default is used only by existing Analytical consumers; Reports always supply a typed adapter.
   const [factory] = useState(() => clientFactory ?? defaultFactory as unknown as () => ExcelExportPort<Request>);
@@ -56,14 +57,18 @@ function ExportVisit<Request>({ request, scopeLabel, label, disabledReason: cont
   useLayoutEffect(() => { latest.current = { request, disabledReason, preference }; });
   useLayoutEffect(() => {
     const acquired = factory(); client.current = acquired; live.current = true;
-    return () => { live.current = false; client.current = null; clearAnalyticalPreparation(owner); void acquired.release().catch(() => {}); };
-  }, [factory, owner]);
+    return () => {
+      live.current = false; client.current = null;
+      if (retainPreparedOnDeparture && prepared.current && retainPreparedReportWorkbook(owner, label, acquired, prepared.current, latest.current.preference)) return;
+      clearAnalyticalPreparation(owner); void acquired.release().catch(() => {});
+    };
+  }, [factory, owner, label, retainPreparedOnDeparture]);
 
   function feedback(message: string, preparing: boolean, actions: { label: string; run: () => void }[]) {
     updateAnalyticalPreparation({ owner, label, preparing, message, actions, supersede: restart });
   }
   function retained(message: string) {
-    feedback(message, false, [{ label: 'Save again', run: () => void save() }, { label: 'Discard workbook', run: restart }]);
+    feedback(message, false, [{ label: 'Save again', run: () => void save() }, { label: 'Discard workbook', run: () => { prepared.current = null; restart(); } }]);
   }
   // Also react to observation-only recovery: it can settle the operation before its invoke returns.
   const settle = useEffectEvent(() => {

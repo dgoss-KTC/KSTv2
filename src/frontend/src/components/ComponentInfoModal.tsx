@@ -32,6 +32,7 @@ interface ComponentInfoModalProps {
   error: ComponentDetailApiError | null;
   onRetry: () => void;
   onClose: () => void;
+  onShowMrp?: () => void;
   approvedVendors: ApprovedVendorDto[] | null;
   isApprovedVendorsLoading: boolean;
   approvedVendorsError: ApprovedVendorsApiError | null;
@@ -119,6 +120,8 @@ export function ComponentInfoModal(props: ComponentInfoModalProps) {
   useEffect(() => {
     function handleDocumentEscape(e: KeyboardEvent) {
       if (e.key !== 'Escape') return;
+      // A shell navigation confirmation can be stacked over this source modal. It owns Escape.
+      if (document.querySelector('[role="alertdialog"][aria-modal="true"]')) return;
       e.preventDefault();
       e.stopPropagation();
       onClose();
@@ -193,8 +196,9 @@ export function ComponentInfoModal(props: ComponentInfoModalProps) {
             {context === 'bom' && <button
               type="button"
               className="component-info-modal__mrp-btn"
-              disabled
-              title="Component MRP is a future capability."
+               disabled={!props.onShowMrp || !componentPart.trim() || !workspaceSite?.trim()}
+               onClick={props.onShowMrp}
+               title="Look up this component and site in Part Info & MRP"
             >
               Show MRP
             </button>}

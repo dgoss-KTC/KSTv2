@@ -185,3 +185,15 @@ Existing S22-011/037 and S22-035 close only the delivered combined-page/MRP-expo
 S22-018 remains a shared-export cross-reference. Broader workstreams, S22-033 modal/deep links and
 Stage 22 remain open. The ShortageMaster comment correction is deferred and unchanged.
 Next checkpoint: separately scoped simulation-filter correction, not another acceptance gate.
+
+## Subsequent BOM shortcut follow-up — 2026-10-21
+
+The accepted combined page above remains accepted. The owner separately authorized BOM Show MRP,
+one-use automatic lookup and bounded MPS investigation return; implementation/new-navigation review,
+analytical dispositions/later triggers and evidence are recorded in
+`docs/implementation/KST_v2_S22_BOM_SHOW_MRP.md`. This does not reopen page acceptance, change source
+or report contracts, or close Stage 22. The owner subsequently confirmed “It looks good and it works.
+Accepted.” on 2026-10-21; this bounded navigation/return follow-up is closed. Owner-reported acceptance
+is separate from offline/artifact evidence, not itemized scenario or exact-hash confirmation. No
+concrete unresolved Part Info concern is identified here and no generic page reacceptance gate remains;
+analytical later destinations/triggers are retained in the BOM record.
