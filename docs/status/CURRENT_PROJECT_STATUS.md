@@ -3,6 +3,44 @@
 Date: 2026-10-21
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## ShortageMaster simulation eligibility correction — 2026-10-21
+
+**COMPLETE / OWNER-ACCEPTED / BOUNDED FOLLOW-UP CLOSED — 2026-10-21.**
+Owner: “Completed. Looks good. Accepted.” Owner-reported acceptance is separate from the SQL-engine
+synthetic cases, bounded live-source check, affected backend checks and reused unchanged-layer evidence;
+it is not proof of every consumer exercised or the exact executable hash tested. Existing S22-007
+closes only this comment follow-up, S22-037 cross-references preserved consumers; broader workstreams
+and Stage 22 stay open. Exactly one local commit with normal hooks authorized, no push. Existing evidence
+reused without repeat suites, live queries, installation, build/publication, deployment or source changes.
+Initial owner review failed: enrichment unavailable/no comments. Owner then authorized live validation;
+metadata confirms physical **`Simulation?` (no space), nullable `bit`**. The spaced initial spelling
+reproduced SQL error 207. Corrected actual command passes live no-match and bounded one-key acquisition/
+parsing; 15 parameterized inline cases pass on SQL Server using the real generated query, not a C#
+selector. No source keys/comment content/credentials retained; SELECT-only, no writes or new dependencies.
+Separate owner dispatch from `f389668`; actual entry `c82dc1b` and its accepted Part Info/MRP commit
+are preserved, not included/claimed. One production predicate `sm.[Simulation?] = 0` inside ranked
+comment candidates excludes simulation one/NULL before selecting the latest eligible exact-site,
+non-removed component record. Unchanged ordering/parser; empty newest stays empty, no older/other-site/
+removed/simulation fallback. Shared Component Orders, Workspace Shortages and Reports Part Info
+paths confirmed. No batching/supplier status/UI/DTO/native-source/dependency changes.
+
+Repair: 105 backend tests newly pass; backend build/scoped format pass, fresh scoped diagnostics zero
+errors/warnings (existing hint). Earlier 10 architecture / 143 frontend passes, types/frontend build
+reused for unchanged layers, not rerun/added to new tests. Initial EOL/format/npm failures, React/Vite
+warnings and earlier AFT deadlines retained. Guarded corrected sidecar publication and offline embedded
+release pass with KST closed and the unchanged guard. Corrected review `src/tauri/target/release/kst-tauri.exe`,
+alpha.21 / PE 0.1.0, 15,351,296 bytes, SHA256
+`CF8C5B2E92CF38046B04B919FD03E94D611CA925EB737DA7FF25AF29124242F5`; final assets embedded,
+host newer. All four republished sidecars agree (127,568,038 bytes) and both companion configs agree
+across all four locations. Initial host `5A9900BE…` failed owner review and is superseded by this repair.
+No process termination, guard bypass, agent desktop test or installer/deployment claim.
+Actual entry build-info bytes
+`4AA277F5…` restored/preserved unstaged/excluded. No implementation staging/commit/push/deployment;
+local closeout commit authorized separately above. Scope/evidence, regression matrix and acceptance:
+`docs/implementation/KST_v2_SHORTAGEMASTER_LATEST_COMMENT.md`
+§"Simulation eligibility correction — 2026-10-21"; local `Temp\opencode\shortagemaster-simulation\`
+(`live-validation\`, `live-repair\`).
+
 ## Part Info & MRP integration — 2026-10-21
 
 **COMPLETE / OWNER-ACCEPTED / BOUNDED FOLLOW-UP CLOSED — 2026-10-21.**
@@ -42,8 +80,8 @@ companion configs agree. PE version0.1.0; full identity/checklist/limits and30-p
 diff including10 new files are in the record/evidence above. Existing S22-011/037 and S22-035 close
 only the delivered combined-page/MRP-export portions; broader workstreams and Stage22 remain open.
 Actual entry build-info remains byte-identical, unstaged/excluded; evidence/workbooks/logs/binaries
-stay outside Git. ShortageMaster comment correction is deferred and unchanged. Next checkpoint:
-separately scoped simulation-filter correction, not another acceptance gate.
+stay outside Git. ShortageMaster comment correction was deferred/unchanged at this Part Info/MRP
+closeout; the separately scoped simulation correction is now recorded above, not part of that commit.
 
 ## Workspace Shortages Include KSS / popup acceptance — 2026-10-21
 

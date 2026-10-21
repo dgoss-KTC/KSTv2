@@ -135,6 +135,7 @@ public sealed class ShortagesComponentOrderEnrichmentReader : IComponentOrderEnr
                 INNER JOIN Scope AS scope ON scope.ComponentIdentifier = sm.Component
                 WHERE sm.Site = @Site
                   AND sm.isRemoved = 0
+                  AND sm.[Simulation?] = 0
             )
             SELECT ranked.ComponentIdentifier, sm.[Current Comments] AS CurrentComments, sm.[Comment History] AS CommentHistory
             FROM Ranked AS ranked

@@ -3,7 +3,22 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position — 2026-10-21:** **Part Info & MRP COMPLETE / OWNER-ACCEPTED /
+**Current project position — 2026-10-21:** **ShortageMaster simulation exclusion COMPLETE /
+OWNER-ACCEPTED / BOUNDED FOLLOW-UP CLOSED.** Owner: “Completed. Looks good. Accepted.” Physical
+nullable-bit `[Simulation?]`; `AND sm.[Simulation?] = 0` before ranking, NULL ineligible. Earlier
+spaced identifier caused SQL 207 and was corrected. Ordering/empty-newest/parser/batching/suppliers,
+Part Info/MRP/popup behavior and locked algorithms preserved. Evidence categories remain separate:
+15 generated-query SQL-engine synthetic cases; bounded live-source selection/parsing; 105 affected
+backend tests plus build/format/diagnostics; reused 10 architecture/143 frontend and types/build checks;
+owner-reported acceptance, not proof of every consumer or exact executable tested. Corrected host SHA256
+`CF8C5B2E92CF38046B04B919FD03E94D611CA925EB737DA7FF25AF29124242F5`. Reuse retained evidence,
+no closeout suites/live reads/builds/publication. One complete local commit with normal hooks, no push;
+entry build-info `4AA277F5…` preserved unstaged/excluded. Record:
+`docs/implementation/KST_v2_SHORTAGEMASTER_LATEST_COMMENT.md`; local evidence `Temp\opencode\shortagemaster-simulation\`.
+Existing S22-007 bounded follow-up only and S22-037 consumer cross-reference; broader workstreams and
+Stage 22 remain open. Further development requires a separate owner dispatch, not another acceptance gate.
+
+**Preceding accepted delivery — 2026-10-21:** **Part Info & MRP COMPLETE / OWNER-ACCEPTED /
 BOUNDED FOLLOW-UP CLOSED.** Owner: “The new MRP screen looks great. Accepted.” This supersedes pending
 acceptance, separately from offline/artifact evidence; not proof of the exact executable tested or every
 suggested desktop check. Default combined Reports page,
@@ -25,8 +40,8 @@ agree. No termination/guard bypass/deployment/agent desktop test. Complete30-pat
 excludes entry build-info; entry index empty. Full executable identity and retained desktop checklist
 in the record. Exact staged paths/new-file contents/contracts/whitespace/committed tree/remaining status
 are checked. Only delivered combined-page/MRP-export portions of S22-011/037/035 close; broader
-workstreams and Stage22 stay open. ShortageMaster comment correction is deferred and unchanged.
-Next checkpoint: separately scoped simulation-filter correction; no further acceptance gate.
+workstreams and Stage22 stay open. ShortageMaster comment correction was deferred/unchanged at that
+closeout; its separately accepted simulation-filter correction is recorded above, not part of that commit.
 
 **Preceding accepted delivery — 2026-10-21:** **Popup alignment, Credit Hold/CIA and Include KSS — COMPLETE /
 OWNER-ACCEPTED / BOUNDED FOLLOW-UPS CLOSED.** Owner confirms Include KSS: “Works great! Accepted.”

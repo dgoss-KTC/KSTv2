@@ -45,6 +45,38 @@ public sealed class ShortagesComponentOrderEnrichmentReaderTests
     }
 
     [Fact]
+    public void Comment_Query_Filters_Explicit_NonSimulation_Candidates_Before_Selecting_One_Row_Without_Text_Fallback()
+    {
+        using var connection = new SqlConnection();
+        using var command = ShortagesComponentOrderEnrichmentReader.BuildCommentCommand(connection, "SW", ["C1"]);
+
+        // SQL contract only, not SQL execution or an in-memory imitation of row selection.
+        // Exact candidate predicates exclude simulation=1/NULL, removed and other-site rows;
+        // content never affects eligibility, and only the winning ID supplies history/current text.
+        Assert.Equal("""
+            WITH Scope (ComponentIdentifier) AS
+            (
+                SELECT ComponentIdentifier FROM (VALUES (@Component0)) AS scope (ComponentIdentifier)
+            ),
+            Ranked AS
+            (
+                SELECT sm.id, sm.Component AS ComponentIdentifier,
+                       ROW_NUMBER() OVER (PARTITION BY sm.Component ORDER BY sm.[Modification Date] DESC, sm.[Added Record Date] DESC, sm.id DESC) AS RowNumber
+                FROM dbo.ShortageMaster AS sm
+                INNER JOIN Scope AS scope ON scope.ComponentIdentifier = sm.Component
+                WHERE sm.Site = @Site
+                  AND sm.isRemoved = 0
+                  AND sm.[Simulation?] = 0
+            )
+            SELECT ranked.ComponentIdentifier, sm.[Current Comments] AS CurrentComments, sm.[Comment History] AS CommentHistory
+            FROM Ranked AS ranked
+            INNER JOIN dbo.ShortageMaster AS sm ON sm.id = ranked.id
+            WHERE RowNumber = 1;
+            """.ReplaceLineEndings("\n"), command.CommandText.ReplaceLineEndings("\n"));
+        Assert.Equal(2, command.Parameters.Count);
+    }
+
+    [Fact]
     public async Task Empty_Scopes_Return_Empty_Without_Loading_Configuration_Or_Opening_A_Connection()
     {
         var reader = new ShortagesComponentOrderEnrichmentReader(new ShortagesSecretFileLoader("missing-secret.json"));

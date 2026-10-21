@@ -179,6 +179,21 @@ Orders application UAT must confirm visible RCHI/CIA enrichment using the correc
 
 ### 5.3 Active Current Comments evidence (10.3D.2)
 
+**Owner-directed eligibility correction — 2026-10-21:** comment candidates must also satisfy
+`sm.[Simulation?] = 0` inside the ranking CTE, before newest-row selection. Only explicit zero
+qualifies; simulation one and NULL are excluded without `ISNULL`, conversion or fallback. Exact
+Site/Component, `isRemoved = 0` and Modification Date / Added Record Date / id descending order
+are unchanged. Select one eligible record, then use the existing history/current parser on that
+record only. An empty newest eligible record stays empty; no eligible record means no comment.
+No older-record, other-site, removed-record or simulation fallback. This owner dispatch amends
+the earlier latest-active descriptions above. Owner subsequently authorized live validation: metadata
+confirms **`Simulation?` (no space), nullable `bit`**. Initial spaced spelling failed with SQL error 207;
+the corrected actual command passes live no-match/one-key checks and 15 SQL-engine inline fixture cases.
+No source content retained, database writes, coercion or fallback. Shared consumers, query-contract/
+SQL execution evidence, resolved failed-review history and owner acceptance (2026-10-21,
+“Completed. Looks good. Accepted.”; bounded follow-up only):
+`KST_v2_SHORTAGEMASTER_LATEST_COMMENT.md` §"Simulation eligibility correction — 2026-10-21".
+
 The final compliant ShortageMaster pass executed exactly three parameterized, compact `TOP (20)`
 value-bearing queries against `dbo.ShortageMaster` and no other table:
 
