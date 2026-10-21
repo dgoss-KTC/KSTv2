@@ -62,6 +62,19 @@ for provenance; later historical references do not need reinterpretation.
 | 26 — Incremental Multi-Site Rollout | **PLANNED / REQUIRED** | Site-by-site validation and deployment. |
 | 27 — Post-Release Roadmap | **POST-RELEASE** | QAD upgrade preparation, Can-Build discovery, and separately authorized future concepts. |
 
+### Concrete Component Orders layout follow-up — 2026-10-21
+
+Existing **S22-007**, with **S22-018/030** scroll/focus cross-reference: owner reports horizontal
+scrollbar access fails at smaller windows. This is a current bounded layout defect, **not** the deferred
+Component Orders workflow/redesign/performance proposals below. Local panel/table flex containment,
+wrapping controls and named keyboard scrolling are **COMPLETE / OWNER-ACCEPTED / BOUNDED CLOSED
+— 2026-10-21**. Owner: “I checked it. The scrollbar works. Accepted.” This records reported scrolling
+acceptance, not every suggested desktop check or exact-hash confirmation. The scrolling hold is removed.
+No ancestor/shared styles, KSS-only semantics, source/cache/locked algorithms or broader scope change.
+Verification/artifact/limits: `docs/implementation/KST_v2_S22_007_COMPONENT_ORDERS_SCROLL.md`.
+Other dated dispositions and existing in-progress reconciliation remain intact and separate from the
+authorized local fix commit/necessary acceptance records; no Stage 22 closure or baseline freeze.
+
 ## Deferred-work registry
 
 | Item | Source/evidence | Disposition and destination | Trigger | Release blocking? |

@@ -3,6 +3,35 @@
 Date: 2026-10-21
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## Component Orders scrolling / S22-007 — 2026-10-21
+
+**COMPLETE / OWNER-ACCEPTED / BOUNDED SCROLLING CORRECTION CLOSED — 2026-10-21.**
+Owner: “I checked it. The scrollbar works. Accepted.” This is owner-reported scrolling acceptance,
+not proof of every suggested desktop check or the exact executable tested. The scrolling hold is removed;
+separate completion-review documentation and accepted deliveries remain intact. Existing S22-007 owns the
+fix, S22-018/030 the bounded scroll-region/keyboard cross-reference, without new backlog IDs.
+The existing overflow scroller's bottom was below the viewport: non-shrinking panel plus viewport-based
+height cap omitted actual chrome/toolbar/notice height. Local bounded-flex panel/scroller and wrapping
+controls fix it; no demonstrated need for ancestor changes. Named keyboard focus, visible outline and
+comment-dialog focus return; all columns/content/KSS-only/source/cache/locked algorithms unchanged.
+
+35 affected frontend tests pass / zero failures/skips; types/frontend build and 12 real-Chrome synthetic
+geometry/interaction cases pass (normal/minimum sizes, both densities, notice, wrapped-toolbar stress).
+Standard changed-file lint retains the one unchanged Stage 10 effect error; known-rule-only exclusion
+passes. Vite warnings/initial partial AFT and inherited broad verification exceptions retained; final
+two-file scoped AFT fresh/zero diagnostics. Guarded offline embedded release passes with no running KST
+detected, unchanged guard/no termination/republication. Alpha.21 / PE 0.1.0 review host:
+`src/tauri/target/release/kst-tauri.exe`, **15,352,832 bytes**, SHA256
+`7DF75E5A77C6FFD36398C33593B3A1D5FF2196B0B695B1F4023C973B57C78A8F`.
+Final assets embedded/newer host; 522 unchanged-layer files and four sidecars/configs match. Entry
+build-info `46E25644…` restored byte-for-byte, unstaged/excluded; all pre-existing documentation work
+preserved. One local scrolling-fix commit with normal hooks is authorized; only bounded acceptance
+additions accompany the source/tests. Overlapping completion-review/disposition edits remain uncommitted.
+No backend/contracts/native-source/dependencies/capabilities/live reads/install/submission/push/deployment.
+No repeated tests/builds/launches; Stage 22 remains open, not frozen. Record, limits and historical guidance:
+`docs/implementation/KST_v2_S22_007_COMPONENT_ORDERS_SCROLL.md`; evidence
+`C:\Users\dgoss\AppData\Local\Temp\opencode\component-orders-scroll\`.
+
 ## Remaining export dispositions / S22-035 — 2026-10-21
 
 **REVIEW / DISPOSITION OBLIGATION COMPLETE; NO PENDING MANDATORY EXPORT IMPLEMENTATION.** Owner:

@@ -131,7 +131,7 @@ export function ComponentOrdersPanel({ assignmentId, snapshotId }: ComponentOrde
       {groups.length === 0 ? (
         <div className="component-orders__state">No components have qualifying open PO lines.</div>
       ) : (
-        <div className="component-orders__scroll">
+        <div className="component-orders__scroll" tabIndex={0} role="region" aria-label="Scrollable Component Orders">
           <table>
             <thead>
               <tr>
@@ -264,6 +264,7 @@ function ComponentCommentDialog({ detail, onClose }: {
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    const opener = document.activeElement;
     closeRef.current?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -272,7 +273,10 @@ function ComponentCommentDialog({ detail, onClose }: {
       }
     };
     document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, true);
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
   }, [onClose]);
 
   return (

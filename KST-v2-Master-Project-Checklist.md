@@ -3,6 +3,22 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
+**Accepted bounded correction — 2026-10-21:** S22-007 Component Orders scrollbar containment is
+**COMPLETE / OWNER-ACCEPTED / BOUNDED CLOSED**. Owner: “I checked it. The scrollbar works. Accepted.”
+Owner-reported scrolling acceptance is not every suggested desktop check or exact-hash confirmation.
+S22-018/030 cross-reference
+named keyboard scrolling/focus only; broader redesign/performance deferrals stand. Local flex sizing
+keeps the bottom scrollbar inside remaining workspace space, toolbar controls wrap, all columns and
+KSS-only behavior retained; no ancestor/shared-layout change. 35 affected tests, types/frontend build,
+12 real-browser geometry/interaction cases and guarded offline embedded release pass. Standard lint
+retains one unchanged Stage 10 effect error (known-rule-only exclusion passes); warnings/limits retained.
+Record/checklist/artifact: `docs/implementation/KST_v2_S22_007_COMPONENT_ORDERS_SCROLL.md`.
+The scrolling hold is removed; Stage 22 remains open, not baseline-frozen. One local fix commit with
+normal hooks includes only the source/tests and necessary bounded acceptance records; separate
+completion-review/disposition edits stay uncommitted. No broader redesign, backend/native/contracts/
+dependencies/live reads/republication/push or repeated tests/builds/launches. Actual entry build-info
+`46E25644…` preserved unstaged/excluded, along with existing backups and pre-existing documentation.
+
 **Current disposition — 2026-10-21:** **S22-035 review/disposition obligation COMPLETE; no pending
 mandatory export implementation.** Workspace Shipments is deferred for user feedback with no current
 export requirement; existing Reports exports satisfy present needs, not identical-population coverage

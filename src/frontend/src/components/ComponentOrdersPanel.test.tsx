@@ -72,6 +72,23 @@ describe('ComponentOrdersPanel states', () => {
 });
 
 describe('ComponentOrdersPanel grouping and display', () => {
+  it('exposes a named keyboard-focusable scroll region containing every column', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockResolvedValue(response([
+      { componentPart: 'COMP', displayLine: line(), additionalLines: [] },
+    ]));
+    render(<ComponentOrdersPanel assignmentId="ws-1" snapshotId="snap-1" />);
+    const region = await screen.findByRole('region', { name: 'Scrollable Component Orders' });
+    expect(region).toHaveAttribute('tabindex', '0');
+    const headers = within(region).getAllByRole('columnheader');
+    expect(headers).toHaveLength(16);
+    expect(headers[15]).toHaveTextContent('Current Comments');
+    screen.getByRole('checkbox', { name: 'CIA' }).focus();
+    await user.tab();
+    expect(region).toHaveFocus();
+    // jsdom establishes semantics and Tab order only, not native scrolling or CSS geometry.
+  });
+
   it('renders one collapsed row per component with the earliest line, an expand arrow only when more lines exist, and child rows repeating the component number', async () => {
     fetchMock.mockResolvedValue(response([
       {
@@ -232,18 +249,20 @@ describe('ComponentOrdersPanel delivered filters', () => {
     const preview = await screen.findByRole('button', { name: 'View comments for COMMENTS' });
     expect(preview).toHaveTextContent('Jan 31, 2022 · 1:30 PM · jdoe');
     expect(preview.textContent).toContain(comments);
-    fireEvent.click(preview);
+    await user.click(preview);
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText('Jan 31, 2022 · 1:30 PM · jdoe')).toBeInTheDocument();
     expect(within(dialog).getByText((_, element) => element?.tagName === 'PRE' && element.textContent === comments)).toBeTruthy();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
+    expect(preview).toHaveFocus();
 
     preview.focus();
     await user.keyboard('{Enter}');
     expect(screen.getByRole('dialog')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Close Current Comments' }));
     expect(screen.queryByRole('dialog')).toBeNull();
+    expect(preview).toHaveFocus();
     fireEvent.click(screen.getByRole('button', { name: /Expand COMMENTS/ }));
     expect(within(screen.getByRole('table')).getAllByRole('button', { name: 'View comments for COMMENTS' })).toHaveLength(1);
   });
