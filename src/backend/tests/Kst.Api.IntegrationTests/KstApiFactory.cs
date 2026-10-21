@@ -70,6 +70,7 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
     public IOpenOrdersSourceReader? OpenOrdersSourceReader { get; set; }
     public IFinishedGoodsSourceReader? FinishedGoodsSourceReader { get; set; }
     public Kst.Application.ComponentMrp.IComponentMrpReader? ComponentMrpReader { get; set; }
+    public Kst.Domain.Common.IClock? Clock { get; set; }
     public Kst.Application.ShipmentsToGo.IShipmentsToGoReader? ShipmentsToGoReader { get; set; }
     public Kst.Application.Sop.ISopReader? SopReader { get; set; }
     public Kst.Application.OpenOrderReport.IOpenOrderReportReader? OpenOrderReportReader { get; set; }
@@ -98,6 +99,11 @@ public sealed class KstApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
+            if (Clock is not null)
+            {
+                services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Domain.Common.IClock)));
+                services.AddSingleton(Clock);
+            }
             if (PartInfoContextReader is not null)
             {
                 services.Remove(services.Single(d => d.ServiceType == typeof(Kst.Application.PartInfo.IPartInfoContextReader)));

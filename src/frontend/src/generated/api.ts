@@ -54,6 +54,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/component-mrp/projection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ReadComponentMrpProjection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/component-mrp/screen-preparations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PrepareComponentMrpScreen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/component-mrp/preparations/{id}/bytes": {
         parameters: {
             query?: never;
@@ -1307,6 +1339,19 @@ export interface components {
             isStale: boolean;
             warning: null | string;
         };
+        ComponentMrpPeriodDto: {
+            label: string;
+            /** Format: date */
+            start: null | string;
+            /** Format: date */
+            endExclusive: null | string;
+            demand: string;
+            receipts: string;
+            projectedQoh: string;
+            plannedDue: string;
+            plannedRelease: string;
+            hasUnconfirmed: boolean;
+        };
         ComponentMrpPreparedDto: {
             preparationId: string;
             fileName: string;
@@ -1334,6 +1379,31 @@ export interface components {
             includeUnconfirmed: boolean;
             /** @default Week */
             period: string;
+            acquisitionId?: null | string;
+            /** Format: date */
+            asOfDate?: null | string;
+        };
+        ComponentMrpScreenDto: {
+            site: string;
+            part: string;
+            /** Format: date */
+            asOfDate: string;
+            /** Format: int32 */
+            horizonWeeks: number | string;
+            period: string;
+            includeUnconfirmed: boolean;
+            /** Format: date */
+            forecastEndExclusive: string;
+            /** Format: date-time */
+            acquiredAtUtc: string;
+            acquisitionId: string;
+            /** Format: date-time */
+            expiresAtUtc: string;
+            unitOfMeasure: null | string;
+            adjustedOpeningQoh: string;
+            safetyStock: null | string;
+            dataQualityWarning: null | string;
+            periods: components["schemas"]["ComponentMrpPeriodDto"][];
         };
         ComponentOrderGroupDto: {
             componentPart: string;
@@ -2732,6 +2802,117 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReadComponentMrpProjection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComponentMrpRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComponentMrpScreenDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PrepareComponentMrpScreen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComponentMrpRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComponentMrpPreparedDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Gone */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -4,6 +4,9 @@ import { formatBuyerCommentMetadata } from '../shared/buyerCommentPresentation';
 import { decimal, exactText, formatDecimal } from '../shared/exactDecimal';
 import { PartIdentity, FactsStrip, Fields, InfoCard as Card, ScrollTable, InfoTabs } from '../shared/partInfoParts';
 import { SupplierStrip } from '../shared/SupplierStrip';
+import { PartInfoMrp } from './PartInfoMrp';
+import { defaultMrpSettings, type MrpExportContext } from './partInfoMrpContext';
+import { readComponentMrp } from '../api/componentMrpApi';
 import './PartInfoLookup.css';
 
 const absent = '—';
@@ -45,11 +48,13 @@ function BuyerCommentDialog({ part, text, recordedAt, author, onClose }: { part:
 const tabs = [{ id: 'orders', label: 'Open POs' }, { id: 'locations', label: 'Inventory lots' }, { id: 'alternates', label: 'Approved alternates' }] as const;
 type Tab = typeof tabs[number]['id'];
 
-export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpec = getPartInfoSpec, refreshLocations = refreshPartInfoLocations }: {
+export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpec = getPartInfoSpec, refreshLocations = refreshPartInfoLocations, loadMrp = readComponentMrp, onExportContext }: {
   active?: boolean;
   lookup?: typeof lookupPartInfo;
   loadSpec?: typeof getPartInfoSpec;
   refreshLocations?: typeof refreshPartInfoLocations;
+  loadMrp?: typeof readComponentMrp;
+  onExportContext?: (context: MrpExportContext | null) => void;
 }) {
   const [spec, setSpec] = useState<PartInfoSpec | null>(null);
   const [specError, setSpecError] = useState(false);
@@ -63,13 +68,18 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
   const [inventoryLoading, setInventoryLoading] = useState(false);
   const [tab, setTab] = useState<Tab>('orders');
   const [commentOpen, setCommentOpen] = useState(false);
+  const [mrpSettings, setMrpSettings] = useState(defaultMrpSettings);
   const inventoryEpoch = useRef(0);
   const inventoryAbort = useRef<AbortController | null>(null);
   const epoch = useRef(0);
   const abort = useRef<AbortController | null>(null);
   useEffect(() => {
     const controller = new AbortController(); let current = true;
-    void loadSpec(controller.signal).then(value => { if (current) { setSpec(value); setSpecError(false); } })
+    void loadSpec(controller.signal).then(value => { if (current) {
+      setSpec(value); setSpecError(false);
+      try { const saved = localStorage.getItem('kst.componentMrp.site.v1'); setSite(saved && value.sites.includes(saved) ? saved : value.sites.includes('SW') ? 'SW' : value.sites[0]); }
+      catch { setSite(value.sites.includes('SW') ? 'SW' : value.sites[0]); }
+    } })
       .catch(() => { if (current) setSpecError(true); });
     return () => { current = false; controller.abort(); };
   }, [loadSpec, specAttempt]);
@@ -86,9 +96,10 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
     inventoryEpoch.current++; inventoryAbort.current?.abort(); setInventoryLoading(false);
     epoch.current++; abort.current?.abort(); setReport(null); setLoading(false); setError(null); setMissing(false);
   }
-  async function submit() {
+  async function submit(preserveMrp = false) {
     if (!active || !spec || !part.trim()) return;
     const requestedPart = part.trim(); const requestedSite = site;
+    if (!preserveMrp) setMrpSettings(defaultMrpSettings);
     setCommentOpen(false); setTab('orders');
     inventoryEpoch.current++; inventoryAbort.current?.abort(); setInventoryLoading(false);
     const token = ++epoch.current; abort.current?.abort();
@@ -130,18 +141,18 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
       <label htmlFor="part-info-part">Part Number<input id="part-info-part" autoComplete="off" value={part} maxLength={Number(spec?.maximumPartLength ?? 256)}
         onChange={event => { invalidate(); setPart(event.target.value); }} /></label>
       <label htmlFor="part-info-site">Site<select id="part-info-site" value={site} disabled={!spec}
-        onChange={event => { invalidate(); setSite(event.target.value); }}>{(spec?.sites ?? ['SW']).map(s => <option key={s}>{s}</option>)}</select></label>
+        onChange={event => { invalidate(); setSite(event.target.value); try { localStorage.setItem('kst.componentMrp.site.v1', event.target.value); } catch { /* Session selection remains usable. */ } }}>{(spec?.sites ?? ['SW']).map(s => <option key={s}>{s}</option>)}</select></label>
       <button type="submit" className="report-button report-button--primary" disabled={!spec || !part.trim() || !active}>{loading ? 'Look up again' : 'Lookup'}</button>
       {loading && <button type="button" className="report-button" onClick={invalidate}>Cancel lookup</button>}
     </form>
     {loading && <p role="status">Acquiring part information…</p>}
-    {error && <div role={missing ? 'status' : 'alert'} className="part-info__state"><h2>{missing ? 'Part not found' : 'Lookup unavailable'}</h2><p>{error}</p><button onClick={() => void submit()}>Retry lookup</button></div>}
+    {error && <div role={missing ? 'status' : 'alert'} className="part-info__state"><h2>{missing ? 'Part not found' : 'Lookup unavailable'}</h2><p>{error}</p><button onClick={() => void submit(true)}>Retry lookup</button></div>}
     {!loading && !error && !report && <p className="part-info__state">Enter a part number and select Lookup, or press Enter.</p>}
     {report && m && <>
       <PartIdentity part={report.part} description={m.description ?? 'Description not available'} chips={[
         <strong key="site" className="report-chip">Site {report.site}</strong>,
         <span key="status" className="report-chip">{m.partStatusCode ? `${m.partStatusCode}${m.partStatusDescription ? ` — ${m.partStatusDescription}` : ''}` : 'Part status unavailable'}</span>,
-      ]} actions={<button className="report-button" aria-label="Refresh / Retry sections" title="Refresh all sections; retries any that failed" onClick={() => void submit()}>Refresh</button>} />
+        ]} actions={<button className="report-button" aria-label="Refresh / Retry sections" title="Refresh all sections; retries any that failed" onClick={() => void submit(true)}>Refresh</button>} />
       <FactsStrip items={[
           ['Net QOH', report.inventory.value ? inventoryQuantity(report.inventory.value.netQuantityOnHand) : 'Unavailable'],
           ['Std / QCTC', <><span>{price(m.standardCost)}</span> / <span>{price(m.qctc)}</span></>],
@@ -167,6 +178,7 @@ export function PartInfoLookup({ active = true, lookup = lookupPartInfo, loadSpe
           </button> : <p>No current buyer comment.</p>}
         {report.comment.acquiredAtUtc && <p className="part-info__time">Acquired <time dateTime={report.comment.acquiredAtUtc}>{new Date(report.comment.acquiredAtUtc).toLocaleString()}</time></p>}
       </section>
+      {active && <PartInfoMrp site={report.site} part={report.part} settings={mrpSettings} onSettings={setMrpSettings} loadMrp={loadMrp} onExportContext={onExportContext} />}
       <InfoTabs idPrefix="part-info" tabs={tabs.map(item => ({ ...item, count: report[item.id].value?.length ?? 'Unavailable', failed: !!report[item.id].error }))} active={tab} onChange={setTab} />
       <div id="part-info-panel-alternates" role="tabpanel" aria-labelledby="part-info-tab-alternates" hidden={tab !== 'alternates'}>
           <Card title="Approved Alternates" error={report.alternates.error} acquired={report.alternates.acquiredAtUtc}>

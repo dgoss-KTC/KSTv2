@@ -14,7 +14,17 @@ public sealed class DelegateComponentMrpReader(Func<string, string, DateOnly, Ca
 }
 
 public sealed record ComponentMrpReport(string Site, DateOnly AsOfDate, int HorizonWeeks, bool IncludeUnconfirmed,
-    ComponentMrpSource Source, LongTermShortageRow Projection);
+    ComponentMrpSource Source, LongTermShortageRow Projection)
+{
+    public string Part { get; init; } = Source.Input.ComponentPart;
+    public required LongTermShortageRow ConfirmedProjection { get; init; }
+    public required LongTermShortageRow AllReceiptsProjection { get; init; }
+    public ComponentMrpReport Select(bool include) => this with
+    {
+        IncludeUnconfirmed = include,
+        Projection = include ? AllReceiptsProjection : ConfirmedProjection
+    };
+}
 
 public sealed class ComponentMrpService(IComponentMrpReader reader)
 {
@@ -28,7 +38,10 @@ public sealed class ComponentMrpService(IComponentMrpReader reader)
         var source = await reader.ReadAsync(site, part, LongTermShortagesBuilder.GetWeekOneStart(asOf).AddDays(weeks * 7), ct);
         if (source is null) return null;
         ct.ThrowIfCancellationRequested();
+        if (!string.Equals(source.Input.ComponentPart.Trim(), part.Trim(), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("MRP source scope mismatch.");
         var pair = LongTermShortagesBuilder.BuildBoth(asOf, [source.Input], weeks);
-        return new(site, asOf, weeks, includeUnconfirmed, source, (includeUnconfirmed ? pair.All : pair.Confirmed)[0]);
+        return new(site, asOf, weeks, includeUnconfirmed, source, (includeUnconfirmed ? pair.All : pair.Confirmed)[0])
+        { Part = part, ConfirmedProjection = pair.Confirmed[0], AllReceiptsProjection = pair.All[0] };
     }
 }

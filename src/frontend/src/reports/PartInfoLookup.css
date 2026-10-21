@@ -2,6 +2,10 @@
 .reports-panel--part-info :is(input, select, button) { font: inherit; }
 .reports-panel--part-info .reports-panel__body { flex: 1; min-width: 0; max-width: none; }
 .reports-panel--part-info .reports-panel__selector { flex-shrink: 0; }
+.reports-panel--part-info .report-head__actions { max-width: 100%; }
+.reports-panel--part-info .analytical-excel-export { flex-wrap: nowrap; max-width: 100%; }
+.reports-panel--part-info .analytical-export__scope { max-width: 56vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reports-panel--part-info .analytical-export__button { flex-shrink: 0; }
 .part-info__intro, .part-info__hint, .part-info__time { color: var(--tx2); }
 .part-info__inputs { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin: 0 -12px 10px; padding: var(--density-spacing) 12px; border-bottom: 1px solid var(--bd-soft); font-size: 12px; }
 .part-info__inputs label { flex-direction: column; align-items: stretch; gap: 4px; }

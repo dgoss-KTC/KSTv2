@@ -1,10 +1,12 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PartInfoLookup } from './PartInfoLookup';
 import { PartInfoError, type PartInfo } from '../api/partInfoApi';
 
 const time = '2026-10-14T12:00:00Z';
+vi.mock('../api/componentMrpApi', () => ({ readComponentMrp: vi.fn(() => new Promise(() => {})) }));
+beforeEach(() => localStorage.clear());
 const section = <T,>(value: T) => ({ value, error: null, acquiredAtUtc: time });
 function fixture(part = 'EXACT', site = 'SW'): PartInfo {
   return { site, part, master: { description: 'Synthetic part', partStatusCode: 'AC', partStatusDescription: 'Active', iosCode: null,

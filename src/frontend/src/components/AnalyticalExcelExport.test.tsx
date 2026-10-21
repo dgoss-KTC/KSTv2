@@ -33,6 +33,14 @@ afterEach(async () => {
 });
 
 describe('Stage 22 analytical pilot — mocked host, no filesystem/source access', () => {
+  it('screen acquisition expiry blocks new preparation without releasing cancelled exact bytes', async () => {
+    const client = port();
+    const tree = (expired: boolean) => <><AnalyticalSaveStatus /><AnalyticalExcelExport contextKey="held-acquisition" label="Component MRP" scopeLabel="MRP shown" request={request} clientFactory={() => client as unknown as AnalyticalExportClient} prepareDisabledReason={expired ? 'Refresh MRP before exporting.' : undefined} /></>;
+    const view = render(tree(false)); await activate(); await screen.findByRole('button', { name: 'Save again' });
+    view.rerender(tree(true)); expect(screen.getByRole('button', { name: 'Export' })).toBeDisabled(); expect(client.release).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Save again' })); await waitFor(() => expect(client.save).toHaveBeenCalledTimes(2));
+    expect(client.prepare).toHaveBeenCalledTimes(1); expect(client.save.mock.calls[1][0]).toBe(prepared);
+  });
   it.each(['MPS', 'BOM'])('acquires a fresh client per Strict Mode setup and automatically saves %s once', async label => {
     render(<StrictMode><AnalyticalSaveStatus /><AnalyticalExcelExport contextKey={label} label={label} scopeLabel="Loaded scope" request={() => analyticalRequest(label, 'workspace', 'snapshot', 'SW', '2026-10-15')} /></StrictMode>);
     await activate(); await screen.findByRole('button', { name: 'Save again' });

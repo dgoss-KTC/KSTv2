@@ -14,6 +14,8 @@ interface Props<Request> {
   scopeLabel: string;
   label: string;
   disabledReason?: string;
+  /** Blocks new preparation only; exact-byte retry survives screen-acquisition expiry. */
+  prepareDisabledReason?: string;
   busyReason?: string;
   clientFactory?: () => ExcelExportPort<Request>;
   preparingMessage?: string;
@@ -29,7 +31,7 @@ export function AnalyticalExcelExport<Request = AnalyticalRequest>(props: Props<
   return <ExportVisit key={JSON.stringify([props.contextKey, reason, attempt])} {...props} disabledReason={reason} restart={() => setAttempt(n => n + 1)} />;
 }
 
-function ExportVisit<Request>({ request, scopeLabel, label, disabledReason: contextReason, busyReason, clientFactory, preparingMessage = 'Preparing Excel workbook from loaded data…', actionRef, onMessage, restart }: Props<Request> & { restart: () => void }) {
+function ExportVisit<Request>({ request, scopeLabel, label, disabledReason: contextReason, prepareDisabledReason, busyReason, clientFactory, preparingMessage = 'Preparing Excel workbook from loaded data…', actionRef, onMessage, restart }: Props<Request> & { restart: () => void }) {
   const disabledReason = contextReason || busyReason;
   // The default is used only by existing Analytical consumers; Reports always supply a typed adapter.
   const [factory] = useState(() => clientFactory ?? defaultFactory as unknown as () => ExcelExportPort<Request>);
@@ -49,7 +51,7 @@ function ExportVisit<Request>({ request, scopeLabel, label, disabledReason: cont
   const [operationId, setOperationId] = useState<string | null>(null);
   const operation = status.operations.find(o => o.id === operationId);
   const blocked = status.operations.some(o => o.pending || o.opening) || !!status.preparation?.preparing;
-  const reason = disabledReason || (blocked ? 'Another export is preparing, saving, opening or awaiting save-status reconciliation.' : '');
+  const reason = disabledReason || prepareDisabledReason || (blocked ? 'Another export is preparing, saving, opening or awaiting save-status reconciliation.' : '');
 
   useLayoutEffect(() => { latest.current = { request, disabledReason, preference }; });
   useLayoutEffect(() => {
@@ -134,7 +136,7 @@ function ExportVisit<Request>({ request, scopeLabel, label, disabledReason: cont
 
   return <div className="analytical-excel-export" aria-label={`${label} export`}>
     <span id={reason ? `${owner}-reason` : undefined} className="analytical-export__scope">{reason || scopeLabel}</span>
-    <button ref={trigger} type="button" className="analytical-export__button" disabled={!!reason} aria-describedby={reason ? `${owner}-reason` : undefined} aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuOpen ? `${owner}-menu` : undefined} onClick={() => setMenuOpen(v => !v)} onKeyDown={e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); setMenuOpen(true); } }}>
+    <button ref={trigger} type="button" className="analytical-export__button" title={reason || scopeLabel} disabled={!!reason} aria-describedby={reason ? `${owner}-reason` : undefined} aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuOpen ? `${owner}-menu` : undefined} onClick={() => setMenuOpen(v => !v)} onKeyDown={e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); setMenuOpen(true); } }}>
       <span aria-hidden="true">↓</span> Export <span aria-hidden="true">▾</span>
     </button>
     {menuOpen && createPortal(<div id={`${owner}-menu`} ref={menu} className="analytical-export-menu" data-analytical-export-menu role="menu" aria-label={`${label} export options`} style={position}>

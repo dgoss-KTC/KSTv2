@@ -3,7 +3,32 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current project position — 2026-10-21:** **Popup alignment, Credit Hold/CIA and Include KSS — COMPLETE /
+**Current project position — 2026-10-21:** **Part Info & MRP COMPLETE / OWNER-ACCEPTED /
+BOUNDED FOLLOW-UP CLOSED.** Owner: “The new MRP screen looks great. Accepted.” This supersedes pending
+acceptance, separately from offline/artifact evidence; not proof of the exact executable tested or every
+suggested desktop check. Default combined Reports page,
+typed server period data and both held receipt projections, screen-bound no-reread workbook preparation,
+protected ComponentMrp title export; expiry requires published Refresh MRP without invalidating exact
+prepared save retry. Accepted popup/supplier/KSS and locked algorithms remain unchanged. Offline252
+frontend passes/zero failures/skips (19 files,two workers/explicit15-second runner bound). Earlier
+five-second heavy Open Orders fixture deadline failures remain evidence, not relabeled passes;
+isolated default/bounded executions pass. 147 backend/17 native passes, two retained interactive
+ignores; types/scoped lint/format/build
+pass, AFT/inherited warnings/limits explicit. Actual entry build-info `4AA277F5…` byte-preserved/excluded;
+no live reads/install/submissions/push. One complete local commit with normal hooks is authorized;
+reuse existing verification without repeat suites/builds or source changes. Existing S22-011/037 bounded follow-up, S22-018 shared
+export cross-reference only; S22-033 modal work/broader workstreams/Stage22 stay open. Record/checklist:
+`docs/implementation/KST_v2_S22_PART_INFO_MRP.md`; API `docs/api/COMPONENT_MRP.md`.
+After normal owner shutdown, unchanged guarded offline publication/embedded build pass; current
+alpha.21 review host15,351,296 bytes, SHA256 `FF9A8BD7…`, final assets embedded/four sidecars/configs
+agree. No termination/guard bypass/deployment/agent desktop test. Complete30-path diff (10 new files)
+excludes entry build-info; entry index empty. Full executable identity and retained desktop checklist
+in the record. Exact staged paths/new-file contents/contracts/whitespace/committed tree/remaining status
+are checked. Only delivered combined-page/MRP-export portions of S22-011/037/035 close; broader
+workstreams and Stage22 stay open. ShortageMaster comment correction is deferred and unchanged.
+Next checkpoint: separately scoped simulation-filter correction; no further acceptance gate.
+
+**Preceding accepted delivery — 2026-10-21:** **Popup alignment, Credit Hold/CIA and Include KSS — COMPLETE /
 OWNER-ACCEPTED / BOUNDED FOLLOW-UPS CLOSED.** Owner confirms Include KSS: “Works great! Accepted.”
 Owner-reported behavior is separate from offline/artifact evidence, not itemized desktop checklist
 completion, agent desktop testing or proof of the exact hash tested. One complete 32-path local commit
@@ -289,12 +314,14 @@ exception. Historical implementation-time pending statements below do not revoke
 Stage 19 Historical Shipments remains **COMPLETE / OWNER-ACCEPTED — 2026-10-13**
 (Part 1 Reports and Part 2 Workspace Shipments; see `docs/implementation/KST_v2_STAGE_19_CLOSEOUT.md`).
 
-**Brought-forward Reports Part Info Lookup — IMPLEMENTED / PENDING OWNER ACCEPTANCE — 2026-10-14.**
+**Historical brought-forward Reports Part Info Lookup — IMPLEMENTED / PENDING OWNER ACCEPTANCE — 2026-10-14.**
 Standalone exact part/site page, independent inventory refresh and exact supplier-risk enrichment are
 offline-verified with a republished/identified sidecar. Owner live/visual acceptance remains pending;
 see `docs/status/CURRENT_PROJECT_STATUS.md` for source decisions, evidence, exceptions and checklist.
 Stage 21 remains accepted; the separate Stage 22 navigation checkpoint above does not accept the lookup.
-No release readiness is implied.
+No release readiness is implied. These historical pending statements are superseded for the delivered
+Part Info & MRP follow-up by explicit owner acceptance on 2026-10-21, recorded above and in
+`docs/implementation/KST_v2_S22_PART_INFO_MRP.md`; broader work remains open.
 The owner approved the revised Release 1 scope and stage sequence on
 2026-09-29. Stage 12 is retired. Stage 13 Customer Open Orders has an owner-accepted bounded plan
 and precedes Stage 14 Planning Workbook; Stage 13 is complete and owner-accepted as of 2026-10-01. Stage 14

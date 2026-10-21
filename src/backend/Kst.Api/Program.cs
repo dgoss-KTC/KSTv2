@@ -131,6 +131,7 @@ builder.Services.AddSingleton<Kst.Application.ComponentMrp.IComponentMrpReader>(
     new Kst.Application.ComponentMrp.DelegateComponentMrpReader(sp.GetRequiredService<Kst.Integrations.Qad.ComponentMrp.QadComponentMrpReader>().ReadAsync));
 builder.Services.AddSingleton<Kst.Application.ComponentMrp.ComponentMrpService>();
 builder.Services.AddSingleton<Kst.Api.ComponentMrpPreparations>();
+builder.Services.AddSingleton<Kst.Api.ComponentMrpAcquisitions>();
 builder.Services.AddSingleton<Kst.Integrations.Qad.ShipmentsToGo.QadShipmentsToGoReader>();
 builder.Services.AddSingleton<Kst.Application.ShipmentsToGo.IShipmentsToGoReader>(sp =>
 {

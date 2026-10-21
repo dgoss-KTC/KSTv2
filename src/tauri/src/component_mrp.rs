@@ -700,6 +700,59 @@ pub async fn historical_shipments_request(
     }
     result
 }
+// A fixed Component MRP payload, not arbitrary webview JSON/URL authority.
+fn mrp_request(
+    site: &str,
+    part: &str,
+    weeks: u32,
+    include: bool,
+    period: &str,
+    acquisition_id: Option<&str>,
+    as_of_date: Option<&str>,
+) -> Result<serde_json::Value, String> {
+    if part.trim().is_empty()
+        || part.chars().count() > 256
+        || part.chars().any(char::is_control)
+        || !["SW", "NW", "AR", "MN", "MS", "KV"].contains(&site)
+        || ![13, 26, 52, 72].contains(&weeks)
+        || !["Day", "Week", "Month"].contains(&period)
+        || acquisition_id.is_some_and(|id| {
+            id.len() != 36 || !id.chars().all(|c| c.is_ascii_hexdigit() || c == '-')
+        })
+        || as_of_date.is_some_and(|date| {
+            date.len() != 10 || !date.chars().all(|c| c.is_ascii_digit() || c == '-')
+        })
+        || acquisition_id.is_some() != as_of_date.is_some()
+    {
+        return Err("Invalid Component MRP request.".into());
+    }
+    Ok(
+        serde_json::json!({"site":site,"part":part,"horizonWeeks":weeks,"includeUnconfirmed":include,
+        "period":period,"acquisitionId":acquisition_id,"asOfDate":as_of_date}),
+    )
+}
+
+fn generation_route(
+    kind: ReportKind,
+    screen: bool,
+    retained: bool,
+    sop_prepare: bool,
+) -> &'static str {
+    if screen {
+        "component-mrp/projection"
+    } else if kind == ReportKind::ComponentMrp && retained {
+        "component-mrp/screen-preparations"
+    } else if kind == ReportKind::Sop {
+        if sop_prepare {
+            "sop/preparations"
+        } else {
+            "sop/acquisitions"
+        }
+    } else {
+        kind.route()
+    }
+}
+
 #[tauri::command]
 pub async fn component_mrp_generate(
     window: tauri::WebviewWindow,
@@ -711,6 +764,9 @@ pub async fn component_mrp_generate(
     horizon_weeks: u32,
     include_unconfirmed: bool,
     period: String,
+    acquisition_id: Option<String>,
+    as_of_date: Option<String>,
+    screen_read: Option<bool>,
     report_kind: Option<ReportKind>,
     sites: Option<Vec<String>>,
     include_next_week: Option<bool>,
@@ -721,6 +777,12 @@ pub async fn component_mrp_generate(
 ) -> Result<serde_json::Value, String> {
     require_main(&window)?;
     let kind = report_kind.unwrap_or_default();
+    let screen = screen_read.unwrap_or(false);
+    if (screen || acquisition_id.is_some() || as_of_date.is_some())
+        && kind != ReportKind::ComponentMrp
+    {
+        return Err("Screen acquisition belongs to Component MRP only.".into());
+    }
     if kind == ReportKind::HistoricalShipments {
         return Err("Use Historical Shipments operation transport.".into());
     }
@@ -800,7 +862,15 @@ pub async fn component_mrp_generate(
             sop_request.clone().ok_or("Missing S&OP inputs.")?
         }
     } else if kind == ReportKind::ComponentMrp {
-        serde_json::json!({"site":site,"part":part,"horizonWeeks":horizon_weeks,"includeUnconfirmed":include_unconfirmed,"period":period})
+        mrp_request(
+            &site,
+            &part,
+            horizon_weeks,
+            include_unconfirmed,
+            &period,
+            acquisition_id.as_deref(),
+            as_of_date.as_deref(),
+        )?
     } else {
         serde_json::json!({"sites":sites,"includeNextWeek":include_next_week.unwrap_or(false)})
     };
@@ -818,15 +888,12 @@ pub async fn component_mrp_generate(
     {
         return Err("Report inputs exceed capacity.".into());
     }
-    let action_route = if kind == ReportKind::Sop {
-        if sop_prepare.is_some() {
-            "sop/preparations"
-        } else {
-            "sop/acquisitions"
-        }
-    } else {
-        route
-    };
+    let action_route = generation_route(
+        kind,
+        screen,
+        acquisition_id.is_some(),
+        sop_prepare.is_some(),
+    );
     let mut response = client
         .post(format!("{url}/api/v1/reports/{action_route}"))
         .header("X-KST-Report-Session", &session)
@@ -835,6 +902,9 @@ pub async fn component_mrp_generate(
         .await
         .map_err(|_| "Generation transport failed.")?;
     if !response.status().is_success() {
+        if kind == ReportKind::ComponentMrp && response.status().as_u16() == 410 {
+            return Err("MRP acquisition expired, changed or is not owned by this session. Refresh MRP before exporting.".into());
+        }
         if kind == ReportKind::OpenOrderReport {
             // Only the backend's validation messages cross this fixed route; source details never do.
             return Err(if response.status().as_u16() == 400 {
@@ -890,13 +960,39 @@ pub async fn component_mrp_generate(
         .await
         .map_err(|_| "Preparation metadata incomplete.")?
     {
-        if metadata.len() + chunk.len() > (if kind == ReportKind::Sop { 65536 } else { 4096 }) {
+        if metadata.len() + chunk.len()
+            > (if screen {
+                512 * 1024
+            } else if kind == ReportKind::Sop {
+                65536
+            } else {
+                4096
+            })
+        {
             return Err("Preparation metadata exceeds capacity.".into());
         }
         metadata.extend_from_slice(&chunk)
     }
     let result: serde_json::Value =
         serde_json::from_slice(&metadata).map_err(|_| "Invalid preparation metadata.")?;
+    if screen {
+        let s = state.0.lock().map_err(|_| "State unavailable.")?;
+        if s.epoch != epoch || s.departed || s.busy || s.close_pending {
+            return Err("MRP screen request superseded; result discarded.".into());
+        }
+        if result["site"] != site
+            || result["part"] != part
+            || result["horizonWeeks"] != horizon_weeks
+            || result["period"] != period
+            || result["includeUnconfirmed"] != include_unconfirmed
+            || !result["periods"]
+                .as_array()
+                .is_some_and(|p| !p.is_empty() && p.len() <= 506)
+        {
+            return Err("Invalid MRP screen identity/settings.".into());
+        }
+        return Ok(result);
+    }
     if kind != ReportKind::ComponentMrp && result["outcome"] == "noData" {
         let s = state.0.lock().map_err(|_| "State unavailable.")?;
         if s.epoch != epoch || s.departed {
@@ -1304,6 +1400,68 @@ pub async fn component_mrp_open(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn mrp_screen_payload_forwards_retained_identity_and_bounds_webview_inputs() {
+        assert_eq!(
+            generation_route(ReportKind::ComponentMrp, true, false, false),
+            "component-mrp/projection"
+        );
+        assert_eq!(
+            generation_route(ReportKind::ComponentMrp, true, true, false),
+            "component-mrp/projection"
+        );
+        assert_eq!(
+            generation_route(ReportKind::ComponentMrp, false, true, false),
+            "component-mrp/screen-preparations"
+        );
+        assert_eq!(
+            generation_route(ReportKind::ComponentMrp, false, false, false),
+            "component-mrp"
+        );
+        assert_eq!(
+            generation_route(ReportKind::Sop, false, false, true),
+            "sop/preparations"
+        );
+        assert_eq!(
+            generation_route(ReportKind::ShipmentsToGo, false, false, false),
+            "shipments-to-go"
+        );
+        let id = "11111111-1111-4111-8111-111111111111";
+        let value = mrp_request(
+            "SW",
+            "EXACT",
+            72,
+            false,
+            "Month",
+            Some(id),
+            Some("2026-09-29"),
+        )
+        .unwrap();
+        assert_eq!(value["acquisitionId"], id);
+        assert_eq!(value["asOfDate"], "2026-09-29");
+        assert_eq!(value["includeUnconfirmed"], false);
+        assert!(value.get("session").is_none());
+        assert!(mrp_request("KS", "EXACT", 26, true, "Week", None, None).is_err());
+        assert!(mrp_request("SW", "EXACT", 27, true, "Week", None, None).is_err());
+        assert!(mrp_request("SW", "EXACT", 26, true, "Year", None, None).is_err());
+        assert!(mrp_request(
+            "SW",
+            "EXACT",
+            26,
+            true,
+            "Week",
+            Some("../../x"),
+            Some("2026-09-29")
+        )
+        .is_err());
+        assert!(mrp_request("SW", "EXACT", 26, true, "Week", Some(id), None).is_err());
+        assert!(mrp_request("SW", "bad\npart", 26, true, "Week", None, None).is_err());
+        assert!(mrp_request("SW", &"x".repeat(257), 26, true, "Week", None, None).is_err());
+        assert!(
+            mrp_request("SW", "EXACT", 13, true, "Day", None, None).unwrap()["acquisitionId"]
+                .is_null()
+        );
+    }
     use super::*;
     #[test]
     fn historical_pages_are_explicitly_bounded_for_all_three_report_sizes() {

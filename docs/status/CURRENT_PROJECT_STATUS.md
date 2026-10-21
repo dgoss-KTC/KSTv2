@@ -3,6 +3,48 @@
 Date: 2026-10-21
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## Part Info & MRP integration — 2026-10-21
+
+**COMPLETE / OWNER-ACCEPTED / BOUNDED FOLLOW-UP CLOSED — 2026-10-21.**
+Owner: “The new MRP screen looks great. Accepted.” This supersedes earlier pending-acceptance wording.
+Owner-reported acceptance is separate from offline/artifact evidence, not proof of the exact executable
+tested, every suggested desktop/workbook/native-save check, agent desktop testing or risk acceptance.
+Owner-scoped follow-up from `f389668`: default Reports PartInfo now combines lookup with the existing
+five-row Component MRP projection; duplicate standalone selector removed. Typed screen/retained
+preparation contracts, both accepted receipt-mode rows, server period bounds/exact quantities, applied
+identity/newest-request protection and shared title-strip ComponentMrp protected export. No new netting,
+SQL, popup/BOM redesign or dependency/capability. Acquisition expiry requires published Refresh MRP;
+export never reacquires. Exact prepared retry/saved recovery is independent of acquisition expiry.
+
+Offline252 frontend passes/zero failures/skips in19 files with bounded two workers/explicit15-second
+runner bound; final full-Refresh failure/retry preserves MRP controls. Earlier five-second combined
+runs retain a5.47s deadline-shaped failure in an unchanged heavy Open Orders fixture (isolated default
+pass4.595s,15-second-bound pass4.329s); those failed commands are not relabeled passing. 147 backend passes
+(five disjoint projects), 17 native passes /
+two retained interactive ignores. All period/mode raw DTO and actual synthetic workbook values match
+independent expected fixtures; types/scoped lint/format/frontend build pass. AFT deadlines, inherited
+broad lint/format, React/Vite warnings and other suites' skips remain explicit. Actual entry build-info
+`4AA277F5…` (not preceding `F1064073…`) restored byte-for-byte, unstaged/excluded. No live reads,
+installations, submissions or push. One complete 30-path local closeout commit with normal hooks is
+authorized; existing verification is reused without repeat suites/builds or source changes. Full/staged
+paths, new-file contents, contracts, whitespace, committed tree and remaining status are checked.
+Accepted popup/supplier/KSS remain unchanged; existing S22-011/037 carry this bounded follow-up and
+S22-018 the shared export cross-reference only. S22-033 modal work and Stage 22 remain open.
+Record/API/checklist/evidence:
+`docs/implementation/KST_v2_S22_PART_INFO_MRP.md`, `docs/api/COMPONENT_MRP.md`,
+`C:\Users\dgoss\AppData\Local\Temp\opencode\part-info-mrp\`.
+After guard stops for running/closing KST, owner confirmed normal shutdown; unchanged guarded offline
+sidecar publication and embedded release build pass, no termination/guard bypass/desktop test/deployment.
+Current alpha.21 review `src/tauri/target/release/kst-tauri.exe`:15,351,296 bytes, SHA256
+`FF9A8BD784F0F44C8165A01B781EA399E46B3C380224F6644A63BB1CF382948A`.
+Final assets embedded/newer host verified; four republished sidecars127,568,038 bytes each and both
+companion configs agree. PE version0.1.0; full identity/checklist/limits and30-path complete focused
+diff including10 new files are in the record/evidence above. Existing S22-011/037 and S22-035 close
+only the delivered combined-page/MRP-export portions; broader workstreams and Stage22 remain open.
+Actual entry build-info remains byte-identical, unstaged/excluded; evidence/workbooks/logs/binaries
+stay outside Git. ShortageMaster comment correction is deferred and unchanged. Next checkpoint:
+separately scoped simulation-filter correction, not another acceptance gate.
+
 ## Workspace Shortages Include KSS / popup acceptance — 2026-10-21
 
 **Popup alignment, Credit Hold/CIA and Include KSS — COMPLETE / OWNER-ACCEPTED /

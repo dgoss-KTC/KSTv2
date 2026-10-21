@@ -14,7 +14,7 @@ beforeEach(() => { localStorage.clear(); host.invoke.mockReset(); host.invoke.mo
 afterEach(() => vi.unstubAllGlobals());
 describe('typed report-specific production command adapters', () => {
   it('ComponentMrp preparation carries complete request, reuses issuing epoch and never Analytical kind', async () => {
-    const request = { site: 'KV', part: 'EXACT', period: 'Month', horizonWeeks: 72, includeUnconfirmed: false };
+    const request = { site: 'KV', part: 'EXACT', period: 'Month', horizonWeeks: 72, includeUnconfirmed: false, acquisitionId: '11111111-1111-4111-8111-111111111111', asOfDate: '2026-09-29' };
     const port = new WorkbookReportExport('ComponentMrp', generateComponentMrp); const prepared = await port.prepare(request);
     expect(host.invoke).toHaveBeenCalledWith('component_mrp_generate', { epoch: 11, ...request });
     expect(host.invoke.mock.calls.filter(([n]) => n === 'component_mrp_begin')).toHaveLength(1);

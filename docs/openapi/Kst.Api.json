@@ -107,6 +107,136 @@
         }
       }
     },
+    "/api/v1/reports/component-mrp/projection": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "ReadComponentMrpProjection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComponentMrpRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentMrpScreenDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/component-mrp/screen-preparations": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "PrepareComponentMrpScreen",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComponentMrpRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentMrpPreparedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/component-mrp/preparations/{id}/bytes": {
       "get": {
         "tags": [
@@ -5840,6 +5970,57 @@
           }
         }
       },
+      "ComponentMrpPeriodDto": {
+        "required": [
+          "label",
+          "start",
+          "endExclusive",
+          "demand",
+          "receipts",
+          "projectedQoh",
+          "plannedDue",
+          "plannedRelease",
+          "hasUnconfirmed"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "start": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "endExclusive": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "demand": {
+            "type": "string"
+          },
+          "receipts": {
+            "type": "string"
+          },
+          "projectedQoh": {
+            "type": "string"
+          },
+          "plannedDue": {
+            "type": "string"
+          },
+          "plannedRelease": {
+            "type": "string"
+          },
+          "hasUnconfirmed": {
+            "type": "boolean"
+          }
+        }
+      },
       "ComponentMrpPreparedDto": {
         "required": [
           "preparationId",
@@ -5919,6 +6100,107 @@
           "period": {
             "type": "string",
             "default": "Week"
+          },
+          "acquisitionId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "asOfDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "ComponentMrpScreenDto": {
+        "required": [
+          "site",
+          "part",
+          "asOfDate",
+          "horizonWeeks",
+          "period",
+          "includeUnconfirmed",
+          "forecastEndExclusive",
+          "acquiredAtUtc",
+          "acquisitionId",
+          "expiresAtUtc",
+          "unitOfMeasure",
+          "adjustedOpeningQoh",
+          "safetyStock",
+          "dataQualityWarning",
+          "periods"
+        ],
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string"
+          },
+          "part": {
+            "type": "string"
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "horizonWeeks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "period": {
+            "type": "string"
+          },
+          "includeUnconfirmed": {
+            "type": "boolean"
+          },
+          "forecastEndExclusive": {
+            "type": "string",
+            "format": "date"
+          },
+          "acquiredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acquisitionId": {
+            "type": "string"
+          },
+          "expiresAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "unitOfMeasure": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "adjustedOpeningQoh": {
+            "type": "string"
+          },
+          "safetyStock": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dataQualityWarning": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComponentMrpPeriodDto"
+            }
           }
         }
       },

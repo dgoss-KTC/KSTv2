@@ -182,3 +182,18 @@ scenario. Avoid invoking an external import or treating a report workbook as ope
 This checkpoint is closed by explicit owner acceptance, not agent completion alone. Any further
 development, deferred capability or broader cleanup requires a separately dispatched task. The
 authorized local commit does not authorize pushing, deployment or completion of overall Stage 22.
+
+## Separately authorized Part Info & MRP follow-up — 2026-10-21
+
+The accepted redesign above remains historical/accepted. A new owner dispatch combines only the
+Component MRP and Part Info entries, makes Part Info & MRP default and adds server-derived screen
+periods/retained-acquisition export. Workbook kind/save-card authority stays ComponentMrp; other reports
+and accepted popup/supplier/KSS work remain unchanged. Owner explicitly supersedes export-only
+reacquire-and-warn: Refresh MRP must publish a new screen before new export; acquisition expiry alone
+must preserve prepared-byte recovery. Implementation/offline verification, scoped source/security
+confirmation, artifact/acceptance limits and owner checklist are maintained in
+`KST_v2_S22_PART_INFO_MRP.md`, contract semantics in `docs/api/COMPONENT_MRP.md`.
+This follow-up is **COMPLETE / OWNER-ACCEPTED / BOUNDED FOLLOW-UP CLOSED — 2026-10-21**.
+Owner: “The new MRP screen looks great. Accepted.” Acceptance is separate from offline/artifact
+evidence, not proof of the exact executable tested or every suggested desktop check. One complete
+local commit with normal hooks is authorized, not a push. Broader workstreams and Stage 22 stay open.
