@@ -12,7 +12,34 @@ Owner expressly accepts Stage 21 with the final delivered scope and retained ope
 This closeout does not authorize another stage, the Planning redesign or remediation, establish release
 readiness, or resolve/accept security risk.
 
-## Owner acceptance and final scope — 2026-10-14
+## Remaining export dispositions — owner decision 2026-10-21
+
+**S22-035 REVIEW / DISPOSITION OBLIGATION COMPLETE.** This dated owner decision supersedes only
+the unresolved export/no-export inventory dispositions retained at Stage 21 acceptance. Historical
+acceptance, implementation evidence and other limitations below remain unchanged. There is **no
+pending mandatory export implementation under S22-035**.
+
+Owner: “Workspace Shipments, Defer for user feedback. The Shipments in Reports can be exported
+already. No additional exports needed at this time.” Existing Reports exports satisfy the owner's
+present needs; this does not implement Workspace Shipments export or equate its population with Reports.
+
+* Workspace Shipments: deferred for user feedback; no current export requirement.
+* WO/kitting/material/immediate-shortage/candidate details: no additional export required now.
+* Component Orders: no additional export required now; any later need may arise through its existing
+  workflow feedback.
+* Additional Part Info/Component Information/locations/alternates workbooks: no current requirement.
+  Preserve the accepted MRP export, including the combined Part Info & MRP follow-up.
+* Configuration/management: no report export required now. Separate existing release/support
+  obligations remain unchanged.
+
+Deferred proposals remain in this inventory and the existing Windows backlog S22-035, not an
+implementation queue. **Trigger / destination:** a user identifies a downstream artifact need not met
+by existing functionality, followed by a separately scoped export decision before implementation.
+Finished Goods' no-export decision, Planning analytical redesign in future iterative improvements
+outside Stage 22, every accepted export and operational workflow remain unchanged. This documentation-only
+disposition does not close broader S22-003/018 or Stage 22, repeat runtime evidence, or require new acceptance.
+
+## Owner acceptance and final scope — 2026-10-14 (historical closeout)
 
 **Owner-reported review:** the owner reports checking the reports and working through several fixes
 with the coding agent, and explicitly accepts Stage 21. Earlier owner feedback confirmed saving works.
@@ -57,9 +84,9 @@ No source acquisition is part of preparation.
 ## Bounded retained-area inventory
 
 Audience is the scheduler/analyst unless stated otherwise. Operational files require external human
-processing; none implies QAD applied changes. “Unresolved” below is an inventory disposition awaiting
-the owner, not authorization for additional exports. These retained exceptions do not reopen acceptance
-of the final two delivered analytical exports.
+processing; none implies QAD applied changes. The final five rows were unresolved owner dispositions
+at Stage 21 acceptance, not authorization for additional exports. Their dated 2026-10-21 dispositions
+below supersede that unresolved status without reopening acceptance of the delivered analytical exports.
 
 | Retained area | Actual coverage and scope | Disposition |
 |---|---|---|
@@ -75,11 +102,11 @@ of the final two delivered analytical exports.
 | Reports: S&OP | Analytical XLSX, site/ranges/grouping and fiscal presentation from its frozen acquisition. | Accepted Stage 18 retained |
 | Reports: Open Order Report | Analytical XLSX, selected filters and columns, complete acquired result. | Accepted Stage 18 retained |
 | Reports: Historical Shipments | Analytical XLSX, complete immutable filtered acquisition and selected catalog columns, not the visible page. | Accepted Stage 19 retained |
-| Workspace Shipments | Report screen and full-result On Time Rate; no XLSX action in current workspace screen. Reports Historical Shipments is separate scope. | **Unresolved owner export/no-export disposition** |
-| Work Orders / kitting / immediate shortages / candidate drilldowns | Screen investigation; no dedicated analytical export action found. Standalone Component MRP and Workspace Shortages are different grains. | **Unresolved owner disposition** |
-| Component Orders | Informational PO/receipt/buyer context; no dedicated export action found. | **Unresolved owner disposition** |
-| Part Info / Component Information / inventory locations / approved alternates | Informational panels/drawer; no dedicated export actions found. BOM export does not claim to include these independent details. | **Unresolved owner disposition** |
-| General/settings, workspace configuration and management | Configuration UI; no user export action. | **Unresolved owner disposition** |
+| Workspace Shipments | Report screen and full-result On Time Rate; no XLSX action in current workspace screen. Reports Historical Shipments is separate scope, not an identical population. Existing Reports exports satisfy present needs. | **Owner 2026-10-21: deferred for user feedback; no current export requirement** |
+| Work Orders / kitting / material / immediate shortages / candidate drilldowns | Screen investigation; no dedicated analytical export action found. Standalone Component MRP and Workspace Shortages are different grains. | **Owner 2026-10-21: no additional export required now** |
+| Component Orders | Informational PO/receipt/buyer context; no dedicated export action found. | **Owner 2026-10-21: no additional export required now; later need may arise through existing workflow feedback** |
+| Part Info / Component Information / inventory locations / approved alternates | Informational panels/drawer; BOM export does not claim these independent details. Accepted MRP export remains, including the combined Part Info & MRP follow-up; no additional informational workbook. | **Owner 2026-10-21: no current additional workbook requirement; accepted MRP export preserved** |
+| General/settings, workspace configuration and management | Configuration UI; no user report export action. Separate release/support obligations remain. | **Owner 2026-10-21: no report export required now** |
 
 ## Bounded consistency assessment
 
@@ -200,8 +227,9 @@ reset to HEAD because it already contained owner work at entry. No staging, comm
 Not established by agent-run verification: the full integrated native Save As/cancel/overwrite/lost
 reply/navigation matrix, actual Excel viewer opening, exhaustive presentation/live parity,
 installer/printing, crash/power loss and application-restart recovery. Owner-reported report review and
-acceptance are recorded above without expanding their numerical or interaction scope. Unresolved-area
-export decisions remain open.
+acceptance are recorded above without expanding their numerical or interaction scope. Area export
+decisions were unresolved at this checkpoint; the dated 2026-10-21 disposition above now completes
+that review obligation without adding runtime evidence.
 
 ## Review guidance and evidence limits
 
@@ -219,8 +247,9 @@ that each scenario was performed, nor a new acceptance gate.
 5. Prepare, change relevant context and confirm obsolete Save disappears. Cancel/retry Save As; select
    existing destination and decline/accept overwrite. During already-started Save, leave the view and
    confirm captured outcome/status remains accessible. Check optional Open and save/open failure wording.
-6. Unresolved inventory dispositions, the retained legacy browser-feedback discrepancy and export-button
-   usability remain separately tracked; overall stage acceptance does not mark them resolved.
+6. Inventory dispositions are now complete under the dated 2026-10-21 owner decision above; conditional
+   proposals retain its feedback trigger. Other separately tracked save-feedback/usability obligations
+   are not closed by this disposition or overall stage acceptance.
 
 ## Amendment history (verification and review requests as recorded at each checkpoint)
 

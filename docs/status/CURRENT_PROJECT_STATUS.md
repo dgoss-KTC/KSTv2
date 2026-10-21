@@ -3,6 +3,26 @@
 Date: 2026-10-21
 Workstation: Windows (`C:\Dev\kst_v2`)
 
+## Remaining export dispositions / S22-035 — 2026-10-21
+
+**REVIEW / DISPOSITION OBLIGATION COMPLETE; NO PENDING MANDATORY EXPORT IMPLEMENTATION.** Owner:
+“Workspace Shipments, Defer for user feedback. The Shipments in Reports can be exported already.
+No additional exports needed at this time.” Workspace Shipments is feedback-deferred with no current
+export requirement; its export was not implemented and its population is not equated with Reports.
+Existing Reports exports satisfy present needs. WO/kitting/material/candidate details and Component
+Orders require no additional export now; any later Component Orders need may arise through existing
+workflow feedback. Additional Part Info/Component Information/locations/alternates workbooks have no
+current requirement; accepted MRP export is preserved. Configuration/management needs no report export
+now; separate existing release/support obligations remain.
+
+This dated disposition supersedes the unresolved Stage 21 inventory exceptions, not historical
+acceptance or accepted functionality. Deferred proposals remain in the existing Windows backlog S22-035
+and `docs/implementation/KST_v2_STAGE_21_EXPORT_INVENTORY_AND_EVIDENCE.md`. Trigger / destination: a user
+identifies a downstream artifact need not met by existing functionality, followed by a separately scoped
+export decision. Finished Goods no-export, Planning analytical redesign outside Stage 22, every accepted
+export and operational workflow remain unchanged. **Broader S22-003/018 and Stage 22 remain open.**
+Documentation only; no implementation, repeated runtime evidence or new owner-acceptance gate.
+
 ## BOM Show MRP / bounded investigation return — 2026-10-21
 
 **COMPLETE / OWNER-ACCEPTED / BOUNDED NAVIGATION FOLLOW-UP CLOSED — 2026-10-21.**

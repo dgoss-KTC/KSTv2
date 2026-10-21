@@ -3,7 +3,20 @@
 **Accepted baseline:** S0 is **COMPLETE / ACCEPTED — 2026-08-31**. Stages 1–11 are complete and
 owner-accepted at their documented depth. Stages 9, 10, and 11 are **LOCKED**.
 
-**Current bounded follow-up — 2026-10-21:** BOM Show MRP / retained MPS investigation return is
+**Current disposition — 2026-10-21:** **S22-035 review/disposition obligation COMPLETE; no pending
+mandatory export implementation.** Workspace Shipments is deferred for user feedback with no current
+export requirement; existing Reports exports satisfy present needs, not identical-population coverage
+or a new Workspace export. WO/kitting/material/candidate details and Component Orders need no additional
+export now; Component Orders may receive later needs through existing workflow feedback. Additional
+Part Info/Component Information/locations/alternates workbooks have no current requirement; accepted MRP
+export remains. Configuration/management needs no report export now; separate release/support obligations
+remain. Deferred proposals stay in the existing Windows backlog and Stage 21 export inventory, triggered
+only by a user identifying a downstream artifact need not met by existing functionality, followed by a
+separately scoped export decision. Preserve historical acceptance, Finished Goods no-export, Planning
+analytical redesign outside Stage 22 and every accepted export. Broader S22-003/018 and Stage 22 stay open.
+Documentation-only disposition; no implementation, repeated runtime evidence or new acceptance gate.
+
+**Preceding bounded follow-up — 2026-10-21:** BOM Show MRP / retained MPS investigation return is
 **COMPLETE / OWNER-ACCEPTED / BOUNDED FOLLOW-UP CLOSED**, not Stage 22 closure or reacceptance of the
 accepted Part Info page. Shell-guarded selected component/snapshot-site one-use lookup waits for spec;
 26 / Week / Include on; bounded origin trail/filter/scroll/focus retention and both return paths;
@@ -2056,8 +2069,9 @@ Finished Goods: no export required; copying from the report screen is sufficient
 Planning analytical Excel export was removed; complete redesign is deferred to **future iterative
 improvements, not Stage 22**. Existing Planning Mass Updater CSV is retained.
 Export-button placement/presentation is an acknowledged usability issue deferred to later optimization.
-Unresolved other-area inventory dispositions and the legacy browser-save feedback discrepancy remain
-open. Existing Pkcs 9.0.4 moderate/high advisories require separate security disposition: stage acceptance
+At Stage 21 acceptance, other-area inventory dispositions and the legacy browser-save feedback discrepancy
+remained open. The dated 2026-10-21 S22-035 disposition below supersedes only those export/no-export
+exceptions. Existing Pkcs 9.0.4 moderate/high advisories required separate security disposition: stage acceptance
 does not resolve or accept security risk. No subsequent work or release readiness is authorized.
 Stage 11 delivered and accepted its Workspace Shortages
 export ahead of this cross-cutting stage. That export remains accepted functionality; Stage 21
@@ -2067,7 +2081,9 @@ defect or inconsistency.
 ### 21.1 Export inventory and decisions
 
 - [x] Record bounded retained-area inventory and explicit unresolved dispositions; no implied no-export
-      decisions for unresolved areas.
+      decisions for unresolved areas at Stage 21 acceptance. **Superseding owner disposition 2026-10-21:**
+      S22-035 review/disposition complete; no pending mandatory export implementation. See the dated
+      disposition in `docs/implementation/KST_v2_STAGE_21_EXPORT_INVENTORY_AND_EVIDENCE.md`.
 - [x] Record audience, format, scope, filters and limits for delivered/retained exports at inspected depth.
 - [x] Record Finished Goods no-export decision and Planning analytical removal/future redesign.
 - [x] Distinguish analytical exports from retained operational update files.
@@ -2106,6 +2122,10 @@ does not establish exhaustive live numerical parity, every desktop save/open int
 printing or crash/restart recovery. Formatting/lint/diagnostic exceptions and inherited host limitations
 remain in the evidence record. At that closeout Stage 22 remained planned; its current bounded work
 is recorded below. Planning analytical redesign remains outside Stage 22.
+
+**Subsequent disposition — 2026-10-21:** the remaining export/no-export decisions are now complete
+under S22-035, as recorded in the inventory and §22.4. This does not change the historical Stage 21
+acceptance basis or close other obligations.
 
 ## Stage 22 — Refinement & Optimization — IN PROGRESS / RELEASE 1 REQUIRED
 
@@ -2226,6 +2246,13 @@ acceptance and S22-010 remain intact; Stage 22 stays open and no next feature is
 
 ### 22.4 Trigger-deferred items retained through Stage 22
 
+- [x] S22-035 remaining export review/disposition — **COMPLETE — owner decision 2026-10-21**.
+      Workspace Shipments feedback-deferred; no additional exports currently required for WO/kitting/
+      material/candidate details, Component Orders, informational workbooks or configuration/management.
+      Accepted MRP and all other exports preserved; configuration release/support obligations unchanged.
+- [~] Retain those export proposals in the existing inventory/backlog. Trigger / destination: a user
+      identifies a downstream artifact need not met by existing functionality, followed by a separately
+      scoped export decision. No mandatory implementation or broader S22-003/018/Stage 22 closure.
 - [~] Stage 11 row virtualization — reconsider only after keyboard-focus and accessibility behavior
       is solved.
 - [~] Stage 11 DBA investigation — trigger only if production use reveals a material concurrency or
