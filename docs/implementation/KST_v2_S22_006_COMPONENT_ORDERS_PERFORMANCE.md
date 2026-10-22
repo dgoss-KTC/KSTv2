@@ -220,3 +220,37 @@ large local evidence and published binaries remain outside Git. Earlier no-stagi
 describe the implementation and acceptance phases, not this subsequent authorization. Existing
 verification is reused because production/test code has not changed since final verification.
 No push, new implementation, live query, dependency installation or shared deployment is authorized.
+
+### Post-publication optimization disposition — owner decision 2026-10-21
+
+The owner reports that **Component Orders and Workspace Shortages perform well**; further enhancements
+will follow publication. Accepted S22-006 instrumentation and all prior diagnostic evidence remain.
+S22-006/016/023 optimization is **deferred to Stage 27 / post-publication enhancements**, triggered by
+a concrete performance objective or reported bottleneck. No present Stage 22 optimization or numerical
+baseline collection is required merely to close this disposition. This does not waive Stage 23
+performance verification or applicable Stage 24 release-target decisions.
+
+This is an owner-reported observation, not a supplied numerical baseline, measured speedup or proof
+of a dominant phase. The owner's suspected SQL complexity is an unverified hypothesis. Before future
+tuning, retain comparable scope/count/cache-state/phase measurements and the normal shared QAD/MPS
+baseline; SQL/batch/index decisions still require DBA-reviewed actual plan, relevant indexes and
+execution/read/wait context as described above. Client acquisition duration is not isolated server time.
+No current release blocker is retained under this optimization proposal; a reported material bottleneck
+must receive explicit release triage rather than automatic tuning or automatic deferral.
+Documentation only; no new verification, live reads or optimization. Existing exceptions and separate
+licensing reconciliation remain unchanged.
+
+### Stage 22 milestone acceptance and freeze — 2026-10-22
+
+Owner: “Very well. Stage 22 is accepted.” Stage 22 is **COMPLETE / OWNER-ACCEPTED** and its delivered
+source baseline `889175611d49a7975f30cccc0de7f9a61919a17d` is frozen for Stage 23. This approves the
+completed/deferred/later-stage dispositions, including the 2026-10-21 S22-006/016/023 optimization
+deferral above; it does not relabel deferred tuning as implemented. S22-006 instrumentation acceptance
+remains dated 2026-10-19. No numerical live baseline, measured speedup or SQL causation is inferred.
+The timing procedure and shared QAD/MPS/DBA evidence prerequisites remain available/required for
+triggered future tuning, not a new Stage 22 closure requirement. Stage 23 verification and licensing/
+exception reconciliation and applicable Stage 24 release-target gates remain; execution requires
+separate dispatch and deployment is still owner/IT-paused. Known failures/warnings/skips and diagnostic
+limits remain exceptions, not passes or risk acceptance. This four-file documentation closeout reuses
+evidence without new tests/builds/live reads/source changes, publication or push. The resulting local
+documentation commit is the Stage 23 starting reference; it does not change the frozen source baseline.

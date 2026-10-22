@@ -1,7 +1,50 @@
 # Current Project Status
 
-Date: 2026-10-21
+Date: 2026-10-22
 Workstation: Windows (`C:\Dev\kst_v2`)
+
+## Stage 22 completion and baseline freeze — 2026-10-22
+
+**STAGE 22 COMPLETE / OWNER-ACCEPTED; DELIVERED PRODUCT BASELINE FROZEN FOR STAGE 23.**
+Owner milestone decision: “Very well. Stage 22 is accepted.” This accepts the combined decision
+presented below: delivered Ergonomics B depth is sufficient; S1–S3/S5 move to Stage 27 with their
+documented triggers and S4 remains closed at its accepted scope; documented bounded workflow coverage
+is sufficient and master checklist §22.1 is amended to that depth; completed/deferred/later-stage
+dispositions are approved; Stage 22 is complete and its delivered baseline is frozen. No exhaustive
+scheduler walkthrough, universal verification pass, security-risk acceptance or release approval is implied.
+
+**Frozen accepted source baseline:** `889175611d49a7975f30cccc0de7f9a61919a17d`
+(`fix(component-orders): keep table scrollbar reachable`). Earlier delivery/acceptance/disposition dates
+remain unchanged. The final four-file documentation commit records this milestone without changing
+the frozen source; its resulting hash is the Stage 23 starting reference, not a new source delivery.
+No version bump: repository `0.1.0-alpha.21` / retained review-host PE `0.1.0`.
+
+**Stage 23: ready for planning, NOT STARTED.** Separate dispatch is required for execution. Plan against
+master checklist §23: data integrity, performance verification, reliability/recovery and security/governance
+hardening, including S22-027 exceptions and S22-039 licensing/dependency/capability reconciliation.
+Reuse accepted evidence and identify bounded verification gaps before requesting execution; tuning,
+locked-area changes and new dependencies still require their existing evidence/authorization gates.
+Stage 24 readiness/SBOM/identity/signing/update/support decisions and Stages 25–26 pilot/rollout gates
+remain. **Deployment remains owner/IT-paused**; neither this acceptance nor Stage 23 planning authorizes it.
+
+Known limitations remain visible in the dated evidence/disposition sections below: WO-SHORT-01 is a
+distinct deferred investigation with unconfirmed cause; GRID-001 is corrected per owner, not exhaustively
+revalidated; performance observations are not numerical baselines or measured speedups; native fault/
+recovery, installer/fleet and exact-owner-tested-artifact limits remain. Known lint/.NET/Rust format
+failures, React/Vite warnings, inherited skips/ignores, failed deadline-shaped commands and partial AFT
+diagnostics are **exceptions, not passes or security-risk acceptance**. Applicable release disposition
+is still required. Read-only database, locked-algorithm, architecture and dependency-admission boundaries
+are unchanged.
+
+This documentation-only closeout reuses existing evidence: no repeated tests/builds/launches/live reads,
+installation, submission, publication or push. One local documentation commit with normal hooks is
+authorized. Actual entry `src/frontend/tsconfig.tsbuildinfo` SHA256
+`46E25644B316F22F0A655F759D13AF776DC728386ED5FB0CB3BF4A5D89A4C2B3` is preserved unstaged/excluded;
+unrelated work and backups remain untouched. Historical open/pending/uncommitted statements below describe
+their earlier checkpoints and are superseded only for the milestone/dispositions explicitly accepted here.
+Closeout AFT inspection of the four Markdown files has no registered LSP producer; diagnostics are
+unknown, not a clean diagnostic pass. Focused/staged diff, reference and Git whitespace/tree checks
+are the documentation verification boundary; no source verification is rerun for milestone recording.
 
 ## Component Orders scrolling / S22-007 — 2026-10-21
 
@@ -31,6 +74,132 @@ No backend/contracts/native-source/dependencies/capabilities/live reads/install/
 No repeated tests/builds/launches; Stage 22 remains open, not frozen. Record, limits and historical guidance:
 `docs/implementation/KST_v2_S22_007_COMPONENT_ORDERS_SCROLL.md`; evidence
 `C:\Users\dgoss\AppData\Local\Temp\opencode\component-orders-scroll\`.
+
+## Remaining owner dispositions — 2026-10-21; milestone accepted 2026-10-22
+
+**DISPOSITIONS RECONCILED; COMBINED MILESTONE OWNER-ACCEPTED — 2026-10-22.**
+Disposition entry HEAD `243e307a7977b4474d7025b0c5acc899d8e0de4c`; reviewed accepted records and the
+existing Windows backlog `C:\dev\kst_v2_tmp\Stage22\STAGE_22_READ_ONLY_INVENTORY_REVIEW.md`;
+this is a focused disposition pass, not a repeated repository audit.
+
+Owner decisions supplied 2026-10-21:
+
+* **S22-031:** parent-part CSV import deferred to **Stage 27 / post-release enhancements**. Reopen only
+  for a concrete scheduler file-import need and approved input/error/duplicate-handling workflow.
+  No current Stage 22 or Release 1 import implementation requirement; future parsing/security review remains.
+* **S22-022:** MPS quantity discrepancies **corrected per owner confirmation**; further work deferred
+  for new reproducible user feedback. No attribution to a particular unverified change or exhaustive
+  numerical verification. Destination: post-publication feedback triage; a new discrepancy needs
+  part/site/snapshot/week/date basis, displayed quantity and actual WO rows before changing rules.
+  No known current blocker under this item; any new material data defect needs explicit release triage.
+* **S22-006/016/023:** owner reports Component Orders and Workspace Shortages **perform well**.
+  Preserve accepted S22-006 diagnostics and prior Stage 11 evidence. Optimization is deferred to
+  **Stage 27 / post-publication enhancements**, triggered by a concrete performance objective or
+  reported bottleneck. No current tuning or baseline collection is required just to close these items.
+  The owner's suspicion of SQL complexity is a hypothesis, not established causation; no numerical
+  baseline, measured speedup or dominant current phase was supplied. Comparable phase/cache-state/
+  population measurements and, before SQL/batch/index tuning, the retained shared QAD/MPS baseline
+  and DBA-reviewed actual-plan/index/read/wait evidence remain required. Stage 23 performance
+  verification and Stage 24 release-target disposition remain separate obligations, not waived here.
+
+**Owner-acceptance reconciliation — 2026-10-21:** the owner-supplied accepted baseline expressly
+includes **MPS drill-down/navigation acceptance**. Original MPS acceptance is not a renewed completion
+prerequisite. Earlier pending statements in the original checkpoint and accumulated-work records retain
+their historical scope; they do not override this supplied acceptance or require separate reacceptance.
+
+**S22-019 / WO-SHORT-01 — deferred WO shortage investigation:** a scheduler reports a component marked
+**Short** in WO drill-down despite believing inventory covers approximately three months. This is an
+**owner-reported discrepancy; cause unconfirmed**, not evidence that the result is correct, defective
+or caused by allocation. Destination: **later investigation / Stage 27 post-release enhancement backlog**;
+resume only on owner direction or actionable user feedback. Minimum future evidence: site, WO ID,
+component, displayed requirement/issued/short/usable quantities, comparison inventory source and quantity,
+and data freshness. Reconcile usability exclusions, hard reservations, sequential allocation, requirement
+source and freshness before proposing any algorithm change. Preserve locked Stage 9–11 algorithms and
+architecture/security boundaries; an intentional algorithm change requires an explicit owner-approved
+amendment. This distinct targeted-integrity subitem does not reopen corrected **S22-022 / GRID-001**.
+No diagnosis or new completion gate is established; a future confirmed material defect needs explicit triage.
+
+**Completion assessment — combined owner milestone decision accepted 2026-10-22:**
+
+Component Orders scrolling is now owner-accepted (2026-10-21) and locally committed as `8891756`
+(`fix(component-orders): keep table scrollbar reachable`); the scrolling hold is removed. Its seven-path
+commit contains the correction/tests and bounded acceptance records only. The disposition/performance/
+completion-review packet is finalized separately by this authorized documentation closeout.
+
+**Ergonomics B accepted disposition — 2026-10-22: delivered depth is sufficient for Stage 22.** The original ergonomics
+plan §K/§O/§P distinguishes accepted Ergonomics A MUSTs from optional B SHOULDs; the scope registry
+requires B only to the accepted Stage 22 depth. Accepted menu ownership, enabled-item entry/roving focus,
+Escape/Tab/reorder focus and MPS overlay coordination are concrete delivered B work, complemented by
+accepted investigation return and local scroll-region/focus corrections. This is not a universal
+accessibility-conformance or all-widget keyboard audit. The combined milestone decision approves these
+explicit dispositions; deferred proposals are not implemented:
+
+| Original B proposal | Evidence / accepted milestone disposition | Destination and trigger |
+|---|---|---|
+| S1 MPS detail-tab Left/Right/Home/End switching | Optional SHOULD; no concrete remaining defect established. Do not require implementation for this milestone. | Stage 27 / feedback-driven ergonomics; concrete keyboard-navigation need plus approved local tab/focus behavior. |
+| S2 workspace-tab arrow switching | Same optional SHOULD disposition; accepted workspace action-menu keyboard work is not a claim this tablist proposal was delivered. | Stage 27 / feedback-driven ergonomics; concrete workspace-switching need plus approved tab/reorder/focus semantics. |
+| S3 shared focus-trap extraction | Optional maintainability refactor, not a demonstrated current functional defect. Do not refactor working dialogs for closure. | Stage 27 / separately scoped maintainability work when an actual shared focus requirement or defect justifies extraction; demonstrated material defects receive explicit triage. |
+| S4 workspace-menu roving focus | Delivered / owner-accepted in `KST_v2_S22_018_030_WORKSPACE_MENU.md`; retain bounded tests/desktop-evidence limits. | Closed at delivered scope; no repeat acceptance gate. |
+| S5 additional Close/Esc discoverability hints | Optional SHOULD; no concrete unmet workflow requirement identified. No app-wide hint sweep now. | Stage 27 / feedback-driven ergonomics; specific discoverability problem and approved affected affordances. |
+
+**Workflow coverage accepted — 2026-10-22: sufficient at the documented bounded-review depth;
+§22.1 amended accordingly.** Accepted records cover the major workflow families below; they
+support Stage 22 acceptance but do not prove that every scheduler performed an exhaustive walkthrough.
+
+| Workflow family | Retained accepted coverage (records under `docs/implementation/` unless noted) |
+|---|---|
+| Workspace/navigation/dirty-work context | Accepted Ergonomics A and Stage 22 MPS navigation; `KST_v2_S22_018_030_WORKSPACE_MENU.md` and `KST_v2_S22_BOM_SHOW_MRP.md` retain bounded menu, dialog ownership and investigation-return evidence. |
+| MPS, WO/material, BOM and component investigation | Owner-accepted MPS drill-down/navigation and MPS/BOM export pilot/eight-second feedback; BOM Show MRP/return and Part Info/MRP acceptance. Original pending wording is historical, not a new gate. |
+| Planning and Customer Open Orders | `KST_v2_S22_004_PLANNING_SELECTED_TOTALS.md`, `KST_v2_S22_005_OPEN_ORDERS_UI.md`, `KST_v2_S22_005_009_UNPAGED_TABLES.md`: accepted totals, Report/Plan, filtering, session/draft/dirty/export safeguards and subsequent unpaged presentation at their recorded scopes. |
+| Finished Goods and Workspace Shipments | Accepted Finished Goods filters/unpaged follow-up and `KST_v2_S22_WORKSPACE_SHIPMENTS_REDESIGN.md`; Workspace Shipments export remains feedback-deferred, not delivered or required now. |
+| Reports, lookup/MRP and analytical exports | `KST_v2_S22_REPORTS_REDESIGN.md` and `KST_v2_S22_PART_INFO_MRP.md`: accepted Reports views, combined lookup/MRP and protected exports at documented scopes; no extra export requirement. |
+| Workspace Shortages and Component Orders | `KST_v2_S22_008_WORKSPACE_SHORTAGES.md`, `KST_v2_S22_SHORTAGE_POPUP_ALIGNMENT.md`, `KST_v2_SHORTAGEMASTER_LATEST_COMMENT.md` and `KST_v2_S22_007_COMPONENT_ORDERS_SCROLL.md`: accepted presentation/export, popup/supplier/KSS, comment correction and reachable scrolling; owner reports acceptable current performance. |
+
+| Milestone obligation | Source / evidence limit | Accepted disposition — 2026-10-22 |
+|---|---|---|
+| Owner milestone approval of B depth and optional dispositions | Scope registry's B-to-accepted-depth obligation; original plan §K/§O distinguishes SHOULD proposals. | Delivered depth accepted; S1–S3/S5 deferred to Stage 27 with triggers above; S4 closed at accepted scope. |
+| Major-workflow coverage disposition | Retained bounded acceptance does not establish an exhaustive scheduler walkthrough. | Documented bounded coverage accepted as sufficient; §22.1 amended to that depth without an exhaustive claim. |
+| Stage acceptance and baseline freeze | Master checklist §22 completion gate and owner milestone decision. | Stage 22 complete/owner-accepted; source baseline `889175611d49a7975f30cccc0de7f9a61919a17d` frozen for Stage 23. |
+
+**No concrete unmet Stage 22 implementation requirement was identified by the focused assessment.**
+The §22.1 coverage-depth question is resolved by the explicit owner amendment, not an invented
+exhaustive claim. No new independent review, repeated tests, implementation batch or separate delivery
+reacceptance is required solely for milestone recording. Later-stage obligations remain below.
+
+**Combined decision approved by the owner's 2026-10-22 acceptance:** “I accept the delivered Ergonomics B depth
+for Stage 22 and approve S1–S3/S5 deferral as documented, with S4 closed at its accepted scope. I accept
+the documented bounded workflow coverage as sufficient and amend §22.1 to that depth; no exhaustive
+scheduler walkthrough is claimed. I approve the completed/deferred/later-stage dispositions, accept
+Stage 22 as complete and freeze the delivered product baseline for Stage 23. Stage 23 execution and
+deployment still require separate dispatch.” Owner response: “Very well. Stage 22 is accepted.”
+
+No new required implementation is established by vague
+“broader work open” labels (S22-003/017/018/019/020/021/037) alone. Accepted Planning totals, Open Orders,
+Finished Goods, Shipments, Reports, Shortages/popup/supplier/KSS, comments/simulation exclusion, Part
+Info/MRP, BOM navigation, menu correction, workbook-helper retirement and Pkcs remediation stay accepted.
+MPS/BOM export pilot and eight-second feedback acceptance recorded on 2026-10-16 also stand;
+unexecuted recovery/fault scenarios are limitations for Stage 23 reliability, not a new export acceptance gate.
+
+Later work is separated in the scope registry: Component Orders workflow feedback (including PO detail,
+previous/next and no-open-PO), optional Historical filters/sorting and second Planning window; analytical
+field proposals; Stage 11 virtualization/DBA and Stage 9 source-evidence triggers; read-only comments;
+S22-035 feedback-driven export proposals. None has a current mandatory Stage 22 implementation.
+Deployment/IT pause (S22-025/028/038), Stage 23 hardening/licensing reconciliation (including the retained
+Fluent Assertions entitlement notice), and Stage 24–26 readiness/pilot/rollout obligations remain.
+Planning analytical export remains outside Stage 22. Deferred destinations/triggers/release impacts:
+`docs/status/RELEASE_1_SCOPE_REVIEW_2026-09-29.md`, deferred-work registry and dated addendum.
+
+**Evidence reused, not rerun:** accepted records retain scoped tests, builds, contract synchronization,
+artifact identities and bounded independent-review evidence; overlapping test counts are not summed.
+Owner observations/acceptance remain distinct from agent-executed offline, synthetic and bounded
+source evidence. No exhaustive numerical, desktop/native-fault, installer or fleet claim is added.
+Known broad .NET/Rust formatting and locked Stage 10 lint failures, retained skips/ignores, React/Vite
+warnings, timeout-shaped failed commands and partial/deadline AFT diagnostics remain exceptions—not passes.
+No fresh tests/builds/launches/live reads/installations/submissions/publication or pushes. The separately
+authorized scrolling-fix commit is complete; this readiness/disposition work is included in the authorized
+final four-file documentation commit. Pre-existing build-info bytes, source, backups and architecture/
+safety boundaries are preserved. Historical “open”/“pending”
+statements below retain their checkpoint scope; the dated decisions above supersede only these dispositions.
 
 ## Remaining export dispositions / S22-035 — 2026-10-21
 
